@@ -171,7 +171,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">computation_cost</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">constants</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">pruning_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -2626,36 +2625,42 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">=</span> <span class="s1">&#39;matmul&#39;</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_matmul</span> <span class="k">else</span> <span class="s1">&#39;gather&#39;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="ow">in</span> <span class="n">valid_fprop_modes</span><span class="p">,</span> <span class="p">(</span>
         <span class="s1">&#39;fprop_mode must be one of </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">valid_fprop_modes</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SimpleEmbeddingLayer._FpropImpl"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._FpropImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_FpropImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The embedding lookup implementation.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">weight_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">()</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">EmbBprop</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">,</span> <span class="n">drets</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">EmbBprop</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Embedding backprop.</span>
 
 <span class="sd">      Effectively, it computes:</span>
-<span class="sd">        num = size of ids_vec</span>
-<span class="sd">        dembs = zeros_like(embs)</span>
+<span class="sd">        num = size of xs.ids_vec</span>
+<span class="sd">        dembs = zeros_like(xs.embs)</span>
 <span class="sd">        for i in range(num):</span>
-<span class="sd">          dembs[ids_vec[i], :] += drets[i, :]</span>
-<span class="sd">        return dembs, zeros_like(ids_vec)</span>
+<span class="sd">          dembs[xs.ids_vec[i], :] += dys[i, :]</span>
+<span class="sd">        return dembs, zeros_like(xs.ids_vec)</span>
 
 <span class="sd">      Args:</span>
-<span class="sd">        embs: The embedding matrix. Unused in the backprop.</span>
-<span class="sd">        ids_vec: A vector of int32 embedding ids.</span>
-<span class="sd">        drets: A matrix of size (size of ids_vec, embedding dims).</span>
+<span class="sd">        xs: A NestedMap containing:</span>
+
+<span class="sd">          - embs: The embedding matrix. Unused in the backprop.</span>
+<span class="sd">          - ids_vec: A vector of int32 embedding ids.</span>
+<span class="sd">        ys: Required by py_utils._DefineDefun, not used here.</span>
+<span class="sd">        dys: A matrix of size (size of xs.ids_vec, embedding dims).</span>
 
 <span class="sd">      Returns:</span>
-<span class="sd">        Tuple(tensor, tensor):</span>
+<span class="sd">        A NestedMap containing:</span>
 
-<span class="sd">          - dembs: A matrix of the same shape of embs. Gradients for embs.</span>
-<span class="sd">          - dids_vec: Zeros. Same shape as ids_vec.</span>
+<span class="sd">          - embs: A matrix of the same shape of xs.embs. Gradients for xs.embs.</span>
+<span class="sd">          - ids_vec: Zeros. Same shape as xs.ids_vec.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
-      <span class="k">del</span> <span class="n">embs</span>
-      <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">del</span> <span class="n">ys</span>
+      <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">dembs</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">weight_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">drets_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">drets</span><span class="p">)</span>
-        <span class="n">drets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">drets</span><span class="p">,</span> <span class="p">[</span><span class="n">drets_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span><span class="p">)</span>
+        <span class="n">dys_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">dys</span><span class="p">)</span>
+        <span class="n">dys</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dys</span><span class="p">,</span> <span class="p">[</span><span class="n">dys_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">EmbBpropLoop</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
         <span class="c1"># row_id = state.ids_vec[i]</span>
@@ -2672,38 +2677,34 @@
           <span class="n">limit</span><span class="o">=</span><span class="n">num</span><span class="p">,</span>
           <span class="n">delta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
           <span class="n">loop_state</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-              <span class="n">ids_vec</span><span class="o">=</span><span class="n">ids_vec</span><span class="p">,</span> <span class="n">drets</span><span class="o">=</span><span class="n">drets</span><span class="p">,</span> <span class="n">dembs</span><span class="o">=</span><span class="n">dembs</span><span class="p">))</span><span class="o">.</span><span class="n">dembs</span>
+              <span class="n">ids_vec</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">,</span> <span class="n">drets</span><span class="o">=</span><span class="n">dys</span><span class="p">,</span> <span class="n">dembs</span><span class="o">=</span><span class="n">dembs</span><span class="p">))</span><span class="o">.</span><span class="n">dembs</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
         <span class="n">dembs</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
 
-      <span class="k">return</span> <span class="n">dembs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">embs</span><span class="o">=</span><span class="n">dembs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">))</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-        <span class="n">grad_func</span><span class="o">=</span><span class="n">EmbBprop</span><span class="p">,</span>
-        <span class="n">_implements</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span> <span class="o">+</span> <span class="s1">&#39;.EmbFProp&#39;</span><span class="p">,</span>
-        <span class="n">_reference</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">REFERENCE_ANNOTATION</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">EmbFprop</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">EmbFprop</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Embedding forward prop.</span>
 
 <span class="sd">      Effectively, it computes:</span>
-<span class="sd">        num = size of ids_vec</span>
+<span class="sd">        num = size of xs.ids_vec</span>
 <span class="sd">        rets = zeros([num, embedding dim])</span>
 <span class="sd">        for i in range(num):</span>
-<span class="sd">          rets[i, :] = embs[ids_vec[i], :]</span>
+<span class="sd">          rets[i, :] = xs.embs[xs.ids_vec[i], :]</span>
 <span class="sd">        return rets</span>
 
 <span class="sd">      Args:</span>
-<span class="sd">        embs: The embedding matrix.</span>
-<span class="sd">        ids_vec: A vector of int32 embedding ids.</span>
+<span class="sd">        xs: A NestedMap containing:</span>
+
+<span class="sd">          - embs: The embedding matrix.</span>
+<span class="sd">          - ids_vec: A vector of int32 embedding ids.</span>
 
 <span class="sd">      Returns:</span>
 <span class="sd">        The result of embedding lookups. A matrix of shape</span>
-<span class="sd">        [num ids in ids_vec, embedding dims].</span>
+<span class="sd">        [num ids in xs.ids_vec, embedding dims].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
-      <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">num</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">rets</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">num</span><span class="p">]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
 
       <span class="k">def</span> <span class="nf">EmbFpropLoop</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
@@ -2720,35 +2721,32 @@
           <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
           <span class="n">limit</span><span class="o">=</span><span class="n">num</span><span class="p">,</span>
           <span class="n">delta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-          <span class="n">loop_state</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">embs</span><span class="o">=</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="o">=</span><span class="n">ids_vec</span><span class="p">,</span>
-                                        <span class="n">rets</span><span class="o">=</span><span class="n">rets</span><span class="p">))</span><span class="o">.</span><span class="n">rets</span>
+          <span class="n">loop_state</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+              <span class="n">embs</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">,</span> <span class="n">rets</span><span class="o">=</span><span class="n">rets</span><span class="p">))</span><span class="o">.</span><span class="n">rets</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="n">rets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="p">[</span><span class="n">num</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)])</span>
       <span class="k">return</span> <span class="n">rets</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-        <span class="n">_implements</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span> <span class="o">+</span> <span class="s1">&#39;.EmbMatmul&#39;</span><span class="p">,</span>
-        <span class="n">_reference</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">REFERENCE_ANNOTATION</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">EmbMatmul</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">EmbMatmul</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Lookups embedding vectors by doing Matmul with one-hot vector.&quot;&quot;&quot;</span>
-      <span class="c1"># lhs[i, j] is True iff ids_vec[i] == j.</span>
+      <span class="c1"># lhs[i, j] is True iff xs.ids_vec[i] == j.</span>
       <span class="n">lhs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ids_vec</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ids_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">embs</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">embs</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">embs</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">xs</span><span class="o">.</span><span class="n">embs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">EmbGather</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">EmbGather</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Lookups embedding vectors.&quot;&quot;&quot;</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">embs</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">)</span>
 
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">embs</span><span class="o">=</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="o">=</span><span class="n">ids_vec</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;matmul&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span> <span class="o">=</span> <span class="n">EmbMatmul</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span><span class="n">EmbMatmul</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;loop&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span> <span class="o">=</span> <span class="n">EmbFprop</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span>
+          <span class="n">EmbFprop</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="n">EmbBprop</span><span class="p">,</span> <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;gather&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span> <span class="o">=</span> <span class="n">EmbGather</span>
+      <span class="k">return</span> <span class="n">EmbGather</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleEmbeddingLayer._GetWeightShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._GetWeightShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetWeightShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2836,7 +2834,7 @@
             <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
     <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
     <span class="n">flat_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">),</span> <span class="n">flat_ids</span><span class="p">)</span>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FpropImpl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">),</span> <span class="n">flat_ids</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
       <span class="n">emb_noise</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">embs_result</span><span class="p">),</span>
@@ -4028,23 +4026,20 @@
       <span class="n">inputs_norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">cur_scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">cur_bias</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
-        <span class="o">*</span><span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
-        <span class="n">noinline</span><span class="o">=</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">(),</span>
-        <span class="n">shape_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">])</span>
-    <span class="k">def</span> <span class="nf">Normalize</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Normalize `x` w/ `scale` and `bias` gain/shift.&quot;&quot;&quot;</span>
-      <span class="n">x_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Normalize</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift.&quot;&quot;&quot;</span>
+      <span class="n">x_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
       <span class="n">inner_dim</span> <span class="o">=</span> <span class="n">x_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-      <span class="n">x_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">inner_dim</span><span class="p">])</span>
+      <span class="n">x_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">inner_dim</span><span class="p">])</span>
       <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x_reshaped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x_reshaped</span> <span class="o">-</span> <span class="n">mean</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">x_norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_reshaped</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
       <span class="n">x_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_norm</span><span class="p">,</span> <span class="n">x_shape</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">bias</span>
+      <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">bias</span>
 
-    <span class="k">return</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span>
+        <span class="n">Normalize</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">cur_scale</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">cur_bias</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="LayerNorm.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
@@ -5016,19 +5011,15 @@
 
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
 
-      <span class="k">def</span> <span class="nf">ShapeFunc</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">]</span>
+      <span class="k">def</span> <span class="nf">FetchBak</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">i</span><span class="p">):</span>
+        <span class="k">del</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gradients</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">dys</span>
+        <span class="k">return</span> <span class="n">dys</span>
 
-      <span class="k">def</span> <span class="nf">FetchBak</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">i</span><span class="p">):</span>
-        <span class="k">del</span> <span class="n">op</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_gradients</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">dy</span>
-        <span class="k">return</span> <span class="n">dy</span>
-
-      <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape_func</span><span class="o">=</span><span class="n">ShapeFunc</span><span class="p">,</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">FetchBak</span><span class="p">)</span>
       <span class="k">def</span> <span class="nf">FetchFwd</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">x</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_activations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">FetchFwd</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_activations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span><span class="n">FetchFwd</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="n">FetchBak</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_activations</span><span class="p">)</span> <span class="k">if</span> <span class="n">num</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
 
