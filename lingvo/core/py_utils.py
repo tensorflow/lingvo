@@ -3821,21 +3821,21 @@ def RematerializeFn(fn, *xs):
   initial_step_seed = GetStepSeed()
   final_step_seed = GenerateSeedFromName(tf.no_op(name='new_step_seed').name)
 
-  def Backward(op, *dy):
+  def Backward(fwd_xs, fwd_ys, d_fwd_ys):
     """The backward function that rematerializes forward outputs."""
+    del fwd_ys
     always_true = tf.random.uniform([]) < 2.0
     # Alternatively, can do this:
     # tf.where(tf.math.is_nan(x),
     #          tf.constant(float('nan'), dtype=x.dtype) * tf.ones_like(x),
     #          x)
-    # Skip op.inputs[0] which is initial_step_seed.
-    bak_xs = [tf.where(always_true, x, tf.zeros_like(x)) for x in op.inputs[1:]]
+    bak_xs = [tf.where(always_true, x, tf.zeros_like(x)) for x in fwd_xs.xs]
     for dst, src in zip(bak_xs, xs):
       dst.set_shape(src.shape)
     ResetStepSeed(initial_step_seed)
     ys = fn(*bak_xs)
     ResetStepSeed(final_step_seed)
-    dxs = tf.gradients(ys, bak_xs, grad_ys=dy)
+    dxs = tf.gradients(ys, bak_xs, grad_ys=d_fwd_ys)
     dxs_final = []
     for dx, x in zip(dxs, bak_xs):
       if dx is None:
@@ -3843,19 +3843,18 @@ def RematerializeFn(fn, *xs):
       else:
         dxs_final.append(dx)
     assert len(dxs_final) == len(bak_xs)
-    return (tf.zeros_like(initial_step_seed),) + tuple(dxs_final)
+    return NestedMap(
+        initial_step_seed=tf.zeros_like(initial_step_seed), xs=dxs_final)
 
-  xs_dtypes = [x.dtype for x in xs]
   ys_shapes = []
 
   # TODO(huangyp, yonghui): Check Forward doesn't use any stateful random ops.
-  @tf.Defun(initial_step_seed.dtype, *xs_dtypes, python_grad_func=Backward)
-  def Forward(initial_step_seed, *fwd_xs):
+  def Forward(fwd_xs):
     """Forward function plus sanity checks."""
-    for dst, src in zip(fwd_xs, xs):
+    for dst, src in zip(fwd_xs.xs, xs):
       dst.set_shape(src.shape)
-    ResetStepSeed(initial_step_seed)
-    ys = fn(*fwd_xs)
+    ResetStepSeed(fwd_xs.initial_step_seed)
+    ys = fn(*fwd_xs.xs)
     # Some sanity check.
     assert not GetExtraInputs()
     assert not GetExtraArgs()
@@ -3869,7 +3868,10 @@ def RematerializeFn(fn, *xs):
       ys_shapes.append(ys.shape)
     return ys
 
-  ys = Forward(initial_step_seed, *xs)
+  ys = CallDefun(
+      Forward,
+      NestedMap(initial_step_seed=initial_step_seed, xs=xs),
+      bak=Backward)
   if isinstance(ys, tuple):
     for y, s in zip(ys, ys_shapes):
       y.set_shape(s)

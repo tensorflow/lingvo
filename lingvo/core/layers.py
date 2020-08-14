@@ -23,7 +23,6 @@ from lingvo.core import base_layer
 from lingvo.core import bn_layers
 from lingvo.core import builder_layers
 from lingvo.core import computation_cost
-from lingvo.core import constants
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import pruning_utils
 from lingvo.core import py_utils
@@ -2478,36 +2477,42 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       self._fprop_mode = 'matmul' if p.use_matmul else 'gather'
     assert self._fprop_mode in valid_fprop_modes, (
         'fprop_mode must be one of %r' % valid_fprop_modes)
+
+  def _FpropImpl(self, embs, ids_vec):
+    """The embedding lookup implementation."""
+    p = self.params
     emb_shape_suf, weight_shape = self._GetWeightShape()
 
-    @tf.Defun(py_utils.FPropDtype(p), tf.int32, py_utils.FPropDtype(p))
-    def EmbBprop(embs, ids_vec, drets):
+    def EmbBprop(xs, ys, dys):
       """Embedding backprop.
 
       Effectively, it computes:
-        num = size of ids_vec
-        dembs = zeros_like(embs)
+        num = size of xs.ids_vec
+        dembs = zeros_like(xs.embs)
         for i in range(num):
-          dembs[ids_vec[i], :] += drets[i, :]
-        return dembs, zeros_like(ids_vec)
+          dembs[xs.ids_vec[i], :] += dys[i, :]
+        return dembs, zeros_like(xs.ids_vec)
 
       Args:
-        embs: The embedding matrix. Unused in the backprop.
-        ids_vec: A vector of int32 embedding ids.
-        drets: A matrix of size (size of ids_vec, embedding dims).
+        xs: A NestedMap containing:
+
+          - embs: The embedding matrix. Unused in the backprop.
+          - ids_vec: A vector of int32 embedding ids.
+        ys: Required by py_utils._DefineDefun, not used here.
+        dys: A matrix of size (size of xs.ids_vec, embedding dims).
 
       Returns:
-        Tuple(tensor, tensor):
+        A NestedMap containing:
 
-          - dembs: A matrix of the same shape of embs. Gradients for embs.
-          - dids_vec: Zeros. Same shape as ids_vec.
+          - embs: A matrix of the same shape of xs.embs. Gradients for xs.embs.
+          - ids_vec: Zeros. Same shape as xs.ids_vec.
       """
-      del embs
-      num = tf.shape(ids_vec)[0]
+      del ys
+      num = tf.shape(xs.ids_vec)[0]
       dembs = inplace_ops.empty(weight_shape, py_utils.FPropDtype(p), init=True)
       if len(weight_shape) != 2:
-        drets_shape = tf.shape(drets)
-        drets = tf.reshape(drets, [drets_shape[0]] + emb_shape_suf)
+        dys_shape = tf.shape(dys)
+        dys = tf.reshape(dys, [dys_shape[0]] + emb_shape_suf)
 
       def EmbBpropLoop(i, state):
         # row_id = state.ids_vec[i]
@@ -2524,38 +2529,34 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           limit=num,
           delta=1,
           loop_state=py_utils.NestedMap(
-              ids_vec=ids_vec, drets=drets, dembs=dembs)).dembs
+              ids_vec=xs.ids_vec, drets=dys, dembs=dembs)).dembs
 
       if p.scale_sqrt_depth:
         dembs *= p.embedding_dim**0.5
 
-      return dembs, tf.zeros_like(ids_vec)
+      return py_utils.NestedMap(embs=dembs, ids_vec=tf.zeros_like(ids_vec))
 
-    @tf.Defun(
-        py_utils.FPropDtype(p),
-        tf.int32,
-        grad_func=EmbBprop,
-        _implements=self.layer_type + '.EmbFProp',
-        _reference=constants.REFERENCE_ANNOTATION)
-    def EmbFprop(embs, ids_vec):
+    def EmbFprop(xs):
       """Embedding forward prop.
 
       Effectively, it computes:
-        num = size of ids_vec
+        num = size of xs.ids_vec
         rets = zeros([num, embedding dim])
         for i in range(num):
-          rets[i, :] = embs[ids_vec[i], :]
+          rets[i, :] = xs.embs[xs.ids_vec[i], :]
         return rets
 
       Args:
-        embs: The embedding matrix.
-        ids_vec: A vector of int32 embedding ids.
+        xs: A NestedMap containing:
+
+          - embs: The embedding matrix.
+          - ids_vec: A vector of int32 embedding ids.
 
       Returns:
         The result of embedding lookups. A matrix of shape
-        [num ids in ids_vec, embedding dims].
+        [num ids in xs.ids_vec, embedding dims].
       """
-      num = tf.shape(ids_vec)[0]
+      num = tf.shape(xs.ids_vec)[0]
       rets = inplace_ops.empty([num] + emb_shape_suf, py_utils.FPropDtype(p))
 
       def EmbFpropLoop(i, state):
@@ -2572,35 +2573,32 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           start=0,
           limit=num,
           delta=1,
-          loop_state=py_utils.NestedMap(embs=embs, ids_vec=ids_vec,
-                                        rets=rets)).rets
+          loop_state=py_utils.NestedMap(
+              embs=xs.embs, ids_vec=xs.ids_vec, rets=rets)).rets
       if len(weight_shape) > 2:
         rets = tf.reshape(rets, [num, symbolic.ToStatic(p.embedding_dim)])
       return rets
 
-    @tf.Defun(
-        py_utils.FPropDtype(p),
-        tf.int32,
-        _implements=self.layer_type + '.EmbMatmul',
-        _reference=constants.REFERENCE_ANNOTATION)
-    def EmbMatmul(embs, ids_vec):
+    def EmbMatmul(xs):
       """Lookups embedding vectors by doing Matmul with one-hot vector."""
-      # lhs[i, j] is True iff ids_vec[i] == j.
+      # lhs[i, j] is True iff xs.ids_vec[i] == j.
       lhs = tf.equal(
-          tf.expand_dims(ids_vec, 1),
-          tf.range(p.vocab_size, dtype=ids_vec.dtype))
-      return tf.matmul(tf.cast(lhs, embs.dtype), embs)
+          tf.expand_dims(xs.ids_vec, 1),
+          tf.range(p.vocab_size, dtype=xs.ids_vec.dtype))
+      return tf.matmul(tf.cast(lhs, xs.embs.dtype), xs.embs)
 
-    def EmbGather(embs, ids_vec):
+    def EmbGather(xs):
       """Lookups embedding vectors."""
-      return tf.nn.embedding_lookup(embs, ids_vec)
+      return tf.nn.embedding_lookup(xs.embs, xs.ids_vec)
 
+    xs = py_utils.NestedMap(embs=embs, ids_vec=ids_vec)
     if self._fprop_mode == 'matmul':
-      self._fprop = EmbMatmul
+      return py_utils.CallDefun(EmbMatmul, xs)
     elif self._fprop_mode == 'loop':
-      self._fprop = EmbFprop
+      return py_utils.CallDefun(
+          EmbFprop, xs, bak=EmbBprop, bak_as_function=True)
     elif self._fprop_mode == 'gather':
-      self._fprop = EmbGather
+      return EmbGather(xs)
 
   def _GetWeightShape(self):
     p = self.params
@@ -2688,7 +2686,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
             ids, 0, p.vocab_size, name='vocab_id_validation')
     ], ids)
     flat_ids = tf.reshape(ids, [-1])
-    embs_result = self._fprop(self.QWeight(theta.wm), flat_ids)
+    embs_result = self._FpropImpl(self.QWeight(theta.wm), flat_ids)
     if p.vn.global_vn or p.vn.per_step_vn:
       emb_noise = p.vn.scale * tf.random.normal(
           tf.shape(embs_result),
@@ -3880,23 +3878,20 @@ class LayerNorm(base_layer.BaseLayer):
       inputs_norm = (inputs - mean) * tf.math.rsqrt(variance + p.epsilon)
       return inputs_norm * (1.0 + cur_scale) + cur_bias
 
-    @tf.Defun(
-        *[py_utils.FPropDtype(p)] * 3,
-        noinline=not py_utils.use_tpu(),
-        shape_func=lambda op: [op.inputs[0].shape])
-    def Normalize(x, scale, bias):
-      """Normalize `x` w/ `scale` and `bias` gain/shift."""
-      x_shape = py_utils.GetShape(x)
+    def Normalize(xs):
+      """Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift."""
+      x_shape = py_utils.GetShape(xs.x)
       inner_dim = x_shape[-1]
-      x_reshaped = tf.reshape(x, [-1, inner_dim])
+      x_reshaped = tf.reshape(xs.x, [-1, inner_dim])
       mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
       variance = tf.reduce_mean(
           tf.square(x_reshaped - mean), axis=[1], keepdims=True)
       x_norm = (x_reshaped - mean) * tf.math.rsqrt(variance + p.epsilon)
       x_norm = tf.reshape(x_norm, x_shape)
-      return x_norm * (1.0 + scale) + bias
+      return x_norm * (1.0 + xs.scale) + xs.bias
 
-    return Normalize(inputs, cur_scale, cur_bias)
+    return py_utils.CallDefun(
+        Normalize, py_utils.NestedMap(x=inputs, scale=cur_scale, bias=cur_bias))
 
   @classmethod
   def NumOutputNodes(cls, p):
@@ -4868,19 +4863,15 @@ class FetchLayer(base_layer.BaseLayer):
 
     for i, v in enumerate(args):
 
-      def ShapeFunc(op):
-        return [op.inputs[0].shape]
+      def FetchBak(xs, ys, dys, index=i):
+        del xs, ys
+        self._gradients[index] = dys
+        return dys
 
-      def FetchBak(op, dy, index=i):
-        del op
-        self._gradients[index] = dy
-        return dy
-
-      @tf.Defun(v.dtype, shape_func=ShapeFunc, python_grad_func=FetchBak)
       def FetchFwd(x):
         return x
 
-      self._activations[i] = FetchFwd(v)
+      self._activations[i] = py_utils.CallDefun(FetchFwd, v, bak=FetchBak)
 
     return tuple(self._activations) if num > 1 else self._activations[0]
 
