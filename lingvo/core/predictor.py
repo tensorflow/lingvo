@@ -24,8 +24,8 @@ Example::
   pred.Load("/tmp/logdir/train/ckpt-00000000")
   [topk_hyps] = pred.Run(["topk_hyps"], src_strings=["Hello World"])
 """
-
 import threading
+import time
 from lingvo import model_imports
 import lingvo.compat as tf
 from lingvo.core import inference_graph_pb2
@@ -230,19 +230,24 @@ class Predictor:
           validate_fetches=True,
           session_run_options=None,
           run_metadata=None,
+          time_session_run=False,
           **kwargs):
     """Runs predictor.
 
     Args:
-      fetch_keys: a list of keys in the fetch dictionary to fetch.
+      fetch_keys: dict_keys object or a list of keys in the fetch dictionary to
+        fetch.
       validate_fetches: if True, raises a KeyError if a specified fetch is
         invalid. If False, returns None for invalid fetches instead.
       session_run_options: Optional tf.RunOptions() to use in the session.
       run_metadata: Optional tf.RunMetadata() to use in the session.
+      time_session_run: Optional bool, if True, additionally return the
+        execution time of session.run. Defaults to False.
       **kwargs: a dict of inputs to feed.
 
     Returns:
-      A list of predictions corresponding to the order of fetch_keys.
+      A list of predictions corresponding to the order of fetch_keys and, if
+      time_session_run is True, the run time in seconds.
 
     Raises:
       InvalidArgumentError: the number of inputs does not meet requirements.
@@ -250,7 +255,7 @@ class Predictor:
         is invalid and validate_fetches is True.
     """
     single_fetch = False
-    if not isinstance(fetch_keys, list):
+    if not isinstance(fetch_keys, (list, type(dict().keys()))):
       single_fetch = True
       fetch_keys = [fetch_keys]
 
@@ -275,18 +280,20 @@ class Predictor:
     if session_run_options:
       run_options = session_run_options
 
+    start = time.time()
     fetched_results = self._RunWithValidSession(
         tf.Session.run,
         valid_fetches,
         feed_dict=feeds,
         options=run_options,
         run_metadata=run_metadata)
+    duration = time.time() - start
     results = [None] * len(fetch_keys)
     for i, fetch in zip(valid_fetch_idxs, fetched_results):
       results[i] = fetch
     if single_fetch:
       results = results[0]
-    return results
+    return (results, duration) if time_session_run else results
 
 
 def main(_):
