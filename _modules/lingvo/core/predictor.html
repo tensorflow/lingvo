@@ -172,8 +172,8 @@
 <span class="sd">  pred.Load(&quot;/tmp/logdir/train/ckpt-00000000&quot;)</span>
 <span class="sd">  [topk_hyps] = pred.Run([&quot;topk_hyps&quot;], src_strings=[&quot;Hello World&quot;])</span>
 <span class="sd">&quot;&quot;&quot;</span>
-
 <span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_imports</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">inference_graph_pb2</span>
@@ -378,19 +378,24 @@
           <span class="n">validate_fetches</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
           <span class="n">session_run_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
           <span class="n">run_metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">time_session_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
           <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs predictor.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      fetch_keys: a list of keys in the fetch dictionary to fetch.</span>
+<span class="sd">      fetch_keys: dict_keys object or a list of keys in the fetch dictionary to</span>
+<span class="sd">        fetch.</span>
 <span class="sd">      validate_fetches: if True, raises a KeyError if a specified fetch is</span>
 <span class="sd">        invalid. If False, returns None for invalid fetches instead.</span>
 <span class="sd">      session_run_options: Optional tf.RunOptions() to use in the session.</span>
 <span class="sd">      run_metadata: Optional tf.RunMetadata() to use in the session.</span>
+<span class="sd">      time_session_run: Optional bool, if True, additionally return the</span>
+<span class="sd">        execution time of session.run. Defaults to False.</span>
 <span class="sd">      **kwargs: a dict of inputs to feed.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A list of predictions corresponding to the order of fetch_keys.</span>
+<span class="sd">      A list of predictions corresponding to the order of fetch_keys and, if</span>
+<span class="sd">      time_session_run is True, the run time in seconds.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      InvalidArgumentError: the number of inputs does not meet requirements.</span>
@@ -398,7 +403,7 @@
 <span class="sd">        is invalid and validate_fetches is True.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">single_fetch</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="nb">dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()))):</span>
       <span class="n">single_fetch</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">fetch_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">fetch_keys</span><span class="p">]</span>
 
@@ -423,18 +428,20 @@
     <span class="k">if</span> <span class="n">session_run_options</span><span class="p">:</span>
       <span class="n">run_options</span> <span class="o">=</span> <span class="n">session_run_options</span>
 
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">fetched_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="o">.</span><span class="n">run</span><span class="p">,</span>
         <span class="n">valid_fetches</span><span class="p">,</span>
         <span class="n">feed_dict</span><span class="o">=</span><span class="n">feeds</span><span class="p">,</span>
         <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">,</span>
         <span class="n">run_metadata</span><span class="o">=</span><span class="n">run_metadata</span><span class="p">)</span>
+    <span class="n">duration</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fetch</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">valid_fetch_idxs</span><span class="p">,</span> <span class="n">fetched_results</span><span class="p">):</span>
       <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fetch</span>
     <span class="k">if</span> <span class="n">single_fetch</span><span class="p">:</span>
       <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">results</span></div></div>
+    <span class="k">return</span> <span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span> <span class="k">if</span> <span class="n">time_session_run</span> <span class="k">else</span> <span class="n">results</span></div></div>
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
