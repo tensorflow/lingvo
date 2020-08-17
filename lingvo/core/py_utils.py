@@ -3559,6 +3559,28 @@ def ConcatenatePaddedSequences(input0, input1, padding0, padding1, seq_dim=1):
   return concat_inputs, concat_paddings
 
 
+def ShiftLeft(tensor, shift_size, pad_val=0):
+  """Shifts the values in a tensor to the left along the time dimension (dim 1).
+
+  The first shift_size values are dropped, and the tensor is padded on the
+  right with pad_val.
+
+  Args:
+    tensor: the input tensor to modify shaped [batch, time, ...].
+    shift_size: the number of frames >= 0 to shift.
+    pad_val: the value to pad on the right of the tensor.
+
+  Returns:
+    A left shifted tensor.
+  """
+  with tf.control_dependencies([
+      assert_greater_equal(tensor.shape.rank, 2),
+      assert_greater_equal(shift_size, 0)
+  ]):
+    time = GetShape(tensor)[1]
+    return PadSequenceDimension(tensor[:, shift_size:], time, pad_val)
+
+
 def Retry(*args, **kwargs):
   return retry.Retry(*args, **kwargs)
 
