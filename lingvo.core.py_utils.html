@@ -2142,6 +2142,26 @@ Should be 0 or 1. Assumes that batch_dim is 1 - seq_dim.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.ShiftLeft">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ShiftLeft</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tensor</span></em>, <em class="sig-param"><span class="n">shift_size</span></em>, <em class="sig-param"><span class="n">pad_val</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ShiftLeft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ShiftLeft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shifts the values in a tensor to the left along the time dimension (dim 1).</p>
+<p>The first shift_size values are dropped, and the tensor is padded on the
+right with pad_val.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> – the input tensor to modify shaped [batch, time, …].</p></li>
+<li><p><strong>shift_size</strong> – the number of frames &gt;= 0 to shift.</p></li>
+<li><p><strong>pad_val</strong> – the value to pad on the right of the tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A left shifted tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils.Retry">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Retry</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Retry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Retry" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>

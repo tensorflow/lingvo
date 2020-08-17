@@ -3707,6 +3707,28 @@
   <span class="k">return</span> <span class="n">concat_inputs</span><span class="p">,</span> <span class="n">concat_paddings</span></div>
 
 
+<div class="viewcode-block" id="ShiftLeft"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ShiftLeft">[docs]</a><span class="k">def</span> <span class="nf">ShiftLeft</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">shift_size</span><span class="p">,</span> <span class="n">pad_val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Shifts the values in a tensor to the left along the time dimension (dim 1).</span>
+
+<span class="sd">  The first shift_size values are dropped, and the tensor is padded on the</span>
+<span class="sd">  right with pad_val.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensor: the input tensor to modify shaped [batch, time, ...].</span>
+<span class="sd">    shift_size: the number of frames &gt;= 0 to shift.</span>
+<span class="sd">    pad_val: the value to pad on the right of the tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A left shifted tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+      <span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+      <span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">shift_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="p">]):</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">PadSequenceDimension</span><span class="p">(</span><span class="n">tensor</span><span class="p">[:,</span> <span class="n">shift_size</span><span class="p">:],</span> <span class="n">time</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="Retry"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Retry">[docs]</a><span class="k">def</span> <span class="nf">Retry</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">retry</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
