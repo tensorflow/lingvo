@@ -143,6 +143,9 @@ class Learner(base_layer.BaseLayer):
 
     def VariableFilter(v):
       """Returns True if variable v should be optimized by this learner."""
+      if not v.trainable:
+        return False
+
       if pos and not pos.search(v.name):
         tf.logging.info('%s: disabled by bprop_variable_filter: %s', p.name,
                         v.name)

@@ -36,6 +36,7 @@ class TestLayer(base_layer.BaseLayer):
     self.CreateVariable('hello', pc)
     self.CreateVariable('world', pc)
     self.CreateVariable('moon', pc)
+    self.CreateVariable('mars', pc, trainable=False)
 
   def Loss(self, theta):
     return self.MainLoss(theta) + self.AuxLoss(theta)
@@ -71,7 +72,12 @@ class LearnerTest(test_utils.TestCase):
     var_grads, updated_vars, _ = self._testLearner(learner_p)
     tf.logging.info('var_grads=%s, updated_vars=%s', var_grads, updated_vars)
     self.assertAllClose(var_grads, {'hello': (0., 1.), 'world': (0., -2.)})
-    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.2, 'moon': 0.})
+    self.assertAllClose(updated_vars, {
+        'hello': -0.1,
+        'world': 0.2,
+        'moon': 0.,
+        'mars': 0.
+    })
 
   def testMultiLoss(self):
     learner_p = learner.Learner.Params().Set(
@@ -80,7 +86,12 @@ class LearnerTest(test_utils.TestCase):
     learner_p.gradient_combiner = GradientSum.Params()
     var_grads, updated_vars, _ = self._testLearner(learner_p)
     self.assertAllClose(var_grads, {'hello': (0., 1.), 'world': (0., -2.)})
-    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.2, 'moon': 0.})
+    self.assertAllClose(updated_vars, {
+        'hello': -0.1,
+        'world': 0.2,
+        'moon': 0.,
+        'mars': 0.
+    })
 
   def testBPropVariableFilter(self):
     learner_p = learner.Learner.Params().Set(
@@ -91,7 +102,12 @@ class LearnerTest(test_utils.TestCase):
     var_grads, updated_vars, eval_metrics = self._testLearner(learner_p)
     # Only 'hello' is updated.
     self.assertAllClose(var_grads, {'hello': (0., 1.)})
-    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0., 'moon': 0.})
+    self.assertAllClose(updated_vars, {
+        'hello': -0.1,
+        'world': 0.,
+        'moon': 0.,
+        'mars': 0.
+    })
     self.assertIn('grad_scale_all', eval_metrics)
 
   def testBPropVariableExclusion(self):
@@ -104,7 +120,12 @@ class LearnerTest(test_utils.TestCase):
     var_grads, updated_vars, _ = self._testLearner(learner_p)
     # Only 'world' is updated.
     self.assertAllClose(var_grads, {'world': (0., -2.)})
-    self.assertAllClose(updated_vars, {'hello': 0., 'world': 0.2, 'moon': 0.})
+    self.assertAllClose(updated_vars, {
+        'hello': 0.,
+        'world': 0.2,
+        'moon': 0.,
+        'mars': 0.
+    })
 
   def _testLearner(self, learner_p):
     tf.train.get_or_create_global_step()  # needed for lr_schedule
