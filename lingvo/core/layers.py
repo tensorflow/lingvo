@@ -3450,6 +3450,12 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
     p.Define(
         'scale_sqrt_depth', False, 'If set True, activations are scaled'
         ' with sqrt(input_dim) in EmbLookup.')
+    p.Define(
+        'embedding_dim', 0, 'Set to be compatible with embedding layer, '
+        ' and it is equivalent to input_dim')
+    p.Define(
+        'vocab_size', 0, 'Set to be compatible with embedding layer, and '
+        'it is equivalent to num_classes')
     return p
 
   def EmbLookup(self, theta, ids):
