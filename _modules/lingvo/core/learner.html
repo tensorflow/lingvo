@@ -291,6 +291,9 @@
 
     <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Returns True if variable v should be optimized by this learner.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">trainable</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
       <span class="k">if</span> <span class="n">pos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pos</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                         <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
