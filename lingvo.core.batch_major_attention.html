@@ -1138,6 +1138,7 @@ dot product.</p>
 <li><p>single step during decoding</p></li>
 <li><p>propagate clustering loss;</p></li>
 <li><p>supporting packed inputs;</p></li>
+<li><p>support attention dropout.</p></li>
 </ul>
 </dd>
 <dt>We use the following capital letters to denote shape parameters:</dt><dd><p>B = batch size
@@ -1183,8 +1184,70 @@ for both. (For the inference path only ‘key_paddings’ is useful.)</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>[B, T, N, H].
-atten_probs: [B, T, N, W]. Note that the caller doesn’t know which
-position the last dimension corresponds to along the S dimension.</p>
+atten_probs: [B, T, N, S].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>encoded</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.RoutingAttention._DotAttenSlowPath">
+<code class="sig-name descname">_DotAttenSlowPath</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">q_dists</span></em>, <em class="sig-param"><span class="n">k_dists</span></em>, <em class="sig-param"><span class="n">query_paddings</span></em>, <em class="sig-param"><span class="n">key_paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#RoutingAttention._DotAttenSlowPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.RoutingAttention._DotAttenSlowPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the attention via the slow path.</p>
+<p>This implementation selects, on a per query basis, p.attention_window
+number of keys/values to attend to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of the values of this layer’s weights.</p></li>
+<li><p><strong>query</strong> – [B, T, N, H], already normalized.</p></li>
+<li><p><strong>key</strong> – [B, S, N, H], already normalized.</p></li>
+<li><p><strong>value</strong> – [B, S, N, H].</p></li>
+<li><p><strong>q_dists</strong> – [B, T, N, K].</p></li>
+<li><p><strong>k_dists</strong> – [B, S, N, K].</p></li>
+<li><p><strong>query_paddings</strong> – [B, T].</p></li>
+<li><p><strong>key_paddings</strong> – [B, S].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, T, N, H].
+atten_probs: [B, T, N, S].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>encoded</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.RoutingAttention._DotAttenFastPath">
+<code class="sig-name descname">_DotAttenFastPath</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">q_dists</span></em>, <em class="sig-param"><span class="n">k_dists</span></em>, <em class="sig-param"><span class="n">query_paddings</span></em>, <em class="sig-param"><span class="n">key_paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#RoutingAttention._DotAttenFastPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.RoutingAttention._DotAttenFastPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the attention via the fast path.</p>
+<p>This implementation compute groups of queries, and for each group,
+selects a set of p.attention_window number of keys/values that each
+query in that group all attend to.</p>
+<p>There is no guarantee a query uniquely belong to a single group, although
+via clustering this should likely be the case. When a query belong to
+multiple groups, the attention is averaged post softmax; when a query
+does not belong to any group, the attention result is zero.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of the values of this layer’s weights.</p></li>
+<li><p><strong>query</strong> – [B, T, N, H], already normalized.</p></li>
+<li><p><strong>key</strong> – [B, S, N, H], already normalized.</p></li>
+<li><p><strong>value</strong> – [B, S, N, H].</p></li>
+<li><p><strong>q_dists</strong> – [B, T, N, K].</p></li>
+<li><p><strong>k_dists</strong> – [B, S, N, K].</p></li>
+<li><p><strong>query_paddings</strong> – [B, T].</p></li>
+<li><p><strong>key_paddings</strong> – [B, S].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, T, N, H].
+atten_probs: [B, T, N, S]. Note, N * S * T space complexity here.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>encoded</p>
@@ -1319,8 +1382,8 @@ its children layers.</p></li>
 <li><p><strong>query_vec</strong> – [B, T, D].</p></li>
 <li><p><strong>source_vecs</strong> – [B, S, D] (cross_attention) or None (self-attention).</p></li>
 <li><p><strong>paddings</strong> – [B, S].</p></li>
-<li><p><strong>per_step_padding_override</strong> – [B, T, T] for self attention or
-[B, T, S] for cross attention.</p></li>
+<li><p><strong>per_step_padding_override</strong> – [B, T, T] for self attention or [B, T, S] for
+cross attention.</p></li>
 <li><p><strong>segment_mask</strong> – [B, 1, T, S].</p></li>
 </ul>
 </dd>

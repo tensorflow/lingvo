@@ -472,6 +472,9 @@ is reserved to mean paddings, distinct from the value (S-1).</p>
 dimension, this degenerates to the original full attention.</p>
 <p>We require that ‘sparsity_indices’ does not contain duplicates (except for -1
 to indicate paddings), but we do not require ‘sparsity_indices’ to be sorted.</p>
+<p>Note that this implementation is flexible and geneic but is not optimized for
+time or space complexity. Please consider grouping queries that attend to the
+same subset of values first for efficiency.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -483,13 +486,8 @@ to indicate paddings), but we do not require ‘sparsity_indices’ to be sorted
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>the encoded output, [B, T, N, H], a linear combination of the</dt><dd><p>values.</p>
-</dd>
-<dt>atten_probs: the attention weights, [B, T, N, W], where W is the attention</dt><dd><p>window.</p>
-</dd>
-</dl>
-</p>
+<dd class="field-even"><p>the encoded output, [B, T, N, H].
+atten_probs: the attention weights, [B, T, N, S].</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>output</p>

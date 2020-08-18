@@ -663,7 +663,9 @@
     <span class="c1"># If per_cluster_count for a cluster is 0, then &#39;nearest_one_hot&#39; in that</span>
     <span class="c1"># cluster&#39;s position will always be 0, hence &#39;sum_x&#39; in that dimension will</span>
     <span class="c1"># be 0.</span>
-    <span class="n">new_means</span> <span class="o">=</span> <span class="n">sum_x</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_cluster_count</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">new_means</span> <span class="o">=</span> <span class="n">sum_x</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">per_cluster_count</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_cluster_count</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
 
     <span class="c1"># We use exponential moving average. TODO(zhouwk): investigate smooth this</span>
     <span class="c1"># over an exponentially moving averaged per cluster count.</span>
@@ -705,6 +707,10 @@
 <span class="sd">  We require that &#39;sparsity_indices&#39; does not contain duplicates (except for -1</span>
 <span class="sd">  to indicate paddings), but we do not require &#39;sparsity_indices&#39; to be sorted.</span>
 
+<span class="sd">  Note that this implementation is flexible and geneic but is not optimized for</span>
+<span class="sd">  time or space complexity. Please consider grouping queries that attend to the</span>
+<span class="sd">  same subset of values first for efficiency.</span>
+
 <span class="sd">  Args:</span>
 <span class="sd">    q: (projected) queries, [B, T, N, H];</span>
 <span class="sd">    k: (projected) keys, [B, S, N, H];</span>
@@ -713,10 +719,8 @@
 <span class="sd">    paddings: paddings for keys, [B, S] if not None.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    output: the encoded output, [B, T, N, H], a linear combination of the</span>
-<span class="sd">      values.</span>
-<span class="sd">    atten_probs: the attention weights, [B, T, N, W], where W is the attention</span>
-<span class="sd">      window.</span>
+<span class="sd">    output: the encoded output, [B, T, N, H].</span>
+<span class="sd">    atten_probs: the attention weights, [B, T, N, S].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">q</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
   <span class="n">k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
@@ -781,8 +785,31 @@
 
   <span class="c1"># [B, T, N, W]</span>
   <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;attention_weights&#39;</span><span class="p">)</span>
+  <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sparsity_indices</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">logits</span><span class="p">),</span>
+                         <span class="n">atten_probs</span><span class="p">)</span>
   <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNW, BTNWH -&gt; BTNH&#39;</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">atten_probs</span></div>
+
+  <span class="c1"># Scatter &#39;atten_probs&#39; back into the original source length.</span>
+  <span class="c1"># [B, T, N, W, 1]</span>
+  <span class="n">batch_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+      <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_length</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">attention_window</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="c1"># [B, T, N, W, 1]</span>
+  <span class="n">target_seq_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">target_length</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+      <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">attention_window</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="c1"># [B, T, N, W, 1]</span>
+  <span class="n">head_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">num_heads</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+      <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">target_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">attention_window</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="c1"># seq_idx: [B, T, N, W, 1]</span>
+  <span class="c1"># [B, T, N, W, 4]</span>
+  <span class="n">scatter_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">batch_idx</span><span class="p">,</span> <span class="n">target_seq_idx</span><span class="p">,</span> <span class="n">head_idx</span><span class="p">,</span> <span class="n">seq_idx</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="c1"># [B, T, N, S]</span>
+  <span class="n">scattered_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">(</span>
+      <span class="n">scatter_idx</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span>
+      <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">target_length</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">source_length</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">scattered_probs</span></div>
 </pre></div>
 
            </div>
