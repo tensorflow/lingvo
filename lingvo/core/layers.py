@@ -3682,6 +3682,56 @@ class SingleShardFullSoftmax(SoftmaxLayer):
     return output_nmap
 
 
+class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
+  """A shared softmax/embedding layer."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('vocab_size', 0, 'Num tokens in vocab.')
+    p.Define('embedding_dim', 0, 'Depth of the output.')
+    p.Define(
+        'scale_sqrt_depth', False, 'If set True, activations are scaled'
+        ' with sqrt(embedding_dim) in EmbLookup.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.vocab_size == p.num_classes
+    assert p.embedding_dim == p.input_dim
+
+  def EmbLookupDefaultTheta(self, ids):
+    return self.EmbLookup(self.theta, ids)
+
+  def EmbLookup(self, theta, ids):
+    """Looks up embedding vectors for ids.
+
+    Args:
+      theta: Named tuple with the weight matrix for the embedding.
+      ids: A rank-N int32 tensor.
+
+    Returns:
+      A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
+    """
+    p = self.params
+    ids = tf.convert_to_tensor(ids)
+    ids = py_utils.with_dependencies([
+        py_utils.assert_between(
+            ids, 0, p.vocab_size, name='vocab_id_validation')
+    ], ids)
+    # TODO(yonghui): Get rid of this extra copy (tf.transpose).
+    emb_vars = tf.transpose(theta.linear.w)
+    embs = tf.nn.embedding_lookup(emb_vars, tf.reshape(ids, [-1]))
+    if p.scale_sqrt_depth:
+      embs *= p.embedding_dim**0.5
+    if p.vn.global_vn or p.vn.per_step_vn:
+      embs = py_utils.AddGlobalVN(p, embs)
+    out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
+    return tf.reshape(embs, out_shape)
+
+
 class ConvSoftmax(quant_utils.QuantizableLayer):
   """A softmax implementation based on 1x1 convolution.
 
