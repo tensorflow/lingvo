@@ -3830,6 +3830,56 @@
     <span class="k">return</span> <span class="n">output_nmap</span></div></div>
 
 
+<div class="viewcode-block" id="SingleShardSharedEmbeddingSoftmax"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardSharedEmbeddingSoftmax">[docs]</a><span class="k">class</span> <span class="nc">SingleShardSharedEmbeddingSoftmax</span><span class="p">(</span><span class="n">SingleShardFullSoftmax</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A shared softmax/embedding layer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SingleShardSharedEmbeddingSoftmax.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardSharedEmbeddingSoftmax.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Num tokens in vocab.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;scale_sqrt_depth&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set True, activations are scaled&#39;</span>
+        <span class="s1">&#39; with sqrt(embedding_dim) in EmbLookup.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+
+<div class="viewcode-block" id="SingleShardSharedEmbeddingSoftmax.EmbLookupDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardSharedEmbeddingSoftmax.EmbLookupDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookupDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleShardSharedEmbeddingSoftmax.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardSharedEmbeddingSoftmax.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Looks up embedding vectors for ids.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Named tuple with the weight matrix for the embedding.</span>
+<span class="sd">      ids: A rank-N int32 tensor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A rank-(N+1) params.dtype tensor.</span>
+<span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
+            <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
+    <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
+    <span class="c1"># TODO(yonghui): Get rid of this extra copy (tf.transpose).</span>
+    <span class="n">emb_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+    <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">emb_vars</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
+      <span class="n">embs</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">]],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="ConvSoftmax"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSoftmax">[docs]</a><span class="k">class</span> <span class="nc">ConvSoftmax</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A softmax implementation based on 1x1 convolution.</span>
 
