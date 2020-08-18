@@ -1483,6 +1483,7 @@ class RoutingAttention(MultiHeadedAttention):
     * single step during decoding
     * propagate clustering loss;
     * supporting packed inputs;
+    * support attention dropout.
 
   We use the following capital letters to denote shape parameters:
     B = batch size
@@ -1505,6 +1506,17 @@ class RoutingAttention(MultiHeadedAttention):
     p.Define('attention_window', 0, 'The number of keys each query attends to.')
     p.Define('clustering', attention_util.KMeansClusteringForAtten.Params(),
              'The params for a clustering layer.')
+    p.Define(
+        'fast_path', True,
+        'Whether to use a more efficient implementation. The fast path is '
+        'signanificantly faster by grouping queries when determining which '
+        'values to attend to (which might leave out some queries or duplicate '
+        'others); fast_path=False computes this per each query.')
+    p.Define(
+        'query_group_size_factor', 1.2,
+        'Only used when p.fast_path=True. When grouping queries, we make the '
+        'group size larger by this multiplier to not leave out any queries due '
+        'to potential cluster imbalance.')
     return p
 
   def __init__(self, params):
@@ -1552,8 +1564,7 @@ class RoutingAttention(MultiHeadedAttention):
 
     Returns:
       encoded: [B, T, N, H].
-      atten_probs: [B, T, N, W]. Note that the caller doesn't know which
-      position the last dimension corresponds to along the S dimension.
+      atten_probs: [B, T, N, S].
     """
     p = self.params
     # Whether to update the centroids. Only do this during training.
@@ -1567,6 +1578,37 @@ class RoutingAttention(MultiHeadedAttention):
     # [B, S, N, K]
     k_dists, _ = self.clustering.FProp(
         theta.clustering, key, key_paddings, update=update)
+    if p.fast_path:
+      return self._DotAttenFastPath(theta, query, key, value, q_dists, k_dists,
+                                    query_paddings, key_paddings)
+    else:
+      return self._DotAttenSlowPath(theta, query, key, value, q_dists, k_dists,
+                                    query_paddings, key_paddings)
+
+  def _DotAttenSlowPath(self, theta, query, key, value, q_dists, k_dists,
+                        query_paddings, key_paddings):
+    """Computes the attention via the slow path.
+
+    This implementation selects, on a per query basis, p.attention_window
+    number of keys/values to attend to.
+
+    Args:
+      theta: A `.NestedMap` of the values of this layer's weights.
+      query: [B, T, N, H], already normalized.
+      key:   [B, S, N, H], already normalized.
+      value: [B, S, N, H].
+      q_dists: [B, T, N, K].
+      k_dists: [B, S, N, K].
+      query_paddings: [B, T].
+      key_paddings:   [B, S].
+
+    Returns:
+      encoded: [B, T, N, H].
+      atten_probs: [B, T, N, S].
+    """
+
+    p = self.params
+
     # [B, N, K, S]
     # If key is padded in a position, 'k_dists' is inf which ensures
     # that we consider all non-padded keys even if some padded keys
@@ -1590,6 +1632,185 @@ class RoutingAttention(MultiHeadedAttention):
                                  closest_indices)
     return attention_util.ComputeSparseAttention(query, key, value,
                                                  sparsity_indices, key_paddings)
+
+  def _DotAttenFastPath(self, theta, query, key, value, q_dists, k_dists,
+                        query_paddings, key_paddings):
+    """Computes the attention via the fast path.
+
+    This implementation compute groups of queries, and for each group,
+    selects a set of p.attention_window number of keys/values that each
+    query in that group all attend to.
+
+    There is no guarantee a query uniquely belong to a single group, although
+    via clustering this should likely be the case. When a query belong to
+    multiple groups, the attention is averaged post softmax; when a query
+    does not belong to any group, the attention result is zero.
+
+    Args:
+      theta: A `.NestedMap` of the values of this layer's weights.
+      query: [B, T, N, H], already normalized.
+      key:   [B, S, N, H], already normalized.
+      value: [B, S, N, H].
+      q_dists: [B, T, N, K].
+      k_dists: [B, S, N, K].
+      query_paddings: [B, T].
+      key_paddings:   [B, S].
+
+    Returns:
+      encoded: [B, T, N, H].
+      atten_probs: [B, T, N, S]. Note, N * S * T space complexity here.
+    """
+    p = self.params
+    # [B, N, K, S]
+    # If key is padded in a position, 'k_dists' is inf which ensures
+    # that we consider all non-padded keys even if some padded keys
+    # might appear closer.
+    k_dists = tf.transpose(k_dists, [0, 2, 3, 1])
+
+    # [B, N, K, W], for each centroid, the indices of closest key vecs.
+    # closest_k may include padded positions.
+    _, closest_k = tf.math.top_k(-k_dists, p.attention_window)
+
+    q_length = py_utils.GetShape(query, 2)[1]
+    k_length = py_utils.GetShape(key, 2)[1]
+    assert isinstance(q_length, int)
+    assert isinstance(k_length, int)
+    q_cluster_size = int(p.query_group_size_factor * q_length / p.num_clusters)
+    # Of shape [B, N, K, T]
+    q_dists = tf.transpose(q_dists, [0, 2, 3, 1])
+    # closest_q of shape [B, N, K, V], where V = q_cluster_size
+    # closest_q may include padded positions.
+    _, closest_q = tf.math.top_k(-q_dists, q_cluster_size)
+
+    def gather(v, indx):
+      """Gathers values from v.
+
+      Args:
+        v: A tensor of shape [B, T, N, D]
+        indx: A tensor of shape [B, N, K, W]
+
+      Returns:
+        A value of shape [B, N, K, W, D]
+      """
+      # pylint: disable=invalid-name
+      B, _, N, _ = py_utils.GetShape(v, 4)
+      _, _, K, W = py_utils.GetShape(indx, 4)
+      # pylint: enable=invalid-name
+      batch_idx = tf.range(B)[:, None, None, None, None]
+      batch_idx = tf.tile(batch_idx, [1, N, K, W, 1])
+      seq_idx = indx[:, :, :, :, None]
+      head_idx = tf.range(N)[None, :, None, None, None]
+      head_idx = tf.tile(head_idx, [B, 1, K, W, 1])
+      gather_idx = tf.concat([batch_idx, seq_idx, head_idx], 4)
+      return tf.gather_nd(v, gather_idx)
+
+    # c_ shorts for clustered.
+    _, _, num_heads, dim_per_head = py_utils.GetShape(query, 4)
+    # of shape [B, N, K, V, D]
+    c_query = gather(query, closest_q)
+    # of shape [B, N, K, W, D]
+    c_key, c_value = tf.split(
+        gather(tf.concat([key, value], -1), closest_k), 2, -1)
+    # of shape [B, N, K, W, 1]
+    c_key_paddings = gather(
+        # [B, T, N, 1]
+        tf.tile(key_paddings[:, :, None, None], [1, 1, num_heads, 1]),
+        closest_k)
+
+    logits = tf.einsum('BNKVD,BNKWD->BNKVW', c_query, c_key)
+    logits *= tf.math.rsqrt(tf.cast(dim_per_head, p.dtype))
+
+    very_negative_logits = (
+        tf.ones_like(logits) * logits.dtype.max *
+        tf.constant(-0.7, dtype=logits.dtype))
+    padded_logits = tf.where(
+        tf.tile(
+            tf.transpose(c_key_paddings, [0, 1, 2, 4, 3]),
+            [1, 1, 1, q_cluster_size, 1]) > 0.5, very_negative_logits, logits)
+
+    c_atten_probs = tf.nn.softmax(padded_logits)
+    c_outputs = tf.einsum('BNKWD,BNKVW->BNKVD', c_value, c_atten_probs)
+
+    def scatter(v, indx, seq_len):
+      """Scatters v according to indx.
+
+      Args:
+        v: A tensor of shape [B, N, K, V, D].
+        indx: A tensor of shape [B, N, K, V].
+        seq_len: sequence length of the output.
+
+      Returns:
+        output: A tensor of shape [B, T, N, D], where T = seq_len.
+      """
+      # Need to scatter outputs back to the original shape.
+      # pylint: disable=invalid-name
+      B, N, K, V, D = py_utils.GetShape(v, 5)
+      # pylint: enable=invalid-name
+      # [B, N, K, V, 1]
+      batch_idx = tf.tile(
+          tf.range(B)[:, None, None, None, None], [1, N, K, V, 1])
+      # [B, N, K, V, 1]
+      seq_idx = indx[:, :, :, :, None]
+      # [B, N, K, V, 1]
+      head_idx = tf.tile(
+          tf.range(N)[None, :, None, None, None], [B, 1, K, V, 1])
+      scatter_idx = tf.concat([batch_idx, seq_idx, head_idx], 4)
+      scattered = tf.scatter_nd(
+          scatter_idx, tf.concat([v, tf.ones_like(v[:, :, :, :, :1])], -1),
+          [B, seq_len, N, D + 1])
+      # We need to normaliz as one query vector may appear in multiple clusters.
+      scattered, den = tf.split(scattered, [v.shape.as_list()[-1], 1], -1)
+      # den = tf.squeeze(den, -1)
+      out = scattered / tf.maximum(tf.constant(1.0, dtype=den.dtype),
+                                   den)  # [:, :, :, None])
+      return out
+
+    def scatter_atten_prob(c_atten_probs, closest_k, closest_q, k_length,
+                           q_length):
+      """Scatters c_atten_probs.
+
+      Args:
+        c_atten_probs: A tensor of shape [B, N, K, V, W].
+        closest_k: A tensor of shape [B, N, K, W].
+        closest_q: A tensor of shape [B, N, K, V].
+        k_length: Length of the key vectors.
+        q_length: Length of the query vectors.
+
+      Returns:
+        output: A tensor of shape [B, q_length, N, k_length].
+      """
+      # Need to scatter outputs back to the original shape.
+      # pylint: disable=invalid-name
+      B, N, K, V, W = py_utils.GetShape(c_atten_probs, 5)
+      # pylint: enable=invalid-name
+      # [B, N, K, V, W, 1]
+      batch_idx = tf.tile(
+          tf.range(B)[:, None, None, None, None, None], [1, N, K, V, W, 1])
+      # [B, N, K, V, W, 1]
+      k_idx = tf.tile(closest_k[:, :, :, None, :, None], [1, 1, 1, V, 1, 1])
+      q_idx = tf.tile(closest_q[:, :, :, :, None, None], [1, 1, 1, 1, W, 1])
+      head_idx = tf.tile(
+          tf.range(N)[None, :, None, None, None, None], [B, 1, K, V, W, 1])
+      scatter_idx = tf.concat([batch_idx, q_idx, head_idx, k_idx], 5)
+      scattered_prob = tf.scatter_nd(scatter_idx, c_atten_probs,
+                                     [B, q_length, N, k_length])
+
+      # We need to normalize the attention prob as one query vector may appear
+      # in multiple clusters.
+      # [B, N, K, V, 3]
+      times_idx = tf.concat([batch_idx, q_idx, head_idx], 5)[:, :, :, :, 0, :]
+      # [B, q_length, N]
+      times = tf.scatter_nd(
+          times_idx, tf.cast(tf.ones_like(closest_q), scattered_prob.dtype),
+          [B, q_length, N])
+      times = tf.maximum(1.0, times[:, :, :, None])
+      out = scattered_prob / times
+      return out
+
+    out = scatter(c_outputs, closest_q, q_length)
+    out_prob = scatter_atten_prob(c_atten_probs, closest_k, closest_q, k_length,
+                                  q_length)
+    return out, out_prob
 
 
 class MultiSourceAttention(base_layer.BaseLayer):
@@ -1853,8 +2074,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       query_vec:   [B, T, D].
       source_vecs: [B, S, D] (cross_attention) or None (self-attention).
       paddings:    [B, S].
-      per_step_padding_override: [B, T, T] for self attention or
-                                 [B, T, S] for cross attention.
+      per_step_padding_override: [B, T, T] for self attention or [B, T, S] for
+        cross attention.
       segment_mask: [B, 1, T, S].
 
     Returns:

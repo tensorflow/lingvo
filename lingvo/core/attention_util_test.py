@@ -437,7 +437,8 @@ class ComputeSparseAttention(test_utils.TestCase):
           attention_util.ComputeSparseAttention(q, k, v, sparsity_indices))
       self.assertEqual(out.shape,
                        (batch_size, target_length, num_heads, dim_per_head))
-      self.assertEqual(probs.shape, (batch_size, target_length, num_heads, 2))
+      self.assertEqual(probs.shape,
+                       (batch_size, target_length, num_heads, source_length))
       # attention weights sum to 1.
       self.assertAllClose(
           np.sum(probs, axis=-1),
@@ -455,12 +456,7 @@ class ComputeSparseAttention(test_utils.TestCase):
       # We assert that the encoded outputs are the same as before,
       # and the attention weights are 0 on the padded positions.
       self.assertAllClose(out, out2)
-      probs_append_zeros = np.concatenate([
-          probs,
-          np.zeros([batch_size, target_length, num_heads, 2]),
-      ],
-                                          axis=-1)
-      self.assertAllClose(probs_append_zeros, probs2)
+      self.assertAllClose(probs, probs2)
 
     # attention window = 4.
     sparsity_indices = np.tile(
@@ -488,9 +484,10 @@ class ComputeSparseAttention(test_utils.TestCase):
                        dim_per_head).astype(np.float32)
     v = np.random.rand(batch_size, source_length, num_heads,
                        dim_per_head).astype(np.float32)
-    # attention window = source length
+    # attention window = source length, randomly permutated
+    # np.arange(source_length)
     sparsity_indices = np.tile(
-        np.arange(source_length, dtype=np.int32),
+        np.random.permutation(source_length).astype(np.int32),
         [batch_size, target_length, num_heads, 1])
 
     with self.session() as sess:

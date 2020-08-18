@@ -515,7 +515,9 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     # If per_cluster_count for a cluster is 0, then 'nearest_one_hot' in that
     # cluster's position will always be 0, hence 'sum_x' in that dimension will
     # be 0.
-    new_means = sum_x / tf.expand_dims(per_cluster_count + p.epsilon, axis=-1)
+    new_means = sum_x / tf.maximum(
+        tf.constant(1.0, dtype=per_cluster_count.dtype),
+        tf.expand_dims(per_cluster_count, axis=-1))
 
     # We use exponential moving average. TODO(zhouwk): investigate smooth this
     # over an exponentially moving averaged per cluster count.
@@ -557,6 +559,10 @@ def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
   We require that 'sparsity_indices' does not contain duplicates (except for -1
   to indicate paddings), but we do not require 'sparsity_indices' to be sorted.
 
+  Note that this implementation is flexible and geneic but is not optimized for
+  time or space complexity. Please consider grouping queries that attend to the
+  same subset of values first for efficiency.
+
   Args:
     q: (projected) queries, [B, T, N, H];
     k: (projected) keys, [B, S, N, H];
@@ -565,10 +571,8 @@ def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
     paddings: paddings for keys, [B, S] if not None.
 
   Returns:
-    output: the encoded output, [B, T, N, H], a linear combination of the
-      values.
-    atten_probs: the attention weights, [B, T, N, W], where W is the attention
-      window.
+    output: the encoded output, [B, T, N, H].
+    atten_probs: the attention weights, [B, T, N, S].
   """
   q = tf.convert_to_tensor(q)
   k = tf.convert_to_tensor(k)
@@ -633,5 +637,28 @@ def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
 
   # [B, T, N, W]
   atten_probs = tf.nn.softmax(padded_logits, name='attention_weights')
+  atten_probs = tf.where(sparsity_indices < 0, tf.zeros_like(logits),
+                         atten_probs)
   output = tf.einsum('BTNW, BTNWH -> BTNH', atten_probs, v)
-  return output, atten_probs
+
+  # Scatter 'atten_probs' back into the original source length.
+  # [B, T, N, W, 1]
+  batch_idx = tf.tile(
+      tf.range(batch_size)[:, None, None, None, None],
+      [1, target_length, num_heads, attention_window, 1])
+  # [B, T, N, W, 1]
+  target_seq_idx = tf.tile(
+      tf.range(target_length)[None, :, None, None, None],
+      [batch_size, 1, num_heads, attention_window, 1])
+  # [B, T, N, W, 1]
+  head_idx = tf.tile(
+      tf.range(num_heads)[None, None, :, None, None],
+      [batch_size, target_length, 1, attention_window, 1])
+  # seq_idx: [B, T, N, W, 1]
+  # [B, T, N, W, 4]
+  scatter_idx = tf.concat([batch_idx, target_seq_idx, head_idx, seq_idx], -1)
+  # [B, T, N, S]
+  scattered_probs = tf.scatter_nd(
+      scatter_idx, atten_probs,
+      [batch_size, target_length, num_heads, source_length])
+  return output, scattered_probs

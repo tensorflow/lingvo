@@ -1141,7 +1141,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
   """Tests for RoutingAttention."""
 
-  def testDotAtten(self):
+  def testDotAttenSlow(self):
     batch_size = 7
     source_length = 6
     target_length = 4
@@ -1163,7 +1163,8 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
         hidden_dim=num_heads * dim_per_head,
         num_heads=num_heads,
         num_clusters=num_clusters,
-        attention_window=attention_window)
+        attention_window=attention_window,
+        fast_path=False)
     atten = p.Instantiate()
     with self.session() as sess:
       tf.global_variables_initializer().run()
@@ -1172,20 +1173,19 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(encoded.shape,
                        (batch_size, target_length, num_heads, dim_per_head))
       self.assertEqual(probs.shape,
-                       (batch_size, target_length, num_heads, attention_window))
+                       (batch_size, target_length, num_heads, source_length))
       # attention weights sum to 1.
       self.assertAllClose(
           np.sum(probs, axis=-1),
           np.ones([batch_size, target_length, num_heads]))
 
-  @parameterized.parameters(0, 1, 2)
-  def testDotAttenFull(self, num_padded):
-    batch_size = 2
-    source_length = 5
-    target_length = 6
-    num_heads = 2
+  def testDotAttenFast(self):
+    batch_size = 6
+    source_length = 8
+    target_length = 7
+    num_heads = 3
     dim_per_head = 5
-    num_clusters = 3
+    num_clusters = 2
     attention_window = source_length
     q = np.random.rand(batch_size, target_length, num_heads,
                        dim_per_head).astype(np.float32)
@@ -1193,6 +1193,84 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
                        dim_per_head).astype(np.float32)
     v = np.random.rand(batch_size, source_length, num_heads,
                        dim_per_head).astype(np.float32)
+
+    q_paddings = np.zeros([batch_size, target_length], dtype=np.float32)
+    k_paddings = np.zeros([batch_size, source_length], dtype=np.float32)
+    p = attention.RoutingAttention.Params().Set(
+        name='routing_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_clusters=num_clusters,
+        attention_window=attention_window,
+        query_group_size_factor=1.5,  # each group has 6 queries: 8 / 2 * 1.5.
+        fast_path=True)
+    atten = p.Instantiate()
+    # increase group size to 7.
+    atten2 = p.Copy().Set(
+        name='increase_group_size_routing_atten',
+        query_group_size_factor=1.75).Instantiate()
+    p = attention.MultiHeadedAttention.Params().Set(
+        name='full_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads)
+    full_atten = p.Instantiate()
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      encoded, probs = sess.run(
+          atten._DotAtten(atten.theta, q, k, v, q_paddings, k_paddings))
+      self.assertEqual(encoded.shape,
+                       (batch_size, target_length, num_heads, dim_per_head))
+      self.assertEqual(probs.shape,
+                       (batch_size, target_length, num_heads, source_length))
+      _, probs2 = sess.run(
+          atten2._DotAtten(atten2.theta, q, k, v, q_paddings, k_paddings))
+      # In order to match the full attention, we apply layer norm first.
+      q_ln = attention_util.KMeansClusteringForAtten.LayerNorm(q)
+      k_ln = attention_util.KMeansClusteringForAtten.LayerNorm(k)
+      full_encoded_t, full_probs_t = full_atten._DotAtten(
+          full_atten.theta, q_ln, k_ln, v, k_paddings, None)
+      full_probs_t = tf.transpose(full_probs_t, [0, 2, 1, 3])
+      full_probs, full_encoded = sess.run([full_probs_t, full_encoded_t])
+
+    # When we increase p.query_group_size_factor, the number of left out queries
+    # decreases.
+    self.assertLess(np.sum(probs), np.sum(probs2))
+    for batch_idx in range(batch_size):
+      for time_idx in range(target_length):
+        for head_idx in range(num_heads):
+          sub_probs = probs[batch_idx, time_idx, head_idx, :]
+          sub_encoded = encoded[batch_idx, time_idx, head_idx, :]
+          # encoded output is either 0 or matching full attention output
+          # for each query position.
+          if np.allclose(sub_probs, np.zeros_like(sub_probs)):
+            self.assertAllClose(sub_encoded, np.zeros_like(sub_encoded))
+            continue
+          self.assertAllClose(sub_probs, full_probs[batch_idx, time_idx,
+                                                    head_idx, :])
+          self.assertAllClose(sub_encoded, full_encoded[batch_idx, time_idx,
+                                                        head_idx, :])
+
+  @parameterized.parameters((False, 0), (False, 1), (False, 2), (True, 0),
+                            (True, 1), (True, 2))
+  def testDotAttenFull(self, fast_path, num_padded):
+    batch_size = 2
+    source_length = 5
+    target_length = 6
+    num_heads = 2
+    dim_per_head = 5
+    # fast_path=True with multiple clusters might leave out some queries.
+    # For the purpose of this test we only use a single cluster.
+    num_clusters = 1 if fast_path else 3
+    attention_window = source_length
+    q = tf.random.normal(
+        shape=[batch_size, target_length, num_heads, dim_per_head])
+    k = tf.random.normal(
+        shape=[batch_size, source_length, num_heads, dim_per_head])
+    v = tf.random.normal(
+        shape=[batch_size, source_length, num_heads, dim_per_head])
+
     q_paddings = np.zeros([batch_size, target_length], dtype=np.float32)
     k_paddings = np.zeros([batch_size, source_length], dtype=np.float32)
     if num_padded:
@@ -1207,7 +1285,9 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
         hidden_dim=num_heads * dim_per_head,
         num_heads=num_heads,
         num_clusters=num_clusters,
-        attention_window=attention_window)
+        attention_window=attention_window,
+        query_group_size_factor=1.0,
+        fast_path=fast_path)
     atten = p.Instantiate()
     p = attention.MultiHeadedAttention.Params().Set(
         name='full_atten',
@@ -1217,16 +1297,25 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
     full_atten = p.Instantiate()
     with self.session() as sess:
       tf.global_variables_initializer().run()
-      encoded, _ = sess.run(
-          atten._DotAtten(atten.theta, q, k, v, q_paddings, k_paddings))
+      encoded_t, probs_t = atten._DotAtten(atten.theta, q, k, v, q_paddings,
+                                           k_paddings)
+      gradients_t = tf.gradients(encoded_t, [q, k, v])
       # In order to match the full attention, we apply layer norm first.
-      q = attention_util.KMeansClusteringForAtten.LayerNorm(q)
-      k = attention_util.KMeansClusteringForAtten.LayerNorm(k)
-      full_encoded, _ = full_atten._DotAtten(full_atten.theta, q, k, v,
-                                             k_paddings, None)
-      # Note that the probs do not match because routing attention
-      # returns a permutation.
-      self.assertAllClose(encoded, full_encoded.eval())
+      q_ln = attention_util.KMeansClusteringForAtten.LayerNorm(q)
+      k_ln = attention_util.KMeansClusteringForAtten.LayerNorm(k)
+      full_encoded_t, full_probs_t = full_atten._DotAtten(
+          full_atten.theta, q_ln, k_ln, v, k_paddings, None)
+      full_probs_t = tf.transpose(full_probs_t, [0, 2, 1, 3])
+      full_gradients_t = tf.gradients(full_encoded_t, [q, k, v])
+      (encoded, probs, full_encoded, full_probs, gradients,
+       full_gradients) = sess.run([
+           encoded_t, probs_t, full_encoded_t, full_probs_t, gradients_t,
+           full_gradients_t
+       ])
+      self.assertAllClose(probs, full_probs)
+      self.assertAllClose(encoded, full_encoded)
+      # The 3 gradients (dq, dk, dv) should also match
+      self.assertAllClose(gradients, full_gradients)
 
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
