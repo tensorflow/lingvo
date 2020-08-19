@@ -252,6 +252,8 @@
         <span class="s1">&#39;For test/eval dataset, if we want the test/evel job evaluate &#39;</span>
         <span class="s1">&#39;the whole dataset, this param must be set precisely. Otherwise, &#39;</span>
         <span class="s1">&#39;this param is optional.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;resettable&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If True, the input generator must implement Reset().&#39;</span><span class="p">)</span>
     <span class="bp">cls</span><span class="o">.</span><span class="n">DefineInfeedParams</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;remote&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -265,6 +267,7 @@
     <span class="n">pp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;max_inflights_per_target&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="s1">&#39;The maximum number of &#39;</span>
         <span class="s1">&#39;concurrent inflight remote input fetches per remote target.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -601,7 +604,18 @@
       <span class="n">split_flatten</span> <span class="o">=</span> <span class="p">[</span><span class="n">field_split</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_fields</span><span class="p">)]</span>
       <span class="n">split</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">split_flatten</span><span class="p">)</span>
       <span class="n">ret</span> <span class="o">+=</span> <span class="p">[</span><span class="n">split</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">ret</span></div></div>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.Reset"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tf_session</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reset the input-generator.</span>
+
+<span class="sd">    Override so that the input_generator reproduces examples as if from a fresh</span>
+<span class="sd">    instantiation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      tf_session: A tensorflow session.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGeneratorFromFiles</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
