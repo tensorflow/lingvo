@@ -111,6 +111,16 @@ class ClassifierTest(test_utils.TestCase):
                           fetch_results['probs'].shape)
       self.assertAllEqual([], fetch_results['prediction'].shape)
 
+  def testDecodeRuns(self):
+    g = tf.Graph()
+    with g.as_default():
+      p = model_registry.GetParams('test.MnistV2', 'Test')
+      model = p.Instantiate()
+      task = model.GetTask()
+      input_batch = task.GetInputBatch()[0]
+      result = task.Decode(input_batch)
+      self.assertIn('correct_top1', result)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -322,3 +322,14 @@ class ModelV2(BaseClassifier):
           'prediction': tf.argmax(logits, name='prediction'),
       }
       return fetches, feeds
+
+  def DecodeWithTheta(self, theta, input_batch):
+    """Constructs the decode graph for decoding with theta."""
+    predictions = self.ComputePredictions(theta, input_batch)
+    labels = tf.cast(input_batch.label, tf.int64)
+    ret = py_utils.NestedMap()
+    ret.correct_top1 = tf.nn.in_top_k(
+        targets=labels, predictions=predictions.logits, k=1)
+    ret.correct_top5 = tf.nn.in_top_k(
+        targets=labels, predictions=predictions.logits, k=5)
+    return ret
