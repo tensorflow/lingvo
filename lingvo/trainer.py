@@ -1004,6 +1004,11 @@ class Evaler(base_runner.BaseRunner):
     # And decide whether to run an evaluation.
     if global_step < self._task.params.eval.start_eval_after:
       return False
+
+    if self._task.params.input.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input_generator.Reset(sess)
+
     metrics_dict = {
         name: metrics.AverageMetric() for name in self._task.eval_metrics
     }
@@ -1182,6 +1187,11 @@ class Decoder(base_runner.BaseRunner):
     self.checkpointer.RestoreFromPath(sess, checkpoint_path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
+
+    if self._task.params.input.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
+
     dec_metrics = self._task.CreateDecoderMetrics()
     if not dec_metrics:
       tf.logging.info('Empty decoder metrics')

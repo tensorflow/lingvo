@@ -104,6 +104,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'For test/eval dataset, if we want the test/evel job evaluate '
         'the whole dataset, this param must be set precisely. Otherwise, '
         'this param is optional.')
+    p.Define('resettable', False,
+             'If True, the input generator must implement Reset().')
     cls.DefineInfeedParams(p)
 
     p.Define('remote', hyperparams.Params(),
@@ -117,6 +119,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     pp.Define(
         'max_inflights_per_target', 32, 'The maximum number of '
         'concurrent inflight remote input fetches per remote target.')
+
     return p
 
   def __init__(self, params):
@@ -454,6 +457,17 @@ class BaseInputGenerator(base_layer.BaseLayer):
       split = batch.Pack(split_flatten)
       ret += [split]
     return ret
+
+  def Reset(self, tf_session):
+    """Reset the input-generator.
+
+    Override so that the input_generator reproduces examples as if from a fresh
+    instantiation.
+
+    Args:
+      tf_session: A tensorflow session.
+    """
+    raise NotImplementedError()
 
 
 class BaseInputGeneratorFromFiles(BaseInputGenerator):
