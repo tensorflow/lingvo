@@ -4935,6 +4935,8 @@ def ComputationShape(split_size, topology=None):
     computation_shape = [8, 16, 1, 2]
   elif split_size == 512:
     computation_shape = [16, 16, 1, 2]
+  elif split_size == 1024:
+    computation_shape = [16, 32, 1, 2]
   elif split_size == 2048:
     computation_shape = [32, 32, 1, 2]
   else:
