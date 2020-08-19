@@ -1368,7 +1368,7 @@
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings_block_context</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
-    <span class="c1"># Make local casual paddings.</span>
+    <span class="c1"># Make local causal paddings.</span>
     <span class="c1"># -&gt; [U, W, C]</span>
     <span class="n">local_causal_padding</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">MakeCausalPadding</span><span class="p">(</span>
         <span class="n">seq_len</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
@@ -1493,7 +1493,7 @@
     <span class="k">if</span> <span class="n">use_short_seq_opt</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;use_short_seq_opt is not supported yet.&#39;</span><span class="p">)</span>
 
-    <span class="c1"># Make local casual paddings, which have shape [B, T].</span>
+    <span class="c1"># Make local causal paddings, which have shape [B, T].</span>
     <span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -1655,6 +1655,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clustering&#39;</span><span class="p">,</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;The params for a clustering layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;causal_masking&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether causal masking is enabled. When set, a query at position idx &#39;</span>
+        <span class="s1">&#39;is only allowed to attend to keys/values at positions &lt;= idx.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;fast_path&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
         <span class="s1">&#39;Whether to use a more efficient implementation. The fast path is &#39;</span>
         <span class="s1">&#39;signanificantly faster by grouping queries when determining which &#39;</span>
@@ -1754,7 +1758,6 @@
 <span class="sd">      encoded: [B, T, N, H].</span>
 <span class="sd">      atten_probs: [B, T, N, S].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># [B, N, K, S]</span>
@@ -1778,6 +1781,24 @@
     <span class="c1"># W closest to its centroid, where W is the attention window.</span>
     <span class="n">sparsity_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNK, BNKW -&gt; BTNW&#39;</span><span class="p">,</span> <span class="n">nearest_one_hot</span><span class="p">,</span>
                                  <span class="n">closest_indices</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">causal_masking</span><span class="p">:</span>
+      <span class="n">batch_size</span><span class="p">,</span> <span class="n">q_length</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="c1"># [B, T, N, W] where the T dimension is range(T)</span>
+      <span class="n">query_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q_length</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_window</span><span class="p">])</span>
+      <span class="n">masked_indices</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">sparsity_indices</span><span class="p">)</span>
+      <span class="c1"># Replace key positions in the future with -1 to indicate masking.</span>
+      <span class="c1">#</span>
+      <span class="c1"># Note that this is done after selecting top_k from &#39;k_dists&#39;, so for</span>
+      <span class="c1"># example if all the closest keys are in the future, we waste</span>
+      <span class="c1"># p.attention_window on padded keys when in theory we could have attended</span>
+      <span class="c1"># to further away keys that are not in the future (in order to achieve</span>
+      <span class="c1"># that we need to pick top_k from &#39;k_dists&#39; differently for each query).</span>
+      <span class="n">sparsity_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">sparsity_indices</span><span class="p">,</span> <span class="n">query_positions</span><span class="p">),</span> <span class="n">masked_indices</span><span class="p">,</span>
+          <span class="n">sparsity_indices</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ComputeSparseAttention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
                                                  <span class="n">sparsity_indices</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">)</span></div>
 
@@ -1864,6 +1885,19 @@
         <span class="c1"># [B, T, N, 1]</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">key_paddings</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
         <span class="n">closest_k</span><span class="p">)</span>
+    <span class="c1"># of shape [B, N, K, V, W]</span>
+    <span class="n">is_key_padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">c_key_paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">q_cluster_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">0.5</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">causal_masking</span><span class="p">:</span>
+      <span class="c1"># both position matrices of shape [B, N, K, V, W]</span>
+      <span class="n">c_query_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">closest_q</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span>
+                                  <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_window</span><span class="p">])</span>
+      <span class="n">c_key_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">closest_k</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span>
+                                <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">q_cluster_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="c1"># We pad the logit for future key positions relative to each query</span>
+      <span class="n">is_key_padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+          <span class="n">is_key_padded</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">c_key_positions</span><span class="p">,</span> <span class="n">c_query_positions</span><span class="p">))</span>
 
     <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNKVD,BNKWD-&gt;BNKVW&#39;</span><span class="p">,</span> <span class="n">c_query</span><span class="p">,</span> <span class="n">c_key</span><span class="p">)</span>
     <span class="n">logits</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dim_per_head</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
@@ -1871,10 +1905,7 @@
     <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">c_key_paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
-            <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">q_cluster_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
+    <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_key_padded</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
 
     <span class="n">c_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">)</span>
     <span class="n">c_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNKWD,BNKVW-&gt;BNKVD&#39;</span><span class="p">,</span> <span class="n">c_value</span><span class="p">,</span> <span class="n">c_atten_probs</span><span class="p">)</span>
