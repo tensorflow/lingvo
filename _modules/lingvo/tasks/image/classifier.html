@@ -469,7 +469,18 @@
           <span class="s1">&#39;probs&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;probs&#39;</span><span class="p">),</span>
           <span class="s1">&#39;prediction&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;prediction&#39;</span><span class="p">),</span>
       <span class="p">}</span>
-      <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
+      <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div>
+
+<div class="viewcode-block" id="ModelV2.DecodeWithTheta"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2.DecodeWithTheta">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeWithTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the decode graph for decoding with theta.&quot;&quot;&quot;</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">correct_top1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">in_top_k</span><span class="p">(</span>
+        <span class="n">targets</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">correct_top5</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">in_top_k</span><span class="p">(</span>
+        <span class="n">targets</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div></div>
 </pre></div>
 
            </div>
