@@ -1317,6 +1317,70 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
       # The 3 gradients (dq, dk, dv) should also match
       self.assertAllClose(gradients, full_gradients)
 
+  @parameterized.parameters(False, True)
+  def testDotAttenCausalMasking(self, fast_path):
+    batch_size = 3
+    seq_length = 12
+    num_heads = 2
+    dim_per_head = 4
+    num_clusters = 1 if fast_path else 3
+    attention_window = seq_length
+    q = np.random.rand(batch_size, seq_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    k = np.random.rand(batch_size, seq_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    v = np.random.rand(batch_size, seq_length, num_heads,
+                       dim_per_head).astype(np.float32)
+
+    q_paddings = np.zeros([batch_size, seq_length], dtype=np.float32)
+    k_paddings = np.zeros([batch_size, seq_length], dtype=np.float32)
+    p = attention.RoutingAttention.Params().Set(
+        name='routing_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_clusters=num_clusters,
+        attention_window=attention_window,
+        causal_masking=True,
+        query_group_size_factor=1.0,
+        fast_path=fast_path)
+    atten = p.Instantiate()
+    p = attention.MultiHeadedAttention.Params().Set(
+        name='full_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads)
+    full_atten = p.Instantiate()
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      encoded, probs = sess.run(
+          atten._DotAtten(atten.theta, q, k, v, q_paddings, k_paddings))
+      # In order to match the full attention, we apply layer norm first.
+      q_ln = attention_util.KMeansClusteringForAtten.LayerNorm(q)
+      k_ln = attention_util.KMeansClusteringForAtten.LayerNorm(k)
+      # Manually apply causal padding to full attention.
+      per_step_padding = tf.tile(
+          tf.expand_dims(
+              attention.CausalPadding(seq_length, dtype=q_ln.dtype), 0),
+          [batch_size, 1, 1])
+      full_encoded, full_probs = full_atten._DotAtten(
+          full_atten.theta,
+          q_ln,
+          k_ln,
+          v,
+          k_paddings,
+          segment_mask=None,
+          per_step_padding=per_step_padding)
+      full_probs = tf.transpose(full_probs, [0, 2, 1, 3])
+      self.assertAllClose(probs, full_probs.eval())
+      self.assertAllClose(encoded, full_encoded.eval())
+
+    # Verify that the first token only attends to position 0.
+    first_token_probs = probs[:, 0, :, :]
+    expected = np.zeros_like(first_token_probs)
+    expected[:, :, 0] = 1.
+    self.assertAllClose(first_token_probs, expected)
+
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
   """Test Transformer decoder layers."""

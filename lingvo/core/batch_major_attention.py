@@ -1220,7 +1220,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     paddings = tf.tile(
         tf.reshape(paddings_block_context, [b, 1, u, 1, c]), [1, n, 1, w, 1])
 
-    # Make local casual paddings.
+    # Make local causal paddings.
     # -> [U, W, C]
     local_causal_padding = attention_util.MakeCausalPadding(
         seq_len=t,
@@ -1345,7 +1345,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     if use_short_seq_opt:
       raise NotImplementedError('use_short_seq_opt is not supported yet.')
 
-    # Make local casual paddings, which have shape [B, T].
+    # Make local causal paddings, which have shape [B, T].
     t, b, _, _ = py_utils.GetShape(cached_states.key, 4)
     if paddings is None:
       paddings = tf.zeros([b, t], dtype=query_vec.dtype)
@@ -1507,6 +1507,10 @@ class RoutingAttention(MultiHeadedAttention):
     p.Define('clustering', attention_util.KMeansClusteringForAtten.Params(),
              'The params for a clustering layer.')
     p.Define(
+        'causal_masking', False,
+        'Whether causal masking is enabled. When set, a query at position idx '
+        'is only allowed to attend to keys/values at positions <= idx.')
+    p.Define(
         'fast_path', True,
         'Whether to use a more efficient implementation. The fast path is '
         'signanificantly faster by grouping queries when determining which '
@@ -1606,7 +1610,6 @@ class RoutingAttention(MultiHeadedAttention):
       encoded: [B, T, N, H].
       atten_probs: [B, T, N, S].
     """
-
     p = self.params
 
     # [B, N, K, S]
@@ -1630,6 +1633,24 @@ class RoutingAttention(MultiHeadedAttention):
     # W closest to its centroid, where W is the attention window.
     sparsity_indices = tf.einsum('BTNK, BNKW -> BTNW', nearest_one_hot,
                                  closest_indices)
+    if p.causal_masking:
+      batch_size, q_length, num_heads = py_utils.GetShape(query, 3)
+      # [B, T, N, W] where the T dimension is range(T)
+      query_positions = tf.tile(
+          tf.range(q_length)[None, :, None, None],
+          [batch_size, 1, num_heads, p.attention_window])
+      masked_indices = -tf.ones_like(sparsity_indices)
+      # Replace key positions in the future with -1 to indicate masking.
+      #
+      # Note that this is done after selecting top_k from 'k_dists', so for
+      # example if all the closest keys are in the future, we waste
+      # p.attention_window on padded keys when in theory we could have attended
+      # to further away keys that are not in the future (in order to achieve
+      # that we need to pick top_k from 'k_dists' differently for each query).
+      sparsity_indices = tf.where(
+          tf.math.greater(sparsity_indices, query_positions), masked_indices,
+          sparsity_indices)
+
     return attention_util.ComputeSparseAttention(query, key, value,
                                                  sparsity_indices, key_paddings)
 
@@ -1716,6 +1737,19 @@ class RoutingAttention(MultiHeadedAttention):
         # [B, T, N, 1]
         tf.tile(key_paddings[:, :, None, None], [1, 1, num_heads, 1]),
         closest_k)
+    # of shape [B, N, K, V, W]
+    is_key_padded = tf.tile(
+        tf.transpose(c_key_paddings, [0, 1, 2, 4, 3]),
+        [1, 1, 1, q_cluster_size, 1]) > 0.5
+    if p.causal_masking:
+      # both position matrices of shape [B, N, K, V, W]
+      c_query_positions = tf.tile(closest_q[:, :, :, :, None],
+                                  [1, 1, 1, 1, p.attention_window])
+      c_key_positions = tf.tile(closest_k[:, :, :, None, :],
+                                [1, 1, 1, q_cluster_size, 1])
+      # We pad the logit for future key positions relative to each query
+      is_key_padded = tf.math.logical_or(
+          is_key_padded, tf.math.greater(c_key_positions, c_query_positions))
 
     logits = tf.einsum('BNKVD,BNKWD->BNKVW', c_query, c_key)
     logits *= tf.math.rsqrt(tf.cast(dim_per_head, p.dtype))
@@ -1723,10 +1757,7 @@ class RoutingAttention(MultiHeadedAttention):
     very_negative_logits = (
         tf.ones_like(logits) * logits.dtype.max *
         tf.constant(-0.7, dtype=logits.dtype))
-    padded_logits = tf.where(
-        tf.tile(
-            tf.transpose(c_key_paddings, [0, 1, 2, 4, 3]),
-            [1, 1, 1, q_cluster_size, 1]) > 0.5, very_negative_logits, logits)
+    padded_logits = tf.where(is_key_padded, very_negative_logits, logits)
 
     c_atten_probs = tf.nn.softmax(padded_logits)
     c_outputs = tf.einsum('BNKWD,BNKVW->BNKVD', c_value, c_atten_probs)
