@@ -139,6 +139,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # A list of InfeedQueues.
     self._tpu_queues = []
 
+    # Set to true in GetProcessedInputBatch() (and thus _InputBatch())
+    self._in_get_processed_input_batch = False
+
   def CommonInputOpArgs(self):
     """Common input params."""
     return {}
@@ -198,7 +201,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
     Subclasses generally should not override this function directly. Instead,
     override _InputBatch and maybe _PreprocessInputBatch.
     """
-    return self._PreprocessInputBatch(self._InputBatch())
+    self._in_get_processed_input_batch = True
+    res = self._PreprocessInputBatch(self._InputBatch())
+    self._in_get_processed_input_batch = False
+    return res
 
   @property
   def tpu_number_of_shards(self):
@@ -693,6 +699,12 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       ValueError: If file_datasource is not set
     """
     p = self.params
+    if p.use_per_host_infeed and not self._in_get_processed_input_batch:
+      raise ValueError(
+          'This input generator does not support p.use_per_host_infeed. '
+          'Please set it to False, or move the call to self._BuildDataSource() '
+          'from self.__init__() to self._InputBatch() for batches to be '
+          'correctly replicated per host.')
     if not p.file_datasource and p.file_pattern:
       # This is a workaround for subclasses which have defined
       # their own data source-like functionality.
