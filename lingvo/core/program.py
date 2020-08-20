@@ -70,6 +70,7 @@ class BaseProgram:
     p.Define('task_name', None,
              'If multi-task, what the high-level task name is')
     p.Define('num_threads', 1, 'Number of threads in multiprocessing pool.')
+    p.Define('spmd', False, 'Whether program is running under SPMD mode.')
     return p
 
   def __init__(self, params):
@@ -209,7 +210,9 @@ class TrainProgram(BaseProgram):
     if not per_example_tensors:
       return tf.no_op()
     per_example_tensors = py_utils.NestedMap(per_example_tensors)
-    return tpu_ops.outfeed_enqueue_tuple(per_example_tensors.Flatten())
+    device = tpu.core(0) if self.spmd else ''
+    with tf.device(device):
+      return tpu_ops.outfeed_enqueue_tuple(per_example_tensors.Flatten())
 
   def _OutfeedDequeueLoop(self, per_example_tensors, num_loops, num_devices):
     """Process all per-example tensor outfeed data for a TPU sess.run.
@@ -250,7 +253,9 @@ class TrainProgram(BaseProgram):
       device_assignment = py_utils.GetTpuDeviceAssignment()
       assert device_assignment
       for replica in range(device_assignment.num_replicas):
-        for core in range(device_assignment.num_cores_per_replica):
+        num_cores_per_replica = 1 if self.spmd else (
+            device_assignment.num_cores_per_replica)
+        for core in range(num_cores_per_replica):
           with tf.device(device_assignment.host_device(replica, core)):
             outfeed_devices.append(
                 tpu_ops.outfeed_dequeue_tuple(
@@ -288,6 +293,9 @@ class TrainProgram(BaseProgram):
 
   def BuildTpuSubgraph(self):
     tf.logging.info('TrainProgram BuildTpuSubGraph')
+    self.spmd = (
+        self.params.spmd or
+        self._task_params.input.use_partitioned_infeed_queue)
 
     self._eval_metrics = metrics.TpuEvalMetrics()
     data_parallelism = self.data_parallelism
@@ -543,7 +551,7 @@ class DecodeProgram(BaseProgram):
       metrics_values = sess.run(self.metrics)
       decode_out = self._task.PostProcessDecodeOut(metrics_values, dec_metrics)
       tf.logging.info('step: %d %f' %
-                           (i, dec_metrics['num_samples_in_batch'].total_value))
+                      (i, dec_metrics['num_samples_in_batch'].total_value))
       if decode_out:
         buffered_decode_out.extend(decode_out)
     infeed_future.wait()
@@ -617,7 +625,9 @@ class ExperimentalDecodeProgram(DecodeProgram):
   def BuildTpuSubgraph(self):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
     py_utils.ResetStepSeed()
-    self.spmd = self._task_params.input.use_partitioned_infeed_queue
+    self.spmd = (
+        self.params.spmd or
+        self._task_params.input.use_partitioned_infeed_queue)
     with cluster_factory.SetEval(True):
       self._CompileDecodeLoop()
     return
