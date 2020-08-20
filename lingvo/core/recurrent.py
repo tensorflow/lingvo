@@ -603,7 +603,6 @@ class _Recurrent:
         self._forward,
         self._fwd_args,
         bak=self._backward,
-        implicit_captures=self._implicit_captures,
         device=self._caller_device)
 
     if self._accumulator_layer:

@@ -2896,6 +2896,36 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
+  @CallDefunTestParameters
+  def testImplicitInput(self, bak_as_function):
+    with self.session() as sess:
+      w = tf.placeholder(tf.float32)
+
+      def Fwd(xs):
+        ret = py_utils.NestedMap(y=tf.matmul(w, xs.x))
+        assert py_utils.GetExtraArgs()
+        return ret
+
+      def Bak(xs, ys, dys):
+        del ys
+        dw = tf.matmul(dys.y, tf.transpose(xs.x)) + 100.
+        ret = py_utils.NestedMap(x=tf.matmul(tf.transpose(w), dys.y) + 200.)
+        if bak_as_function:
+          assert py_utils.GetExtraArgs()
+        return ret, dw
+
+      a = np.array([[1.0, 2.0], [0.0, -3.0]])
+      b = np.array([[2.0, 0.0], [1.0, 1.0]])
+      xs = py_utils.NestedMap(x=tf.constant(b, dtype=tf.float32))
+      ys = py_utils.CallDefun(Fwd, xs, bak=Bak, bak_as_function=bak_as_function)
+      loss = tf.reduce_sum(tf.square(ys.y))
+      dw, dx, dy = tf.gradients(xs=[w] + xs.Flatten() + ys.Flatten(), ys=loss)
+      y, dw, dx, dy = sess.run([ys.y, dw, dx, dy], feed_dict={w: a})
+      self.assertAllEqual(y, a.dot(b))
+      self.assertAllEqual(dy, 2 * y)
+      self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
+      self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
+
 
 def IfTestParameters(test_fn):
 
