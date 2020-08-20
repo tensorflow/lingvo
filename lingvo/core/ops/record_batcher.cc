@@ -338,9 +338,9 @@ void RecordBatcher::ProcessorLoop() {
             LOG(WARNING) << s;
           }
         }
-      } else if (errors::IsNotFound(s)) {
-        // Terminates program if an unregistered custome op is used by
-        // the processor.
+      } else if (errors::IsNotFound(s) || errors::IsPermissionDenied(s)) {
+        // Terminates program if an unregistered custom op is used by
+        // the processor, or any access permission denied error.
         //
         // Consider setting *out_status with s and returning, instead
         // of killing program?
