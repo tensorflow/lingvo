@@ -4431,12 +4431,12 @@
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">((</span><span class="s1">&#39;Too many inputs. The most likely cause is that fwd &#39;</span>
                       <span class="s1">&#39;captures additional tensors: extra inputs </span><span class="si">%r</span><span class="s1"> vs </span><span class="si">%r</span><span class="s1"> &#39;</span>
                       <span class="s1">&#39;captures=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">expected_inputs</span><span class="p">),</span>
-                                        <span class="nb">list</span><span class="p">(</span><span class="n">implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())))</span>
+                                        <span class="nb">list</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">))))</span>
   <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">expected_num_inputs</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">((</span><span class="s1">&#39;Mismatched inputs to fwd: Found </span><span class="si">%d</span><span class="s1"> vs expected </span><span class="si">%d</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&#39;</span>
                       <span class="s1">&#39;. Implicit captures(</span><span class="si">%d</span><span class="s1">) = </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span>
                      <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span> <span class="n">expected_num_inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span>
-                      <span class="nb">len</span><span class="p">(</span><span class="n">implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()),</span> <span class="n">implicit_captures</span><span class="p">))</span></div>
+                      <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)),</span> <span class="n">implicit_captures</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="_TensorSpecs"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._TensorSpecs">[docs]</a><span class="k">def</span> <span class="nf">_TensorSpecs</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
@@ -4453,7 +4453,6 @@
                  <span class="n">fwd_sig</span><span class="p">,</span>
                  <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                 <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak.</span>
 
@@ -4461,12 +4460,11 @@
 <span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
 <span class="sd">    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of</span>
 <span class="sd">      fwd.</span>
-<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
-<span class="sd">      custom backprop function for fwd. If implicit_captures is not None, bak</span>
-<span class="sd">      must return its gradients in a Nested Structure as the last part of dxs.</span>
+<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
+<span class="sd">      Structure. The custom backprop function for fwd. bak needs to return</span>
+<span class="sd">      dcapture if fwd uses any implicitly captured tensors, whose gradients are</span>
+<span class="sd">      dcapture.</span>
 <span class="sd">    bak_as_function: Whether to create a TF graph function for bak.</span>
-<span class="sd">    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd</span>
-<span class="sd">      that are not listed in fwd_sig.</span>
 <span class="sd">    device: the device on which to run fwd and bak.</span>
 
 <span class="sd">  Returns:</span>
@@ -4490,9 +4488,8 @@
   <span class="n">sigs</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
 
   <span class="n">python_grad_func</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>  <span class="c1"># Will be set after Forward is defined.</span>
   <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">implicit_captures</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">Grad</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Gradient function for the forward function.</span>
@@ -4527,6 +4524,10 @@
     <span class="n">sigs</span><span class="o">.</span><span class="n">ret_shapes</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_shape</span><span class="p">,</span> <span class="n">rets</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 
+  <span class="c1"># Invokes fwd() to get sigs.ret_dtypes and sigs.ret_shapes.</span>
+  <span class="n">Forward</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
+  <span class="n">implicit_captures</span><span class="o">.</span><span class="n">captured</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">captured_inputs</span>
+
   <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -4550,9 +4551,6 @@
       <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">bak_as_function</span><span class="p">:</span>
-      <span class="c1"># Invokes fwd() to get sigs.ret_dtypes and sigs.ret_shapes.</span>
-      <span class="n">Forward</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
-
       <span class="n">sigs</span><span class="o">.</span><span class="n">backward</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
           <span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">arg_dtypes</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">ret_dtypes</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">ret_dtypes</span><span class="p">]),</span>
           <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">)(</span>
@@ -4608,7 +4606,6 @@
                     <span class="n">fwd_sig</span><span class="p">,</span>
                     <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak.</span>
 
@@ -4616,12 +4613,11 @@
 <span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
 <span class="sd">    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of</span>
 <span class="sd">      fwd.</span>
-<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
-<span class="sd">      custom backprop function for fwd. If implicit_captures is not None, bak</span>
-<span class="sd">      must return its gradients in a Nested Structure as the last part of dxs.</span>
+<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
+<span class="sd">      Structure. The custom backprop function for fwd. bak needs to return</span>
+<span class="sd">      dcapture if fwd uses any implicitly captured tensors, whose gradients are</span>
+<span class="sd">      dcapture.</span>
 <span class="sd">    bak_as_function: Whether to create a TF graph function for bak.</span>
-<span class="sd">    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd</span>
-<span class="sd">      that are not listed in fwd_sig.</span>
 <span class="sd">    device: the device on which to run fwd and bak.</span>
 
 <span class="sd">  Returns:</span>
@@ -4629,14 +4625,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">fwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">use_xla</span><span class="p">()</span>
-
-  <span class="n">fwd_sig_no_captures</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">)</span>
-  <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
-    <span class="c1"># With custom_gradient, implicit captures need to be part of the input.</span>
-    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)]</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig_no_captures</span>
-    <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">)</span>
 
   <span class="c1"># Only used to hold the output signature of fwd in sigs.rets, which will be</span>
   <span class="c1"># set in Forward.</span>
@@ -4651,8 +4640,6 @@
     <span class="n">ResetStepSeed</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
       <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
-        <span class="n">xs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xs</span>  <span class="c1"># Ignore implicit captures since fwd doesn&#39;t take that.</span>
       <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
     <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
@@ -4661,8 +4648,11 @@
   <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">Forward</span><span class="p">)</span>
   <span class="n">forward_cf</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
   <span class="n">forward_cf</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">()</span>
+  <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">forward_cf</span><span class="o">.</span><span class="n">captured_inputs</span>
 
-  <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">bak</span><span class="p">:</span>
+    <span class="n">forward</span> <span class="o">=</span> <span class="n">Forward</span>
+  <span class="k">else</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">bak_as_function</span><span class="p">:</span>
@@ -4670,9 +4660,9 @@
         <span class="c1"># avoid it being used as an implicit capture. It should take the step</span>
         <span class="c1"># seed from parent graph instead.</span>
         <span class="n">ResetStepSeed</span><span class="p">()</span>
-      <span class="n">xs_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig_no_captures</span><span class="p">))</span>
+      <span class="n">xs_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">))</span>
       <span class="n">ys_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">))</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">args</span><span class="p">[:</span><span class="n">xs_len</span><span class="p">])</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">[:</span><span class="n">xs_len</span><span class="p">])</span>
       <span class="n">ys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="n">xs_len</span><span class="p">:(</span><span class="n">xs_len</span> <span class="o">+</span> <span class="n">ys_len</span><span class="p">)])</span>
       <span class="n">dys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="n">xs_len</span> <span class="o">+</span> <span class="n">ys_len</span><span class="p">:])</span>
       <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
@@ -4682,7 +4672,7 @@
     <span class="k">if</span> <span class="n">bak_as_function</span><span class="p">:</span>
       <span class="n">backward</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
           <span class="n">Backward</span><span class="p">,</span>
-          <span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">([</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">]),</span>
+          <span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">]),</span>
           <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">backward</span><span class="p">)</span>
       <span class="c1"># Add the backward function to graph so it&#39;s invoked under the same</span>
@@ -4701,7 +4691,14 @@
     <span class="nd">@tf</span><span class="o">.</span><span class="n">custom_gradient</span>
     <span class="k">def</span> <span class="nf">ForwardWithGrad</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Forward function and its custom gradient.&quot;&quot;&quot;</span>
-      <span class="n">op</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">forward_cf</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">))</span>
+      <span class="c1"># Note that `args` includes implicit_captures. This is required by</span>
+      <span class="c1"># tf.custom_gradient so that when the Grad() outputs include gradients to</span>
+      <span class="c1"># implicit captures, they match the inputs to ForwardWithGrad().</span>
+      <span class="c1">#</span>
+      <span class="c1"># However, Forward doesn&#39;t take implicit_captures as input, so we exclude</span>
+      <span class="c1"># them here.</span>
+      <span class="n">fwd_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)))]</span>
+      <span class="n">op</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">forward_cf</span><span class="p">(</span><span class="o">*</span><span class="n">fwd_args</span><span class="p">))</span>
 
       <span class="k">def</span> <span class="nf">Grad</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Gradient function for the forward function.</span>
@@ -4718,27 +4715,21 @@
               <span class="s1">&#39;Ignoring additional arguments used by tf.custom_gradient: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
               <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">))</span>
 
-        <span class="c1"># With tf.custom_gradient, implicit captures are always part of fwd&#39;s</span>
-        <span class="c1"># input signature.</span>
-        <span class="n">_AssertInputsMatch</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">())</span>
+        <span class="n">_AssertInputsMatch</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">)</span>
 
         <span class="c1"># Ensure dys contains no None.</span>
         <span class="n">args</span> <span class="o">=</span> <span class="n">ConvertNoneGradientToZeros</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
 
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
-          <span class="n">xs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xs</span>  <span class="c1"># Ignore implicit captures since bak doesn&#39;t take that.</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">],</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">backward_cf</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">args</span><span class="p">]))</span>
 
       <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">Grad</span>
 
-    <span class="n">forward</span> <span class="o">=</span> <span class="n">ForwardWithGrad</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="n">forward</span> <span class="o">=</span> <span class="n">Forward</span>
+    <span class="n">forward</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">ForwardWithGrad</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">args</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">]))</span>
 
   <span class="k">def</span> <span class="nf">Call</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper of fwd.&quot;&quot;&quot;</span>
-    <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">forward</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">args</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">]))</span>
+    <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">forward</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
       <span class="n">flat_rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">flat_rets</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span>
@@ -4750,18 +4741,17 @@
               <span class="n">args</span><span class="p">,</span>
               <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-              <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak and calls it with args.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
 <span class="sd">    args: A Nested Structure of tf.Tensor.</span>
-<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
-<span class="sd">      custom backprop function for fwd.</span>
+<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
+<span class="sd">      Structure. The custom backprop function for fwd. bak needs to return</span>
+<span class="sd">      dcapture if fwd uses any implicitly captured tensors, whose gradients are</span>
+<span class="sd">      dcapture.</span>
 <span class="sd">    bak_as_function: Whether to create a TF graph function for bak.</span>
-<span class="sd">    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd</span>
-<span class="sd">      that are not listed in args.</span>
 <span class="sd">    device: the device on which to run fwd and bak.</span>
 
 <span class="sd">  Returns:</span>
@@ -4771,7 +4761,7 @@
     <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineDefun</span>
-  <span class="n">call</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">bak_as_function</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+  <span class="n">call</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">bak_as_function</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">call</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
 
 
