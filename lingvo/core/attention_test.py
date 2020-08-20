@@ -821,6 +821,62 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
         # Check to make sure prob exists only on valid timesteps.
         self.assertEqual(0.0, np.sum(padding_i * prob_i_out))
 
+  def testMultiHeadedAttentionDotProductNoPerDimScaleNoBias(self):
+    # source_batch:3, target_batch:6. Test n = 2 case.
+    with self.session(use_gpu=True):
+      (source_vecs, source_contexts, source_padding, source_padding_p,
+       query_vec, _, _) = self._MultiHeadedAttentionInputs()
+      iap = attention.DotProductAttention.Params()
+      iap.name = 'dot_atten'
+      params = attention.MultiHeadedAttention.Params().Set(
+          name='multihead_atten',
+          source_dim=4,
+          query_dim=4,
+          hidden_dim=4,
+          inner_atten_params=iap,
+          num_attention_heads=2,
+          use_source_vec_as_attention_value=False,
+          enable_per_dim_scale=False,
+          use_bias=False)
+      atten = params.Instantiate()
+      atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
+                                source_padding)
+      self.evaluate(tf.global_variables_initializer())
+      atten_vec, atten_prob, _ = atten.ComputeContextVector(
+          atten.theta, query_vec)
+
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
+      print('atten_vec_out', np.sum(atten_vec_out, axis=1))
+      self.assertAllClose([
+          2.84679317, 2.36924601, 3.54831171, 2.86487937, 2.3537426, 3.54308939
+      ], np.sum(atten_vec_out, axis=1))
+      print('atten_vec_out', atten_vec_out)
+      print('prob_out', prob_out)
+      t_batch_size = 6
+      s_batch_size = 3
+      for i in range(t_batch_size):
+        # Test to make sure we didn't mess up indexing.
+        s_index = i % s_batch_size
+        atten.InitForSourcePacked(atten.theta,
+                                  source_vecs[:, s_index:s_index + 1, :],
+                                  source_contexts[:, s_index:s_index + 1, :],
+                                  source_padding[:, s_index:s_index + 1])
+        atten_vec_i, prob_i, _ = atten.ComputeContextVector(
+            atten.theta, query_vec[i:i + 1])
+        atten_vec_i_out, prob_i_out = self.evaluate([atten_vec_i, prob_i])
+        self.assertAllClose(prob_i_out, prob_out[i:i + 1])
+        self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
+        padding_i = source_padding_p[s_index]
+        # Check to make sure prob exists only on valid timesteps.
+        self.assertEqual(0.0, np.sum(padding_i * prob_i_out))
+
   def testMultiHeadedAttentionDotProductPackedInput(self):
     # source_batch:3, target_batch:6. Test n = 2 case.
     with self.session(use_gpu=True):

@@ -1207,6 +1207,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         'the probabilities of all attention heads when returning the '
         'attention probability, instead return the selected index prob.')
 
+    p.Define('use_bias', True, 'Whether to use bias for projection layer.')
+    p.Define('enable_per_dim_scale', True,
+             'Whether to use per_dim_scale in inner_atten.')
+
     # Often the attention context output needs to be concated
     # with tensors from another layer. This allows them to share
     # quantization parameters. By convention, all attention layers
@@ -1237,6 +1241,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         atten_dropout_prob=p.atten_dropout_prob,
         atten_dropout_deterministic=p.atten_dropout_deterministic,
         packed_input=p.packed_input)
+
+    if att_p.cls == DotProductAttention:
+      att_p.use_dim_scale = p.enable_per_dim_scale
+
     if not att_p.name:
       att_p.name = 'inner_att'
     self.CreateChild('atten', att_p)
@@ -1257,11 +1265,12 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         proj_init = py_utils.WeightInit.Constant(0.0) if bias else p.params_init
       return proj_init
 
-    pc_bias = py_utils.WeightParams(
-        shape=[p.hidden_dim],
-        init=InitProj(p.hidden_dim, bias=True),
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+    if p.use_bias:
+      pc_bias = py_utils.WeightParams(
+          shape=[p.hidden_dim],
+          init=InitProj(p.hidden_dim, bias=True),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
 
     if p.enable_source_proj:
       pc = py_utils.WeightParams(
@@ -1270,7 +1279,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('source_proj', pc)
-      self.CreateVariable('source_proj_b', pc_bias)
+      if p.use_bias:
+        self.CreateVariable('source_proj_b', pc_bias)
     else:
       assert p.source_dim == p.hidden_dim
 
@@ -1281,7 +1291,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('query_proj', pc)
-      self.CreateVariable('query_proj_b', pc_bias)
+      if p.use_bias:
+        self.CreateVariable('query_proj_b', pc_bias)
     else:
       assert p.query_dim == p.hidden_dim
 
@@ -1293,7 +1304,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('ctx_proj', pc)
-      self.CreateVariable('ctx_proj_b', pc_bias)
+      if p.use_bias:
+        self.CreateVariable('ctx_proj_b', pc_bias)
 
     if p.enable_ctx_post_proj:
       assert p.ctx_post_proj_dim
@@ -1311,12 +1323,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('ctx_post_proj', pc)
-      pc_bias_post_proj = py_utils.WeightParams(
-          shape=pc_b_shape,
-          init=InitProj(p.ctx_post_proj_dim, bias=True),
-          dtype=p.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
-      self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
+      if p.use_bias:
+        pc_bias_post_proj = py_utils.WeightParams(
+            shape=pc_b_shape,
+            init=InitProj(p.ctx_post_proj_dim, bias=True),
+            dtype=p.dtype,
+            collections=[self.__class__.__name__ + '_vars'])
+        self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
 
     self.TrackQTensor('source_proj_matmul', 'source_proj_add',
                       'query_proj_matmul', 'query_proj_add',
@@ -1378,10 +1391,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                   tf.reshape(source_vecs, [-1, source_vec_depth]),
                   fns.qweight(theta.source_proj),
                   qt='source_proj_matmul'))
-          source_projected = fns.qadd(
-              source_projected,
-              fns.qweight(theta.source_proj_b),
-              qt='source_proj_add')
+          if p.use_bias:
+            source_projected = fns.qadd(
+                source_projected,
+                fns.qweight(theta.source_proj_b),
+                qt='source_proj_add')
         else:
           source_projected = tf.reshape(source_vecs, [-1, source_vec_depth])
     with tf.name_scope('init__1'):
@@ -1402,10 +1416,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                          [-1, py_utils.GetShape(source_contexts)[2]]),
               fns.qweight(theta.ctx_proj),
               qt='ctx_pre_proj_matmul')
-          source_contexts_projected = fns.qadd(
-              source_contexts_projected,
-              fns.qweight(theta.ctx_proj_b),
-              qt='ctx_pre_proj_add')
+          if p.use_bias:
+            source_contexts_projected = fns.qadd(
+                source_contexts_projected,
+                fns.qweight(theta.ctx_proj_b),
+                qt='ctx_pre_proj_add')
         else:
           source_contexts_projected = source_contexts
 
@@ -1610,10 +1625,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     if p.enable_query_proj:
       query_vec_projected = fns.qbatchmatmul(
           query_vec, fns.qweight(theta.query_proj), qt='query_proj_matmul')
-      query_vec_projected = fns.qadd(
-          query_vec_projected,
-          fns.qweight(theta.query_proj_b),
-          qt='query_proj_add')
+      if p.use_bias:
+        query_vec_projected = fns.qadd(
+            query_vec_projected,
+            fns.qweight(theta.query_proj_b),
+            qt='query_proj_add')
       query_vec_projected = tf.reshape(query_vec_projected,
                                        query_vec_projected_shape)
       query_vec_projected = self.ProcessProjectionVec(theta,
@@ -1662,8 +1678,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             ctx_vec,
             fns.qweight(theta.ctx_post_proj),
             qt='ctx_post_proj_matmul')
-        ctx_vec = fns.qadd(
-            ctx_vec, fns.qweight(theta.ctx_post_proj_b), qt='ctx_post_proj_add')
+        if p.use_bias:
+          ctx_vec = fns.qadd(
+              ctx_vec,
+              fns.qweight(theta.ctx_post_proj_b),
+              qt='ctx_post_proj_add')
       else:
         assert p.num_post_proj > 1, (
             'atten_idx is not None, this means there are multiple post '
@@ -1673,7 +1692,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         select = tf.transpose(tf.concat([bs_range, [atten_idx]], axis=0))
         # => [batch, dim, num_langs]
         ctx_vec = tf.einsum('ab,bcd->acd', ctx_vec, theta.ctx_post_proj)
-        ctx_vec += tf.expand_dims(theta.ctx_post_proj_b, 0)
+        if p.use_bias:
+          ctx_vec += tf.expand_dims(theta.ctx_post_proj_b, 0)
         # => [batch, num_langs, dim]
         ctx_vec = tf.transpose(ctx_vec, [0, 2, 1])
         # => [batch, dim]
