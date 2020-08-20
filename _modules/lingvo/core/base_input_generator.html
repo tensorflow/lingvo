@@ -287,6 +287,9 @@
     <span class="c1"># A list of InfeedQueues.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span> <span class="o">=</span> <span class="p">[]</span>
 
+    <span class="c1"># Set to true in GetProcessedInputBatch() (and thus _InputBatch())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">False</span>
+
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
@@ -346,7 +349,10 @@
 <span class="sd">    Subclasses generally should not override this function directly. Instead,</span>
 <span class="sd">    override _InputBatch and maybe _PreprocessInputBatch.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputBatch</span><span class="p">())</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputBatch</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">res</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tpu_number_of_shards</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -841,6 +847,12 @@
 <span class="sd">      ValueError: If file_datasource is not set</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;This input generator does not support p.use_per_host_infeed. &#39;</span>
+          <span class="s1">&#39;Please set it to False, or move the call to self._BuildDataSource() &#39;</span>
+          <span class="s1">&#39;from self.__init__() to self._InputBatch() for batches to be &#39;</span>
+          <span class="s1">&#39;correctly replicated per host.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
       <span class="c1"># This is a workaround for subclasses which have defined</span>
       <span class="c1"># their own data source-like functionality.</span>
