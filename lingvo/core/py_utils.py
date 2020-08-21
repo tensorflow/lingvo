@@ -4296,11 +4296,6 @@ def _TensorSpecs(nmap):
   return Transform(lambda t: tf.TensorSpec(t.shape, t.dtype), nmap)
 
 
-def _GetConcreteFunction(func, inputs):
-  """Returns a ConcreteFunction with specific input signature."""
-  return func.get_concrete_function(*Flatten(_TensorSpecs(inputs)))
-
-
 def _DefineDefun(fwd,
                  fwd_sig,
                  bak=None,
@@ -4454,6 +4449,38 @@ def _ApplySharedRendezvous(func):
   # pylint: enable=protected-access
 
 
+def _WrapFunction(func=None, input_signature=None):
+  """Wraps func as a tf.function to be used in If/WhileLoop/CallDefun."""
+  if input_signature is None:
+    input_signature = []
+
+  def Decorated(fn):
+
+    @tf.function(input_signature=input_signature, autograph=False)
+    def Fn(*args):
+      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
+      # avoid it being used as an implicit capture. This is not a desired
+      # behavir, it should take the step seed from parent graph instead.
+      ResetStepSeed()
+      return fn(*args)
+
+    _ApplySharedRendezvous(Fn)
+
+    # Add the function to the graph so it'll be traced under the current
+    # context. This is necessary if the function body captures any non-tensor
+    # values from the environment, like symbolic maps.
+    cf = Fn.get_concrete_function()
+    cf.add_to_graph()
+    return cf
+
+  # For the `foo = _WrapFunction(foo, ...)` use case.
+  if func is not None:
+    return Decorated(func)
+
+  # For the `@_WrapFunction(...)` use case.
+  return Decorated
+
+
 def _DefineFunction(fwd,
                     fwd_sig,
                     bak=None,
@@ -4483,13 +4510,9 @@ def _DefineFunction(fwd,
   # set in Forward.
   sigs = NestedMap()
 
-  @tf.function(input_signature=Flatten(fwd_sig), autograph=False)
+  @_WrapFunction(input_signature=Flatten(fwd_sig))
   def Forward(*args):
     """The forward function."""
-    # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
-    # avoid it being used as an implicit capture. It should take the step seed
-    # from parent graph instead.
-    ResetStepSeed()
     with RemoveAssertContext(remove=noinline), tf.device(device):
       xs = Pack(fwd_sig, args)
       rets = fwd(xs)
@@ -4497,21 +4520,13 @@ def _DefineFunction(fwd,
     return Flatten(rets)
 
   shared_rendezvous = _GetSharedRendezvous()
-  _ApplySharedRendezvous(Forward)
-  forward_cf = Forward.get_concrete_function()
-  forward_cf.add_to_graph()
-  implicit_captures = forward_cf.captured_inputs
+  implicit_captures = Forward.captured_inputs
 
   if not bak:
     forward = Forward
   else:
 
     def Backward(*args):
-      if bak_as_function:
-        # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
-        # avoid it being used as an implicit capture. It should take the step
-        # seed from parent graph instead.
-        ResetStepSeed()
       xs_len = len(Flatten(fwd_sig))
       ys_len = len(Flatten(sigs.rets))
       xs = Pack(fwd_sig, args[:xs_len])
@@ -4522,16 +4537,8 @@ def _DefineFunction(fwd,
       return Flatten(dxs)
 
     if bak_as_function:
-      backward = tf.function(
-          Backward,
-          input_signature=Flatten([fwd_sig, sigs.rets, sigs.rets]),
-          autograph=False)
-      _ApplySharedRendezvous(backward)
-      # Add the backward function to graph so it's invoked under the same
-      # context as forward. This is necessary if the function body captures any
-      # non-tensor values from the environment, like symbolic maps.
-      backward_cf = backward.get_concrete_function()
-      backward_cf.add_to_graph()
+      backward_cf = _WrapFunction(
+          Backward, input_signature=Flatten([fwd_sig, sigs.rets, sigs.rets]))
     else:
 
       def BackwardWithSharedRendezvous(*args):
@@ -4550,7 +4557,7 @@ def _DefineFunction(fwd,
       # However, Forward doesn't take implicit_captures as input, so we exclude
       # them here.
       fwd_args = args[:(len(args) - len(Flatten(implicit_captures)))]
-      op = NestedMap(inputs=args, outputs=forward_cf(*fwd_args))
+      op = NestedMap(inputs=args, outputs=Forward(*fwd_args))
 
       def Grad(*args, **kwargs):
         """Gradient function for the forward function.
@@ -4637,35 +4644,25 @@ def If(cond, inputs, then_branch, else_branch):
 
   if _FromGlobal('if_use_tf_function'):
 
-    @tf.function(autograph=False)
+    @_WrapFunction(input_signature=Flatten(_TensorSpecs(inputs)))
     def ThenBranch(*args):
-      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
-      # avoid it being used as an implicit capture. It should take the step seed
-      # from parent graph instead.
-      ResetStepSeed()
       inp = Pack(inputs, args)
       out = then_branch(inp)
       ret_dtypes.then_out = Transform(get_dtype, out)
       return Flatten(out)
 
-    @tf.function(autograph=False)
+    @_WrapFunction(input_signature=Flatten(_TensorSpecs(inputs)))
     def ElseBranch(*args):
-      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
-      # avoid it being used as an implicit capture. It should take the step seed
-      # from parent graph instead.
-      ResetStepSeed()
       inp = Pack(inputs, args)
       out = else_branch(inp)
       ret_dtypes.else_out = Transform(get_dtype, out)
       return Flatten(out)
 
-    _ApplySharedRendezvous(ThenBranch)
-    _ApplySharedRendezvous(ElseBranch)
     ret = tf.If(
         cond=cond,
         inputs=Flatten(inputs),
-        then_branch=_GetConcreteFunction(ThenBranch, inputs),
-        else_branch=_GetConcreteFunction(ElseBranch, inputs))
+        then_branch=ThenBranch,
+        else_branch=ElseBranch)
   else:
     dtypes = Flatten(Transform(lambda x: x.dtype, inputs))
 
@@ -4719,31 +4716,18 @@ def WhileLoop(cond, body, loop_state):
 
   if _FromGlobal('while_loop_use_tf_function'):
 
-    @tf.function(autograph=False)
+    @_WrapFunction(input_signature=Flatten(_TensorSpecs(state)))
     def LoopCond(*args):
-      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
-      # avoid it being used as an implicit capture. It should take the step seed
-      # from parent graph instead.
-      ResetStepSeed()
       s = state.Pack(args)
       return cond(s.loop_state)
 
-    @tf.function(autograph=False)
+    @_WrapFunction(input_signature=Flatten(_TensorSpecs(state)))
     def LoopBody(*args):
-      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
-      # avoid it being used as an implicit capture. It should take the step seed
-      # from parent graph instead.
-      ResetStepSeed()
       s = state.Pack(args)
       s.loop_state = body(s.loop_state)
       return s.Flatten()
 
-    _ApplySharedRendezvous(LoopCond)
-    _ApplySharedRendezvous(LoopBody)
-    new_state = tf.While(
-        input_=state.Flatten(),
-        cond=_GetConcreteFunction(LoopCond, state),
-        body=_GetConcreteFunction(LoopBody, state))
+    new_state = tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)
   else:
     dtypes = state.Transform(lambda x: x.dtype).Flatten()
 
