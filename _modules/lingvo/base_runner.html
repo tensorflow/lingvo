@@ -247,7 +247,7 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">():</span>
       <span class="n">message</span> <span class="o">=</span> <span class="s1">&#39;Trial:</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">retrying</span><span class="p">:</span>
-      <span class="n">message</span> <span class="o">=</span> <span class="s1">&#39;&lt;b&gt;Retrying as expected&lt;/b&gt; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+      <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Job </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="si">}</span><span class="s1">: &lt;b&gt;Retrying as expected&lt;/b&gt;</span><span class="se">\n</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s1">&#39;</span>
     <span class="k">return</span> <span class="n">message</span></div>
 
 <div class="viewcode-block" id="BaseRunner._SetStatusMessage"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._SetStatusMessage">[docs]</a>  <span class="k">def</span> <span class="nf">_SetStatusMessage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">retrying</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -363,27 +363,28 @@
               <span class="s1">&#39;twice&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)):</span>
             <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (infeasible error).&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
-
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span>
-          <span class="n">e</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span>
-          <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">,</span>
-           <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">)):</span>
-        <span class="c1"># Retry on these errors.</span>
-        <span class="c1">#   FailedPreconditionError: variables are not initialized.</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">):</span>
         <span class="c1">#   OutOfRangeError: Test/dev datasets are exhausted.</span>
-        <span class="c1">#   DataLossError: Race condition between evaler and trainer when saving</span>
-        <span class="c1">#       or removing checkpoints.</span>
-        <span class="c1">#   CancelledError: Node was closed (on TPU).</span>
+        <span class="n">retry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">do_eval</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">):</span>
         <span class="c1">#   InvalidArgumentError: variables were not initialized. Comes from</span>
         <span class="c1">#       ResourceVariableOp.</span>
         <span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="c1"># Do not retry within Vizier study when NaNs cause InvalidArgumentError.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InVizierStudy</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span>
-                                                <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InVizierStudy</span><span class="p">():</span>
           <span class="k">if</span> <span class="s1">&#39;Tensor had NaN values&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
             <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (infeasible result due to NaN values).&#39;</span><span class="p">,</span>
                             <span class="n">job_name</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span>
+          <span class="n">e</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span>
+          <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">)):</span>
+        <span class="c1"># Retry on these errors.</span>
+        <span class="c1">#   FailedPreconditionError: variables are not initialized.</span>
+        <span class="c1">#   DataLossError: Race condition between evaler and trainer when saving</span>
+        <span class="c1">#       or removing checkpoints.</span>
+        <span class="c1">#   CancelledError: Node was closed (on TPU).</span>
+        <span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
 
