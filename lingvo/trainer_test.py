@@ -126,7 +126,7 @@ class TrainerTest(BaseTrainerTest):
 
   def _GetTestConfig(self):
     model_name = 'image.mnist.LeNet5'
-    cfg = model_registry.GetParams(model_name, 'Dev')
+    cfg = model_registry.GetParams(model_name, 'Train')
     cfg.cluster.task = 0
     cfg.cluster.mode = 'sync'
     cfg.cluster.job = 'trainer_client'
@@ -139,8 +139,9 @@ class TrainerTest(BaseTrainerTest):
 
     # Generate 2 inputs.
     cfg.input.ckpt = FakeMnistData(
-        self.get_temp_dir(), train_size=0, test_size=2)
+        self.get_temp_dir(), train_size=2, test_size=2)
     cfg.input.num_samples = 2
+    cfg.input.batch_size = 2
     cfg.train.max_steps = 2
     cfg.train.ema_decay = 0.9999
     return cfg

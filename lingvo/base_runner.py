@@ -99,7 +99,7 @@ class BaseRunner:
     if self._trial.Name():
       message = 'Trial:{} {}'.format(self._trial.Name(), message)
     if retrying:
-      message = '<b>Retrying as expected</b> ' + str(message)
+      message = f'Job {self._job_name}: <b>Retrying as expected</b>\n{message}'
     return message
 
   def _SetStatusMessage(self, message, retrying=False):
@@ -215,27 +215,28 @@ class BaseRunner:
               'twice' in str(e)):
             retry = False
             tf.logging.info('%s done (infeasible error).', job_name)
-
-      elif isinstance(
-          e, py_utils.transient_tf_errors +
-          (tf.errors.OutOfRangeError, tf.errors.DataLossError,
-           tf.errors.InvalidArgumentError, tf.errors.CancelledError)):
-        # Retry on these errors.
-        #   FailedPreconditionError: variables are not initialized.
+      elif isinstance(e, tf.errors.OutOfRangeError):
         #   OutOfRangeError: Test/dev datasets are exhausted.
-        #   DataLossError: Race condition between evaler and trainer when saving
-        #       or removing checkpoints.
-        #   CancelledError: Node was closed (on TPU).
+        retry = self._cluster.do_eval
+      elif isinstance(e, tf.errors.InvalidArgumentError):
         #   InvalidArgumentError: variables were not initialized. Comes from
         #       ResourceVariableOp.
         retry = True
         # Do not retry within Vizier study when NaNs cause InvalidArgumentError.
-        if self._InVizierStudy() and isinstance(e,
-                                                tf.errors.InvalidArgumentError):
+        if self._InVizierStudy():
           if 'Tensor had NaN values' in str(e):
             retry = False
             tf.logging.info('%s done (infeasible result due to NaN values).',
                             job_name)
+      elif isinstance(
+          e, py_utils.transient_tf_errors +
+          (tf.errors.DataLossError, tf.errors.CancelledError)):
+        # Retry on these errors.
+        #   FailedPreconditionError: variables are not initialized.
+        #   DataLossError: Race condition between evaler and trainer when saving
+        #       or removing checkpoints.
+        #   CancelledError: Node was closed (on TPU).
+        retry = True
       else:
         retry = False
 

@@ -200,9 +200,10 @@ lingvo_py_binary(
 py_test(
     name = "trainer_test",
     size = "large",
+    timeout = "long",
     srcs = ["trainer_test.py"],
     python_version = "PY3",
-    shard_count = 6,
+    shard_count = 12,
     srcs_version = "PY3",
     tags = [
         "noasan",
