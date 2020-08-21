@@ -2469,20 +2469,55 @@ class RematerializeFnTest(test_utils.TestCase):
       self.assertAllEqual(v2, v4)
 
 
-class StatefulRandomOpsInDefunTest(test_utils.TestCase):
+def WrapFunction(use_tf_function, *dtypes):
+  """Wrap a python function as a Defun or tf.function."""
+  if use_tf_function:
 
-  def testFunctionWithStatelessOp(self):
+    def Decorated(fn):
 
-    @tf.Defun()
+      @tf.function(
+          input_signature=[tf.TensorSpec(shape=None, dtype=t) for t in dtypes])
+      def Fn(*args):
+        return fn(*args)
+
+      return Fn.get_concrete_function()
+
+    return Decorated
+  else:
+    return tf.Defun(*dtypes)
+
+
+def StatefulRandomOpsInDefunTestParameters(test_fn):
+
+  def WrappedTestFn(self, use_tf_function):
+    # TODO(laigd): remove this check when 312743821 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    test_fn(self, use_tf_function)
+
+  decorator = parameterized.named_parameters(
+      ('_defun', False),
+      ('_function', True),
+  )
+  return decorator(WrappedTestFn)
+
+
+class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
+
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatelessOp(self, use_tf_function):
+
+    @WrapFunction(use_tf_function)
     def FunctionWithStatelessOp():
       return tf.constant(42.0)
 
     self.assertAllEqual(
         [], py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessOp))
 
-  def testFunctionWithStatefulOp(self):
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatefulOp(self, use_tf_function):
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatefulOp():
       return tf.random.uniform([100], maxval=10, dtype=tf.int32)
 
@@ -2490,13 +2525,14 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
         ['RandomUniformInt'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulOp))
 
-  def testFunctionWithStatelessFunctionCall(self):
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatelessFunctionCall(self, use_tf_function):
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatelessOp():
       return tf.constant(42.0)
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatelessFunctionCall():
       return FunctionWithStatelessOp()
 
@@ -2504,13 +2540,14 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
         [],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionCall))
 
-  def testFunctionWithStatefulFunctionCall(self):
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatefulFunctionCall(self, use_tf_function):
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatefulOp():
       return tf.random.uniform([100], maxval=10, dtype=tf.int32)
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatefulFunctionCall():
       return FunctionWithStatefulOp()
 
@@ -2518,17 +2555,18 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
         ['RandomUniformInt'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionCall))
 
-  def testFunctionWithStatefulFunctionalWhile(self):
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatefulFunctionalWhile(self, use_tf_function):
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatefulFunctionalWhile():
 
-      @tf.Defun(tf.float32, tf.int32)
+      @WrapFunction(use_tf_function, tf.float32, tf.int32)
       def Cond(result, i):
         del result
         return tf.less(i, 4)
 
-      @tf.Defun(tf.float32, tf.int32)
+      @WrapFunction(use_tf_function, tf.float32, tf.int32)
       def Body(result, i):
         return (result + tf.random.uniform(tf.shape(result)), i + 1)
 
@@ -2538,16 +2576,17 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
         ['RandomUniform'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalWhile))
 
-  def testFunctionWithStatefulFunctionalIf(self):
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatefulFunctionalIf(self, use_tf_function):
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatefulFunctionalIf():
 
-      @tf.Defun(tf.float32)
+      @WrapFunction(use_tf_function, tf.float32)
       def ThenFn(x):
         return tf.abs(x)
 
-      @tf.Defun(tf.float32)
+      @WrapFunction(use_tf_function, tf.float32)
       def ElseFn(x):
         return tf.random.uniform(tf.shape(x))
 
@@ -2558,12 +2597,13 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
         ['RandomUniform'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalIf))
 
-  def testFunctionWithStatefulFunctionalFor(self):
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatefulFunctionalFor(self, use_tf_function):
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatefulFunctionalFor():
 
-      @tf.Defun(tf.float32)
+      @WrapFunction(use_tf_function, tf.float32)
       def Body(result):
         return [
             result + tf.random.uniform(tf.shape(result)) +
@@ -2578,12 +2618,13 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
                             py_utils.StatefulRandomOpsInDefun(
                                 FunctionWithStatefulFunctionalFor)))
 
-  def testFunctionWithStatelessFunctionalFor(self):
+  @StatefulRandomOpsInDefunTestParameters
+  def testFunctionWithStatelessFunctionalFor(self, use_tf_function):
 
-    @tf.Defun()
+    @WrapFunction(use_tf_function)
     def FunctionWithStatelessFunctionalFor():
 
-      @tf.Defun(tf.float32)
+      @WrapFunction(use_tf_function, tf.float32)
       def Body(result):
         return [
             result +

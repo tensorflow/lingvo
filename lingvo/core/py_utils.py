@@ -3932,7 +3932,7 @@ def StatefulRandomOpsInDefun(func, graph=None):
   Otherwise, these ops produce inconsistent values between FProp and BProp.
 
   Args:
-    func: a _DefinedFunction to check.
+    func: a _DefinedFunction or ConcreteFunction to check.
     graph: a Graph. Set None to use the default graph.
 
   Returns:
@@ -3941,10 +3941,6 @@ def StatefulRandomOpsInDefun(func, graph=None):
   Raises:
     InvalidArgumentError: if the input func/graph is invalid.
   """
-  if not isinstance(func, function._DefinedFunction):  # pylint: disable=protected-access
-    raise tf.errors.InvalidArgumentError(None, None,
-                                         'func is not a _DefinedFunction.')
-
   if graph is None:
     graph = tf.get_default_graph()
   func.add_to_graph(graph)
@@ -3953,15 +3949,18 @@ def StatefulRandomOpsInDefun(func, graph=None):
   # A dict from function name to FunctionDef.
   func_defs = {x.signature.name: x for x in graph_def.library.function}
 
-  if func.definition.signature.name not in func_defs:
-    raise tf.errors.InvalidArgumentError(
-        None, None,
-        'Defun {} is not in the graph .'.format(func.definition.signature.name))
+  if isinstance(func, function._DefinedFunction):  # pylint: disable=protected-access
+    if func.definition.signature.name not in func_defs:
+      raise tf.errors.InvalidArgumentError(
+          None, None, 'Defun {} is not in the graph .'.format(
+              func.definition.signature.name))
+    nodes = py_collections.deque(func.definition.node_def)
+  else:
+    nodes = py_collections.deque(func.function_def.node_def)
 
   stateful_ops = []
 
   # Recursively search for stateful random op.
-  nodes = py_collections.deque(func.definition.node_def)
   while nodes:
     node = nodes.pop()
     assert isinstance(node, node_def_pb2.NodeDef), node
@@ -3984,7 +3983,9 @@ def StatefulRandomOpsInDefun(func, graph=None):
     elif node.op == 'If':
       _AddDefunNodes(node.attr['then_branch'].func.name)
       _AddDefunNodes(node.attr['else_branch'].func.name)
-    else:
+    elif node.op == 'StatefulPartitionedCall':
+      _AddDefunNodes(node.attr['f'].func.name)
+    elif node.op != 'PartitionedCall':
       # For other op, check whether itself is a Defun op.
       _AddDefunNodes(node.op)
 
