@@ -308,6 +308,21 @@ class InputTest(test_utils.TestCase):
             ],
         ]))
 
+  def testTextPackedInputNoPerHostInfeed(self):
+    # We need to move the call to _DataSourceToInputBatch() to in _InputBatch()
+    # to place it per host. This in turn requires us to stop override
+    # GlobalBatchSize() but add a metric instead.
+    # For now, use_per_host_infeed is not supported.
+    p = input_generator.TextPackedInput.Params()
+    p.file_pattern = 'text:' + test_helper.test_src_dir_path(
+        'tasks/mt/testdata/en_de.text')
+    p.use_per_host_infeed = True
+    p.file_random_seed = 0
+    self.assertRaisesRegex(
+        ValueError,
+        'This input generator does not support p.use_per_host_infeed',
+        p.Instantiate)
+
   def testTextPackedInputTextWpm(self):
     p = input_generator.TextPackedInput.Params()
     p.flush_every_n = 0
