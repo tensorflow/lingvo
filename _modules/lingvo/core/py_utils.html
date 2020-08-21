@@ -4080,7 +4080,7 @@
 <span class="sd">  Otherwise, these ops produce inconsistent values between FProp and BProp.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    func: a _DefinedFunction to check.</span>
+<span class="sd">    func: a _DefinedFunction or ConcreteFunction to check.</span>
 <span class="sd">    graph: a Graph. Set None to use the default graph.</span>
 
 <span class="sd">  Returns:</span>
@@ -4089,10 +4089,6 @@
 <span class="sd">  Raises:</span>
 <span class="sd">    InvalidArgumentError: if the input func/graph is invalid.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">function</span><span class="o">.</span><span class="n">_DefinedFunction</span><span class="p">):</span>  <span class="c1"># pylint: disable=protected-access</span>
-    <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-                                         <span class="s1">&#39;func is not a _DefinedFunction.&#39;</span><span class="p">)</span>
-
   <span class="k">if</span> <span class="n">graph</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
   <span class="n">func</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
@@ -4101,15 +4097,18 @@
   <span class="c1"># A dict from function name to FunctionDef.</span>
   <span class="n">func_defs</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">library</span><span class="o">.</span><span class="n">function</span><span class="p">}</span>
 
-  <span class="k">if</span> <span class="n">func</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">func_defs</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">(</span>
-        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Defun </span><span class="si">{}</span><span class="s1"> is not in the graph .&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">function</span><span class="o">.</span><span class="n">_DefinedFunction</span><span class="p">):</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="k">if</span> <span class="n">func</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">func_defs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">(</span>
+          <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Defun </span><span class="si">{}</span><span class="s1"> is not in the graph .&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+              <span class="n">func</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">deque</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">node_def</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">deque</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">function_def</span><span class="o">.</span><span class="n">node_def</span><span class="p">)</span>
 
   <span class="n">stateful_ops</span> <span class="o">=</span> <span class="p">[]</span>
 
   <span class="c1"># Recursively search for stateful random op.</span>
-  <span class="n">nodes</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">deque</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">node_def</span><span class="p">)</span>
   <span class="k">while</span> <span class="n">nodes</span><span class="p">:</span>
     <span class="n">node</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">node_def_pb2</span><span class="o">.</span><span class="n">NodeDef</span><span class="p">),</span> <span class="n">node</span>
@@ -4132,7 +4131,9 @@
     <span class="k">elif</span> <span class="n">node</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;If&#39;</span><span class="p">:</span>
       <span class="n">_AddDefunNodes</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">attr</span><span class="p">[</span><span class="s1">&#39;then_branch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
       <span class="n">_AddDefunNodes</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">attr</span><span class="p">[</span><span class="s1">&#39;else_branch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">node</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;StatefulPartitionedCall&#39;</span><span class="p">:</span>
+      <span class="n">_AddDefunNodes</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">attr</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">node</span><span class="o">.</span><span class="n">op</span> <span class="o">!=</span> <span class="s1">&#39;PartitionedCall&#39;</span><span class="p">:</span>
       <span class="c1"># For other op, check whether itself is a Defun op.</span>
       <span class="n">_AddDefunNodes</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">op</span><span class="p">)</span>
 
