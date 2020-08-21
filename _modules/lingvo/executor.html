@@ -219,7 +219,6 @@
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
         <span class="n">train_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
         <span class="n">train_task_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;_executor_train_task&#39;</span>
-        <span class="n">train_task_params</span><span class="o">.</span><span class="n">model_params</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
         <span class="n">train_task_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">k</span>
         <span class="n">train_task_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">cluster</span>
         <span class="n">train_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -238,7 +237,6 @@
           <span class="n">eval_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
               <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">eval_dataset_name</span> <span class="o">+</span> <span class="s1">&#39;_executor_eval_task&#39;</span><span class="p">)</span>
-          <span class="n">eval_task_params</span><span class="o">.</span><span class="n">model_params</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">k</span>
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">cluster</span>
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -333,23 +331,6 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
                      <span class="s1">&#39;trainer_params.txt&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
-
-    <span class="k">for</span> <span class="n">task_string</span><span class="p">,</span> <span class="n">program_schedule_params</span> <span class="ow">in</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
-      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">data_parallelism</span>
-      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">task_string</span>
-      <span class="n">ps</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">task_string</span><span class="p">]</span> <span class="o">=</span> <span class="n">ps</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
-      <span class="k">if</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span>
-
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_programs: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">))</span>
-
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span><span class="p">)</span>
@@ -388,6 +369,27 @@
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;init_start&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">_WaitTillInit</span><span class="p">()</span>
 
+    <span class="n">train_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">shared_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeConstructSharedModel</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">task_string</span><span class="p">,</span> <span class="n">program_schedule_params</span> <span class="ow">in</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">data_parallelism</span>
+      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">task_string</span>
+      <span class="c1"># If the model was created above, we&#39;ll inject it here as a shared_model.</span>
+      <span class="n">ps</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">task_string</span><span class="p">]</span> <span class="o">=</span> <span class="n">ps</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_programs: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">))</span>
+
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_placer_in_executor</span>
@@ -407,6 +409,32 @@
             <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">save_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_MaybeConstructSharedModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_cfg</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct a single shared copy of the model if this is a MultiTaskModel.</span>
+
+<span class="sd">    For MultiTaskModels, we create a MultiTaskSubModel for each task, but</span>
+<span class="sd">    construct the model only once.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      train_cfg: The params for a SingleTaskModel or MultiTaskModel.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A MultiTaskModel, if train_cfg is a MultiTaskModel params object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
+      <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_placer_in_executor</span>
+          <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
+          <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+          <span class="n">shared_model</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+          <span class="n">shared_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">shared_model</span>
 
   <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Run training.</span>

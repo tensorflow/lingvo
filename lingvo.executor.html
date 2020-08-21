@@ -210,6 +210,22 @@ eg: [train x 1000 steps, checkpoint, eval 4 steps, decode 2 steps]</p></li>
 share the TPU.</p></li>
 </ul>
 <dl class="py method">
+<dt id="lingvo.executor.ExecutorTpu._MaybeConstructSharedModel">
+<code class="sig-name descname">_MaybeConstructSharedModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_cfg</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._MaybeConstructSharedModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._MaybeConstructSharedModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a single shared copy of the model if this is a MultiTaskModel.</p>
+<p>For MultiTaskModels, we create a MultiTaskSubModel for each task, but
+construct the model only once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>train_cfg</strong> – The params for a SingleTaskModel or MultiTaskModel.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A MultiTaskModel, if train_cfg is a MultiTaskModel params object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.executor.ExecutorTpu.Start">
 <code class="sig-name descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu.Start" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>

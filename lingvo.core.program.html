@@ -171,7 +171,7 @@
 <p>Programs for interleaving execution on TPU.</p>
 <dl class="py class">
 <dt id="lingvo.core.program.BaseProgram">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">BaseProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">BaseProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A Program associated with a Task.</p>
 <p>This is inspired by the “program” multi-tenancy that TPUs
@@ -277,11 +277,28 @@ available to be executed on demand without significant delay.</p>
 <code class="sig-name descname">RestoreIfNeeded</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.RestoreIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._InstantiateTaskModel">
+<code class="sig-name descname">_InstantiateTaskModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">task_params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InstantiateTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InstantiateTaskModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiates a model object for a particular task.</p>
+<p>MultiTaskModels can accept a shared_model parameter, but SingleTaskModels
+cannot, so we handle them separately here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task_params</strong> – An params instance that constructs either a SingleTaskModel
+or a MultiTaskSubModel.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An instantiated object based on task_params.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt id="lingvo.core.program.TrainProgram">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">TrainProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">TrainProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>TrainProgram trains a single task and handles checkpoints.</p>
 <dl class="py method">
@@ -336,7 +353,7 @@ available to be executed on demand without significant delay.</p>
 
 <dl class="py class">
 <dt id="lingvo.core.program.EvalProgram">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">EvalProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">EvalProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>Evaluation program.</p>
 <p>Note that this currently has different infeed semantics compared to
@@ -372,7 +389,7 @@ evaluation.</p>
 
 <dl class="py class">
 <dt id="lingvo.core.program.DecodeProgram">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">DecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">DecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>DecodeProgram.</p>
 <p>Note that this currently has different infeed semantics compared to
@@ -414,7 +431,7 @@ decoder run.</p>
 
 <dl class="py class">
 <dt id="lingvo.core.program.ExperimentalDecodeProgram">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">ExperimentalDecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">ExperimentalDecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.DecodeProgram" title="lingvo.core.program.DecodeProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.DecodeProgram</span></code></a></p>
 <p>DecodeProgram in a tpu loop.</p>
 <p>TODO(huangyp) test this for beam search decoders and replace the
@@ -471,7 +488,7 @@ default DecodeProgram.</p>
 
 <dl class="py class">
 <dt id="lingvo.core.program.MLPerfTrainDecodeProgram">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">MLPerfTrainDecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">MLPerfTrainDecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>Run train/decode in a single session run.</p>
 <dl class="py method">
@@ -531,7 +548,7 @@ default DecodeProgram.</p>
 
 <dl class="py class">
 <dt id="lingvo.core.program.SimpleProgramSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">SimpleProgramSchedule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramSchedule" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">SimpleProgramSchedule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A schedule of programs associated with a single task.</p>
 <p>Simple sequence is:
@@ -583,7 +600,7 @@ EvalProgram.</p></li>
 
 <dl class="py class">
 <dt id="lingvo.core.program.MLPerfProgramSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">MLPerfProgramSchedule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramSchedule" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">MLPerfProgramSchedule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Program schedule for ML Perf benchmark.</p>
 <dl class="py method">

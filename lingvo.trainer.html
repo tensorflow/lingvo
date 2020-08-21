@@ -714,6 +714,22 @@ share the TPU.</p></li>
 <code class="sig-name descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu._Loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.trainer.RunnerManager.ExecutorTpu._MaybeConstructSharedModel">
+<code class="sig-name descname">_MaybeConstructSharedModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_cfg</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu._MaybeConstructSharedModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a single shared copy of the model if this is a MultiTaskModel.</p>
+<p>For MultiTaskModels, we create a MultiTaskSubModel for each task, but
+construct the model only once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>train_cfg</strong> – The params for a SingleTaskModel or MultiTaskModel.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A MultiTaskModel, if train_cfg is a MultiTaskModel params object.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py method">
