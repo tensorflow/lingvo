@@ -73,13 +73,14 @@ class BaseProgram:
     p.Define('spmd', False, 'Whether program is running under SPMD mode.')
     return p
 
-  def __init__(self, params):
+  def __init__(self, params, shared_model=None):
     self.params = params.Copy()
     p = self.params
     self._task_params = p.task
     self._logdir = p.logdir
     self._task_name = p.task_name
     self._program_name = ''
+    self._shared_model = shared_model
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
@@ -197,12 +198,29 @@ class BaseProgram:
   def RestoreIfNeeded(self, sess):
     self._checkpointer.RestoreIfNeeded(sess)
 
+  def _InstantiateTaskModel(self, task_params):
+    """Instantiates a model object for a particular task.
+
+    MultiTaskModels can accept a shared_model parameter, but SingleTaskModels
+    cannot, so we handle them separately here.
+
+    Args:
+      task_params: An params instance that constructs either a SingleTaskModel
+        or a MultiTaskSubModel.
+
+    Returns:
+      An instantiated object based on task_params.
+    """
+    if issubclass(task_params.cls, base_model.MultiTaskSubModel):
+      return task_params.Instantiate(shared_model=self._shared_model)
+    return task_params.Instantiate()
+
 
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
-  def __init__(self, params):
-    super().__init__(params)
+  def __init__(self, params, shared_model=None):
+    super().__init__(params, shared_model=shared_model)
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
 
@@ -301,7 +319,7 @@ class TrainProgram(BaseProgram):
     data_parallelism = self.data_parallelism
 
     with cluster_factory.SetImmediatelyInstantiateVariables(False):
-      self._model = self._task_params.Instantiate()
+      self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
     self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
@@ -425,8 +443,8 @@ class EvalProgram(BaseProgram):
   evaluation.
   """
 
-  def __init__(self, params):
-    super().__init__(params)
+  def __init__(self, params, shared_model=None):
+    super().__init__(params, shared_model=shared_model)
     self._program_name = 'EvalProgram'
 
   def BuildTpuSubgraph(self):
@@ -435,7 +453,7 @@ class EvalProgram(BaseProgram):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
       with cluster_factory.SetImmediatelyInstantiateVariables(False):
-        self._model = self._task_params.Instantiate()
+        self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
       self._task.input.InstantiateVariables()
       self._task.input.CreateTpuEnqueueOps()
@@ -503,14 +521,14 @@ class DecodeProgram(BaseProgram):
   decoder run.
   """
 
-  def __init__(self, params):
-    super().__init__(params)
+  def __init__(self, params, shared_model=None):
+    super().__init__(params, shared_model=shared_model)
     self._program_name = 'DecodeProgram'
 
   def _CompileDecodeFn(self):
     """Wrap the DecodeFn with split_compile_and_shard."""
     with cluster_factory.SetImmediatelyInstantiateVariables(False):
-      self._model = self._task_params.Instantiate()
+      self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
     self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
@@ -589,7 +607,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     """Wrap the DecodeLoop with split_compile_and_shard."""
     device_assignment = py_utils.GetTpuDeviceAssignment()
     with cluster_factory.SetImmediatelyInstantiateVariables(False):
-      self._model = self._task_params.Instantiate()
+      self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
     self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
@@ -697,8 +715,8 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     p.Define('ml_perf', None, 'MLPerf config')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def __init__(self, params, shared_model=None):
+    super().__init__(params, shared_model=shared_model)
     p = self.params
     if p.ml_perf is not None and p.ml_perf.benchmark_name is not None:
       self._ml_perf_log = True
@@ -762,7 +780,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     py_utils.ResetStepSeed()
 
     with cluster_factory.SetImmediatelyInstantiateVariables(False):
-      self._decode_model = self._decode_task_params.Instantiate()
+      self._decode_model = self._InstantiateTaskModel(self._decode_task_params)
     self._decode_task = self._decode_model.GetTask()
     self._decode_task.input.InstantiateVariables()
     self._decode_task.input.CreateTpuEnqueueOps()
@@ -913,9 +931,10 @@ class SimpleProgramSchedule:
     mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
     return p
 
-  def __init__(self, params):
+  def __init__(self, params, shared_model=None):
     self.params = params.Copy()
     p = self.params
+    self._shared_model = shared_model
 
     # Propagate run-time parameters to programs:
     p.train_program.logdir = p.logdir
@@ -933,9 +952,10 @@ class SimpleProgramSchedule:
       eval_program_params.num_splits_per_client = p.num_splits_per_client
 
     self.eval_programs = []
-    self.train_program = p.train_program.Instantiate()
+    self.train_program = p.train_program.Instantiate(shared_model=shared_model)
     for eval_program in p.eval_programs:
-      self.eval_programs.append(eval_program.Instantiate())
+      self.eval_programs.append(
+          eval_program.Instantiate(shared_model=shared_model))
 
     self._programs = []
     self._programs.append(self.train_program)
@@ -1047,9 +1067,10 @@ class MLPerfProgramSchedule:
 
     return p
 
-  def __init__(self, params):
+  def __init__(self, params, shared_model=None):
     self.params = params.Copy()
     p = self.params
+    self._shared_model = shared_model
 
     # Propagate run-time parameters to programs:
     p.train_program.logdir = p.logdir
@@ -1069,7 +1090,7 @@ class MLPerfProgramSchedule:
     p.train_program.task_name = p.task_name
     p.train_program.ml_perf = p.ml_perf.Copy()
 
-    self.train_program = p.train_program.Instantiate()
+    self.train_program = p.train_program.Instantiate(shared_model=shared_model)
     self._programs = []
     self._programs.append(self.train_program)
 

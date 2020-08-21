@@ -71,7 +71,6 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
       for k, _ in multi_task_train_cfg.task_params.IterParams():
         train_task_params = base_model.MultiTaskSubModel.Params()
         train_task_params.name = k + '_executor_train_task'
-        train_task_params.model_params = multi_task_train_cfg.Copy()
         train_task_params.task_name = k
         train_task_params.cluster = multi_task_train_cfg.cluster
         train_task_params.input = multi_task_train_cfg.input.Get(k).Copy()
@@ -90,7 +89,6 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
           eval_task_params = base_model.MultiTaskSubModel.Params()
           eval_task_params.name = (
               k + '_' + eval_dataset_name + '_executor_eval_task')
-          eval_task_params.model_params = multi_task_train_cfg.Copy()
           eval_task_params.task_name = k
           eval_task_params.cluster = multi_task_eval_cfg.cluster
           eval_task_params.input = multi_task_eval_cfg.input.Get(k).Copy()
@@ -185,23 +183,6 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     self._WriteToLog(train_cfg.ToText(), self._checkpoint_dir,
                      'trainer_params.txt')
-    self._program_schedule_dict = {}
-    self._programs = []
-
-    for task_string, program_schedule_params in ps_params_dict.items():
-      program_schedule_params.logdir = logdir
-      program_schedule_params.num_splits_per_client = data_parallelism
-      program_schedule_params.task_name = task_string
-      ps = program_schedule_params.Instantiate()
-      self._program_schedule_dict[task_string] = ps
-      tf.logging.info('program_schedule_params: %s',
-                      program_schedule_params.ToText())
-      self._programs += ps.Programs()
-      if program_schedule_params.ml_perf.benchmark_name is not None:
-        self._ml_perf = program_schedule_params.ml_perf
-
-    tf.logging.info('num_programs: %d', len(self._programs))
-
     if self._ml_perf is not None:
       self._ml_perf_log = True
       mlp_log.mlperf_print(key='benchmark', value=self._ml_perf.benchmark_name)
@@ -240,6 +221,27 @@ class ExecutorTpu(base_runner.BaseRunner):
       mlp_log.mlperf_print(key='init_start', value=None)
     _WaitTillInit()
 
+    train_cfg = self.params
+    shared_model = self._MaybeConstructSharedModel(train_cfg)
+
+    self._program_schedule_dict = {}
+    self._programs = []
+
+    for task_string, program_schedule_params in ps_params_dict.items():
+      program_schedule_params.logdir = logdir
+      program_schedule_params.num_splits_per_client = data_parallelism
+      program_schedule_params.task_name = task_string
+      # If the model was created above, we'll inject it here as a shared_model.
+      ps = program_schedule_params.Instantiate(shared_model=shared_model)
+      self._program_schedule_dict[task_string] = ps
+      tf.logging.info('program_schedule_params: %s',
+                      program_schedule_params.ToText())
+      self._programs += ps.Programs()
+      if program_schedule_params.ml_perf.benchmark_name is not None:
+        self._ml_perf = program_schedule_params.ml_perf
+
+    tf.logging.info('num_programs: %d', len(self._programs))
+
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(
           self._cluster.job_spec.name if not FLAGS.cluster_placer_in_executor
@@ -259,6 +261,32 @@ class ExecutorTpu(base_runner.BaseRunner):
             model=None,
             train_params=train_cfg.train,
             save_only=True)
+
+  def _MaybeConstructSharedModel(self, train_cfg):
+    """Construct a single shared copy of the model if this is a MultiTaskModel.
+
+    For MultiTaskModels, we create a MultiTaskSubModel for each task, but
+    construct the model only once.
+
+    Args:
+      train_cfg: The params for a SingleTaskModel or MultiTaskModel.
+
+    Returns:
+      A MultiTaskModel, if train_cfg is a MultiTaskModel params object.
+    """
+    if not issubclass(train_cfg.cls, base_model.MultiTaskModel):
+      return None
+
+    with self._graph.as_default(), tf.container(self._container_id):
+      with self._cluster, tf.device(
+          self._cluster.job_spec.name if not FLAGS.cluster_placer_in_executor
+          else self._cluster.GetPlacer()):
+        with py_utils.VariableRenameScope(self._variable_renaming_rules):
+          _ = py_utils.GetOrCreateGlobalStepVar()
+          shared_model = train_cfg.Instantiate()
+          shared_model.InstantiateVariables()
+
+    return shared_model
 
   def Start(self):
     # Run training.

@@ -1083,22 +1083,15 @@ class MultiTaskSubModel(SingleTaskBase):
   def Params(cls):
     p = super().Params()
     p.name = 'multi_task_sub_model'
-    p.Define('model_params', None, 'Params of a model to create.')
     p.Define('task_name', '', 'The name of the task to execute from the '
              'enclosing model.')
     return p
 
-  def __init__(self, params):
+  def __init__(self, params, shared_model=None):
     super().__init__(params)
     p = self.params
-    self.CreateChild('_model', p.model_params)
+    self._model = shared_model
     self._task = self._model.children.Get(p.task_name)
-
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self._model.InstantiateVariables()
-    super()._CreateChildrenVariables()
 
 
 class MultiTaskModel(BaseModel):
