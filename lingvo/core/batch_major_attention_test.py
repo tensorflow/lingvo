@@ -1945,6 +1945,136 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(0.1, layer.params.tr_atten_tpl.residual_dropout_prob)
 
 
+class GPipeBatchMajorTransformerLayerTest(test_utils.TestCase,
+                                          parameterized.TestCase):
+  """Test GPipeBatchMajorTransformer layers."""
+
+  def _ConstructGPipeBatchMajorTransformerLayer(self,
+                                                decoder=False,
+                                                packed=True,
+                                                dropout=0.1):
+    p = attention.GPipeBatchMajorTransformerLayer.Params()
+    p.name = 'gpipe_transformer_layer'
+    p.input_dim = 4
+    p.tr_fflayer_tpl.hidden_dim = 7
+    p.tr_atten_tpl.num_heads = 2
+    p.tr_atten_tpl.residual_dropout_prob = dropout
+    p.packed_input = packed
+    if decoder:
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+    p.cls.SetupDeterministicDropout(p)
+    layer = p.Instantiate()
+    return p, layer
+
+  def _GPipeBatchMajorTransformerLayerInputs(self,
+                                             input_dim=4,
+                                             dtype=tf.float32):
+    np.random.seed(6348575)
+    target_vec = tf.transpose(
+        tf.stack([
+            tf.constant(np.random.rand(2, input_dim), dtype=dtype)
+            for _ in range(5)
+        ]), [1, 0, 2])
+    target_paddings = tf.constant([[0, 0, 0, 0, 1], [0, 0, 0, 0, 0]],
+                                  dtype=dtype)
+    aux_vec = tf.transpose(
+        tf.stack([
+            tf.constant(np.random.rand(2, input_dim), dtype=dtype)
+            for _ in range(7)
+        ]), [1, 0, 2])
+    aux_paddings = tf.constant([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 1]],
+                               dtype=dtype)
+    aux_segment_ids = tf.constant(
+        [[0, 0, 0, 1, 1, 1, 1], [0, 0, 0, 0, 1, 1, 1]], dtype=dtype)
+    target_segment_ids = tf.constant([[0, 0, 0, 1, 1], [0, 0, 1, 1, 1]],
+                                     dtype=dtype)
+    target_sa_mask = attention.SegmentMask(target_segment_ids,
+                                           target_segment_ids)
+    aux_sa_mask = attention.SegmentMask(aux_segment_ids, aux_segment_ids)
+    ca_mask = attention.SegmentMask(target_segment_ids, aux_segment_ids)
+    causal_padding = tf.expand_dims(
+        tf.tile(
+            tf.expand_dims(attention.CausalPadding(5, dtype=dtype), 0),
+            [2, 1, 1]), 1)
+    causal_mask = causal_padding * dtype.max * tf.constant(-0.7, dtype=dtype)
+    target_sa_mask += causal_mask
+    return (target_vec, target_paddings, target_sa_mask, aux_vec, aux_paddings,
+            aux_sa_mask, ca_mask)
+
+  def testGPipeBatchMajorTransformerEncoderLayerConstruction(self):
+    _, layer = self._ConstructGPipeBatchMajorTransformerLayer()
+    self.assertEqual(0.1, layer.params.tr_atten_tpl.residual_dropout_prob)
+
+  def testGPipeBatchMajorTransformerDecoderLayerConstruction(self):
+    _, layer = self._ConstructGPipeBatchMajorTransformerLayer(decoder=True)
+    self.assertEqual(0.1, layer.params.tr_atten_tpl.residual_dropout_prob)
+
+  def testGPipeBatchMajorTransformerEncoderLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      (_, _, _, aux_vec, aux_paddings, aux_sa_mask,
+       _) = self._GPipeBatchMajorTransformerLayerInputs()
+      _, l = self._ConstructGPipeBatchMajorTransformerLayer()
+
+      layer_output = l.FProp(l.theta, aux_vec, aux_paddings, None, None,
+                             aux_sa_mask, None, None)[0]
+
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(layer_output)
+      actual_layer_output = np.reshape(actual_layer_output, (14, 4))
+      tf.logging.info(np.array_repr(actual_layer_output))
+      expected_layer_output = [7.616176, 8.611565, -0.932456, -4.5797]
+      self.assertAllClose(expected_layer_output,
+                          np.sum(actual_layer_output, axis=0))
+
+  def testGPipeBatchMajorTransformerDecoderLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      (target_vec, target_paddings, target_sa_mask, aux_vec, aux_paddings,
+       aux_sa_mask, ca_mask) = self._GPipeBatchMajorTransformerLayerInputs()
+      _, l = self._ConstructGPipeBatchMajorTransformerLayer(decoder=True)
+
+      layer_output = l.FProp(l.theta, aux_vec, aux_paddings, target_vec,
+                             target_paddings, aux_sa_mask, target_sa_mask,
+                             ca_mask)[2]
+
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(layer_output)
+      actual_layer_output = np.reshape(actual_layer_output, (10, 4))
+      tf.logging.info(np.array_repr(actual_layer_output))
+      expected_layer_output = [2.721037, 5.228053, 2.27512, 6.92945]
+      self.assertAllClose(expected_layer_output,
+                          np.sum(actual_layer_output, axis=0))
+
+  def testGPipeBatchMajorTransformerDecoderLayerExtendStep(self):
+    with self.session(use_gpu=True) as sess:
+      (target_vec, _, _, aux_vec, aux_paddings, _,
+       _) = self._GPipeBatchMajorTransformerLayerInputs()
+      target_paddings = tf.zeros([2, 5])
+      cached_key = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
+      cached_value = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
+      prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
+      _, l = self._ConstructGPipeBatchMajorTransformerLayer(
+          decoder=True, packed=False, dropout=0.0)
+
+      layer_output1 = l.FProp(l.theta, aux_vec, aux_paddings, target_vec,
+                              target_paddings, None, None, None)[2]
+
+      layer_output2 = []
+      for i in range(5):
+        layer_output, prefix_states = l.ExtendStep(
+            l.theta, tf.expand_dims(target_vec[:, i, :], 1), aux_vec,
+            aux_paddings, prefix_states, i)
+        layer_output2.append(tf.squeeze(layer_output, 1))
+      layer_output2 = tf.transpose(tf.stack(layer_output2), [1, 0, 2])
+
+      tf.global_variables_initializer().run()
+      actual_layer_output1, actual_layer_output2 = sess.run(
+          [layer_output1, layer_output2])
+      self.assertAllClose(actual_layer_output1, actual_layer_output2)
+
+
 class BuilderTest(test_utils.TestCase, parameterized.TestCase):
 
   def _testGraph(self, glu_with_tanh=False, dtype=tf.float32):
