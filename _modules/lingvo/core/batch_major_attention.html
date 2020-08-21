@@ -3038,9 +3038,13 @@
     <span class="k">return</span> <span class="n">h</span></div></div>
 
 
-<span class="c1"># TODO(ankurbpn,huangyp): Remove redundant segment mask calculations.</span>
+<span class="c1"># TODO(ankurbpn,huangyp): Remove this layer.</span>
 <div class="viewcode-block" id="GPipeTransformerLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeTransformerLayer">[docs]</a><span class="k">class</span> <span class="nc">GPipeTransformerLayer</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;GPipe compatible transformer layer.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;GPipe compatible transformer layer.</span>
+
+<span class="sd">  DEPRECATED: This layer and its use in GPipeTransformerStack is</span>
+<span class="sd">  deprecated. Consider using the new GPipeBatchMajorTransformerStack instead.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="GPipeTransformerLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeTransformerLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -3170,6 +3174,150 @@
     <span class="n">cur_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">atten_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">task_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cur_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
+
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeBatchMajorTransformerLayer">[docs]</a><span class="k">class</span> <span class="nc">GPipeBatchMajorTransformerLayer</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;GPipe compatible batch majortransformer layer.</span>
+
+<span class="sd">  To be used with the new GPipeBatchMajorStack.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeBatchMajorTransformerLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Layer norm default params. No layernorm if set to None.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_layer_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to layer normalize the output of the layer.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="c1"># Initialize output layer norm.</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_layer_norm</span><span class="p">:</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;output_ln&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeBatchMajorTransformerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
+            <span class="n">target_paddings</span><span class="p">,</span> <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span>
+            <span class="n">decoder_self_atten_segment_mask</span><span class="p">,</span> <span class="n">decoder_cross_atten_segment_mask</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>  <span class="c1"># Decoder FProp</span>
+        <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
+            <span class="n">target_vecs</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="n">target_paddings</span><span class="p">,</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="n">decoder_self_atten_segment_mask</span><span class="p">)</span>
+        <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span>
+            <span class="n">atten_vec</span><span class="p">,</span>
+            <span class="n">source_vecs</span><span class="p">,</span>
+            <span class="n">source_paddings</span><span class="p">,</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="n">decoder_cross_atten_segment_mask</span><span class="p">)</span>
+        <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
+                                       <span class="n">target_paddings</span><span class="p">)</span>
+        <span class="n">atten_vec</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">target_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_layer_norm</span><span class="p">:</span>
+          <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
+                <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span>
+                <span class="n">decoder_self_atten_segment_mask</span><span class="p">,</span>
+                <span class="n">decoder_cross_atten_segment_mask</span><span class="p">)</span>
+
+      <span class="c1"># Encoder FProp</span>
+      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
+          <span class="n">source_vecs</span><span class="p">,</span>
+          <span class="kc">None</span><span class="p">,</span>
+          <span class="n">source_paddings</span><span class="p">,</span>
+          <span class="n">segment_mask</span><span class="o">=</span><span class="n">encoder_self_atten_segment_mask</span><span class="p">)</span>
+      <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">)</span>
+      <span class="n">atten_vec</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_layer_norm</span><span class="p">:</span>
+        <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
+              <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span> <span class="n">decoder_self_atten_segment_mask</span><span class="p">,</span>
+              <span class="n">decoder_cross_atten_segment_mask</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeBatchMajorTransformerLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="n">flops_per_element</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">source_batch</span><span class="p">,</span> <span class="n">src_time</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">inputs</span>
+    <span class="n">flops</span> <span class="o">=</span> <span class="n">flops_per_element</span> <span class="o">*</span> <span class="n">src_time</span> <span class="o">*</span> <span class="n">src_time</span> <span class="o">*</span> <span class="n">source_batch</span> <span class="o">*</span> <span class="n">dim</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">args</span><span class="p">,)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,)</span> <span class="o">+</span> <span class="n">args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerLayer.SetupDeterministicDropout"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeBatchMajorTransformerLayer.SetupDeterministicDropout">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetupDeterministicDropout</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Replaced dropout layers in transformer with deterministic ones.&quot;&quot;&quot;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">residual_dropout_tpl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">params</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeBatchMajorTransformerLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">query_vec</span><span class="p">,</span>
+                 <span class="n">aux_vec</span><span class="p">,</span>
+                 <span class="n">aux_paddings</span><span class="p">,</span>
+                 <span class="n">cached_states</span><span class="p">,</span>
+                 <span class="n">time_step</span><span class="p">,</span>
+                 <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transformer decoder layer, extend one step in autoregressive decoding.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query_vec:    [target_batch, 1, dim].</span>
+<span class="sd">      aux_vec:      [source_batch, source_time, dim]</span>
+<span class="sd">      aux_paddings: [source_batch, source_time]</span>
+<span class="sd">      cached_states: A `.NestedMap` object containing tensors which are the</span>
+<span class="sd">        results of previous attentions, used for fast decoding. key   -</span>
+<span class="sd">        [target_time, target_batch, num_heads, dim_per_head]. value -</span>
+<span class="sd">        [target_time, target_batch, num_heads, dim_per_head].</span>
+<span class="sd">      time_step: A scalar, the current decode step, 0-based.</span>
+<span class="sd">      use_short_seq_opt: A bool, whether using short sequence optimization.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      cur_output: [target_batch, 1, dim]</span>
+<span class="sd">      updated_states: A `.NestedMap` object containing the updated states.</span>
+<span class="sd">      key   - [target_time, target_batch, num_heads, dim_per_head].</span>
+<span class="sd">      value - [target_time, target_batch, num_heads, dim_per_head].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">target_batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">source_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># First the self-attention layer.</span>
+    <span class="n">atten_vec</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">cached_states</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span>
+        <span class="n">use_short_seq_opt</span><span class="p">)</span>
+
+    <span class="c1"># Next the cross-attention layer.</span>
+    <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+    <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">,</span>
+                                          <span class="n">aux_paddings</span><span class="p">)</span>
+    <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Finally the feed-forward layer.</span>
+    <span class="n">cur_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">atten_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">output_layer_norm</span><span class="p">:</span>
+      <span class="n">cur_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">cur_output</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cur_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
 
 
