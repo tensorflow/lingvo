@@ -1627,7 +1627,6 @@
 <span class="sd">  dot product.</span>
 
 <span class="sd">  TODO(zhouwk) This class is WIP, what remains to be done:</span>
-<span class="sd">    * self-attention (causal masked or not)</span>
 <span class="sd">    * single step during decoding</span>
 <span class="sd">    * propagate clustering loss;</span>
 <span class="sd">    * supporting packed inputs;</span>
@@ -1719,17 +1718,23 @@
 <span class="sd">      atten_probs: [B, T, N, S].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">is_self_attention</span> <span class="o">=</span> <span class="p">(</span><span class="n">query</span> <span class="ow">is</span> <span class="n">key</span><span class="p">)</span>
     <span class="c1"># Whether to update the centroids. Only do this during training.</span>
     <span class="n">update</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
 
     <span class="n">query</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="c1"># [B, T, N, K]</span>
     <span class="n">q_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
-    <span class="c1"># [B, S, N, K]</span>
-    <span class="n">k_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_self_attention</span><span class="p">:</span>
+      <span class="n">key</span> <span class="o">=</span> <span class="n">query</span>
+      <span class="n">k_dists</span> <span class="o">=</span> <span class="n">q_dists</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">key</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="c1"># [B, S, N, K]</span>
+      <span class="n">k_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fast_path</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenFastPath</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">q_dists</span><span class="p">,</span> <span class="n">k_dists</span><span class="p">,</span>
                                     <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">)</span>
