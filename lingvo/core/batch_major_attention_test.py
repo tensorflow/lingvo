@@ -1381,6 +1381,44 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
     expected[:, :, 0] = 1.
     self.assertAllClose(first_token_probs, expected)
 
+  @parameterized.parameters(False, True)
+  def testSelfAtten(self, fast_path):
+    batch_size = 4
+    target_length = 8
+    num_heads = 4
+    dim_per_head = 5
+    num_clusters = 3
+    attention_window = 6
+    q = tf.random.normal(
+        shape=[batch_size, target_length, num_heads, dim_per_head])
+    v = tf.random.normal(
+        shape=[batch_size, target_length, num_heads, dim_per_head])
+    q_copy = tf.identity(q)
+
+    paddings = np.zeros([batch_size, target_length], dtype=np.float32)
+    p = attention.RoutingAttention.Params().Set(
+        name='routing_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_clusters=num_clusters,
+        attention_window=attention_window,
+        query_group_size_factor=1.0,
+        fast_path=fast_path)
+    atten = p.Instantiate()
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      # self attention path
+      encoded_self_t, probs_self_t = atten._DotAtten(atten.theta, q, q, v,
+                                                     paddings, paddings)
+      # computed as cross attention
+      encoded_t, probs_t = atten._DotAtten(atten.theta, q, q_copy, v, paddings,
+                                           paddings)
+      encoded, probs, encoded_self, probs_self = sess.run(
+          [encoded_t, probs_t, encoded_self_t, probs_self_t])
+      self.assertAllClose(probs, probs_self)
+      self.assertAllClose(encoded, encoded_self)
+
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
   """Test Transformer decoder layers."""

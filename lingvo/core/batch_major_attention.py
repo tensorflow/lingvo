@@ -1479,7 +1479,6 @@ class RoutingAttention(MultiHeadedAttention):
   dot product.
 
   TODO(zhouwk) This class is WIP, what remains to be done:
-    * self-attention (causal masked or not)
     * single step during decoding
     * propagate clustering loss;
     * supporting packed inputs;
@@ -1571,17 +1570,23 @@ class RoutingAttention(MultiHeadedAttention):
       atten_probs: [B, T, N, S].
     """
     p = self.params
+    is_self_attention = (query is key)
     # Whether to update the centroids. Only do this during training.
     update = not self.do_eval
 
     query = attention_util.KMeansClusteringForAtten.LayerNorm(query)
-    key = attention_util.KMeansClusteringForAtten.LayerNorm(key)
     # [B, T, N, K]
     q_dists, _ = self.clustering.FProp(
         theta.clustering, query, query_paddings, update=update)
-    # [B, S, N, K]
-    k_dists, _ = self.clustering.FProp(
-        theta.clustering, key, key_paddings, update=update)
+
+    if is_self_attention:
+      key = query
+      k_dists = q_dists
+    else:
+      key = attention_util.KMeansClusteringForAtten.LayerNorm(key)
+      # [B, S, N, K]
+      k_dists, _ = self.clustering.FProp(
+          theta.clustering, key, key_paddings, update=update)
     if p.fast_path:
       return self._DotAttenFastPath(theta, query, key, value, q_dists, k_dists,
                                     query_paddings, key_paddings)
