@@ -266,7 +266,7 @@ class InputTest(test_utils.TestCase):
         self.assertTrue(x.shape.is_fully_defined(), k)
       batch, num_examples = sess.run([batch_tensor, inp.GlobalBatchSize()])
     self.assertEqual(num_examples, 2)
-    self.assertEqual(len(batch.src), 7)
+    self.assertEqual(len(batch.src), 8)
     self.assertAllEqual(batch.src.strs,
                         [b'I love paragliding!', b'vol biv paragliding'])
     self.assertAllEqual(batch.tgt.strs,

@@ -660,8 +660,12 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     # task_ids are padded with zeros.
     features.src.task_ids = tf.cast(
         features.src.ids_indicator, dtype=tf.int32) * src_task_id
+    features.src.source_ids = tf.cast(
+        features.src.ids_indicator, dtype=tf.int32) * source_id
     features.tgt.task_ids = tf.cast(
         features.tgt.ids_indicator, dtype=tf.int32) * tgt_task_id
+    features.tgt.source_ids = tf.cast(
+        features.tgt.ids_indicator, dtype=tf.int32) * source_id
 
     if not py_utils.use_tpu():
       features.src.strs = src
@@ -689,14 +693,16 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     features.src.weights = weights
     features.src.task_ids = tf.cast(
         features.src.weights, dtype=tf.int32) * src_lang_ids
+    features.src.source_ids = tf.cast(
+        features.src.weights, dtype=tf.int32) * source_id
     features.src.ids_indicator = weights
     features.tgt = py_utils.NestedMap()
     features.tgt.ids = mass_out.tgt.ids
     features.tgt.labels = mass_out.tgt.labels
     features.tgt.paddings = paddings
     features.tgt.weights = mass_out.tgt.weights
-    features.tgt.task_ids = tf.ones_like(
-        features.src.task_ids, dtype=tf.int32) * tgt_lang_ids
+    features.tgt.task_ids = tf.cast(weights, dtype=tf.int32) * tgt_lang_ids
+    features.tgt.source_ids = tf.cast(weights, dtype=tf.int32) * source_id
     features.tgt.ids_indicator = weights
 
     if not py_utils.use_tpu():
