@@ -1006,3 +1006,54 @@ Y.&nbsp;Jia, R.&nbsp;J. Weiss, F.&nbsp;Biadsy, W.&nbsp;Macherey, M.&nbsp;Johnson
 </td>
 </tr>
 </table>
+
+## Optimization
+
+<!-- This document was automatically generated with bibtex2html 1.99
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+
+
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="anil2020second">1</a>]
+</td>
+<td class="bibtexitem">
+R.&nbsp;Anil, V.&nbsp;Gupta, T.&nbsp;Koren, K.&nbsp;Regan, and Y.&nbsp;Singer, &ldquo;Second order
+  optimization made practical,&rdquo; <em>arXiv preprint arXiv:2002.09018</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/2002.09018">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="agarwal2020disentangling">2</a>]
+</td>
+<td class="bibtexitem">
+N.&nbsp;Agarwal, R.&nbsp;Anil, E.&nbsp;Hazan, T.&nbsp;Koren, and C.&nbsp;Zhang, &ldquo;Disentangling adaptive
+  gradient methods from learning rates,&rdquo; <em>arXiv preprint
+  arXiv:2002.11803</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/2002.11803">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="anil2019memory">3</a>]
+</td>
+<td class="bibtexitem">
+R.&nbsp;Anil, V.&nbsp;Gupta, T.&nbsp;Koren, and Y.&nbsp;Singer, &ldquo;Memory efficient adaptive
+  optimization,&rdquo; in <em>Advances in Neural Information Processing Systems</em>,
+  pp.&nbsp;9749--9758, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1901.11150">pdf</a>&nbsp;]
+
+</td>
+</tr>
+</table>
