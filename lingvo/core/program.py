@@ -333,18 +333,19 @@ class TrainProgram(BaseProgram):
       Returns:
         New summed metrics values and a train_op.
       """
-      with py_utils.OpportunisticVariableReuseScope(True):
-        self._model.InstantiateVariables()
-        self._model.ConstructFPropBPropGraph()
-      per_step_eval_metrics = self._eval_metrics.SetMetrics(
-          self._task.eval_metrics, args)
-      outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
-      summed_metrics = []
-      assert len(per_step_eval_metrics) == len(args)
-      with tf.control_dependencies([outfeed_op]):
-        for x, y in zip(per_step_eval_metrics, args):
-          summed_metrics.append(x + y)
-      return summed_metrics + [self._task.train_op]
+      with tf.name_scope('tpu_train'):
+        with py_utils.OpportunisticVariableReuseScope(True):
+          self._model.InstantiateVariables()
+          self._model.ConstructFPropBPropGraph()
+        per_step_eval_metrics = self._eval_metrics.SetMetrics(
+            self._task.eval_metrics, args)
+        outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
+        summed_metrics = []
+        assert len(per_step_eval_metrics) == len(args)
+        with tf.control_dependencies([outfeed_op]):
+          for x, y in zip(per_step_eval_metrics, args):
+            summed_metrics.append(x + y)
+        return summed_metrics + [self._task.train_op]
 
     @tpu_function.on_device_training_loop
     def TpuTrain():
@@ -467,15 +468,16 @@ class EvalProgram(BaseProgram):
         Returns:
           Summed eval metrics.
         """
-        with py_utils.OpportunisticVariableReuseScope(True):
-          self._model.InstantiateVariables()
-          self._model.ConstructFPropGraph()
-        per_step_eval_metrics = self._eval_metrics.SetMetrics(
-            self._task.eval_metrics, args)
-        summed_metrics = []
-        for x, y in zip(per_step_eval_metrics, args):
-          summed_metrics.append(x + y)
-        return summed_metrics
+        with tf.name_scope('tpu_eval'):
+          with py_utils.OpportunisticVariableReuseScope(True):
+            self._model.InstantiateVariables()
+            self._model.ConstructFPropGraph()
+          per_step_eval_metrics = self._eval_metrics.SetMetrics(
+              self._task.eval_metrics, args)
+          summed_metrics = []
+          for x, y in zip(per_step_eval_metrics, args):
+            summed_metrics.append(x + y)
+          return summed_metrics
 
       @tpu_function.on_device_training_loop
       def TpuEval():
