@@ -2789,6 +2789,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
         'This shows performance benefit especially when sharing embedding '
         'and softmax. By removing the transpose before gather, it allows '
         'better XLA fusions and optimizations.')
+
+    p.Define(
+        'use_bias', True, 'Whether or not to use a bias variable.'
+        'Not using bias is not compatible with sampled softmax '
+        '(num_sampled > 0).')
     return p
 
   def __init__(self, params):
@@ -2798,6 +2803,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
     assert p.name
     # We shard params across the class dimension.
     assert p.num_classes % p.num_shards == 0
+    if not p.use_bias:
+      assert p.num_sampled == 0, 'Sampled softmax requires bias.'
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -2856,8 +2863,9 @@ class SimpleFullSoftmax(SoftmaxLayer):
         init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
-    for i in range(p.num_shards):
-      self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
+    if p.use_bias:
+      for i in range(p.num_shards):
+        self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
 
     self.TrackQTensor('inputs', 'logits')
 
@@ -2876,25 +2884,31 @@ class SimpleFullSoftmax(SoftmaxLayer):
     weights = [
         self.QWeight(theta['weight_%d' % i]) for i in range(p.num_shards)
     ]
-    biases = [self.QWeight(theta['bias_%d' % i]) for i in range(p.num_shards)]
     new_theta = theta.copy()
+    if p.use_bias:
+      biases = [self.QWeight(theta['bias_%d' % i]) for i in range(p.num_shards)]
+      new_theta.bias = py_utils.AddPerStepVN(p, tf.concat(biases, axis=0))
     new_theta.wm = py_utils.AddPerStepVN(p,
                                          tf.concat(weights, axis=concat_axis))
-    new_theta.bias = py_utils.AddPerStepVN(p, tf.concat(biases, axis=0))
     return new_theta
 
   def _LogitsUsingConcatenatedWeightsHelper(self, theta, inputs):
     p = self.params
     inputs = self.QTensor('inputs', inputs)
     wm = self.QWeight(theta.wm)
-    bias = self.QWeight(theta.bias)
 
-    # x * w + b
-    # Note that theta.wm and theta.bias are transformed to concated/clipped
-    # by caller.
-    logits = tf.nn.bias_add(
-        py_utils.Matmul(inputs, wm, transpose_b=self._transpose_weight_params),
-        bias)
+    if p.use_bias:
+      bias = self.QWeight(theta.bias)
+
+      # x * w + b
+      # Note that theta.wm and theta.bias are transformed to concated/clipped
+      # by caller.
+      logits = tf.nn.bias_add(
+          py_utils.Matmul(
+              inputs, wm, transpose_b=self._transpose_weight_params), bias)
+    else:
+      logits = py_utils.Matmul(
+          inputs, wm, transpose_b=self._transpose_weight_params)
 
     # Clip logits by range.
     # Note that this is generally not used in conjunction with quantization and
@@ -3024,6 +3038,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
           theta, logits, class_weights, class_ids, class_probabilities)
     else:  # Use sampled soft-max in training mode with p.num_sampled set.
       assert p.num_sampled > 0
+      assert p.use_bias
       tf.logging.vlog(
           0, 'Using sampled_softmax_loss(..., num_sampled=%d, '
           'num_classes=%d) in SimpleFullSoftmax::_FProp2D', p.num_sampled,
@@ -3528,6 +3543,12 @@ class LayerNorm(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Depth of the input to the network.')
     p.Define('epsilon', 1e-6, 'Tiny value to guard rsqrt.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define(
+        'direct_scale', False, 'Whether to apply scale directly '
+        'without a +1.0.  Var is initialized to 1.0 instead. This makes '
+        'the layer weight-compatible with the implementation in '
+        'contrib.layers.')
+
     return p
 
   def __init__(self, params):
@@ -3546,7 +3567,17 @@ class LayerNorm(base_layer.BaseLayer):
         collections=[self.__class__.__name__ + '_vars'] +
         [py_utils.SKIP_LP_REGULARIZATION])
     self.CreateVariable('bias', pc)
-    self.CreateVariable('scale', pc)
+
+    if p.direct_scale:
+      scale_pc = py_utils.WeightParams(
+          shape=[p.input_dim],
+          init=py_utils.WeightInit.Constant(1.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'] +
+          [py_utils.SKIP_LP_REGULARIZATION])
+    else:
+      scale_pc = pc
+    self.CreateVariable('scale', scale_pc)
 
   def _GetScaleAndBias(self, theta):
     return theta.scale, theta.bias
@@ -3568,13 +3599,18 @@ class LayerNorm(base_layer.BaseLayer):
 
     cur_scale, cur_bias = self._GetScaleAndBias(theta)
 
+    if p.direct_scale:
+      scale = cur_scale
+    else:
+      scale = 1.0 + cur_scale
+
     if p.use_fused_layernorm:
       counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
           inputs, axes=[-1], keepdims=True)
       mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
                                                None)
       inputs_norm = (inputs - mean) * tf.math.rsqrt(variance + p.epsilon)
-      return inputs_norm * (1.0 + cur_scale) + cur_bias
+      return inputs_norm * scale + cur_bias
 
     def Normalize(xs):
       """Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift."""
@@ -3586,10 +3622,10 @@ class LayerNorm(base_layer.BaseLayer):
           tf.square(x_reshaped - mean), axis=[1], keepdims=True)
       x_norm = (x_reshaped - mean) * tf.math.rsqrt(variance + p.epsilon)
       x_norm = tf.reshape(x_norm, x_shape)
-      return x_norm * (1.0 + xs.scale) + xs.bias
+      return x_norm * xs.scale + xs.bias
 
     return py_utils.CallDefun(
-        Normalize, py_utils.NestedMap(x=inputs, scale=cur_scale, bias=cur_bias))
+        Normalize, py_utils.NestedMap(x=inputs, scale=scale, bias=cur_bias))
 
   @classmethod
   def NumOutputNodes(cls, p):

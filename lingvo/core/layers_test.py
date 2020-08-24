@@ -3120,7 +3120,8 @@ class SoftmaxLayerTest(test_utils.TestCase):
                             seed=None,
                             dtype=tf.float32,
                             fprop_dtype=None,
-                            apply_pruning=False):
+                            apply_pruning=False,
+                            use_bias=True):
     if fprop_dtype is None:
       fprop_dtype = dtype
     with self.session(use_gpu=True, graph=tf.Graph()):
@@ -3151,6 +3152,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
       params.apply_pruning = apply_pruning
       params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
       params.random_seed = 12345678
+      params.use_bias = use_bias
 
       if default_qdomain is not None:
         params.qdomain.default = default_qdomain
@@ -3174,7 +3176,8 @@ class SoftmaxLayerTest(test_utils.TestCase):
       expected_var_names = []
       for i in range(num_shards):
         expected_var_names.append(u'softmax/weight_%d/var:0' % i)
-        expected_var_names.append(u'softmax/bias_%d/var:0' % i)
+        if use_bias:
+          expected_var_names.append(u'softmax/bias_%d/var:0' % i)
 
       all_var_names = [v.name for v in all_vars]
       self.assertCountEqual(expected_var_names, all_var_names)
@@ -3286,6 +3289,14 @@ class SoftmaxLayerTest(test_utils.TestCase):
     log_perplexity = xent_loss.avg_xent
     self.assertNear(loss, 8.681571, 1e-5)
     self.assertNear(log_perplexity, 3.946169, 1e-5)
+
+  def testSimpleFullSoftmax_NoBias(self):
+    xent_loss = self._RunSimpleFullSoftmax(seed=12345, use_bias=False)
+    loss = xent_loss.total_xent
+    log_perplexity = xent_loss.avg_xent
+    err = 1e-5
+    self.assertNear(loss, 12.476410, err=err)
+    self.assertNear(log_perplexity, 5.671095, err=err)
 
   def testSimpleFullSoftmax_SampledAndSharded(self):
     xent_loss = self._RunSimpleFullSoftmax(
@@ -4284,6 +4295,33 @@ class LayerNormTest(test_utils.TestCase):
       p = layers.LayerNorm.Params()
       p.name = 'ln'
       p.input_dim = 3
+      layer_norm = layers.LayerNorm(p)
+      npy_input = np.random.normal(1.0, 0.5,
+                                   [2, 4, 4, p.input_dim]).astype('float32')
+      inputs = tf.constant(npy_input, dtype=tf.float32)
+      output = layer_norm.FPropDefaultTheta(inputs)
+
+      self.evaluate(tf.global_variables_initializer())
+      sym_output = self.evaluate(output)
+
+      # Mean should be zero and variance should be close to one.
+      self.assertNear(0.0, sym_output.sum(), 1e-5)
+      self.assertNear(1.0, np.var(sym_output), 1e-4)
+
+      # Compare with numpy.
+      mean = npy_input.mean(-1, keepdims=True)
+      variance = np.mean(np.square(npy_input - mean), -1, keepdims=True)
+      npy_output = (npy_input - mean) / np.sqrt(variance + p.epsilon)
+      self.assertAllClose(sym_output, npy_output)
+
+  def testLayerNormFPropDirectScale(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.LayerNorm.Params()
+      p.name = 'ln'
+      p.input_dim = 3
+      p.direct_scale = True
       layer_norm = layers.LayerNorm(p)
       npy_input = np.random.normal(1.0, 0.5,
                                    [2, 4, 4, p.input_dim]).astype('float32')
