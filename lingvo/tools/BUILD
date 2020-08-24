@@ -118,6 +118,18 @@ py_test(
     ],
 )
 
+py_binary(
+    name = "count_records",
+    srcs = ["count_records.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":beam_utils",
+        # Implicit network file system dependency.
+        # Implicit apache_beam dependency.
+    ],
+)
+
 py_test(
     name = "audio_lib_test",
     srcs = ["audio_lib_test.py"],
