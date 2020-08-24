@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tools package &mdash; Lingvo  documentation</title>
+  <title>lingvo.tools.count_records module &mdash; Lingvo  documentation</title>
   
 
   
@@ -36,8 +36,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.tools.audio_lib module" href="lingvo.tools.audio_lib.html" />
-    <link rel="prev" title="lingvo.tasks.punctuator.model module" href="lingvo.tasks.punctuator.model.html" /> 
+    <link rel="next" title="lingvo.tools.create_asr_features module" href="lingvo.tools.create_asr_features.html" />
+    <link rel="prev" title="lingvo.tools.compute_stats module" href="lingvo.tools.compute_stats.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -87,8 +87,8 @@
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.tools package</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tools.html#submodules">Submodules</a></li>
 </ul>
 </li>
 </ul>
@@ -144,13 +144,15 @@
         
           <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
         
-      <li>lingvo.tools package</li>
+          <li><a href="lingvo.tools.html">lingvo.tools package</a> &raquo;</li>
+        
+      <li>lingvo.tools.count_records module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/lingvo.tools.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/lingvo.tools.count_records.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -163,26 +165,23 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.tools">
-<span id="lingvo-tools-package"></span><h1>lingvo.tools package<a class="headerlink" href="#module-lingvo.tools" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.audio_lib.html">lingvo.tools.audio_lib module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.beam_utils.html">lingvo.tools.beam_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.bpe_word_tokenizer.html">lingvo.tools.bpe_word_tokenizer module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.compare_params.html">lingvo.tools.compare_params module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.compute_stats.html">lingvo.tools.compute_stats module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.count_records.html">lingvo.tools.count_records module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.create_asr_features.html">lingvo.tools.create_asr_features module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.gke_launch.html">lingvo.tools.gke_launch module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.keras2ckpt.html">lingvo.tools.keras2ckpt module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.print_tf_records.html">lingvo.tools.print_tf_records module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tools.wpm_encode_file.html">lingvo.tools.wpm_encode_file module</a></li>
-</ul>
-</div>
-</div>
+  <div class="section" id="module-lingvo.tools.count_records">
+<span id="lingvo-tools-count-records-module"></span><h1>lingvo.tools.count_records module<a class="headerlink" href="#module-lingvo.tools.count_records" title="Permalink to this headline">¶</a></h1>
+<p>Tool to count number of records in a dataset.</p>
+<p>Most other file formats have efficient ways to fetch the number of records in a
+dataset.  However, some formats such as TFRecord requires you to essentially
+scan the files to perform this count.</p>
+<p>This is a short little beam script that can leverage many machines to read
+all of the files in parallel potentially faster than a single machine script.
+It is recommended that for other file formats, simply reading the metadata
+available in their formats should work; this file should not really be
+extended to any other format that already has efficient ways of counting
+records.</p>
+<dl class="py function">
+<dt id="lingvo.tools.count_records.main">
+<code class="sig-prename descclassname">lingvo.tools.count_records.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">argv</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tools/count_records.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tools.count_records.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 
 
@@ -193,10 +192,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.tools.audio_lib.html" class="btn btn-neutral float-right" title="lingvo.tools.audio_lib module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.tools.create_asr_features.html" class="btn btn-neutral float-right" title="lingvo.tools.create_asr_features module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.punctuator.model.html" class="btn btn-neutral float-left" title="lingvo.tasks.punctuator.model module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tools.compute_stats.html" class="btn btn-neutral float-left" title="lingvo.tools.compute_stats module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
