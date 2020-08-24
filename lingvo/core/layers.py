@@ -2070,6 +2070,128 @@ class EmbeddingLayer(base_layer.BaseLayer):
     return tf.reshape(embs, out_shape)
 
 
+class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
+  """Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('learning_rate', None, 'Used for updating embedding table.')
+    p.Define(
+        'use_gradient_accumulation', True,
+        'Setting this to False makes embedding gradients calculation less accurate but faster. See tpu_embedding_lib for more details.'
+    )
+    p.Define('clip_weight_min', None,
+             'The minimum value to clip by; None means -infinity.')
+    p.Define('clip_weight_max', None,
+             'The maximum value to clip by; None means +infinity.')
+    p.Define(
+        'weight_decay_factor', None,
+        'Amount of weight decay to apply; None means that the weights are not decayed.'
+    )
+    p.Define(
+        'multiply_weight_decay_factor_by_learning_rate', None,
+        'If true, weight_decay_factor is multiplied by the current learning rate.'
+    )
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+
+  @property
+  def tpu_embedding_optimizer_parameters(self):
+    return self._tpu_embedding_optimizer_parameters
+
+  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+    """Create slot variables and infeed/retrieval ops.
+
+    Args:
+      table_vars: A list of all embedding table shard variables.
+      tpu_embedding_table: Parent TPUEmbeddingTable layer.
+
+    Returns:
+      List of load ops
+      List of retrieve ops
+    """
+    return NotImplementedError()
+
+
+class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
+  """Adagrad optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('initial_accumulator', 0.1,
+             'Initial value of Adagrad accumulator.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self._tpu_embedding_optimizer_parameters = tpu_embedding_lib.AdagradParameters(
+        learning_rate=p.learning_rate,
+        initial_accumulator=p.initial_accumulator,
+        clip_weight_min=p.clip_weight_min,
+        clip_weight_max=p.clip_weight_max,
+        weight_decay_factor=p.weight_decay_factor,
+        multiply_weight_decay_factor_by_learning_rate=p
+        .multiply_weight_decay_factor_by_learning_rate)
+
+  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+    p = self.params
+
+    load_op_list = []
+    retrieve_op_list = []
+
+    num_tpu_hosts = tpu_embedding_table.params.num_tpu_hosts
+    table_name = tpu_embedding_table.table_name
+    slot_var_collections = [tpu_embedding_table.__class__.__name__ + '_vars']
+
+    for host_id, table_var in zip(range(num_tpu_hosts), table_vars):
+      # The slot vars should be on the same device as the table var.
+      device_name = tpu_embedding_table.GetDeviceName(host_id)
+      with tf.device(device_name), py_utils.outside_all_rewrites():
+        w_ada = py_utils.WeightParams(
+            shape=table_var.shape.as_list(),
+            init=py_utils.WeightInit.Constant(p.initial_accumulator),
+            dtype=p.dtype,
+            collections=slot_var_collections)
+        var_name = tpu_embedding_table.GetVariableName(host_id)
+        tpu_embedding_table.CreateVariable(
+            '%s/Adagrad' % var_name, w_ada, trainable=False)
+        accumulator_var = tpu_embedding_table.vars['%s/Adagrad' % var_name]
+
+        # Only the Trainer needs these ops.
+        if py_utils.use_tpu():
+          # TPU Embedding load/retrieve ops need to be in the outer graph scope.
+          with tf.init_scope():
+            tf.logging.info('creating load and retrieve ops.')
+            load_parameters_op = (
+                tpu_embedding_lib.tpu_ops.load_tpu_embedding_adagrad_parameters(
+                    parameters=table_var,
+                    accumulators=accumulator_var,
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            load_op_list.append(load_parameters_op)
+
+            retrieved_table, retrieved_accumulator = (
+                tpu_embedding_lib.tpu_ops
+                .retrieve_tpu_embedding_adagrad_parameters(
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
+                tf.assign(table_var, retrieved_table),
+                tf.assign(accumulator_var, retrieved_accumulator))
+            retrieve_op_list.append(retrieve_parameters_op)
+
+    return load_op_list, retrieve_op_list
+
+
 class TPUEmbeddingTable(base_layer.BaseLayer):
   """An embedding table controlled by TPUEmbeddingLayer.
 
@@ -2092,8 +2214,11 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         '"sequence embedding" of shape '
         '`[batch, max_sequence_length, embedding_dim]` without applying a '
         'sequence  reducing combiner')
-    p.Define('initial_accumulator', None, 'Initial value of accumulator.')
     p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
+    p.Define(
+        'optimizer', None,
+        'Table optimizer parameters. Will override the optimizer parameters '
+        'defined in this table\'s TPUEmbeddingLayer.')
     return p
 
   def __init__(self, params):
@@ -2102,7 +2227,6 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     assert p.vocab_size > 0
     assert p.embedding_dim > 0
     assert p.input_keys
-    assert p.initial_accumulator > 0
     assert p.name
     assert p.num_tpu_hosts > 0
     if p.combiner is None:
@@ -2118,9 +2242,15 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     if p.max_sequence_length:
       self._max_sequence_length = p.max_sequence_length
 
+    self.CreateChild('optimizer', p.optimizer)
+
     self._table_name = '{}_table'.format(p.name)
     self._table_config = tpu_embedding_lib.TableConfig(
-        self._padded_vocab_size, p.embedding_dim, combiner=p.combiner)
+        self._padded_vocab_size,
+        p.embedding_dim,
+        combiner=p.combiner,
+        optimization_parameters=self.optimizer
+        .tpu_embedding_optimizer_parameters)
 
     self._load_op_list = []
     self._retrieve_op_list = []
@@ -2132,22 +2262,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         init=p.params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
-    w_ada = py_utils.WeightParams(
-        shape=[self._ids_per_shard, p.embedding_dim],
-        init=py_utils.WeightInit.Constant(p.initial_accumulator),
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
 
     embedding_table_vars = []
     for i in range(p.num_tpu_hosts):
-      if self.do_eval:
-        device_name = None
-      else:
-        device_name = '{}/replica:0/task:{}/device:CPU:0'.format(
-            self.cluster.params.worker.name, i)
-
+      device_name = self.GetDeviceName(i)
       with tf.device(device_name), py_utils.outside_all_rewrites():
-        var_name = 'var_%d' % i
+        var_name = self.GetVariableName(i)
         self.CreateVariable(var_name, w_pc)
         embedding_var = self.vars[var_name]
         embedding_table_vars.append(embedding_var)
@@ -2155,44 +2275,29 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         del self._private_vars[var_name]
         del self._private_theta[var_name]
 
-        # Only trainer and controller needs the slot variables.
-        if self.do_eval:
-          continue
-        self.CreateVariable('%s/Adagrad' % var_name, w_ada, trainable=False)
-        accumulator_var = self.vars['%s/Adagrad' % var_name]
-
-        # Only the Trainer needs these ops.
-        if py_utils.use_tpu():
-          # TPU Embedding load/retrieve ops need to be in the outer graph
-          # scope.
-          with tf.init_scope():
-            tf.logging.info('creating load and retrieve ops.')
-            load_parameters_op = (
-                tpu_embedding_lib.tpu_ops.load_tpu_embedding_adagrad_parameters(
-                    parameters=embedding_var,
-                    accumulators=accumulator_var,
-                    table_name=self._table_name,
-                    num_shards=p.num_tpu_hosts,
-                    shard_id=i))
-            self._load_op_list.append(load_parameters_op)
-
-            retrieved_table, retrieved_accumulator = (
-                tpu_embedding_lib.tpu_ops
-                .retrieve_tpu_embedding_adagrad_parameters(
-                    table_name=self._table_name,
-                    num_shards=p.num_tpu_hosts,
-                    shard_id=i))
-            retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
-                tf.assign(embedding_var, retrieved_table),
-                tf.assign(accumulator_var, retrieved_accumulator))
-            self._retrieve_op_list.append(retrieve_parameters_op)
-
     if not py_utils.use_tpu():
       # We dont't want to add this for TrainerTpu, otherwise the identity
       # reference leads to copying the embedding to the TPU for no reason.
       # However, this is needed for CPU (eval/decode/controller).
       self._private_vars['wm'] = embedding_table_vars
       self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
+
+    # Only trainer and controller need slot variables and load/retrieve ops.
+    if not self.do_eval:
+      self._load_op_list, self._retrieve_op_list = self.optimizer.CreateSlotVariablesAndOps(
+          embedding_table_vars, self)
+
+  # Return device to place sharded variables on.
+  def GetDeviceName(self, host_id):
+    if self.do_eval:
+      return None
+    else:
+      return '{}/replica:0/task:{}/device:CPU:0'.format(
+          self.cluster.params.worker.name, host_id)
+
+  # Return variable name for embedding table shards.
+  def GetVariableName(self, host_id):
+    return 'var_%d' % host_id
 
   @property
   def table_config(self):
@@ -2278,7 +2383,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
   tf.nn.embedding_lookup_sparse.
 
   Supports multiple tables and multiple input_keys per table.
-  Only supports Adagrad.
   """
 
   @classmethod
@@ -2288,7 +2392,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     p.Define('pipeline_execution_with_tensor_core', False,
              'Set to True to be faster. See tpu_embedding.py for details.')
     p.Define('batch_size', 0, 'Per-core batch size.')
-    p.Define('learning_rate', None, 'Learning rate.')
+    p.Define(
+        'optimizer', TPUEmbeddingAdagradOptimizer.Params(),
+        'Layer optimizer parameters. Will be used for any TPUEmbeddingTables '
+        'with None optimizer parameters.')
     return p
 
   def __init__(self, params):
@@ -2297,15 +2404,23 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
     assert p.tables
     assert p.batch_size > 0
-    assert p.learning_rate > 0
     assert p.name
 
-    initial_accumulator = p.tables[0].initial_accumulator
-    assert initial_accumulator > 0
-    assert np.all(
-        [t.initial_accumulator == initial_accumulator for t in p.tables])
     num_tpu_hosts = p.tables[0].num_tpu_hosts
     assert np.all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
+
+    # Stop if a table has no optimizer parameters and the layer also has no
+    # optimizer parameters
+    table_optimizer_missing = any(
+        table_params.optimizer is None for table_params in p.tables)
+    if not p.optimizer and table_optimizer_missing:
+      raise ValueError(
+          'A table is missing optimizer parameters, and no layer-level '
+          'optimizer parameters were given.')
+    elif table_optimizer_missing:
+      for table_params in p.tables:
+        if table_params.optimizer is None:
+          table_params.optimizer = p.optimizer.Copy()
 
     self.CreateChildren('tables', p.tables)
 
@@ -2342,8 +2457,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           feature_to_config_dict[feature] = tpu_embedding_lib.FeatureConfig(
               table.table_name, max_sequence_length=table.max_sequence_length)
       mode = tpu_embedding_lib.TRAINING
-      optimization_parameters = tpu_embedding_lib.AdagradParameters(
-          self.params.learning_rate, self.params.tables[0].initial_accumulator)
       device_config = tpu_embedding_lib.DeviceConfig(
           num_cores=num_cores,
           num_hosts=self.params.tables[0].num_tpu_hosts,
@@ -2354,7 +2467,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           global_batch_size,
           mode,
           master=None,
-          optimization_parameters=optimization_parameters,
           pipeline_execution_with_tensor_core=(
               self.params.pipeline_execution_with_tensor_core),
           device_config=device_config)
@@ -2495,7 +2607,6 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
 
       Args:
         xs: A NestedMap containing:
-
           - embs: The embedding matrix. Unused in the backprop.
           - ids_vec: A vector of int32 embedding ids.
         ys: Required by py_utils._DefineDefun, not used here.
@@ -2548,7 +2659,6 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
 
       Args:
         xs: A NestedMap containing:
-
           - embs: The embedding matrix.
           - ids_vec: A vector of int32 embedding ids.
 
