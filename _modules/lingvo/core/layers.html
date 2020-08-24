@@ -2937,6 +2937,11 @@
         <span class="s1">&#39;This shows performance benefit especially when sharing embedding &#39;</span>
         <span class="s1">&#39;and softmax. By removing the transpose before gather, it allows &#39;</span>
         <span class="s1">&#39;better XLA fusions and optimizations.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether or not to use a bias variable.&#39;</span>
+        <span class="s1">&#39;Not using bias is not compatible with sampled softmax &#39;</span>
+        <span class="s1">&#39;(num_sampled &gt; 0).&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2946,6 +2951,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="c1"># We shard params across the class dimension.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sampled softmax requires bias.&#39;</span>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
@@ -3004,8 +3011,9 @@
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span></div>
 
@@ -3024,25 +3032,31 @@
     <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="s1">&#39;weight_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)</span>
     <span class="p">]</span>
-    <span class="n">biases</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)]</span>
     <span class="n">new_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="n">biases</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)]</span>
+      <span class="n">new_theta</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
     <span class="n">new_theta</span><span class="o">.</span><span class="n">wm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span>
                                          <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">concat_axis</span><span class="p">))</span>
-    <span class="n">new_theta</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">new_theta</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeightsHelper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
-    <span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
 
-    <span class="c1"># x * w + b</span>
-    <span class="c1"># Note that theta.wm and theta.bias are transformed to concated/clipped</span>
-    <span class="c1"># by caller.</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">),</span>
-        <span class="n">bias</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+
+      <span class="c1"># x * w + b</span>
+      <span class="c1"># Note that theta.wm and theta.bias are transformed to concated/clipped</span>
+      <span class="c1"># by caller.</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
+              <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">),</span> <span class="n">bias</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">)</span>
 
     <span class="c1"># Clip logits by range.</span>
     <span class="c1"># Note that this is generally not used in conjunction with quantization and</span>
@@ -3172,6 +3186,7 @@
           <span class="n">theta</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">class_weights</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">,</span> <span class="n">class_probabilities</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># Use sampled soft-max in training mode with p.num_sampled set.</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span>
           <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Using sampled_softmax_loss(..., num_sampled=</span><span class="si">%d</span><span class="s1">, &#39;</span>
           <span class="s1">&#39;num_classes=</span><span class="si">%d</span><span class="s1">) in SimpleFullSoftmax::_FProp2D&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span><span class="p">,</span>
@@ -3676,6 +3691,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input to the network.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqrt.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;direct_scale&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to apply scale directly &#39;</span>
+        <span class="s1">&#39;without a +1.0.  Var is initialized to 1.0 instead. This makes &#39;</span>
+        <span class="s1">&#39;the layer weight-compatible with the implementation in &#39;</span>
+        <span class="s1">&#39;contrib.layers.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3694,7 +3715,17 @@
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span> <span class="o">+</span>
         <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direct_scale</span><span class="p">:</span>
+      <span class="n">scale_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span> <span class="o">+</span>
+          <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">scale_pc</span> <span class="o">=</span> <span class="n">pc</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale_pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerNorm._GetScaleAndBias"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._GetScaleAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_GetScaleAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span></div>
@@ -3716,13 +3747,18 @@
 
     <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetScaleAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direct_scale</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">=</span> <span class="n">cur_scale</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">cur_scale</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">:</span>
       <span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sufficient_statistics</span><span class="p">(</span>
           <span class="n">inputs</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">normalize_moments</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span>
                                                <span class="kc">None</span><span class="p">)</span>
       <span class="n">inputs_norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">cur_scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">cur_bias</span>
+      <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">cur_bias</span>
 
     <span class="k">def</span> <span class="nf">Normalize</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift.&quot;&quot;&quot;</span>
@@ -3734,10 +3770,10 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x_reshaped</span> <span class="o">-</span> <span class="n">mean</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">x_norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_reshaped</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
       <span class="n">x_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_norm</span><span class="p">,</span> <span class="n">x_shape</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">bias</span>
+      <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="n">xs</span><span class="o">.</span><span class="n">scale</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">bias</span>
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span>
-        <span class="n">Normalize</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">cur_scale</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">cur_bias</span><span class="p">))</span></div>
+        <span class="n">Normalize</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">cur_bias</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="LayerNorm.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
