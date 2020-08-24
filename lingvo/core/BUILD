@@ -2136,3 +2136,14 @@ py_library(
     srcs_version = "PY3",
     deps = [":base_layer"],
 )
+
+py_library(
+    name = "tpu_embedding_layers",
+    srcs = ["tpu_embedding_layers.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        "//lingvo:compat",
+    ],
+)
