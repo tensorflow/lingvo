@@ -1300,6 +1300,73 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers._TPUEmbeddingOptimizer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">_TPUEmbeddingOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#_TPUEmbeddingOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers._TPUEmbeddingOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers.</p>
+<dl class="py method">
+<dt id="lingvo.core.layers._TPUEmbeddingOptimizer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#_TPUEmbeddingOptimizer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers._TPUEmbeddingOptimizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers._TPUEmbeddingOptimizer.tpu_embedding_optimizer_parameters">
+<em class="property">property </em><code class="sig-name descname">tpu_embedding_optimizer_parameters</code><a class="headerlink" href="#lingvo.core.layers._TPUEmbeddingOptimizer.tpu_embedding_optimizer_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers._TPUEmbeddingOptimizer.CreateSlotVariablesAndOps">
+<code class="sig-name descname">CreateSlotVariablesAndOps</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table_vars</span></em>, <em class="sig-param"><span class="n">tpu_embedding_table</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#_TPUEmbeddingOptimizer.CreateSlotVariablesAndOps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers._TPUEmbeddingOptimizer.CreateSlotVariablesAndOps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create slot variables and infeed/retrieval ops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_vars</strong> – A list of all embedding table shard variables.</p></li>
+<li><p><strong>tpu_embedding_table</strong> – Parent TPUEmbeddingTable layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of load ops
+List of retrieve ops</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.layers.TPUEmbeddingAdagradOptimizer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">TPUEmbeddingAdagradOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingAdagradOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingAdagradOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers._TPUEmbeddingOptimizer" title="lingvo.core.layers._TPUEmbeddingOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers._TPUEmbeddingOptimizer</span></code></a></p>
+<p>Adagrad optimizer for TPUEmbeddingLayer, TPUEmbeddingTable.</p>
+<dl class="py method">
+<dt id="lingvo.core.layers.TPUEmbeddingAdagradOptimizer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingAdagradOptimizer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingAdagradOptimizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps">
+<code class="sig-name descname">CreateSlotVariablesAndOps</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">table_vars</span></em>, <em class="sig-param"><span class="n">tpu_embedding_table</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create slot variables and infeed/retrieval ops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_vars</strong> – A list of all embedding table shard variables.</p></li>
+<li><p><strong>tpu_embedding_table</strong> – Parent TPUEmbeddingTable layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of load ops
+List of retrieve ops</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers.TPUEmbeddingTable">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">TPUEmbeddingTable</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
@@ -1318,6 +1385,16 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.GetDeviceName">
+<code class="sig-name descname">GetDeviceName</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable.GetDeviceName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.GetDeviceName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.GetVariableName">
+<code class="sig-name descname">GetVariableName</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable.GetVariableName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.GetVariableName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.layers.TPUEmbeddingTable.table_config">
@@ -1376,8 +1453,7 @@ For sequence embeddings: [batch, max_sequence_length, embedding_dim]</p>
 <p>This layer has some important caveats, due to the interface of the
 TPU embedding hardware. Its behavior most closely mimics that of
 tf.nn.embedding_lookup_sparse.</p>
-<p>Supports multiple tables and multiple input_keys per table.
-Only supports Adagrad.</p>
+<p>Supports multiple tables and multiple input_keys per table.</p>
 <dl class="py method">
 <dt id="lingvo.core.layers.TPUEmbeddingLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingLayer.Params" title="Permalink to this definition">¶</a></dt>
