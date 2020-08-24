@@ -4914,6 +4914,10 @@ def ComputationShape(split_size, topology=None):
     computation_shape = [16, 32, 1, 2]
   elif split_size == 2048:
     computation_shape = [32, 32, 1, 2]
+  elif split_size == 4096:
+    computation_shape = [64, 32, 1, 2]
+  elif split_size == 8192:
+    computation_shape = [128, 32, 1, 2]
   else:
     assert False, ('Model parallelism with %d devices is currently not'
                    ' supported.' % split_size)
