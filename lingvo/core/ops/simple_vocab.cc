@@ -60,10 +60,12 @@ string IdsToStr(const std::vector<int32>& ids) {
 
 Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
   std::vector<string> vocab_filenames;
-  TF_CHECK_OK(Env::Default()->GetMatchingPaths(vocab_glob, &vocab_filenames))
-      << "Unable to match vocab pattern: " << vocab_glob;
-  CHECK_EQ(vocab_filenames.size(), 1)
-      << "Did not match exactly one file with pattern: " << vocab_glob;
+  TF_RETURN_IF_ERROR(
+      Env::Default()->GetMatchingPaths(vocab_glob, &vocab_filenames));
+  if (vocab_filenames.size() != 1) {
+    return errors::InvalidArgument(
+        "Did not match exactly one file with pattern: ", vocab_glob);
+  }
   const string& vocab_filename = vocab_filenames[0];
 
   debug::SetUpVocab(vocab_filename);
