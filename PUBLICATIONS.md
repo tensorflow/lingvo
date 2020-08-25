@@ -710,6 +710,61 @@ T.&nbsp;Sainath, Y.&nbsp;He, B.&nbsp;Li, A.&nbsp;Narayanan, R.&nbsp;Pang, A.&nbs
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="conformer2020">35</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Gulati, J.&nbsp;Qin, C.-C. Chiu, N.&nbsp;Parmar, Y.&nbsp;Zhang, J.&nbsp;Yu, W.&nbsp;Han, S.&nbsp;Wang,
+  Z.&nbsp;Zhang, Y.&nbsp;Wu, and R.&nbsp;Pang, &ldquo;Conformer: Convolution-augmented transformer
+  for speech recognition,&rdquo; in <em>Proc. Interspeech</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/2005.08100">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="contextnet2020">36</a>]
+</td>
+<td class="bibtexitem">
+W.&nbsp;Han, Z.&nbsp;Zhang, Y.&nbsp;Zhang, J.&nbsp;Yu, C.-C. Chiu, J.&nbsp;Qin, A.&nbsp;Gulati, R.&nbsp;Pang, and
+  Y.&nbsp;Wu, &ldquo;Contextnet: Improving convolutional neural networks for automatic
+  speech recognition with global context,&rdquo; in <em>Proc. Interspeech</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/2005.03191">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="rescore2020">37</a>]
+</td>
+<td class="bibtexitem">
+W.&nbsp;Li, J.&nbsp;Qin, C.-C. Chiu, R.&nbsp;Pang, and Y.&nbsp;He, &ldquo;Parallel rescoring with
+  transformer for streaming on-device speech recognition,&rdquo; in <em>Proc.
+  Interspeech</em>, 2020.
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="noisystudent2020">38</a>]
+</td>
+<td class="bibtexitem">
+D.&nbsp;S. Park, Y.&nbsp;Zhang, Y.&nbsp;Jia, W.&nbsp;Han, C.-C. Chiu, B.&nbsp;Li, Y.&nbsp;Wu, and Q.&nbsp;V. Le,
+  &ldquo;Improved noisy student training for automatic speech recognition,&rdquo; in <em>
+  Proc. Interspeech</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/2005.09629">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Language understanding
