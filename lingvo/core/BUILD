@@ -1248,6 +1248,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":batch_major_attention",
         ":gpipe",
         ":layers",
         ":layers_with_attention",

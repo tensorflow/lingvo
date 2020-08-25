@@ -43,17 +43,27 @@ def CausalPadding(slen, dtype=tf.float32):
   return 1 - tf.linalg.band_part(tf.ones([slen, slen], dtype=dtype), -1, 0)
 
 
-def SegmentMask(segment_id, source_segment_id, dtype=tf.float32):
+def GetDtypeMin(dtype=tf.float32):
+  return -0.7 * dtype.max
+
+
+def SegmentMask(segment_id,
+                source_segment_id,
+                dtype=tf.float32,
+                apply_dtype_min=True):
   """Calculates a segment mask for attention.
 
   Args:
     segment_id: [B, T]
     source_segment_id: [B, S]
     dtype: data type of generated mask.
+    apply_dtype_min: Outputs a 0/1 padding mask if set to False. This is needed
+    for GPipe layers to avoid nan issues.
 
   Returns:
     segment_mask: [B, 1, T, S]: A mask that is ready to
-    be added to [B, N, T, S] attention logits.
+    be added to [B, N, T, S] attention logits. if apply_dtype_min is False,
+    outputs a 0/1 padding mask instead.
   """
   if segment_id is None or source_segment_id is None:
     return None
@@ -62,7 +72,8 @@ def SegmentMask(segment_id, source_segment_id, dtype=tf.float32):
       tf.not_equal(
           tf.expand_dims(segment_id, 2), tf.expand_dims(source_segment_id, 1)),
       dtype=dtype)
-  ret *= ret.dtype.max * -0.7
+  if apply_dtype_min:
+    ret *= GetDtypeMin(ret.dtype)
   # [B, T, S] -> [B, 1, T, S]
   return tf.expand_dims(ret, axis=1)
 
@@ -3065,18 +3076,25 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
     p = self.params
     with tf.name_scope(p.name):
       if p.has_aux_atten:  # Decoder FProp
+        sa_mask, ca_mask = None, None
+        if p.packed_input:
+          # This computation doesn't behave nicely when outside
+          # recurrent.Recurrent resulting in nans for splits > 1
+          min_val = GetDtypeMin(target_vecs.dtype)
+          sa_mask = min_val * decoder_self_atten_segment_mask
+          ca_mask = min_val * decoder_cross_atten_segment_mask
         atten_vec, _ = self.self_atten.FProp(
             theta.self_atten,
             target_vecs,
             None,
             target_paddings,
-            segment_mask=decoder_self_atten_segment_mask)
+            segment_mask=sa_mask)
         atten_vec, _ = self.cross_atten.FProp(
             theta.cross_atten,
             atten_vec,
             source_vecs,
             source_paddings,
-            segment_mask=decoder_cross_atten_segment_mask)
+            segment_mask=ca_mask)
         atten_vec = self.fflayer.FProp(theta.fflayer, atten_vec,
                                        target_paddings)
         atten_vec.set_shape(target_vecs.shape)
@@ -3088,12 +3106,16 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
                 decoder_cross_atten_segment_mask)
 
       # Encoder FProp
+      sa_mask = None
+      if p.packed_input:
+        min_val = GetDtypeMin(source_vecs.dtype)
+        sa_mask = min_val * encoder_self_atten_segment_mask
       atten_vec, _ = self.self_atten.FProp(
           theta.self_atten,
           source_vecs,
           None,
           source_paddings,
-          segment_mask=encoder_self_atten_segment_mask)
+          segment_mask=sa_mask)
       atten_vec = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
       atten_vec.set_shape(source_vecs.shape)
       if p.output_layer_norm:

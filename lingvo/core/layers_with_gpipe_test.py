@@ -566,9 +566,9 @@ class GPipeTransformerStackTest(test_utils.TestCase,
         tgt_segment_id = tf.transpose(
             tf.constant([[0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]],
                         dtype=tf.float32))
-        segment_pos_id = tf.transpose(
+        segment_segment_pos = tf.transpose(
             tf.constant([[0, 0, 0, 0, 1, 1, 1, 1]], dtype=tf.int32))
-        tgt_segment_pos_id = tf.transpose(
+        tgt_segment_segment_pos = tf.transpose(
             tf.constant([[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]], dtype=tf.int32))
 
         output = xformer.FProp(xformer.theta, inputs, paddings, tgt_inputs,
@@ -576,7 +576,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
         packed_output = packed_xformer.FProp(
             packed_xformer.theta, packed_inputs, packed_paddings,
             packed_tgt_inputs, packed_tg_paddings, segment_ids, tgt_segment_id,
-            None, None, segment_pos_id, tgt_segment_pos_id)[2]
+            None, None, segment_segment_pos, tgt_segment_segment_pos)[2]
         packed_output = tf.reshape(packed_output, output.shape)
 
         self.evaluate(tf.global_variables_initializer())
@@ -851,6 +851,139 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       xent_out, logits_out = self.evaluate([xent, logits])
       print('xent_out={}'.format(xent_out))
       print('logits_out={}'.format(logits_out))
+
+
+def _BatchMajorTransformerParams(splits=1,
+                                 num_micro_batches=1,
+                                 packed_input=True):
+  model_dim = 4
+  params = layers_with_gpipe.GPipeBatchMajorTransformerStack.Params()
+  params.name = 'transformer'
+  params.model_dim = model_dim
+  params.packed_input = packed_input
+  params.num_decoder_layers = 4
+  params.decoder_tpl.input_dim = model_dim
+  params.decoder_tpl.tr_atten_tpl.num_heads = 1
+  params.decoder_tpl.tr_fflayer_tpl.hidden_dim = model_dim
+  params.decoder_tpl.mask_self_atten = True
+  params.decoder_tpl.has_aux_atten = True
+  params.num_encoder_layers = 2
+  params.encoder_tpl.input_dim = model_dim
+  params.encoder_tpl.tr_atten_tpl.num_heads = 1
+  params.encoder_tpl.tr_fflayer_tpl.hidden_dim = model_dim
+  params.state_dtype = tf.float32
+  params.softmax_tpl.input_dim = model_dim
+  params.softmax_tpl.num_classes = 2
+
+  emb_params = params.emb_tpl
+  # Default config for the token embedding.
+  emb_params.token_emb.use_matmul = True
+  emb_params.token_emb.use_3d_weight_tensor = False
+  emb_params.token_emb.vocab_size = 10
+  emb_params.token_emb.embedding_dim = model_dim
+
+  # Default config for the position embedding.
+  emb_params.position_emb.embedding_dim = model_dim
+  emb_params.position_emb.trainable_scaling = False
+  params.splits = splits
+  params.num_micro_batches = num_micro_batches
+  params.random_seed = 0
+  return params
+
+
+def _BatchMajorTransformerRandomInputs(batch):
+  input_arr = np.array([[6, 4]] * batch)
+  paddings_arr = np.array([[0] * 2] * batch)
+  input_seg_arr = np.array([[0, 1]] * batch)
+  input_pos_arr = np.array([[0, 0]] * batch)
+  tgt_input_arr = np.array([[3, 7, 9]] * batch)
+  tgt_paddings_arr = np.array([[0] * 3] * batch)
+  tgt_seg_arr = np.array([[0, 1, 1]] * batch)
+  tgt_pos_arr = np.array([[0, 0, 1]] * batch)
+  inputs = tf.constant(input_arr.tolist(), dtype=tf.int32)
+  paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
+  input_seg = tf.constant(input_seg_arr.tolist(), dtype=tf.int32)
+  input_pos = tf.constant(input_pos_arr.tolist(), dtype=tf.int32)
+  tgt_inputs = tf.constant(tgt_input_arr.tolist(), dtype=tf.int32)
+  tgt_paddings = tf.constant(tgt_paddings_arr.tolist(), dtype=tf.float32)
+  tgt_seg = tf.constant(tgt_seg_arr.tolist(), dtype=tf.int32)
+  tgt_pos = tf.constant(tgt_pos_arr.tolist(), dtype=tf.int32)
+  return (inputs, paddings, tgt_inputs, tgt_paddings, input_seg, tgt_seg,
+          input_pos, tgt_pos)
+
+
+class GPipeBatchMajorTransformerStackTest(test_utils.TestCase,
+                                          parameterized.TestCase
+                                         ):  # was tf.test.TestCase
+  """Tests for GPipeBatchMajorTransformerStack layer."""
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_one_split_one_mb_packed',
+          'splits': 1,
+          'num_micro_batches': 1,
+          'packed_input': True
+      }, {
+          'testcase_name': '_two_splits_one_mb_packed',
+          'splits': 2,
+          'num_micro_batches': 1,
+          'packed_input': True
+      }, {
+          'testcase_name': '_two_splits_two_mb_packed',
+          'splits': 2,
+          'num_micro_batches': 2,
+          'packed_input': True
+      }, {
+          'testcase_name': '_one_split_two_mb_packed',
+          'splits': 1,
+          'num_micro_batches': 2,
+          'packed_input': True
+      }, {
+          'testcase_name': '_one_split_one_mb_unpacked',
+          'splits': 1,
+          'num_micro_batches': 1,
+          'packed_input': False
+      }, {
+          'testcase_name': '_two_splits_one_mb_unpacked',
+          'splits': 2,
+          'num_micro_batches': 1,
+          'packed_input': False
+      }, {
+          'testcase_name': '_two_splits_two_mb_unpacked',
+          'splits': 2,
+          'num_micro_batches': 2,
+          'packed_input': False
+      }, {
+          'testcase_name': '_one_split_two_mb_unpacked',
+          'splits': 1,
+          'num_micro_batches': 2,
+          'packed_input': False
+      })
+  def testGPipeBatchMajorTransformerFProp(self,
+                                          splits=1,
+                                          num_micro_batches=1,
+                                          packed_input=True):
+    batch = 4
+    tf.flags.FLAGS.tpu_compatible = True
+    with self.session():
+      with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
+        params = _BatchMajorTransformerParams(splits, num_micro_batches,
+                                              packed_input)
+        xformer = params.Instantiate()
+        (input_ids, id_paddings, tgt_inputs, tgt_paddings, input_seg, tgt_seg,
+         input_pos, tgt_pos) = (
+             _BatchMajorTransformerRandomInputs(batch=batch))
+        labels = tf.ones([batch, tgt_inputs.shape.as_list()[1]], dtype=tf.int32)
+        label_weights = tf.ones([batch, tgt_inputs.shape.as_list()[1]])
+        tf.random.set_seed(1234)
+        self.evaluate(tf.global_variables_initializer())
+        xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings,
+                                     tgt_inputs, tgt_paddings, input_seg,
+                                     tgt_seg, labels, label_weights, input_pos,
+                                     tgt_pos)
+        xent_out, logits_out = self.evaluate([xent, logits])
+        print('xent_out={}'.format(xent_out))
+        print('logits_out={}'.format(logits_out))
 
 
 if __name__ == '__main__':

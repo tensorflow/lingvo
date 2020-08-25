@@ -2027,16 +2027,17 @@ class GPipeBatchMajorTransformerLayerTest(test_utils.TestCase,
         [[0, 0, 0, 1, 1, 1, 1], [0, 0, 0, 0, 1, 1, 1]], dtype=dtype)
     target_segment_ids = tf.constant([[0, 0, 0, 1, 1], [0, 0, 1, 1, 1]],
                                      dtype=dtype)
-    target_sa_mask = attention.SegmentMask(target_segment_ids,
-                                           target_segment_ids)
-    aux_sa_mask = attention.SegmentMask(aux_segment_ids, aux_segment_ids)
-    ca_mask = attention.SegmentMask(target_segment_ids, aux_segment_ids)
+    target_sa_mask = attention.SegmentMask(
+        target_segment_ids, target_segment_ids, apply_dtype_min=False)
+    aux_sa_mask = attention.SegmentMask(
+        aux_segment_ids, aux_segment_ids, apply_dtype_min=False)
+    ca_mask = attention.SegmentMask(
+        target_segment_ids, aux_segment_ids, apply_dtype_min=False)
     causal_padding = tf.expand_dims(
         tf.tile(
             tf.expand_dims(attention.CausalPadding(5, dtype=dtype), 0),
             [2, 1, 1]), 1)
-    causal_mask = causal_padding * dtype.max * tf.constant(-0.7, dtype=dtype)
-    target_sa_mask += causal_mask
+    target_sa_mask = tf.math.maximum(causal_padding, target_sa_mask)
     return (target_vec, target_paddings, target_sa_mask, aux_vec, aux_paddings,
             aux_sa_mask, ca_mask)
 
