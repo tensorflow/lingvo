@@ -17,6 +17,7 @@
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import generic_input
+from lingvo.core import hyperparams
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
@@ -516,8 +517,23 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     p.Define('mass_layer', None, 'If not None, use the specified layer to do '
              'MASS masking.')
     p.Define(
-        'mass_task_ids', None, 'List of task IDs for MASS. If None, apply '
-        'MASS to all tasks, otherwise only apply to the specified tasks.')
+        'mass_task_ids', None, 'List of task IDs for MASS. If None and '
+        'single_column_input=True, apply MASS to all tasks, otherwise '
+        'only apply to the specified tasks.')
+    # Back translation
+    p.Define('bt_task_ids', [], 'List of task ids for back-translation.')
+    # Denoising (https://arxiv.org/pdf/1711.00043)
+    p.Define('denoise', hyperparams.Params(), 'Params for denosing tasks.')
+    p.denoise.Define('task_ids', [], 'List of task IDs for denoising.')
+    p.denoise.Define('noise_sent_prob', 1,
+                     'Probability of noising an input sentence.')
+    p.denoise.Define(
+        'shuffle_tok_range', 3, 'Range of noise for shuffling tokens, following'
+        ' https://arxiv.org/pdf/1711.00043. Note that shuffle_tok_range of 3 '
+        'implies tokens may be permuted at most 3 position.')
+    p.denoise.Define('drop_tok_prob', 0.1, 'Probability of dropping tokens.')
+    p.denoise.Define('blank_tok_prob', 0.1, 'Probability of blanking tokens.')
+    p.denoise.Define('blank_id', 3, 'ID of blank token.')
     return p
 
   def __init__(self, params):
@@ -615,18 +631,21 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     if self.params.file_pattern_task_ids:
       file_task_ids = tf.constant(
           self.params.file_pattern_task_ids, dtype=tf.int32)
-      source_id = tf.gather(file_task_ids, source_id)
-    src_task_id = source_id
-    tgt_task_id = source_id
+      return tf.gather(file_task_ids, source_id)
+    return source_id
+
+  def _GetLangIds(self, source_id):
+    """Look up the correct lang_id from the source_id tensor."""
+    task_id = self._GetTaskIds(source_id)
+    src_lang_id = task_id
+    tgt_lang_id = task_id
     if self.params.task_to_src_lang_map:
-      src_lang_ids = tf.constant(
-          self.params.task_to_src_lang_map, dtype=tf.int32)
-      src_task_id = tf.gather(src_lang_ids, src_task_id)
+      src_langs = tf.constant(self.params.task_to_src_lang_map, dtype=tf.int32)
+      src_lang_id = tf.gather(src_langs, task_id)
     if self.params.task_to_tgt_lang_map:
-      tgt_lang_ids = tf.constant(
-          self.params.task_to_tgt_lang_map, dtype=tf.int32)
-      tgt_task_id = tf.gather(tgt_lang_ids, tgt_task_id)
-    return src_task_id, tgt_task_id
+      tgt_langs = tf.constant(self.params.task_to_tgt_lang_map, dtype=tf.int32)
+      tgt_lang_id = tf.gather(tgt_langs, task_id)
+    return src_lang_id, tgt_lang_id
 
   def _ProcessSingleInput(self, source_id, src, tgt):
     """Performs strings-to-ids on the given input pair via p.tokenizer_dict."""
@@ -656,7 +675,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     features.tgt.weights = 1 - tgt_paddings
     features.tgt.paddings = tgt_paddings
 
-    src_task_id, tgt_task_id = self._GetTaskIds(source_id)
+    src_task_id, tgt_task_id = self._GetLangIds(source_id)
     # task_ids are padded with zeros.
     features.src.task_ids = tf.cast(
         features.src.ids_indicator, dtype=tf.int32) * src_task_id
@@ -682,7 +701,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         tf.reshape(src, [1]), is_source=True, key=self._src_tokenizer_key)
     weights = 1 - paddings
     actual_seq_len = tf.cast(tf.reduce_sum(weights, 1), tf.int32)
-    src_lang_ids, tgt_lang_ids = self._GetTaskIds(source_id)
+    src_lang_ids, tgt_lang_ids = self._GetLangIds(source_id)
 
     mass_out = self.mass_layer.Mask(labels, weights, actual_seq_len)
 
@@ -766,15 +785,11 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     def Processor(source_id, record):
       """Parses a record, which is a line of text."""
 
+      task_id = self._GetTaskIds(source_id)
+
       if self.params.input_file_type == 'tsv':
 
-        def _ApplyMass(source_id):
-          if self.params.file_pattern_task_ids:
-            file_task_ids = tf.constant(
-                self.params.file_pattern_task_ids, dtype=tf.int32)
-            task_id = tf.gather(file_task_ids, source_id)
-          else:
-            task_id = source_id
+        def _ApplyMass(task_id):
           mass_task_ids = tf.constant(self.params.mass_task_ids, dtype=tf.int32)
           return tf.reduce_any(tf.equal(task_id, mass_task_ids))
 
@@ -787,8 +802,10 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
           return self._ProcessSingleInput(source_id, src, tgt), filtered
 
         if self.params.single_column_input:
+          # For monolingual input, MASS is applied by default.
+          # If mass_task_ids is specified, only apply MASS to specified tasks.
           if self.params.mass_task_ids is not None:
-            cond = _ApplyMass(source_id)
+            cond = _ApplyMass(task_id)
             features, filtered = tf.cond(cond, _MASSInput, _SingleInput)
           else:
             features, filtered = _MASSInput()
@@ -888,9 +905,108 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
       scaled_batch_size = scaled_batch_size // cluster.num_tpu_hosts
     return scaled_batch_size
 
+  # TODO(yujieq): create a separate wrapper layer for the noise-adding process
+  def _AddNoise(self, batch):
+    """Adding noise the src (see https://arxiv.org/pdf/1711.00043).
+
+    This function implement 3 types of noise (hyparams defined in
+    self.params.denoise):
+    1) slightly shuffle the sentence following p.shuffle_tok_range
+    2) randomly drop tokens with probability p.drop_tok_prob
+    3) randomly mask tokens with probability p.blank_tok_prob
+    The noises are added to the input with probability p.noise_sent_prob.
+
+    Args:
+      batch: a `.NestedMap` of the input batch.
+    """
+
+    def IsSpecialExample(task_ids, special_task_ids):
+      """A utility function indicates whether inputs belong to specific tasks.
+
+      Args:
+        task_ids: Task ids for the input batch. Tensor of shape [batch].
+        special_task_ids: A list of specified task ids.
+
+      Returns:
+        A tensor indicating whether each sample in the batch belong to the
+        specified task. Return a tensor of size [batch].
+      """
+      batch_size = py_utils.GetShape(task_ids)[0]
+      return tf.reduce_any(
+          tf.equal(
+              tf.expand_dims(task_ids, -1),
+              tf.cast(
+                  tf.broadcast_to(
+                      special_task_ids,
+                      [batch_size, len(special_task_ids)]), tf.int32)), -1)
+
+    p = self.params.denoise
+    batch_size = tf.shape(batch.src.ids)[0]
+    source_max_len = tf.shape(batch.src.ids)[1]
+
+    # Shuffle tokens according to p.shuffle_tok_range
+    noise = tf.random.uniform([batch_size, source_max_len], 0,
+                              p.shuffle_tok_range + 1)
+
+    # Don't shuffle eos or padding
+    shuffle_tok_range = tf.fill([batch_size, source_max_len],
+                                float(p.shuffle_tok_range))
+    shifted_paddings = tf.pad(
+        batch.src.paddings[:, 1:], [[0, 0], [0, 1]], constant_values=1)
+    noise = tf.where(tf.equal(shifted_paddings, 0), noise, shuffle_tok_range)
+    indices = tf.broadcast_to(
+        tf.range(source_max_len, dtype=tf.int32), [batch_size, source_max_len])
+    noisy_indices = tf.cast(indices, dtype=tf.float32) + noise
+    permutations = tf.argsort(noisy_indices)
+    stacked = tf.stack([batch.src.ids, permutations], axis=1)
+    denoise_src_ids = tf.stack(
+        tf.map_fn(lambda x: tf.gather(x[0], x[1]), stacked), axis=0)
+
+    # Select tokens to drop with probability=p.drop_tok_prob
+    random_drop_tok = tf.random.uniform([batch_size, source_max_len])
+    # Don't drop eos token
+    is_keep_tok = tf.math.logical_or(
+        tf.greater(random_drop_tok, p.drop_tok_prob),
+        tf.equal(denoise_src_ids, self._src_tokenizer.eos_id))
+    denoise_src_ids = tf.ragged.boolean_mask(denoise_src_ids,
+                                             is_keep_tok).to_tensor(
+                                                 default_value=0,
+                                                 shape=tf.shape(batch.src.ids))
+    denoise_src_paddings = tf.ragged.boolean_mask(
+        batch.src.paddings, is_keep_tok).to_tensor(
+            default_value=1, shape=tf.shape(batch.src.ids))
+
+    # Select tokens to blank with probability=p.blank_tok_prob
+    # Don't blank eos token
+    random_blank_tok = tf.random.uniform([batch_size, source_max_len])
+    shifted_paddings = tf.pad(
+        denoise_src_paddings[:, 1:], [[0, 0], [0, 1]], constant_values=1)
+    is_blank_tok = tf.math.logical_and(
+        tf.less(random_blank_tok, p.blank_tok_prob),
+        tf.equal(shifted_paddings, 0))
+    blank_id = tf.fill([batch_size, source_max_len], p.blank_id)
+    denoise_src_ids = tf.where(is_blank_tok, blank_id, denoise_src_ids)
+
+    # Select denoising task examples with probability=p.denoise_sent_prob
+    random_uniform_sent = tf.random.uniform([batch_size])
+    is_denoise_sent = tf.math.logical_and(
+        tf.less(random_uniform_sent, p.noise_sent_prob),
+        IsSpecialExample(
+            self._GetTaskIds(batch.src.source_ids[:, 0]), p.task_ids))
+    batch.src.ids = tf.where(is_denoise_sent, denoise_src_ids, batch.src.ids)
+    batch.src.paddings = tf.where(is_denoise_sent, denoise_src_paddings,
+                                  batch.src.paddings)
+    batch.src.ids_indicator = 1 - batch.src.paddings
+    batch.src.weights = batch.src.ids_indicator
+
   def _DataSourceToInputBatch(self):
     """The current input batch as a `.NestedMap` of input tensors."""
     ret, _ = self._BuildDataSource()
+
+    p = self.params
+    if p.denoise.task_ids and p.denoise.noise_sent_prob > 0:
+      self._AddNoise(ret)
+
     self._Pack(ret)
     if 'weights' not in ret.src or 'weights' not in ret.tgt:
       ret.src.weights = ret.src.ids_indicator
