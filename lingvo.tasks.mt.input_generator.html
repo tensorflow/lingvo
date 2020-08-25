@@ -400,6 +400,12 @@ method). For example: p.num_batcher_threads = 128.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._GetLangIds">
+<code class="sig-name descname">_GetLangIds</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._GetLangIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._GetLangIds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look up the correct lang_id from the source_id tensor.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ProcessSingleInput">
 <code class="sig-name descname">_ProcessSingleInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_id</span></em>, <em class="sig-param"><span class="n">src</span></em>, <em class="sig-param"><span class="n">tgt</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ProcessSingleInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ProcessSingleInput" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs strings-to-ids on the given input pair via p.tokenizer_dict.</p>
@@ -469,6 +475,23 @@ place.</p>
 <dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ScaledBatchSize">
 <code class="sig-name descname">_ScaledBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ScaledBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ScaledBatchSize" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._AddNoise">
+<code class="sig-name descname">_AddNoise</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._AddNoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._AddNoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adding noise the src (see <a class="reference external" href="https://arxiv.org/pdf/1711.00043">https://arxiv.org/pdf/1711.00043</a>).</p>
+<p>This function implement 3 types of noise (hyparams defined in
+self.params.denoise):
+1) slightly shuffle the sentence following p.shuffle_tok_range
+2) randomly drop tokens with probability p.drop_tok_prob
+3) randomly mask tokens with probability p.blank_tok_prob
+The noises are added to the input with probability p.noise_sent_prob.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of the input batch.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceToInputBatch">
