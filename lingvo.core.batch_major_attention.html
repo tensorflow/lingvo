@@ -179,8 +179,13 @@
 <dd></dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.batch_major_attention.GetDtypeMin">
+<code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">GetDtypeMin</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#GetDtypeMin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.GetDtypeMin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.batch_major_attention.SegmentMask">
-<code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">SegmentMask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">segment_id</span></em>, <em class="sig-param"><span class="n">source_segment_id</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SegmentMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SegmentMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">SegmentMask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">segment_id</span></em>, <em class="sig-param"><span class="n">source_segment_id</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em>, <em class="sig-param"><span class="n">apply_dtype_min</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SegmentMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SegmentMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates a segment mask for attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -188,11 +193,14 @@
 <li><p><strong>segment_id</strong> – [B, T]</p></li>
 <li><p><strong>source_segment_id</strong> – [B, S]</p></li>
 <li><p><strong>dtype</strong> – data type of generated mask.</p></li>
+<li><p><strong>apply_dtype_min</strong> – Outputs a 0/1 padding mask if set to False. This is needed</p></li>
+<li><p><strong>GPipe layers to avoid nan issues.</strong> (<em>for</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>[B, 1, T, S]: A mask that is ready to
-be added to [B, N, T, S] attention logits.</p>
+be added to [B, N, T, S] attention logits. if apply_dtype_min is False,
+outputs a 0/1 padding mask instead.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>segment_mask</p>

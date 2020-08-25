@@ -165,6 +165,7 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">batch_major_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -611,14 +612,14 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;tgt_dropout&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GPipeTransformerEmbeddingLayer.GetEmbeddings"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEmbeddings">[docs]</a>  <span class="k">def</span> <span class="nf">GetEmbeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emb_theta</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">pos_emb_theta</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">,</span> <span class="n">dropout_theta</span><span class="p">,</span>
-                    <span class="n">dropout</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">input_pos_ids</span><span class="p">,</span> <span class="n">task_emb_theta</span><span class="p">,</span> <span class="n">task_emb</span><span class="p">,</span>
-                    <span class="n">task_ids</span><span class="p">):</span>
+                    <span class="n">dropout</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">input_segment_pos</span><span class="p">,</span> <span class="n">task_emb_theta</span><span class="p">,</span>
+                    <span class="n">task_emb</span><span class="p">,</span> <span class="n">task_ids</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">time_dim</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span> <span class="k">else</span> <span class="mi">1</span>
     <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="n">time_dim</span><span class="p">]</span>
     <span class="n">input_embs</span> <span class="o">=</span> <span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">emb_theta</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>  <span class="c1"># Packed inputs.</span>
-      <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span><span class="n">pos_emb_theta</span><span class="p">,</span> <span class="n">input_pos_ids</span><span class="p">)</span>
+      <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span><span class="n">pos_emb_theta</span><span class="p">,</span> <span class="n">input_segment_pos</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
           <span class="n">pos_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">pos_emb_theta</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span><span class="p">)</span>
@@ -667,8 +668,8 @@
     <span class="k">return</span> <span class="n">input_embs</span></div>
 
 <div class="viewcode-block" id="GPipeTransformerEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-            <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">source_pos_id</span><span class="p">,</span> <span class="n">target_pos_id</span><span class="p">,</span>
-            <span class="n">source_task_id</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">):</span>
+            <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">source_segment_pos</span><span class="p">,</span>
+            <span class="n">target_segment_pos</span><span class="p">,</span> <span class="n">source_task_id</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">src_task_emb</span><span class="p">,</span> <span class="n">src_task_emb_theta</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
@@ -677,7 +678,7 @@
       <span class="n">source_vecs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetEmbeddings</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">src_token_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_token_emb</span><span class="p">,</span>
                                        <span class="n">theta</span><span class="o">.</span><span class="n">src_pos_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_pos_emb</span><span class="p">,</span>
                                        <span class="n">theta</span><span class="o">.</span><span class="n">src_dropout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_dropout</span><span class="p">,</span>
-                                       <span class="n">source_id</span><span class="p">,</span> <span class="n">source_pos_id</span><span class="p">,</span>
+                                       <span class="n">source_id</span><span class="p">,</span> <span class="n">source_segment_pos</span><span class="p">,</span>
                                        <span class="n">src_task_emb_theta</span><span class="p">,</span> <span class="n">src_task_emb</span><span class="p">,</span>
                                        <span class="n">source_task_id</span><span class="p">)</span>
       <span class="n">target_vecs</span> <span class="o">=</span> <span class="kc">None</span>
@@ -690,7 +691,7 @@
                                          <span class="bp">self</span><span class="o">.</span><span class="n">tgt_token_emb</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span>
                                          <span class="bp">self</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span>
                                          <span class="bp">self</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span>
-                                         <span class="n">target_pos_id</span><span class="p">,</span> <span class="n">tgt_task_emb_theta</span><span class="p">,</span>
+                                         <span class="n">target_segment_pos</span><span class="p">,</span> <span class="n">tgt_task_emb_theta</span><span class="p">,</span>
                                          <span class="n">tgt_task_emb</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span>
       <span class="n">rets</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
               <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -720,6 +721,7 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">new_inputs</span><span class="p">,)</span> <span class="o">+</span> <span class="n">new_args</span><span class="p">)</span></div></div>
 
 
+<span class="c1"># TODO(ankurbpn,huangyp): Deprecate support for batch major layers here.</span>
 <div class="viewcode-block" id="GPipeTransformerStack"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerStack">[docs]</a><span class="k">class</span> <span class="nc">GPipeTransformerStack</span><span class="p">(</span><span class="n">PipeliningLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Stacked self- multi-head attention and fully connected layers.</span>
 
@@ -727,6 +729,9 @@
 
 <span class="sd">  See &#39;Attention Is All You Need&#39; https://arxiv.org/abs/1706.03762</span>
 <span class="sd">  for details.</span>
+
+<span class="sd">  The use of this stack for batch major transformer is deprecated.</span>
+<span class="sd">  Use GPipeBatchMajorTransformerStack instead.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="GPipeTransformerStack.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerStack.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -952,8 +957,8 @@
             <span class="n">target_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">label_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">source_pos_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">target_pos_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">source_segment_pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">target_segment_pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">source_task_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">target_task_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transforms source sequence of Tensors with Transformers layers.</span>
@@ -973,14 +978,14 @@
 <span class="sd">        [time, batch] shape or [batch, time] if batch_dim is 0.</span>
 <span class="sd">      target_segment_id: A sequence of ints indicating target segment ids of</span>
 <span class="sd">        [time, batch] shape or [batch, time] if batch_dim is 0.</span>
-<span class="sd">      labels: A sequence of ints indicating label ids of [time, batch] shape,</span>
-<span class="sd">        or [batch, time] if batch_dim is 0.</span>
+<span class="sd">      labels: A sequence of ints indicating label ids of [time, batch] shape, or</span>
+<span class="sd">        [batch, time] if batch_dim is 0.</span>
 <span class="sd">      label_weights: A sequence of floats indicates label weights of [time,</span>
 <span class="sd">        batch] shape, or [batch, time] if batch_dim is 0.</span>
-<span class="sd">      source_pos_id: A sequence of ints indicating source position ids of [time,</span>
-<span class="sd">        batch] shape, or [batch, time] if batch_dim is 0.</span>
-<span class="sd">      target_pos_id: A sequence of ints indicating target position ids of [time,</span>
-<span class="sd">        batch] shape, or [batch, time] if batch_dim is 0.</span>
+<span class="sd">      source_segment_pos: A sequence of ints indicating source position ids of</span>
+<span class="sd">        [time, batch] shape, or [batch, time] if batch_dim is 0.</span>
+<span class="sd">      target_segment_pos: A sequence of ints indicating target position ids of</span>
+<span class="sd">        [time, batch] shape, or [batch, time] if batch_dim is 0.</span>
 <span class="sd">      source_task_id: A sequence of ints indicating source task ids of [time,</span>
 <span class="sd">        batch] shape, or [batch, time] if batch_dim is 0.</span>
 <span class="sd">      target_task_id: A sequence of ints indicating target task ids of [time,</span>
@@ -997,13 +1002,13 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">source_segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Need to specify src_segment_id if packed input is supported.&#39;</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="n">source_pos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;Need to specify src_pos_id for packed input and embeddings.&#39;</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">source_segment_pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Need to specify src_segment_pos for packed input and embeddings.&#39;</span><span class="p">)</span>
 
     <span class="n">logits</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_input</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_input</span><span class="p">,</span>
                            <span class="n">target_paddings</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
-                           <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">source_pos_id</span><span class="p">,</span> <span class="n">target_pos_id</span><span class="p">,</span>
-                           <span class="n">source_task_id</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span>
+                           <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">source_segment_pos</span><span class="p">,</span>
+                           <span class="n">target_segment_pos</span><span class="p">,</span> <span class="n">source_task_id</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">logits</span>
     <span class="n">label_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">label_weights</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
@@ -1119,6 +1124,456 @@
       <span class="k">assert</span> <span class="n">residual_weights</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
       <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">residual_weights</span><span class="p">)</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">minimal_prob</span>
     <span class="k">return</span> <span class="n">w</span></div></div>
+
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerSoftmaxLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerSoftmaxLayer">[docs]</a><span class="k">class</span> <span class="nc">GPipeBatchMajorTransformerSoftmaxLayer</span><span class="p">(</span><span class="n">layers</span><span class="o">.</span><span class="n">SimpleFullSoftmax</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;GPipe compatible softmax layer for transformers for computing logits.</span>
+
+<span class="sd">  FProp interface is different for batch major stack, using segment_masks</span>
+<span class="sd">  instead of segment_ids.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerSoftmaxLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerSoftmaxLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inputs_from_decoder&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Bool, whether inputs to this layer come from decoder or not.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerSoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerSoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span>
+            <span class="n">target_paddings</span><span class="p">,</span> <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span>
+            <span class="n">decoder_self_atten_segment_mask</span><span class="p">,</span> <span class="n">decoder_cross_atten_segment_mask</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">inputs_from_decoder</span><span class="p">:</span>
+      <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">target_vecs</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">source_vecs</span>
+    <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">transformer_output</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span>
+        <span class="n">transformer_output</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">softmax_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">transformer_output</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+    <span class="n">output_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">[</span><span class="n">softmax_input</span><span class="p">]),</span> <span class="n">output_shape</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerSoftmaxLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerSoftmaxLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">inputs_from_decoder</span> <span class="k">else</span> <span class="n">inputs</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">logits</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">GPipeBatchMajorTransformerEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;GPipe compatible embeddings for transformers.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Configs of Embedding layers for TransformerStack.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="c1"># Note: we use the same configs for src and tgt embeddings right now.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span>
+             <span class="n">layers</span><span class="o">.</span><span class="n">SimpleEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">scale_sqrt_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+             <span class="s1">&#39;The embedding layer params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Position embedding layer params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Prob at which we do input dropout.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dropout_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Replace with deterministic dropout for splits &gt; 1 &#39;</span>
+        <span class="s1">&#39;or microbatches &gt; 1.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_tgt_embedding_layer&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Set True if layer embeds tgt instead of src.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Set True to support packed inputs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_seq_len&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="s1">&#39;Max. seq len for decoding.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Target vocab size, if different.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;src_token_emb&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;src_position_emb&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;src_token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;src_pos_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;src_dropout&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;src_dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_tgt_embedding_layer</span><span class="p">:</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">target_vocab_size</span><span class="p">:</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_vocab_size</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tgt_token_emb&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;tgt_token_emb&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tgt_position_emb&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;tgt_pos_emb&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tgt_dropout&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;tgt_dropout&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.GetEmbeddings"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.GetEmbeddings">[docs]</a>  <span class="k">def</span> <span class="nf">GetEmbeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emb_theta</span><span class="p">,</span> <span class="n">emb</span><span class="p">,</span> <span class="n">pos_emb_theta</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">,</span> <span class="n">dropout_theta</span><span class="p">,</span>
+                    <span class="n">dropout</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">input_segment_pos</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">time_dim</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="n">time_dim</span><span class="p">]</span>
+    <span class="n">input_embs</span> <span class="o">=</span> <span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">emb_theta</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>  <span class="c1"># Packed inputs.</span>
+      <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span><span class="n">pos_emb_theta</span><span class="p">,</span> <span class="n">input_segment_pos</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">pos_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">pos_emb_theta</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">pos_embs</span>
+    <span class="n">input_embs</span> <span class="o">=</span> <span class="n">dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">dropout_theta</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">input_embs</span></div>
+
+  <span class="c1"># To be used for decoding.</span>
+<div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">GetEncoderEmbeddingsDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">):</span>
+    <span class="n">time_dim</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="n">time_dim</span><span class="p">]</span>
+    <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_token_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">src_token_emb</span><span class="p">,</span>
+                                              <span class="n">input_ids</span><span class="p">)</span>
+    <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src_pos_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">src_pos_emb</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">pos_embs</span>
+    <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">src_dropout</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">input_embs</span></div>
+
+  <span class="c1"># To be used for decoding.</span>
+<div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">GetDecoderEmbeddingsDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_token_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_token_emb</span><span class="p">,</span>
+                                              <span class="n">input_ids</span><span class="p">)</span>
+    <span class="c1"># [target_batch, 1, dim]</span>
+    <span class="c1"># t should be shaped as [target_batch, 1].</span>
+    <span class="n">pos_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">pos_embs</span>
+    <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">input_embs</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
+            <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span> <span class="n">decoder_self_atten_segment_mask</span><span class="p">,</span>
+            <span class="n">decoder_cross_atten_segment_mask</span><span class="p">,</span> <span class="n">source_segment_pos</span><span class="p">,</span>
+            <span class="n">target_segment_pos</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">source_vecs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetEmbeddings</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">src_token_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_token_emb</span><span class="p">,</span>
+                                       <span class="n">theta</span><span class="o">.</span><span class="n">src_pos_emb</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_pos_emb</span><span class="p">,</span>
+                                       <span class="n">theta</span><span class="o">.</span><span class="n">src_dropout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_dropout</span><span class="p">,</span>
+                                       <span class="n">source_id</span><span class="p">,</span> <span class="n">source_segment_pos</span><span class="p">)</span>
+      <span class="n">target_vecs</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_tgt_embedding_layer</span><span class="p">:</span>
+        <span class="n">target_vecs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetEmbeddings</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_token_emb</span><span class="p">,</span>
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">tgt_token_emb</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span>
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span>
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span> <span class="n">target_id</span><span class="p">,</span>
+                                         <span class="n">target_segment_pos</span><span class="p">)</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
+              <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span> <span class="n">decoder_self_atten_segment_mask</span><span class="p">,</span>
+              <span class="n">decoder_cross_atten_segment_mask</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">rets</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="c1"># TODO(ankurbpn): return accurate estimate of flops.</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="n">flops_per_element</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># Is this correct?</span>
+    <span class="n">vocab</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">vocab_size</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+    <span class="n">src_dim_0</span><span class="p">,</span> <span class="n">src_dim_1</span> <span class="o">=</span> <span class="n">inputs</span>
+    <span class="n">flops</span> <span class="o">=</span> <span class="n">flops_per_element</span> <span class="o">*</span> <span class="n">src_dim_0</span> <span class="o">*</span> <span class="n">src_dim_1</span> <span class="o">*</span> <span class="n">dim</span> <span class="o">*</span> <span class="n">vocab</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">args</span><span class="p">,)</span>
+    <span class="n">new_inputs</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">src_dim_0</span><span class="p">,</span> <span class="n">src_dim_1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+    <span class="n">new_args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_tgt_embedding_layer</span><span class="p">:</span>
+      <span class="n">tgt_dim_0</span><span class="p">,</span> <span class="n">tgt_dim_1</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">new_args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">tgt_dim_0</span><span class="p">,</span> <span class="n">tgt_dim_1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+    <span class="n">new_args</span> <span class="o">=</span> <span class="n">new_args</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span>
+    <span class="n">new_args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">new_inputs</span><span class="p">,)</span> <span class="o">+</span> <span class="n">new_args</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack">[docs]</a><span class="k">class</span> <span class="nc">GPipeBatchMajorTransformerStack</span><span class="p">(</span><span class="n">PipeliningLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Stacked self- multi-head attention and fully connected layers.</span>
+
+<span class="sd">  With optional layer normalization applied to the final output.</span>
+
+<span class="sd">  See &#39;Attention Is All You Need&#39; https://arxiv.org/abs/1706.03762</span>
+<span class="sd">  for details.</span>
+
+<span class="sd">  Implements a gipe stack for the batch major transformer variant.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Configs for TransformerStack.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+    <span class="c1"># GPipe Related</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;splits&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;Number of splits, or list of integers specifying the ending index for &#39;</span>
+        <span class="s1">&#39;each split in ascending order. Last index should be num_layers.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Transformer related</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Characteristic depth (dimension).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_encoder_layers&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of transformer encoder layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_decoder_layers&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of transformer encoder layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb_tpl&#39;</span><span class="p">,</span> <span class="n">GPipeBatchMajorTransformerEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Prepare embeddings for Transformer input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;softmax_tpl&#39;</span><span class="p">,</span> <span class="n">GPipeBatchMajorTransformerSoftmaxLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Optional softmax layer to compute the logits.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Label smoothing Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder_tpl&#39;</span><span class="p">,</span>
+             <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">GPipeBatchMajorTransformerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;TransformerLayer Encoder params tpl.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_tpl&#39;</span><span class="p">,</span>
+             <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">GPipeBatchMajorTransformerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;TransformerLayer Decoder params tpl.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;If True, assumes multiple training samples per input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder_tpl</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">num_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">num_layers</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="k">assert</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">j</span><span class="p">,</span> <span class="s1">&#39;Splits must be in increasing order.&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">num_splits</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">splits</span>
+      <span class="n">layers_per_split</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">num_splits</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">splits</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_splits</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">layers_per_split</span><span class="p">)</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_layers</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">state_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">state_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span>
+
+    <span class="n">transformers</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Encoder Embedding layer.</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">emb_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb_tpl</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb_tpl</span><span class="o">.</span><span class="n">add_tgt_embedding_layer</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb_tpl</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;emb&#39;</span>
+    <span class="n">transformers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb_tpl</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;softmax&#39;</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="o">.</span><span class="n">inputs_from_decoder</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="c1"># Encoder layers.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span><span class="p">):</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">output_layer_norm</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="c1"># Use DeterministicDropoutLayer when used in temp graphs.</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetupDeterministicDropout</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span>
+      <span class="n">transformers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="c1"># Decoder layers.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span><span class="p">):</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;decoder_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">output_layer_norm</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetupDeterministicDropout</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span>
+      <span class="n">transformers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">cells</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cell_start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># To account for embedding layers in the pipeline.</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">split</span><span class="p">,</span> <span class="n">cell_end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">):</span>
+      <span class="c1"># Layer 0 (embeddings) is always in split 0.</span>
+      <span class="n">sub</span> <span class="o">=</span> <span class="n">transformers</span><span class="p">[</span><span class="n">cell_start</span><span class="p">:(</span><span class="n">cell_end</span> <span class="o">+</span> <span class="n">offset</span><span class="p">)]</span>
+      <span class="k">if</span> <span class="n">split</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="p">:</span>
+        <span class="n">sub</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="p">)</span>
+      <span class="n">cell</span> <span class="o">=</span> <span class="n">FeatureExtractionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">),</span> <span class="n">sub</span><span class="o">=</span><span class="n">sub</span><span class="p">)</span>
+      <span class="n">cells</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cell</span><span class="p">)</span>
+      <span class="n">cell_start</span> <span class="o">=</span> <span class="n">cell_end</span> <span class="o">+</span> <span class="n">offset</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="n">cells</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;smoother&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">smoother</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">num_splits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span>
+    <span class="n">softmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_splits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">softmax</span>
+    <span class="n">softmax_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_splits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">softmax</span>
+    <span class="k">return</span> <span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">softmax_theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.GetEncoders"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.GetEncoders">[docs]</a>  <span class="k">def</span> <span class="nf">GetEncoders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">encoders</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">cell_start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">split</span><span class="p">,</span> <span class="n">cell_end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">encoder_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cell_start</span><span class="p">,</span> <span class="n">cell_end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">encoder_id</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span><span class="p">:</span>
+          <span class="k">break</span>
+        <span class="n">encoder_l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">)]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span>
+            <span class="s1">&#39;encoder_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">encoder_id</span><span class="p">)]</span>
+        <span class="n">encoders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">encoder_l</span><span class="p">)</span>
+      <span class="n">cell_start</span> <span class="o">=</span> <span class="n">cell_end</span>
+    <span class="k">return</span> <span class="n">encoders</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.GetDecoders"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.GetDecoders">[docs]</a>  <span class="k">def</span> <span class="nf">GetDecoders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">decoders</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">cell_start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">split</span><span class="p">,</span> <span class="n">cell_end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cell_start</span><span class="p">,</span> <span class="n">cell_end</span><span class="p">):</span>
+        <span class="n">decoder_id</span> <span class="o">=</span> <span class="n">layer_id</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span>
+        <span class="k">if</span> <span class="n">decoder_id</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="k">continue</span>
+        <span class="n">decoder_l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">)]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span>
+            <span class="s1">&#39;decoder_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">decoder_id</span><span class="p">)]</span>
+        <span class="n">decoders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decoder_l</span><span class="p">)</span>
+      <span class="n">cell_start</span> <span class="o">=</span> <span class="n">cell_end</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoders</span><span class="p">)</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span>
+    <span class="k">return</span> <span class="n">decoders</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.EncoderEmbedFPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.EncoderEmbedFPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">EncoderEmbedFPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_id</span><span class="p">):</span>
+    <span class="n">emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;cell_0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;emb&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">emb</span><span class="o">.</span><span class="n">GetEncoderEmbeddingsDefaultTheta</span><span class="p">(</span><span class="n">source_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.DecoderEmbedFPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.DecoderEmbedFPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderEmbedFPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;cell_0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;emb&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">emb</span><span class="o">.</span><span class="n">GetDecoderEmbeddingsDefaultTheta</span><span class="p">(</span><span class="n">tgt_id</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.EncoderFPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.EncoderFPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">EncoderFPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">source_vecs</span><span class="p">,</span>
+                               <span class="n">source_paddings</span><span class="p">,</span>
+                               <span class="n">encoder_self_atten_segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">encoder_l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetEncoders</span><span class="p">():</span>
+      <span class="n">encoder_outs</span> <span class="o">=</span> <span class="n">encoder_l</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">encoder_l</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span>
+                                     <span class="n">source_paddings</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                                     <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                                     <span class="kc">None</span><span class="p">)</span>
+      <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">encoder_outs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">source_vecs</span></div>
+
+<div class="viewcode-block" id="GPipeBatchMajorTransformerStack.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">source_input</span><span class="p">,</span>
+            <span class="n">source_paddings</span><span class="p">,</span>
+            <span class="n">target_input</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">target_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">target_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">label_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">source_segment_pos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">target_segment_pos</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transforms source sequence of Tensors with Transformers layers.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      source_input:  A sequence of ints indicating source input ids of [batch,</span>
+<span class="sd">        time].</span>
+<span class="sd">      source_paddings: A sequence of 0s and 1s indicating input paddings of</span>
+<span class="sd">        [batch, time].</span>
+<span class="sd">      target_input: A sequence of ints indicating target input ids of [batch,</span>
+<span class="sd">        time].</span>
+<span class="sd">      target_paddings: [target_batch, target_time].</span>
+<span class="sd">      source_segment_id: A sequence of ints indicating source segment ids of</span>
+<span class="sd">        [batch, time].</span>
+<span class="sd">      target_segment_id: A sequence of ints indicating target segment ids of</span>
+<span class="sd">        [batch, time].</span>
+<span class="sd">      labels: A sequence of ints indicating label ids of [batch, time].</span>
+<span class="sd">      label_weights: A sequence of floats indicates label weights of [batch,</span>
+<span class="sd">        time].</span>
+<span class="sd">      source_segment_pos: A sequence of ints indicating source position ids of</span>
+<span class="sd">        [batch, time].</span>
+<span class="sd">      target_segment_pos: A sequence of ints indicating target position ids of</span>
+<span class="sd">        [batch, time].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      transformer_output with shape [batch, time, dim].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_decoder_layers</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">target_input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">target_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">target_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">target_input</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">target_input</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">encoder_self_atten_segment_mask</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">decoder_self_atten_segment_mask</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">decoder_cross_atten_segment_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Prepare segment masks from segment ids.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">state_dtype</span>
+      <span class="k">assert</span> <span class="n">source_segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Need to specify src_segment_id if packed input is supported.&#39;</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">source_segment_pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Need to specify src_segment_pos for packed input and embeddings.&#39;</span><span class="p">)</span>
+      <span class="n">encoder_self_atten_segment_mask</span> <span class="o">=</span> <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">SegmentMask</span><span class="p">(</span>
+          <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">target_segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">decoder_self_atten_segment_mask</span> <span class="o">=</span> <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">SegmentMask</span><span class="p">(</span>
+            <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+                    <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">CausalPadding</span><span class="p">(</span>
+                        <span class="n">target_time</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">decoder_self_atten_segment_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+            <span class="n">causal_padding</span><span class="p">,</span> <span class="n">decoder_self_atten_segment_mask</span><span class="p">)</span>
+        <span class="n">decoder_cross_atten_segment_mask</span> <span class="o">=</span> <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">SegmentMask</span><span class="p">(</span>
+            <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># FProp through the gpipe pipeline.</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_input</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_input</span><span class="p">,</span>
+                           <span class="n">target_paddings</span><span class="p">,</span> <span class="n">encoder_self_atten_segment_mask</span><span class="p">,</span>
+                           <span class="n">decoder_self_atten_segment_mask</span><span class="p">,</span>
+                           <span class="n">decoder_cross_atten_segment_mask</span><span class="p">,</span> <span class="n">source_segment_pos</span><span class="p">,</span>
+                           <span class="n">target_segment_pos</span><span class="p">)</span>
+    <span class="n">label_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">label_weights</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">target_probs</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">:</span>
+      <span class="n">target_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">smoother</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">smoother</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">target_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+      <span class="n">target_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_probs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="o">.</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">reshaped_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_tpl</span><span class="o">.</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">num_splits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span>
+    <span class="n">softmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_splits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">softmax</span>
+    <span class="n">softmax_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_splits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">softmax</span>
+    <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">softmax</span><span class="o">.</span><span class="n">XentLossFromLogits</span><span class="p">(</span>
+        <span class="n">softmax_theta</span><span class="p">,</span>
+        <span class="n">reshaped_logits</span><span class="p">,</span>
+        <span class="n">class_weights</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">label_weights</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="n">class_ids</span><span class="o">=</span><span class="n">tgt_labels</span><span class="p">,</span>
+        <span class="n">class_probabilities</span><span class="o">=</span><span class="n">target_probs</span><span class="p">)</span>
+    <span class="n">xent_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">logits</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">per_example_xent</span><span class="p">,</span> <span class="n">xent_shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">logits</span></div></div>
 </pre></div>
 
            </div>

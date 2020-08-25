@@ -191,17 +191,27 @@
   <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">band_part</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">slen</span><span class="p">,</span> <span class="n">slen</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="SegmentMask"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SegmentMask">[docs]</a><span class="k">def</span> <span class="nf">SegmentMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+<div class="viewcode-block" id="GetDtypeMin"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GetDtypeMin">[docs]</a><span class="k">def</span> <span class="nf">GetDtypeMin</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+  <span class="k">return</span> <span class="o">-</span><span class="mf">0.7</span> <span class="o">*</span> <span class="n">dtype</span><span class="o">.</span><span class="n">max</span></div>
+
+
+<div class="viewcode-block" id="SegmentMask"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SegmentMask">[docs]</a><span class="k">def</span> <span class="nf">SegmentMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span>
+                <span class="n">source_segment_id</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">apply_dtype_min</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Calculates a segment mask for attention.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    segment_id: [B, T]</span>
 <span class="sd">    source_segment_id: [B, S]</span>
 <span class="sd">    dtype: data type of generated mask.</span>
+<span class="sd">    apply_dtype_min: Outputs a 0/1 padding mask if set to False. This is needed</span>
+<span class="sd">    for GPipe layers to avoid nan issues.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    segment_mask: [B, 1, T, S]: A mask that is ready to</span>
-<span class="sd">    be added to [B, N, T, S] attention logits.</span>
+<span class="sd">    be added to [B, N, T, S] attention logits. if apply_dtype_min is False,</span>
+<span class="sd">    outputs a 0/1 padding mask instead.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">segment_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">source_segment_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">return</span> <span class="kc">None</span>
@@ -210,7 +220,8 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">source_segment_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
       <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-  <span class="n">ret</span> <span class="o">*=</span> <span class="n">ret</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span> <span class="o">-</span><span class="mf">0.7</span>
+  <span class="k">if</span> <span class="n">apply_dtype_min</span><span class="p">:</span>
+    <span class="n">ret</span> <span class="o">*=</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
   <span class="c1"># [B, T, S] -&gt; [B, 1, T, S]</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
@@ -3213,18 +3224,25 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>  <span class="c1"># Decoder FProp</span>
+        <span class="n">sa_mask</span><span class="p">,</span> <span class="n">ca_mask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+          <span class="c1"># This computation doesn&#39;t behave nicely when outside</span>
+          <span class="c1"># recurrent.Recurrent resulting in nans for splits &gt; 1</span>
+          <span class="n">min_val</span> <span class="o">=</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">target_vecs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+          <span class="n">sa_mask</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">*</span> <span class="n">decoder_self_atten_segment_mask</span>
+          <span class="n">ca_mask</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">*</span> <span class="n">decoder_cross_atten_segment_mask</span>
         <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
             <span class="n">target_vecs</span><span class="p">,</span>
             <span class="kc">None</span><span class="p">,</span>
             <span class="n">target_paddings</span><span class="p">,</span>
-            <span class="n">segment_mask</span><span class="o">=</span><span class="n">decoder_self_atten_segment_mask</span><span class="p">)</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="n">sa_mask</span><span class="p">)</span>
         <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span>
             <span class="n">atten_vec</span><span class="p">,</span>
             <span class="n">source_vecs</span><span class="p">,</span>
             <span class="n">source_paddings</span><span class="p">,</span>
-            <span class="n">segment_mask</span><span class="o">=</span><span class="n">decoder_cross_atten_segment_mask</span><span class="p">)</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="n">ca_mask</span><span class="p">)</span>
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
                                        <span class="n">target_paddings</span><span class="p">)</span>
         <span class="n">atten_vec</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">target_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -3236,12 +3254,16 @@
                 <span class="n">decoder_cross_atten_segment_mask</span><span class="p">)</span>
 
       <span class="c1"># Encoder FProp</span>
+      <span class="n">sa_mask</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+        <span class="n">min_val</span> <span class="o">=</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">source_vecs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">sa_mask</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">*</span> <span class="n">encoder_self_atten_segment_mask</span>
       <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
           <span class="n">source_vecs</span><span class="p">,</span>
           <span class="kc">None</span><span class="p">,</span>
           <span class="n">source_paddings</span><span class="p">,</span>
-          <span class="n">segment_mask</span><span class="o">=</span><span class="n">encoder_self_atten_segment_mask</span><span class="p">)</span>
+          <span class="n">segment_mask</span><span class="o">=</span><span class="n">sa_mask</span><span class="p">)</span>
       <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">)</span>
       <span class="n">atten_vec</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_layer_norm</span><span class="p">:</span>
