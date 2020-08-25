@@ -83,6 +83,16 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertIsNone(nested_map.Get('x'))
     self.assertEqual(nested_map.Get('x', 0), 0)
 
+  def testNestedMapDir(self):
+    nested_map = py_utils.NestedMap({'a': {'b': 0}})
+    nested_map.c = '1'
+    nested_map_dir = dir(nested_map)
+    # Flattened keys are in the dir
+    self.assertIn('a.b', nested_map_dir)
+    self.assertIn('c', nested_map_dir)
+    # So are method APIs.
+    self.assertIn('Get', nested_map_dir)
+
   def testNestedMapSet(self):
     nested_map = py_utils.NestedMap.FromNestedDict({'a': {'b': 0}})
     self.assertEqual(nested_map.a.b, 0)

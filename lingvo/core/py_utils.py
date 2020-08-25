@@ -1122,6 +1122,11 @@ class NestedMap(dict):
     for l in self._ToStrings():
       tf.logging.vlog(level, '%s %s', prefix, l)
 
+  def __dir__(self):
+    """dir() that includes flattened keys in returned output."""
+    keys = self._RecursiveMap(lambda k, v: k, flatten=True)
+    return keys + super().__dir__()
+
 
 class _Unique:
   """A helper to uniqify variables in a NestedMap."""
