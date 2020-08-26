@@ -4697,7 +4697,8 @@ def If(cond, inputs, then_branch, else_branch):
         else_branch=ElseBranch)
 
   assert IsCompatible(ret_dtypes.then_out, ret_dtypes.else_out), (
-      'Outputs of then_branch and else_branch are not compatible.')
+      'Outputs of then_branch and else_branch are not compatible: {} vs {}'
+      .format(ret_dtypes.then_out, ret_dtypes.else_out))
   return Pack(ret_dtypes.then_out, ret)
 
 
