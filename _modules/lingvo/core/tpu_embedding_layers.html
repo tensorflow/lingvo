@@ -180,22 +180,18 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Used for updating embedding table.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_gradient_accumulation&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s1">&#39;Setting this to False makes embedding gradients calculation less &#39;</span>
-        <span class="s1">&#39;accurate but faster. See tpu_embedding_lib for more details.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_weight_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The minimum value to clip by; None means -infinity.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_weight_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The maximum value to clip by; None means +infinity.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_decay_factor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Amount of weight decay to apply; None means that the weights are not decayed.&#39;</span>
-    <span class="p">)</span>
+        <span class="s1">&#39;Amount of weight decay to apply; None means that the weights are not &#39;</span>
+        <span class="s1">&#39;decayed.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;multiply_weight_decay_factor_by_learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;If true, weight_decay_factor is multiplied by the current learning rate.&#39;</span>
-    <span class="p">)</span>
+        <span class="s1">&#39;If true, weight_decay_factor is multiplied by the current learning &#39;</span>
+        <span class="s1">&#39;rate.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -221,6 +217,59 @@
     <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
 
 
+<div class="viewcode-block" id="TPUEmbeddingSGDOptimizer"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingSGDOptimizer</span><span class="p">(</span><span class="n">_TPUEmbeddingOptimizer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;SGD optimizer for TPUEmbeddingLayer, TPUEmbeddingTable.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_optimizer_parameters</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">StochasticGradientDescentParameters</span><span class="p">(</span>
+            <span class="n">learning_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span>
+            <span class="n">clip_weight_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_min</span><span class="p">,</span>
+            <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
+            <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
+            <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
+            <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">))</span>
+
+<div class="viewcode-block" id="TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_vars</span><span class="p">,</span> <span class="n">tpu_embedding_table</span><span class="p">):</span>
+    <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="n">table_name</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">table_name</span>
+
+    <span class="k">for</span> <span class="n">host_id</span><span class="p">,</span> <span class="n">table_var</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_tpu_hosts</span><span class="p">),</span> <span class="n">table_vars</span><span class="p">):</span>
+      <span class="c1"># The slot vars should be on the same device as the table var.</span>
+      <span class="n">device_name</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetDeviceName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_name</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
+        <span class="c1"># Only the Trainer needs these ops.</span>
+        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+          <span class="c1"># TPU Embedding load/retrieve ops need to be in the outer graph scope.</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;creating load and retrieve ops.&#39;</span><span class="p">)</span>
+            <span class="n">load_parameters_op</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span>
+                <span class="o">.</span><span class="n">load_tpu_embedding_stochastic_gradient_descent_parameters</span><span class="p">(</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">table_var</span><span class="p">,</span>
+                    <span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
+                    <span class="n">num_shards</span><span class="o">=</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
+                    <span class="n">shard_id</span><span class="o">=</span><span class="n">host_id</span><span class="p">))</span>
+            <span class="n">load_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_parameters_op</span><span class="p">)</span>
+
+            <span class="n">retrieved_table</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span>
+                <span class="o">.</span><span class="n">retrieve_tpu_embedding_stochastic_gradient_descent_parameters</span><span class="p">(</span>
+                    <span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
+                    <span class="n">num_shards</span><span class="o">=</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
+                    <span class="n">shard_id</span><span class="o">=</span><span class="n">host_id</span><span class="p">))</span>
+            <span class="n">retrieve_parameters_op</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">control_flow_ops</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">table_var</span><span class="p">,</span> <span class="n">retrieved_table</span><span class="p">))</span>
+            <span class="n">retrieve_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_parameters_op</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">load_op_list</span><span class="p">,</span> <span class="n">retrieve_op_list</span></div></div>
+
+
 <div class="viewcode-block" id="TPUEmbeddingAdagradOptimizer"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdagradOptimizer">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingAdagradOptimizer</span><span class="p">(</span><span class="n">_TPUEmbeddingOptimizer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adagrad optimizer for TPUEmbeddingLayer, TPUEmbeddingTable.&quot;&quot;&quot;</span>
 
@@ -229,19 +278,24 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_accumulator&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span>
              <span class="s1">&#39;Initial value of Adagrad accumulator.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_gradient_accumulation&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Setting this to False makes embedding gradients calculation less &#39;</span>
+        <span class="s1">&#39;accurate but faster. See tpu_embedding_lib for more details.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_optimizer_parameters</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
-        <span class="n">learning_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span>
-        <span class="n">initial_accumulator</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">,</span>
-        <span class="n">clip_weight_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_min</span><span class="p">,</span>
-        <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
-        <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
-        <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
-        <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_optimizer_parameters</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
+            <span class="n">learning_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span>
+            <span class="n">initial_accumulator</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">,</span>
+            <span class="n">clip_weight_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_min</span><span class="p">,</span>
+            <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
+            <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
+            <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
+            <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">))</span>
 
 <div class="viewcode-block" id="TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_vars</span><span class="p">,</span> <span class="n">tpu_embedding_table</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -387,8 +441,8 @@
 
     <span class="c1"># Only trainer and controller need slot variables and load/retrieve ops.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">CreateSlotVariablesAndOps</span><span class="p">(</span>
-          <span class="n">embedding_table_vars</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="n">embedding_table_vars</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span></div>
 
   <span class="c1"># Return device to place sharded variables on.</span>
 <div class="viewcode-block" id="TPUEmbeddingTable.GetDeviceName"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.GetDeviceName">[docs]</a>  <span class="k">def</span> <span class="nf">GetDeviceName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host_id</span><span class="p">):</span>
