@@ -44,7 +44,7 @@ def CausalPadding(slen, dtype=tf.float32):
 
 
 def GetDtypeMin(dtype=tf.float32):
-  return -0.7 * dtype.max
+  return tf.constant(-0.7, dtype=dtype) * dtype.max
 
 
 def SegmentMask(segment_id,
@@ -3080,9 +3080,11 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
         if p.packed_input:
           # This computation doesn't behave nicely when outside
           # recurrent.Recurrent resulting in nans for splits > 1
-          min_val = GetDtypeMin(target_vecs.dtype)
-          sa_mask = min_val * decoder_self_atten_segment_mask
-          ca_mask = min_val * decoder_cross_atten_segment_mask
+          min_val = GetDtypeMin(decoder_self_atten_segment_mask.dtype)
+          # Operator overloading with * produces type-errors when running on
+          # borg with splits > 1.
+          sa_mask = tf.math.multiply(min_val, decoder_self_atten_segment_mask)
+          ca_mask = tf.math.multiply(min_val, decoder_cross_atten_segment_mask)
         atten_vec, _ = self.self_atten.FProp(
             theta.self_atten,
             target_vecs,
@@ -3108,8 +3110,8 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
       # Encoder FProp
       sa_mask = None
       if p.packed_input:
-        min_val = GetDtypeMin(source_vecs.dtype)
-        sa_mask = min_val * encoder_self_atten_segment_mask
+        min_val = GetDtypeMin(encoder_self_atten_segment_mask.dtype)
+        sa_mask = tf.math.multiply(min_val, encoder_self_atten_segment_mask)
       atten_vec, _ = self.self_atten.FProp(
           theta.self_atten,
           source_vecs,

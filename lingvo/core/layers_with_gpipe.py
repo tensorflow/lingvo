@@ -1082,8 +1082,7 @@ class GPipeBatchMajorTransformerEmbeddingLayer(base_layer.BaseLayer):
 
   # To be used for decoding.
   def GetEncoderEmbeddingsDefaultTheta(self, input_ids):
-    time_dim = 1
-    seq_len = tf.shape(input_ids)[time_dim]
+    seq_len = tf.shape(input_ids)[1]
     input_embs = self.src_token_emb.EmbLookup(self.theta.src_token_emb,
                                               input_ids)
     pos_embs = tf.expand_dims(
@@ -1094,11 +1093,16 @@ class GPipeBatchMajorTransformerEmbeddingLayer(base_layer.BaseLayer):
 
   # To be used for decoding.
   def GetDecoderEmbeddingsDefaultTheta(self, input_ids, t):
+    seq_len = tf.shape(input_ids)[1]
     input_embs = self.tgt_token_emb.EmbLookup(self.theta.tgt_token_emb,
                                               input_ids)
     # [target_batch, 1, dim]
     # t should be shaped as [target_batch, 1].
-    pos_embs = self.tgt_pos_emb.FPropWithPosition(self.theta.tgt_pos_emb, t)
+    if t is None:
+      pos_embs = tf.expand_dims(
+          self.tgt_pos_emb.FProp(self.theta.tgt_pos_emb, seq_len), 0)
+    else:
+      pos_embs = self.tgt_pos_emb.FPropWithPosition(self.theta.tgt_pos_emb, t)
     input_embs += pos_embs
     input_embs = self.tgt_dropout.FProp(self.theta.tgt_dropout, input_embs)
     return input_embs
@@ -1380,7 +1384,7 @@ class GPipeBatchMajorTransformerStack(PipeliningLayer):
 
     # Prepare segment masks from segment ids.
     if p.packed_input:
-      dtype = p.state_dtype
+      dtype = py_utils.FPropDtype(p)
       assert source_segment_id is not None, (
           'Need to specify src_segment_id if packed input is supported.')
       assert source_segment_pos is not None, (
