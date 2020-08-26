@@ -244,15 +244,21 @@ class Learner(base_layer.BaseLayer):
     losses = []
     if isinstance(loss_name, (list, tuple)):
       losses_and_grads = {}
+      variables = None
       for metric_name in loss_name:
         loss_metric, var_grads = LossAndGradients(metric_name)
         losses_and_grads[metric_name] = py_utils.NestedMap(
             loss_metric=loss_metric,
             grads=tf.nest.map_structure(lambda vg: vg.grad, var_grads))
+        current_vars = tf.nest.map_structure(lambda vg: vg.var, var_grads)
+        if variables is None:
+          variables = current_vars
+        else:
+          tf.nest.assert_same_structure(variables, current_vars)
         losses.append(loss_metric[0])
-      grads = self.gradient_combiner.Combine(vmap, losses_and_grads)
+      grads = self.gradient_combiner.Combine(variables, losses_and_grads)
       var_grads = tf.nest.map_structure(
-          lambda v, g: py_utils.VarGrad(var=v, grad=g), vmap, grads)
+          lambda v, g: py_utils.VarGrad(var=v, grad=g), variables, grads)
     else:
       loss_metric, var_grads = LossAndGradients(loss_name)
       losses.append(loss_metric[0])
