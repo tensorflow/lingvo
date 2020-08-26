@@ -32,22 +32,18 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('learning_rate', None, 'Used for updating embedding table.')
-    p.Define(
-        'use_gradient_accumulation', True,
-        'Setting this to False makes embedding gradients calculation less '
-        'accurate but faster. See tpu_embedding_lib for more details.')
     p.Define('clip_weight_min', None,
              'The minimum value to clip by; None means -infinity.')
     p.Define('clip_weight_max', None,
              'The maximum value to clip by; None means +infinity.')
     p.Define(
         'weight_decay_factor', None,
-        'Amount of weight decay to apply; None means that the weights are not decayed.'
-    )
+        'Amount of weight decay to apply; None means that the weights are not '
+        'decayed.')
     p.Define(
         'multiply_weight_decay_factor_by_learning_rate', None,
-        'If true, weight_decay_factor is multiplied by the current learning rate.'
-    )
+        'If true, weight_decay_factor is multiplied by the current learning '
+        'rate.')
     return p
 
   def __init__(self, params):
@@ -73,6 +69,59 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
     return NotImplementedError()
 
 
+class TPUEmbeddingSGDOptimizer(_TPUEmbeddingOptimizer):
+  """SGD optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self._tpu_embedding_optimizer_parameters = (
+        tpu_embedding_lib.StochasticGradientDescentParameters(
+            learning_rate=p.learning_rate,
+            clip_weight_min=p.clip_weight_min,
+            clip_weight_max=p.clip_weight_max,
+            weight_decay_factor=p.weight_decay_factor,
+            multiply_weight_decay_factor_by_learning_rate=p
+            .multiply_weight_decay_factor_by_learning_rate))
+
+  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+    load_op_list = []
+    retrieve_op_list = []
+
+    num_tpu_hosts = tpu_embedding_table.params.num_tpu_hosts
+    table_name = tpu_embedding_table.table_name
+
+    for host_id, table_var in zip(range(num_tpu_hosts), table_vars):
+      # The slot vars should be on the same device as the table var.
+      device_name = tpu_embedding_table.GetDeviceName(host_id)
+      with tf.device(device_name), py_utils.outside_all_rewrites():
+        # Only the Trainer needs these ops.
+        if py_utils.use_tpu():
+          # TPU Embedding load/retrieve ops need to be in the outer graph scope.
+          with tf.init_scope():
+            tf.logging.info('creating load and retrieve ops.')
+            load_parameters_op = (
+                tpu_embedding_lib.tpu_ops
+                .load_tpu_embedding_stochastic_gradient_descent_parameters(
+                    parameters=table_var,
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            load_op_list.append(load_parameters_op)
+
+            retrieved_table = (
+                tpu_embedding_lib.tpu_ops
+                .retrieve_tpu_embedding_stochastic_gradient_descent_parameters(
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
+                tf.assign(table_var, retrieved_table))
+            retrieve_op_list.append(retrieve_parameters_op)
+
+    return load_op_list, retrieve_op_list
+
+
 class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
   """Adagrad optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
 
@@ -81,19 +130,24 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
     p = super().Params()
     p.Define('initial_accumulator', 0.1,
              'Initial value of Adagrad accumulator.')
+    p.Define(
+        'use_gradient_accumulation', True,
+        'Setting this to False makes embedding gradients calculation less '
+        'accurate but faster. See tpu_embedding_lib for more details.')
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    self._tpu_embedding_optimizer_parameters = tpu_embedding_lib.AdagradParameters(
-        learning_rate=p.learning_rate,
-        initial_accumulator=p.initial_accumulator,
-        clip_weight_min=p.clip_weight_min,
-        clip_weight_max=p.clip_weight_max,
-        weight_decay_factor=p.weight_decay_factor,
-        multiply_weight_decay_factor_by_learning_rate=p
-        .multiply_weight_decay_factor_by_learning_rate)
+    self._tpu_embedding_optimizer_parameters = (
+        tpu_embedding_lib.AdagradParameters(
+            learning_rate=p.learning_rate,
+            initial_accumulator=p.initial_accumulator,
+            clip_weight_min=p.clip_weight_min,
+            clip_weight_max=p.clip_weight_max,
+            weight_decay_factor=p.weight_decay_factor,
+            multiply_weight_decay_factor_by_learning_rate=p
+            .multiply_weight_decay_factor_by_learning_rate))
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
     p = self.params
@@ -239,8 +293,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
     # Only trainer and controller need slot variables and load/retrieve ops.
     if not self.do_eval:
-      self._load_op_list, self._retrieve_op_list = self.optimizer.CreateSlotVariablesAndOps(
-          embedding_table_vars, self)
+      self._load_op_list, self._retrieve_op_list = (
+          self.optimizer.CreateSlotVariablesAndOps(embedding_table_vars, self))
 
   # Return device to place sharded variables on.
   def GetDeviceName(self, host_id):
