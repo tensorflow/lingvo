@@ -192,7 +192,7 @@
 
 
 <div class="viewcode-block" id="GetDtypeMin"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GetDtypeMin">[docs]</a><span class="k">def</span> <span class="nf">GetDtypeMin</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
-  <span class="k">return</span> <span class="o">-</span><span class="mf">0.7</span> <span class="o">*</span> <span class="n">dtype</span><span class="o">.</span><span class="n">max</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">dtype</span><span class="o">.</span><span class="n">max</span></div>
 
 
 <div class="viewcode-block" id="SegmentMask"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SegmentMask">[docs]</a><span class="k">def</span> <span class="nf">SegmentMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span>
@@ -3228,9 +3228,11 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
           <span class="c1"># This computation doesn&#39;t behave nicely when outside</span>
           <span class="c1"># recurrent.Recurrent resulting in nans for splits &gt; 1</span>
-          <span class="n">min_val</span> <span class="o">=</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">target_vecs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-          <span class="n">sa_mask</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">*</span> <span class="n">decoder_self_atten_segment_mask</span>
-          <span class="n">ca_mask</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">*</span> <span class="n">decoder_cross_atten_segment_mask</span>
+          <span class="n">min_val</span> <span class="o">=</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">decoder_self_atten_segment_mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+          <span class="c1"># Operator overloading with * produces type-errors when running on</span>
+          <span class="c1"># borg with splits &gt; 1.</span>
+          <span class="n">sa_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">min_val</span><span class="p">,</span> <span class="n">decoder_self_atten_segment_mask</span><span class="p">)</span>
+          <span class="n">ca_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">min_val</span><span class="p">,</span> <span class="n">decoder_cross_atten_segment_mask</span><span class="p">)</span>
         <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
             <span class="n">target_vecs</span><span class="p">,</span>
@@ -3256,8 +3258,8 @@
       <span class="c1"># Encoder FProp</span>
       <span class="n">sa_mask</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
-        <span class="n">min_val</span> <span class="o">=</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">source_vecs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">sa_mask</span> <span class="o">=</span> <span class="n">min_val</span> <span class="o">*</span> <span class="n">encoder_self_atten_segment_mask</span>
+        <span class="n">min_val</span> <span class="o">=</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">encoder_self_atten_segment_mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">sa_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">min_val</span><span class="p">,</span> <span class="n">encoder_self_atten_segment_mask</span><span class="p">)</span>
       <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
           <span class="n">source_vecs</span><span class="p">,</span>

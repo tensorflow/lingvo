@@ -1230,8 +1230,7 @@
 
   <span class="c1"># To be used for decoding.</span>
 <div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">GetEncoderEmbeddingsDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">):</span>
-    <span class="n">time_dim</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="n">time_dim</span><span class="p">]</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_token_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">src_token_emb</span><span class="p">,</span>
                                               <span class="n">input_ids</span><span class="p">)</span>
     <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
@@ -1242,11 +1241,16 @@
 
   <span class="c1"># To be used for decoding.</span>
 <div class="viewcode-block" id="GPipeBatchMajorTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">GetDecoderEmbeddingsDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_ids</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_token_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_token_emb</span><span class="p">,</span>
                                               <span class="n">input_ids</span><span class="p">)</span>
     <span class="c1"># [target_batch, 1, dim]</span>
     <span class="c1"># t should be shaped as [target_batch, 1].</span>
-    <span class="n">pos_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">pos_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_pos_emb</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
     <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">pos_embs</span>
     <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">tgt_dropout</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">input_embs</span></div>
@@ -1528,7 +1532,7 @@
 
     <span class="c1"># Prepare segment masks from segment ids.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
-      <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">state_dtype</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
       <span class="k">assert</span> <span class="n">source_segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Need to specify src_segment_id if packed input is supported.&#39;</span><span class="p">)</span>
       <span class="k">assert</span> <span class="n">source_segment_pos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
