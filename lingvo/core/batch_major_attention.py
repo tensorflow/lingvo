@@ -2523,18 +2523,18 @@ class TransformerLayer(base_layer.BaseLayer):
       value - [target_time, target_batch, num_heads, dim_per_head].
     """
     target_batch, _, dim = py_utils.GetShape(query_vec, 3)
-    source_batch = self._GetSourceBatchSize(aux_vec)
 
     # First the self-attention layer.
     atten_vec, updated_states = self.self_atten.ExtendStep(
         theta.self_atten, query_vec, cached_states, time_step,
         use_short_seq_opt)
-
-    # Next the cross-attention layer.
-    atten_vec = tf.reshape(atten_vec, [source_batch, -1, dim])
-    atten_vec, _ = self.cross_atten.FProp(theta.cross_atten, atten_vec, aux_vec,
-                                          aux_paddings)
-    atten_vec = tf.reshape(atten_vec, [target_batch, 1, -1])
+    if self.params.has_aux_atten:
+      source_batch = self._GetSourceBatchSize(aux_vec)
+      # Next the cross-attention layer.
+      atten_vec = tf.reshape(atten_vec, [source_batch, -1, dim])
+      atten_vec, _ = self.cross_atten.FProp(theta.cross_atten, atten_vec,
+                                            aux_vec, aux_paddings)
+      atten_vec = tf.reshape(atten_vec, [target_batch, 1, -1])
 
     # Finally the feed-forward layer.
     cur_output = self.fflayer.FProp(
