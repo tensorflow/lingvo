@@ -3252,6 +3252,11 @@ class Builder(builder.Base):
     p.Define('use_bias', True, 'Whether to use bias for projection layer.')
     p.Define('norm_layer_tpl', None,
              'If specified, the normalization layer template.')
+    p.Define(
+        'enable_scaling_code_motion', False, 'Move scalings from the side '
+        'of T^2 to the side of T for better performance. This may result '
+        'in model quality drops when using bf16 for some models due to '
+        'different XLA fusion decisions.')
     return p
 
   def __init__(self, params):
@@ -3318,7 +3323,8 @@ class Builder(builder.Base):
         enable_per_dim_scale=p.enable_per_dim_scale,
         packed_input=p.packed_input,
         fprop_dtype=p.fprop_dtype,
-        use_bias=p.use_bias
+        use_bias=p.use_bias,
+        enable_scaling_code_motion=p.enable_scaling_code_motion,
     )
     if p.deterministic_dropout:
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
