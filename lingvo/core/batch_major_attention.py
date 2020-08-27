@@ -2973,7 +2973,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       aux_segment_mask: [batch, 1, target_time, source_time]
 
     Returns:
-      The attention context vector with shape [batch, target_time, dim].
+      (context, paddings), where the context vector has shape [batch,
+      target_time, dim].
     """
     p = self.params
     x_out = query_vec
