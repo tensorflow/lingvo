@@ -861,13 +861,11 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Value projection must be enabled for Transformer &#39;</span>
                        <span class="s1">&#39;machine translation.&#39;</span><span class="p">)</span>
 
-    <span class="n">new_key_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
-    <span class="n">new_value_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
     <span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
 
     <span class="c1"># Project inputs to key, value and query. Each has shape [B, 1, N, H].</span>
-    <span class="n">new_key_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">new_key_vec</span><span class="p">)</span>
-    <span class="n">new_value_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">new_value_vec</span><span class="p">)</span>
+    <span class="n">new_key_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="n">new_value_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
     <span class="n">query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
 
     <span class="c1"># The extended_key and extended_value have shape [T, B, N, H].</span>
@@ -878,7 +876,7 @@
     <span class="n">updated_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">extended_key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">extended_value</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">new_key_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenOneStep</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span>
@@ -1637,11 +1635,12 @@
 <span class="sd">  we layer normalize queries and keys first so that closeness lead to a larger</span>
 <span class="sd">  dot product.</span>
 
-<span class="sd">  TODO(zhouwk) This class is WIP, what remains to be done:</span>
-<span class="sd">    * single step during decoding</span>
+<span class="sd">  TODO(zhouwk) This class is missing the following features:</span>
 <span class="sd">    * propagate clustering loss;</span>
 <span class="sd">    * supporting packed inputs;</span>
-<span class="sd">    * support attention dropout.</span>
+<span class="sd">    * support attention dropout;</span>
+<span class="sd">    * support relative position encoding;</span>
+<span class="sd">    * support using local attention on some heads.</span>
 
 <span class="sd">  We use the following capital letters to denote shape parameters:</span>
 <span class="sd">    B = batch size</span>
@@ -1649,6 +1648,7 @@
 <span class="sd">    T = length of the target sequence</span>
 <span class="sd">    N = number of attention heads</span>
 <span class="sd">    H = dimensions of each attention head</span>
+<span class="sd">    D = model dimension</span>
 
 <span class="sd">    K = number of clusters</span>
 <span class="sd">    W = attention window</span>
@@ -1698,7 +1698,15 @@
     <span class="n">clustering_p</span><span class="o">.</span><span class="n">apply_layer_norm</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;clustering&#39;</span><span class="p">,</span> <span class="n">clustering_p</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RoutingAttention._DotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention._DotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">):</span>
+<div class="viewcode-block" id="RoutingAttention._DotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention._DotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">theta</span><span class="p">,</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">key</span><span class="p">,</span>
+                <span class="n">value</span><span class="p">,</span>
+                <span class="n">paddings</span><span class="p">,</span>
+                <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">query_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the attention.</span>
 
 <span class="sd">    Each query selects &#39;p.attention_window&#39; number of keys to attend to. First</span>
@@ -1721,14 +1729,23 @@
 <span class="sd">      query: [B, T, N, H].</span>
 <span class="sd">      key:   [B, S, N, H].</span>
 <span class="sd">      value: [B, S, N, H].</span>
-<span class="sd">      query_paddings: [B, T].</span>
-<span class="sd">      key_paddings:   [B, S].</span>
+<span class="sd">      paddings:   [B, S], paddings for key.</span>
+<span class="sd">      segment_mask: must be None.</span>
+<span class="sd">      per_step_padding: must be None. Please use p.causal_masking.</span>
+<span class="sd">      query_paddings: [B, T], or None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      encoded: [B, T, N, H].</span>
 <span class="sd">      atten_probs: [B, T, N, S].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">per_step_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Requires segment_mask=None and per_step_padding=None.&#39;</span><span class="p">)</span>
+    <span class="n">key_paddings</span> <span class="o">=</span> <span class="n">paddings</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">query_paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">query_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">key_paddings</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
     <span class="n">is_self_attention</span> <span class="o">=</span> <span class="p">(</span><span class="n">query</span> <span class="ow">is</span> <span class="n">key</span><span class="p">)</span>
     <span class="c1"># Whether to update the centroids. Only do this during training.</span>
     <span class="n">update</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
@@ -1753,8 +1770,171 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenSlowPath</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">q_dists</span><span class="p">,</span> <span class="n">k_dists</span><span class="p">,</span>
                                     <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="RoutingAttention._DotAttenSlowPath"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention._DotAttenSlowPath">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAttenSlowPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">q_dists</span><span class="p">,</span> <span class="n">k_dists</span><span class="p">,</span>
-                        <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">):</span>
+<div class="viewcode-block" id="RoutingAttention.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize &#39;states&#39; with .key, .value, and .key_dists.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">states</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">InitStates</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">)</span>
+    <span class="n">states</span><span class="o">.</span><span class="n">key_dists</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">target_max_length</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+               <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+        <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">states</span></div>
+
+<div class="viewcode-block" id="RoutingAttention.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">query_vec</span><span class="p">,</span>
+                 <span class="n">cached_states</span><span class="p">,</span>
+                 <span class="n">paddings</span><span class="p">,</span>
+                 <span class="n">time_step</span><span class="p">,</span>
+                 <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
+
+<span class="sd">    This function is used by autoregressive decoding. Used for self-attention</span>
+<span class="sd">    (hence S=T) with p.causal_masking is True.</span>
+
+<span class="sd">    We compute the key/value/key_dists at `time_step` and cache the updated</span>
+<span class="sd">    full length results in `cache_states` to reduce duplicate computation.</span>
+
+<span class="sd">    p.fast_path is ignored (as if p.fast_path=False) as at each step we only</span>
+<span class="sd">    compute for query of length 1.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query_vec:         [B, 1, D].</span>
+<span class="sd">      cached_states:     A `.NestedMap` object containing tensors which are the</span>
+<span class="sd">        results of previous attentions, used for fast decoding. It contains .key</span>
+<span class="sd">        and .value with shape [T, B, N, H], and .key_dists with  shape [T, B, N,</span>
+<span class="sd">        K]. Note that they are all time-major.</span>
+<span class="sd">      paddings:          [B, T], or None if there is no padding.</span>
+<span class="sd">      time_step:         Scalar, the current decode step, 0-based.</span>
+<span class="sd">      segment_mask:      must be None.</span>
+<span class="sd">      per_step_padding:  must be None. We obey causal masking.</span>
+<span class="sd">      use_short_seq_opt: must be False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded:           [B, 1, D].</span>
+<span class="sd">      updated_states:    `.NestedMap` with .key, .value, .key_dists.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If value projection is disabled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Value projection must be enabled: &#39;</span>
+                       <span class="s1">&#39;set p.enable_value_proj = True.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">causal_masking</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.causal_masking must be true.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">per_step_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Requires segment_mask=None and per_step_padding=None.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_short_seq_opt</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Requires use_short_seq_opt=False.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">time_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Requires valid time_step, not None.&#39;</span><span class="p">)</span>
+
+    <span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="c1"># Project inputs to key, value and query. Each has shape [B, 1, N, H].</span>
+    <span class="n">key_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="n">value_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="n">query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+
+    <span class="n">query_proj</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">query_proj</span><span class="p">)</span>
+    <span class="n">key_proj</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">key_proj</span><span class="p">)</span>
+    <span class="c1"># [B, 1, N, K]</span>
+    <span class="n">k_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">key_proj</span><span class="p">)</span>
+
+    <span class="c1"># The updated_key and extended_value have shape [T, B, N, H].</span>
+    <span class="n">updated_key</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
+        <span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">key_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
+    <span class="n">updated_value</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
+        <span class="n">cached_states</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">value_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
+    <span class="c1"># Shape [T, B, N, K]</span>
+    <span class="n">updated_key_dists</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
+        <span class="n">cached_states</span><span class="o">.</span><span class="n">key_dists</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">k_dists</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">]))</span>
+    <span class="n">updated_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="n">updated_key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">updated_value</span><span class="p">,</span> <span class="n">key_dists</span><span class="o">=</span><span class="n">updated_key_dists</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="c1"># Apply causal padding. Shape [B, T]</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">t</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">time_step</span><span class="p">)),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="n">paddings</span><span class="p">)</span>
+    <span class="n">query_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenOneStep</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">query_proj</span><span class="p">,</span>
+        <span class="n">updated_states</span><span class="p">,</span>
+        <span class="n">query_paddings</span><span class="o">=</span><span class="n">query_paddings</span><span class="p">,</span>
+        <span class="n">key_paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">,</span>
+        <span class="n">time_step</span><span class="o">=</span><span class="n">time_step</span><span class="p">)</span>
+    <span class="c1"># Post projection.</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">encoded</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">updated_states</span></div>
+
+<div class="viewcode-block" id="RoutingAttention._DotAttenOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention._DotAttenOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAttenOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span>
+                       <span class="n">time_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Dot attention function for queries with 1 time step.</span>
+
+<span class="sd">    Called from ExtendStep(). Used for self-attention with p.causal_masking</span>
+<span class="sd">    is True.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query:    [B, 1, N, H], already normalized.</span>
+<span class="sd">      states:   .key and .value with shape [T, B, N, H], .key_dists with shape</span>
+<span class="sd">        [T, B, N, K]. .key is normalized.</span>
+<span class="sd">      query_paddings: [B, 1].</span>
+<span class="sd">      key_paddings: [B, T].</span>
+<span class="sd">      time_step: Scalar, the current decode step, 0-based.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded: [B, 1, N, H].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># [B, 1, N, K]</span>
+    <span class="n">q_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+    <span class="c1"># [B, T, N, K]</span>
+    <span class="n">k_dists</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">key_dists</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="n">very_large_dists</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">k_dists</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="mf">0.1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">k_dists</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">k_dists</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
+    <span class="n">paddings_tiled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">key_paddings</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+                             <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">])</span>
+    <span class="n">k_dists</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">paddings_tiled</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_large_dists</span><span class="p">,</span> <span class="n">k_dists</span><span class="p">)</span>
+
+    <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">encoded</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenSlowPath</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">,</span>
+        <span class="n">key</span><span class="p">,</span>
+        <span class="n">value</span><span class="p">,</span>
+        <span class="n">q_dists</span><span class="p">,</span>
+        <span class="n">k_dists</span><span class="p">,</span>
+        <span class="n">query_paddings</span><span class="p">,</span>
+        <span class="n">key_paddings</span><span class="p">,</span>
+        <span class="n">query_relative_position_shift</span><span class="o">=</span><span class="n">time_step</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">encoded</span></div>
+
+<div class="viewcode-block" id="RoutingAttention._DotAttenSlowPath"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention._DotAttenSlowPath">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAttenSlowPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">theta</span><span class="p">,</span>
+                        <span class="n">query</span><span class="p">,</span>
+                        <span class="n">key</span><span class="p">,</span>
+                        <span class="n">value</span><span class="p">,</span>
+                        <span class="n">q_dists</span><span class="p">,</span>
+                        <span class="n">k_dists</span><span class="p">,</span>
+                        <span class="n">query_paddings</span><span class="p">,</span>
+                        <span class="n">key_paddings</span><span class="p">,</span>
+                        <span class="n">query_relative_position_shift</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the attention via the slow path.</span>
 
 <span class="sd">    This implementation selects, on a per query basis, p.attention_window</span>
@@ -1769,6 +1949,9 @@
 <span class="sd">      k_dists: [B, S, N, K].</span>
 <span class="sd">      query_paddings: [B, T].</span>
 <span class="sd">      key_paddings:   [B, S].</span>
+<span class="sd">      query_relative_position_shift: scalar. The position (relative to key[0])</span>
+<span class="sd">         of query[0]. This impacts relative position encoding (not yet</span>
+<span class="sd">         implemented) and causal masking.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      encoded: [B, T, N, H].</span>
@@ -1799,10 +1982,10 @@
                                  <span class="n">closest_indices</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">causal_masking</span><span class="p">:</span>
       <span class="n">batch_size</span><span class="p">,</span> <span class="n">q_length</span><span class="p">,</span> <span class="n">num_heads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="n">query_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q_length</span><span class="p">)</span> <span class="o">+</span> <span class="n">query_relative_position_shift</span>
       <span class="c1"># [B, T, N, W] where the T dimension is range(T)</span>
-      <span class="n">query_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q_length</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_window</span><span class="p">])</span>
+      <span class="n">query_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">query_positions</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+                                <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_window</span><span class="p">])</span>
       <span class="n">masked_indices</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">sparsity_indices</span><span class="p">)</span>
       <span class="c1"># Replace key positions in the future with -1 to indicate masking.</span>
       <span class="c1">#</span>
