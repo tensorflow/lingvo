@@ -3400,6 +3400,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use bias for projection layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_layer_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;If specified, the normalization layer template.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;enable_scaling_code_motion&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Move scalings from the side &#39;</span>
+        <span class="s1">&#39;of T^2 to the side of T for better performance. This may result &#39;</span>
+        <span class="s1">&#39;in model quality drops when using bf16 for some models due to &#39;</span>
+        <span class="s1">&#39;different XLA fusion decisions.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3466,7 +3471,8 @@
         <span class="n">enable_per_dim_scale</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">,</span>
         <span class="n">packed_input</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span>
         <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
-        <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span>
+        <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
+        <span class="n">enable_scaling_code_motion</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_scaling_code_motion</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
       <span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
