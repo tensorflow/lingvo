@@ -125,6 +125,10 @@ class BatchNormLayer(base_layer.BaseLayer):
         'gamma_zero_init', False,
         'If True, initialize gamma to zeros according to the technique '
         'introduced in the tech report: https://arxiv.org/abs/1706.02677')
+    p.Define(
+        'gamma_one_init', False,
+        'If True, explicitly initialize gamma to one without invoking '
+        'theta_fn.')
     # TODO(rpang): remove this hparam, as it is replaced
     # by p.train.ema_decay_moving_vars.
     p.Define(
@@ -161,20 +165,27 @@ class BatchNormLayer(base_layer.BaseLayer):
   def _CreateLayerVariables(self):
     p = self.params
 
-    pc = py_utils.WeightParams(
+    beta_pc = py_utils.WeightParams(
         shape=self._GetWeightShape(),
         init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
 
+    gamma_pc = py_utils.WeightParams(
+        shape=self._GetWeightShape(),
+        init=py_utils.WeightInit.Constant(1.0)
+        if p.gamma_one_init else py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+
     if not p.use_moving_avg_in_training:
-      self.CreateVariable('beta', pc)
-      if p.gamma_zero_init:
-        # zero initialization to BN gamma
-        self.CreateVariable('gamma', pc)
+      self.CreateVariable('beta', beta_pc)
+      if p.gamma_zero_init or p.gamma_one_init:
+        # initialization to BN gamma
+        self.CreateVariable('gamma', gamma_pc)
       else:
         # Note, The real gamma to use is 1 + gamma.
-        self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+        self.CreateVariable('gamma', gamma_pc, lambda x: 1.0 + x)
 
     # Two statistics.
     moving_collections = ['moving_vars', self.__class__.__name__ + '_vars']
