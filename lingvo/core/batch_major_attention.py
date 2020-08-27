@@ -713,13 +713,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       raise ValueError('Value projection must be enabled for Transformer '
                        'machine translation.')
 
-    new_key_vec = query_vec
-    new_value_vec = query_vec
     t, b, n, h = py_utils.GetShape(cached_states.key, 4)
 
     # Project inputs to key, value and query. Each has shape [B, 1, N, H].
-    new_key_proj = self.key.FProp(theta.key, new_key_vec)
-    new_value_proj = self.value.FProp(theta.value, new_value_vec)
+    new_key_proj = self.key.FProp(theta.key, query_vec)
+    new_value_proj = self.value.FProp(theta.value, query_vec)
     query_proj = self.query.FProp(theta.query, query_vec)
 
     # The extended_key and extended_value have shape [T, B, N, H].
@@ -730,7 +728,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     updated_state = py_utils.NestedMap(key=extended_key, value=extended_value)
 
     if paddings is None:
-      paddings = tf.zeros([b, t], dtype=new_key_vec.dtype)
+      paddings = tf.zeros([b, t], dtype=query_vec.dtype)
 
     encoded = self._DotAttenOneStep(
         theta,
@@ -1489,11 +1487,12 @@ class RoutingAttention(MultiHeadedAttention):
   we layer normalize queries and keys first so that closeness lead to a larger
   dot product.
 
-  TODO(zhouwk) This class is WIP, what remains to be done:
-    * single step during decoding
+  TODO(zhouwk) This class is missing the following features:
     * propagate clustering loss;
     * supporting packed inputs;
-    * support attention dropout.
+    * support attention dropout;
+    * support relative position encoding;
+    * support using local attention on some heads.
 
   We use the following capital letters to denote shape parameters:
     B = batch size
@@ -1501,6 +1500,7 @@ class RoutingAttention(MultiHeadedAttention):
     T = length of the target sequence
     N = number of attention heads
     H = dimensions of each attention head
+    D = model dimension
 
     K = number of clusters
     W = attention window
@@ -1550,7 +1550,15 @@ class RoutingAttention(MultiHeadedAttention):
     clustering_p.apply_layer_norm = False
     self.CreateChild('clustering', clustering_p)
 
-  def _DotAtten(self, theta, query, key, value, query_paddings, key_paddings):
+  def _DotAtten(self,
+                theta,
+                query,
+                key,
+                value,
+                paddings,
+                segment_mask=None,
+                per_step_padding=None,
+                query_paddings=None):
     """Computes the attention.
 
     Each query selects 'p.attention_window' number of keys to attend to. First
@@ -1573,14 +1581,23 @@ class RoutingAttention(MultiHeadedAttention):
       query: [B, T, N, H].
       key:   [B, S, N, H].
       value: [B, S, N, H].
-      query_paddings: [B, T].
-      key_paddings:   [B, S].
+      paddings:   [B, S], paddings for key.
+      segment_mask: must be None.
+      per_step_padding: must be None. Please use p.causal_masking.
+      query_paddings: [B, T], or None.
 
     Returns:
       encoded: [B, T, N, H].
       atten_probs: [B, T, N, S].
     """
     p = self.params
+    if segment_mask is not None or per_step_padding is not None:
+      raise ValueError('Requires segment_mask=None and per_step_padding=None.')
+    key_paddings = paddings
+    b, t = py_utils.GetShape(query, 2)
+    if query_paddings is None:
+      query_paddings = tf.zeros([b, t], dtype=key_paddings.dtype)
+
     is_self_attention = (query is key)
     # Whether to update the centroids. Only do this during training.
     update = not self.do_eval
@@ -1605,8 +1622,171 @@ class RoutingAttention(MultiHeadedAttention):
       return self._DotAttenSlowPath(theta, query, key, value, q_dists, k_dists,
                                     query_paddings, key_paddings)
 
-  def _DotAttenSlowPath(self, theta, query, key, value, q_dists, k_dists,
-                        query_paddings, key_paddings):
+  def InitStates(self, theta, target_batch_size, target_max_length):
+    """Initialize 'states' with .key, .value, and .key_dists."""
+    p = self.params
+    states = super().InitStates(theta, target_batch_size, target_max_length)
+    states.key_dists = inplace_ops.empty(
+        shape=(target_max_length, target_batch_size, p.num_heads,
+               p.num_clusters),
+        dtype=py_utils.FPropDtype(p),
+        init=True)
+    return states
+
+  def ExtendStep(self,
+                 theta,
+                 query_vec,
+                 cached_states,
+                 paddings,
+                 time_step,
+                 segment_mask=None,
+                 per_step_padding=None,
+                 use_short_seq_opt=False):
+    """Computes the value vector given the query of the current step.
+
+    This function is used by autoregressive decoding. Used for self-attention
+    (hence S=T) with p.causal_masking is True.
+
+    We compute the key/value/key_dists at `time_step` and cache the updated
+    full length results in `cache_states` to reduce duplicate computation.
+
+    p.fast_path is ignored (as if p.fast_path=False) as at each step we only
+    compute for query of length 1.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec:         [B, 1, D].
+      cached_states:     A `.NestedMap` object containing tensors which are the
+        results of previous attentions, used for fast decoding. It contains .key
+        and .value with shape [T, B, N, H], and .key_dists with  shape [T, B, N,
+        K]. Note that they are all time-major.
+      paddings:          [B, T], or None if there is no padding.
+      time_step:         Scalar, the current decode step, 0-based.
+      segment_mask:      must be None.
+      per_step_padding:  must be None. We obey causal masking.
+      use_short_seq_opt: must be False.
+
+    Returns:
+      encoded:           [B, 1, D].
+      updated_states:    `.NestedMap` with .key, .value, .key_dists.
+
+    Raises:
+      ValueError: If value projection is disabled.
+    """
+    p = self.params
+    if not p.enable_value_proj:
+      raise ValueError('Value projection must be enabled: '
+                       'set p.enable_value_proj = True.')
+    if not p.causal_masking:
+      raise ValueError('p.causal_masking must be true.')
+    if segment_mask is not None or per_step_padding is not None:
+      raise ValueError('Requires segment_mask=None and per_step_padding=None.')
+    if use_short_seq_opt:
+      raise ValueError('Requires use_short_seq_opt=False.')
+    if time_step is None:
+      raise ValueError('Requires valid time_step, not None.')
+
+    t, b, n, h = py_utils.GetShape(cached_states.key, 4)
+
+    # Project inputs to key, value and query. Each has shape [B, 1, N, H].
+    key_proj = self.key.FProp(theta.key, query_vec)
+    value_proj = self.value.FProp(theta.value, query_vec)
+    query_proj = self.query.FProp(theta.query, query_vec)
+
+    query_proj = attention_util.KMeansClusteringForAtten.LayerNorm(query_proj)
+    key_proj = attention_util.KMeansClusteringForAtten.LayerNorm(key_proj)
+    # [B, 1, N, K]
+    k_dists, _ = self.clustering.FProp(theta.clustering, key_proj)
+
+    # The updated_key and extended_value have shape [T, B, N, H].
+    updated_key = inplace_ops.alias_inplace_update(
+        cached_states.key, time_step, tf.reshape(key_proj, [b, n, h]))
+    updated_value = inplace_ops.alias_inplace_update(
+        cached_states.value, time_step, tf.reshape(value_proj, [b, n, h]))
+    # Shape [T, B, N, K]
+    updated_key_dists = inplace_ops.alias_inplace_update(
+        cached_states.key_dists, time_step,
+        tf.reshape(k_dists, [b, n, p.num_clusters]))
+    updated_states = py_utils.NestedMap(
+        key=updated_key, value=updated_value, key_dists=updated_key_dists)
+
+    if paddings is None:
+      paddings = tf.zeros([b, t], dtype=query_vec.dtype)
+    # Apply causal padding. Shape [B, T]
+    paddings = tf.where(
+        tf.greater(
+            tf.tile(tf.range(t)[None, :], [b, 1]), tf.fill([b, t], time_step)),
+        tf.ones_like(paddings), paddings)
+    query_paddings = tf.zeros([b, 1], dtype=paddings.dtype)
+
+    encoded = self._DotAttenOneStep(
+        theta,
+        query_proj,
+        updated_states,
+        query_paddings=query_paddings,
+        key_paddings=paddings,
+        time_step=time_step)
+    # Post projection.
+    encoded = self.post.FProp(theta.post, encoded)
+    return encoded, updated_states
+
+  def _DotAttenOneStep(self, theta, query, states, query_paddings, key_paddings,
+                       time_step):
+    """Dot attention function for queries with 1 time step.
+
+    Called from ExtendStep(). Used for self-attention with p.causal_masking
+    is True.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query:    [B, 1, N, H], already normalized.
+      states:   .key and .value with shape [T, B, N, H], .key_dists with shape
+        [T, B, N, K]. .key is normalized.
+      query_paddings: [B, 1].
+      key_paddings: [B, T].
+      time_step: Scalar, the current decode step, 0-based.
+
+    Returns:
+      encoded: [B, 1, N, H].
+    """
+    p = self.params
+    # [B, 1, N, K]
+    q_dists, _ = self.clustering.FProp(theta.clustering, query)
+    # [B, T, N, K]
+    k_dists = tf.transpose(states.key_dists, [1, 0, 2, 3])
+
+    very_large_dists = tf.ones_like(k_dists) * tf.constant(
+        0.1, dtype=k_dists.dtype) * k_dists.dtype.max
+    paddings_tiled = tf.tile(key_paddings[:, :, None, None],
+                             [1, 1, p.num_heads, p.num_clusters])
+    k_dists = tf.where(paddings_tiled > 0.0, very_large_dists, k_dists)
+
+    key = tf.transpose(states.key, [1, 0, 2, 3])
+    value = tf.transpose(states.value, [1, 0, 2, 3])
+    encoded, _ = self._DotAttenSlowPath(
+        theta,
+        query,
+        key,
+        value,
+        q_dists,
+        k_dists,
+        query_paddings,
+        key_paddings,
+        query_relative_position_shift=time_step)
+    return encoded
+
+  def _DotAttenSlowPath(self,
+                        theta,
+                        query,
+                        key,
+                        value,
+                        q_dists,
+                        k_dists,
+                        query_paddings,
+                        key_paddings,
+                        query_relative_position_shift=0):
     """Computes the attention via the slow path.
 
     This implementation selects, on a per query basis, p.attention_window
@@ -1621,6 +1801,9 @@ class RoutingAttention(MultiHeadedAttention):
       k_dists: [B, S, N, K].
       query_paddings: [B, T].
       key_paddings:   [B, S].
+      query_relative_position_shift: scalar. The position (relative to key[0])
+         of query[0]. This impacts relative position encoding (not yet
+         implemented) and causal masking.
 
     Returns:
       encoded: [B, T, N, H].
@@ -1651,10 +1834,10 @@ class RoutingAttention(MultiHeadedAttention):
                                  closest_indices)
     if p.causal_masking:
       batch_size, q_length, num_heads = py_utils.GetShape(query, 3)
+      query_positions = tf.range(q_length) + query_relative_position_shift
       # [B, T, N, W] where the T dimension is range(T)
-      query_positions = tf.tile(
-          tf.range(q_length)[None, :, None, None],
-          [batch_size, 1, num_heads, p.attention_window])
+      query_positions = tf.tile(query_positions[None, :, None, None],
+                                [batch_size, 1, num_heads, p.attention_window])
       masked_indices = -tf.ones_like(sparsity_indices)
       # Replace key positions in the future with -1 to indicate masking.
       #
