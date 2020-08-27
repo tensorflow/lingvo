@@ -1010,7 +1010,8 @@ atten_probs: [B, N, T, S].</p>
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep">
 <code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_step</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
-<p>This function is used by autoregressive decoding.</p>
+<p>This function is used by autoregressive decoding. This function knows the
+length of full sequence, thus it is different from StreamingExtendStep.</p>
 <p>Note: When the context window size is much smaller than target sequence
 length, to make it run more efficent, T below can be just the window size.
 Then, time_step should be the relative decode step and not bigger than T.</p>
@@ -1046,6 +1047,51 @@ updated_value_vec: [T, B, N, H].</p>
 <li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If right_context is non-zero.</p></li>
 <li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#NotImplementedError" title="(in Python v3.7)"><strong>NotImplementedError</strong></a> – If use_short_seq_opt is true.</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.zero_state">
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The initial state for streaming inference.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>state</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.StreamingExtendStep">
+<code class="sig-name descname">StreamingExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">state</span></em>, <em class="sig-param"><span class="n">time_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.StreamingExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.StreamingExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the value vector given the query of the current step.</p>
+<p>This function doesn’t know the length of full sequence, thus it is
+different from ExtendStep.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query_vec</strong> – A query vector of shape [B, 1, D].</p></li>
+<li><p><strong>state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors {key, value} which are
+results of previous attentions. key, value are of shape [T, B, N, H]
+where T is the state size of this layer.</p></li>
+<li><p><strong>time_step</strong> – A tensor of shape [1] and type tf.int32. Note, we can not use
+scalar tensor here because TfLiteConverter doesn’t have good support of
+it (b/138865275).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output of the given query vector with shape [B, 1, D].
+state: updated state.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1122,6 +1168,26 @@ its children layers.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A Tensor of shape [B, N, T, S]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogitsOneStep">
+<code class="sig-name descname">_AttenLogitsOneStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">time_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL._AttenLogitsOneStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogitsOneStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention logits for one single target (query) step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>query</strong> – [B, N, H].</p></li>
+<li><p><strong>key</strong> – [S, B, N, H] or [S, B, N*H/128, 128].</p></li>
+<li><p><strong>time_step</strong> – Current time step.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [S, B, N]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1494,7 +1560,8 @@ atten_probs: [B, N, T, S].</p>
 <dt id="lingvo.core.batch_major_attention.TransformerAttentionLayer.ExtendStep">
 <code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the result and update cached states for the current step.</p>
-<p>This function is used by autoregressive decoding.</p>
+<p>This function is used by autoregressive decoding. This function knows the
+length of full sequence, thus it is different from StreamingExtendStep.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1519,6 +1586,49 @@ value - [T, B, N, H].</p>
 </dd>
 <dt class="field-even">Raises</dt>
 <dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If not used as masked/causal self-attention.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.TransformerAttentionLayer.zero_state">
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerAttentionLayer.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerAttentionLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The initial state for streaming inference.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>state</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.TransformerAttentionLayer.StreamingExtendStep">
+<code class="sig-name descname">StreamingExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">state</span></em>, <em class="sig-param"><span class="n">time_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerAttentionLayer.StreamingExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerAttentionLayer.StreamingExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the value vector given the query of the current step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query_vec</strong> – A query vector of shape [B, 1, D].</p></li>
+<li><p><strong>state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors {key, value} which are
+results of previous attentions. key, value are of shape [T, B, N, H]
+where T is the context size of this layer.</p></li>
+<li><p><strong>time_step</strong> – A tensor of shape [1] and type tf.int32. Note, we can not use
+scalar tensor here because TfLiteConverter doesn’t have good support of
+it (b/138865275).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output of the given query vector with shape [B, 1, D].
+state: updated state.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1788,7 +1898,8 @@ its children layers.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The attention context vector with shape [batch, target_time, dim].</p>
+<dd class="field-even"><p>(context, paddings), where the context vector has shape [batch,
+target_time, dim].</p>
 </dd>
 </dl>
 </dd></dl>
