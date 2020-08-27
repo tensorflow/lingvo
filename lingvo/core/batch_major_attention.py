@@ -1316,7 +1316,8 @@ class LocalSelfAttention(MultiHeadedAttention):
                  use_short_seq_opt=False):
     """Computes the value vector given the query of the current step.
 
-    This function is used by autoregressive decoding.
+    This function is used by autoregressive decoding. This function knows the
+    length of full sequence, thus it is different from StreamingExtendStep.
 
     Note: When the context window size is much smaller than target sequence
     length, to make it run more efficent, T below can be just the window size.
@@ -1367,6 +1368,112 @@ class LocalSelfAttention(MultiHeadedAttention):
     return super().ExtendStep(theta, query_vec, cached_states, paddings,
                               segment_mask, per_step_padding, time_step,
                               use_short_seq_opt)
+
+  def zero_state(self, batch_size=1):
+    """Returns the initial state given the batch size.
+
+    Args:
+      batch_size: the batch size.
+
+    Returns:
+      state: The initial state for streaming inference.
+    """
+    p = self.params
+    assert p.enable_value_proj, 'Value projection must be enabled.'
+    assert p.right_context == 0, ('StreamingExtendStep does not support look '
+                                  'ahead')
+    key_state = tf.zeros(
+        shape=[
+            p.left_context, batch_size, p.num_heads, p.hidden_dim // p.num_heads
+        ],
+        dtype=tf.float32)
+    value_state = tf.zeros(
+        shape=[
+            p.left_context, batch_size, p.num_heads, p.hidden_dim // p.num_heads
+        ],
+        dtype=tf.float32)
+    state = py_utils.NestedMap(key=key_state, value=value_state)
+    return state
+
+  def StreamingExtendStep(self, query_vec, state, time_step):
+    """Computes the value vector given the query of the current step.
+
+    This function doesn't know the length of full sequence, thus it is
+    different from ExtendStep.
+
+    Args:
+      query_vec: A query vector of shape [B, 1, D].
+      state: A `.NestedMap` object containing tensors {key, value} which are
+        results of previous attentions. key, value are of shape [T, B, N, H]
+        where T is the state size of this layer.
+      time_step: A tensor of shape [1] and type tf.int32. Note, we can not use
+        scalar tensor here because TfLiteConverter doesn't have good support of
+        it (b/138865275).
+
+    Returns:
+      output: Output of the given query vector with shape [B, 1, D].
+      state: updated state.
+    """
+    p = self.params
+    assert p.enable_value_proj, 'Value projection must be enabled.'
+    assert p.right_context == 0, ('StreamingExtendStep does not support look '
+                                  'ahead')
+    query_vec = py_utils.with_dependencies([
+        py_utils.assert_shape_match(tf.shape(query_vec), [-1, 1, p.input_dim])
+    ], query_vec)
+    state.key = py_utils.with_dependencies([
+        py_utils.assert_shape_match(
+            tf.shape(state.key),
+            [p.left_context, -1, p.num_heads, p.hidden_dim // p.num_heads])
+    ], state.key)
+    state.value = py_utils.with_dependencies([
+        py_utils.assert_shape_match(
+            tf.shape(state.value),
+            [p.left_context, -1, p.num_heads, p.hidden_dim // p.num_heads])
+    ], state.value)
+
+    t, b, n, h = py_utils.GetShape(state.key, 4)  # t: context window size
+
+    # Computes key, value projection and updates state.
+    new_key_proj = self.key.FProp(self.theta.key, query_vec)  # [B, 1, N, H]
+    new_key_proj = tf.reshape(new_key_proj, [1, b, n, h])
+    new_value_proj = self.key.FProp(self.theta.value, query_vec)  # [B, 1, N, H]
+    new_value_proj = tf.reshape(new_value_proj, [1, b, n, h])
+    state.key = tf.concat([state.key[1:, :, :, :], new_key_proj], axis=0)
+    state.value = tf.concat([state.value[1:, :, :, :], new_value_proj], axis=0)
+
+    # For a time step less than the context window size, the time dimension of
+    # input of logits computation is equal to the time step (not a full context
+    # window).
+    t = tf.math.minimum(time_step[0] + 1, t)
+    key_input = state.key[-t:, :, :, :]
+    value_input = state.value[-t:, :, :, :]
+
+    # Computes query projection.
+    query_proj = self.query.FProp(self.theta.query, query_vec)  # [B, 1, N, H]
+
+    # Scales the query projection.
+    if p.enable_per_dim_scale:
+      query_proj = self.per_dim_scale.FProp(self.theta.per_dim_scale,
+                                            query_proj)
+    else:
+      query_proj *= h**-0.5
+    query_proj = tf.reshape(query_proj, [b, n, h])
+
+    # Computes attention outputs.
+    # TODO(wildstone): Replaces the einsum ops used below with mat mul to get
+    # rid of TfLite Flex ops.
+    logits = self._AttenLogitsOneStep(self.theta, query_proj, key_input,
+                                      t - 1)  # [T, B, N]
+    logits = tf.reshape(logits, [t, -1])
+    posteriors = tf.nn.softmax(logits, axis=0)
+    posteriors = tf.reshape(posteriors, [t, b, n])
+    output = tf.einsum('TBN, TBNH->BNH', posteriors, value_input)
+
+    # Post projection.
+    output = tf.expand_dims(output, 1)
+    output = self.post.FProp(self.theta.post, output)
+    return output, state
 
   @classmethod
   def FPropMeta(cls, p, *args):
@@ -1473,6 +1580,45 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       term_d = tf.slice(term_d, [0, 0, 0], [-1, w, -1])
       term_bd = tf.reshape(term_d, [1, n, 1, w, c])
     return term_ac + term_bd
+
+  def _AttenLogitsOneStep(self, theta, query, key, time_step):
+    """Attention logits for one single target (query) step.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query:    [B, N, H].
+      key:      [S, B, N, H] or [S, B, N*H/128, 128].
+      time_step: Current time step.
+
+    Returns:
+      A Tensor of shape [S, B, N]
+    """
+    p = self.params
+    s, b, _, _ = py_utils.GetShape(key, 4)
+    n = p.num_heads
+    h = p.hidden_dim // n
+
+    # Transformer_XL relative attention.
+    if time_step is None:
+      raise ValueError('`time_step` can not be None when using relative '
+                       'position encoding in attention.')
+    # term a and c.
+    logits = tf.einsum('BNH,SBNH->SBN', query + theta.u,
+                       tf.reshape(key, [s, b, n, h]))
+    position = tf.expand_dims(time_step - tf.range(s), 0)
+    # [1, s, emb_dim]
+    sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, position)
+    sin_emb = self.pos_proj.FProp(theta.pos_proj, sin_emb)
+    # [s, n, h]
+    sin_emb = tf.squeeze(sin_emb, 0)
+
+    # term b an d.
+    if not p.skip_term_b:
+      logits += tf.einsum('BNH,SNH->SBN', query + theta.v, sin_emb)
+    else:
+      logits += tf.expand_dims(tf.einsum('NH,SNH->SN', theta.v, sin_emb), 1)
+    return logits
 
 
 class RoutingAttention(MultiHeadedAttention):
@@ -2367,7 +2513,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
                  use_short_seq_opt=False):
     """Compute the result and update cached states for the current step.
 
-    This function is used by autoregressive decoding.
+    This function is used by autoregressive decoding. This function knows the
+    length of full sequence, thus it is different from StreamingExtendStep.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
@@ -2421,6 +2568,49 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if p.add_skip_connection:
       ctx_vec += input_to_add
     return ctx_vec, updated_states
+
+  def zero_state(self, batch_size=1):
+    """Returns the initial state given the batch size.
+
+    Args:
+      batch_size: the batch size.
+
+    Returns:
+      state: The initial state for streaming inference.
+    """
+    return self.atten.zero_state(batch_size)
+
+  def StreamingExtendStep(self, query_vec, state, time_step):
+    """Computes the value vector given the query of the current step.
+
+    Args:
+      query_vec: A query vector of shape [B, 1, D].
+      state: A `.NestedMap` object containing tensors {key, value} which are
+        results of previous attentions. key, value are of shape [T, B, N, H]
+        where T is the context size of this layer.
+      time_step: A tensor of shape [1] and type tf.int32. Note, we can not use
+        scalar tensor here because TfLiteConverter doesn't have good support of
+        it (b/138865275).
+
+    Returns:
+      output: Output of the given query vector with shape [B, 1, D].
+      state: updated state.
+    """
+    assert isinstance(self.atten, LocalSelfAttention) or isinstance(
+        self.atten, LocalSelfAttentionXL)
+
+    p = self.params
+    unnormalized_query_vec = query_vec
+    if p.ln_tpl:
+      query_vec = self.layer_norm.FProp(self.theta.layer_norm, query_vec)
+    output, state = self.atten.StreamingExtendStep(query_vec, state, time_step)
+
+    # Residual connection.
+    input_to_add = (
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+    if p.add_skip_connection:
+      output += input_to_add
+    return output, state
 
 
 class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):

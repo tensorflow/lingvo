@@ -1137,6 +1137,104 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [5.135725, 1.340482, 1.065773, 4.116683, 4.928454, 3.161165],
           np.sum(new_source_vecs, axis=1))
 
+  def testStreamingExtendStep(self):
+    batch_size = 1
+    input_dim = 4
+    hidden_dim = 4
+    num_heads = 2
+    seq_length = 5
+    left_context = 2
+    with self.session(use_gpu=True):
+      # Prepares inputs.
+      tf.random.set_seed(12345)
+      np.random.seed(123456789)
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [batch_size, seq_length, input_dim]),
+          dtype=tf.float32)
+      paddings = tf.zeros(shape=[batch_size, seq_length], dtype=tf.float32)
+
+      # Prepares the model.
+      p = attention.LocalSelfAttention.Params().Set(
+          name='local_self_atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          left_context=left_context,
+          right_context=0,
+      )
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      model = p.Instantiate()
+      self.evaluate(tf.global_variables_initializer())
+
+      outputs, _ = model.FProp(model.theta, inputs, inputs, inputs, paddings)
+      outputs_shape = py_utils.GetShape(outputs)
+      self.assertListEqual([batch_size, seq_length, input_dim], outputs_shape)
+
+      # Streaming inference
+      state = model.zero_state(batch_size)
+      for i in range(0, seq_length):
+        time_step = tf.constant([i], dtype=tf.int32)
+        i_input = inputs[:, i:(i + 1), :]  # [B, 1, D]
+        i_output, state = model.StreamingExtendStep(i_input, state, time_step)
+        i_output_shape = py_utils.GetShape(i_output)
+        self.assertListEqual([batch_size, 1, input_dim], i_output_shape)
+
+        i_expected_output = outputs[:, i:(i + 1), :]
+        v, expected_v = self.evaluate([i_output, i_expected_output])
+        self.assertAllClose(v, expected_v)
+
+
+class LocalSelfAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
+  """Test local causual self attention with relative pos embedding."""
+
+  def testStreamingExtendStep(self):
+    batch_size = 1
+    input_dim = 4
+    hidden_dim = 4
+    num_heads = 2
+    seq_length = 5
+    left_context = 2
+    rel_pos_emb_dim = 2
+    with self.session(use_gpu=True):
+      # Prepares inputs.
+      tf.random.set_seed(12345)
+      np.random.seed(123456789)
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [batch_size, seq_length, input_dim]),
+          dtype=tf.float32)
+      paddings = tf.zeros(shape=[batch_size, seq_length], dtype=tf.float32)
+
+      # Prepares the model.
+      p = attention.LocalSelfAttentionXL.Params().Set(
+          name='local_self_atten_xl',
+          rel_pos_emb_dim=rel_pos_emb_dim,
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          left_context=left_context,
+          right_context=0,
+      )
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      model = p.Instantiate()
+      self.evaluate(tf.global_variables_initializer())
+
+      outputs, _ = model.FProp(model.theta, inputs, inputs, inputs, paddings)
+      outputs_shape = py_utils.GetShape(outputs)
+      self.assertListEqual([batch_size, seq_length, input_dim], outputs_shape)
+
+      # Streaming inference
+      state = model.zero_state(batch_size)
+      for i in range(0, seq_length):
+        time_step = tf.constant([i], dtype=tf.int32)
+        i_input = inputs[:, i:(i + 1), :]  # [B, 1, D]
+        i_output, state = model.StreamingExtendStep(i_input, state, time_step)
+        i_output_shape = py_utils.GetShape(i_output)
+        self.assertListEqual([batch_size, 1, input_dim], i_output_shape)
+
+        i_expected_output = outputs[:, i:(i + 1), :]
+        v, expected_v = self.evaluate([i_output, i_expected_output])
+        self.assertAllClose(v, expected_v)
+
 
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
   """Tests for RoutingAttention."""
