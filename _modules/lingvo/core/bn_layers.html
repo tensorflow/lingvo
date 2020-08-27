@@ -273,6 +273,10 @@
         <span class="s1">&#39;gamma_zero_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If True, initialize gamma to zeros according to the technique &#39;</span>
         <span class="s1">&#39;introduced in the tech report: https://arxiv.org/abs/1706.02677&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gamma_one_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, explicitly initialize gamma to one without invoking &#39;</span>
+        <span class="s1">&#39;theta_fn.&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(rpang): remove this hparam, as it is replaced</span>
     <span class="c1"># by p.train.ema_decay_moving_vars.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -309,20 +313,27 @@
 <div class="viewcode-block" id="BatchNormLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+    <span class="n">beta_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">(),</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
+    <span class="n">gamma_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">(),</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_one_init</span> <span class="k">else</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_zero_init</span><span class="p">:</span>
-        <span class="c1"># zero initialization to BN gamma</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">beta_pc</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_zero_init</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_one_init</span><span class="p">:</span>
+        <span class="c1"># initialization to BN gamma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">gamma_pc</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">gamma_pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
 
     <span class="c1"># Two statistics.</span>
     <span class="n">moving_collections</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span>
