@@ -4885,6 +4885,11 @@ def GetTpuSummaryTensors():
   }
 
 
+def ClearTpuSummaryTensors():
+  tpu_summary_tensors = _get_tpu_summary_tensors()
+  del tpu_summary_tensors[:]
+
+
 def ComputationShape(split_size, topology=None):
   """Decides the computation shape based on the split_size."""
   if topology:

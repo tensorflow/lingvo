@@ -581,13 +581,15 @@ def Top2GatingOnLogits(inputs,
       return x
 
   def _CreateOverCapacityRatioSummary(mask, position_in_expert, capacity, name):
-    over_capacity = tf.reduce_sum(
-        tf.cast(
-            tf.greater_equal(mask * position_in_expert, capacity), mask.dtype))
-    over_capacity_ratio = over_capacity / tf.maximum(
-        tf.constant(1.0, dtype=mask.dtype), tf.reduce_sum(mask))
-    py_utils.AddTpuSummaryTensor(name, over_capacity_ratio)
-    tpu_summary.scalar(name, over_capacity_ratio, while_loop_reduce='mean')
+    with tf.name_scope('over_capacity'):
+      over_capacity = tf.reduce_sum(
+          tf.cast(
+              tf.greater_equal(mask * position_in_expert, capacity),
+              mask.dtype))
+      over_capacity_ratio = over_capacity / tf.maximum(
+          tf.constant(1.0, dtype=mask.dtype), tf.reduce_sum(mask))
+      py_utils.AddTpuSummaryTensor(name, over_capacity_ratio)
+      tpu_summary.scalar(name, over_capacity_ratio, while_loop_reduce='mean')
 
   # As pointed out by zhifengc@ this method needs to be refactored. lepikhin@
   # and krikun@ will:
@@ -724,12 +726,13 @@ def Top2GatingOnLogits(inputs,
   # those of examples not assigned to e with top_k.
   density_1_proxy = tf.reduce_mean(density_1_proxy, axis=1) / density_denom
 
-  # The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of
-  # reduce_mean(density_1_proxy * density_1_proxy). Here we replace one of
-  # the density_1_proxy with the discrete density_1 following
-  # mesh_tensorflow/transformer/moe.py?rcl=283569345.
-  aux_loss = tf.reduce_mean(density_1_proxy * density_1)  # element-wise
-  aux_loss *= experts_dim * experts_dim  # const coefficient
+  with tf.name_scope('aux_loss'):
+    # The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of
+    # reduce_mean(density_1_proxy * density_1_proxy). Here we replace one of
+    # the density_1_proxy with the discrete density_1 following
+    # mesh_tensorflow/transformer/moe.py?rcl=283569345.
+    aux_loss = tf.reduce_mean(density_1_proxy * density_1)  # element-wise
+    aux_loss *= experts_dim * experts_dim  # const coefficient
 
   # Add the over capacity ratio for expert 1
   _CreateOverCapacityRatioSummary(mask_1, position_in_expert_1, capacity,

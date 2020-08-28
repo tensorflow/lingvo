@@ -250,6 +250,7 @@ class ExecutorTpu(base_runner.BaseRunner):
           _ = py_utils.GetOrCreateGlobalStepVar()
           for program in self._programs:
             program.BuildTpuSubgraph()
+            py_utils.ClearTpuSummaryTensors()
         for program in self._programs:
           program.SetStatusMessageFn(self._SetStatusMessage)
           program.CreateCheckpointer()
