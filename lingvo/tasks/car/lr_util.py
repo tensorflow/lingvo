@@ -15,6 +15,8 @@
 # ==============================================================================
 """Learning rate schedule utility functions."""
 
+import math
+
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
@@ -90,7 +92,7 @@ def SetExponentialLR(train_p,
   if warmup_epoch == 0.:
     warmup_init = 1.
 
-  train_p.max_steps = total_epoch * train_stats.steps_per_epoch
+  train_p.max_steps = math.ceil(total_epoch * train_stats.steps_per_epoch)
   train_p.lr_schedule = (
       schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params())
   train_p.lr_schedule.Set(
