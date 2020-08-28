@@ -208,6 +208,18 @@
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.metrics.ConfigurableMetric">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">ConfigurableMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#ConfigurableMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.ConfigurableMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<p>A Metric class with configurable params.</p>
+<dl class="py method">
+<dt id="lingvo.core.metrics.ConfigurableMetric.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#ConfigurableMetric.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.ConfigurableMetric.Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.metrics.AverageMetric">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">AverageMetric</code><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
@@ -458,6 +470,57 @@ within [0, 1.0].</p></li>
 <dt id="lingvo.core.metrics.CorrelationMetric.value">
 <em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#lingvo.core.metrics.CorrelationMetric.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Current value of this metric.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.metrics.SamplingMetric">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">SamplingMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#SamplingMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.SamplingMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.ConfigurableMetric" title="lingvo.core.metrics.ConfigurableMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.ConfigurableMetric</span></code></a></p>
+<p>Sampling metric base class.</p>
+<p>Subclasses must implement _CreateSummary(); sampling will be handled
+by this base class.</p>
+<dl class="py method">
+<dt id="lingvo.core.metrics.SamplingMetric.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#SamplingMetric.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.SamplingMetric.Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.metrics.SamplingMetric.samples">
+<em class="property">property </em><code class="sig-name descname">samples</code><a class="headerlink" href="#lingvo.core.metrics.SamplingMetric.samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterable of sampled decoded outputs to compute Summaries.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.metrics.SamplingMetric.Update">
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoded_outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#SamplingMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.SamplingMetric.Update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Samples the input decoded_outputs NestedMap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.metrics.SamplingMetric.Summary">
+<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#SamplingMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.SamplingMetric.Summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – A string to use as the summary value tag.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.metrics.SamplingMetric._CreateSummary">
+<code class="sig-name descname">_CreateSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#SamplingMetric._CreateSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.SamplingMetric._CreateSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a tf.Summary for this metric.</p>
 </dd></dl>
 
 </dd></dl>

@@ -164,6 +164,7 @@
 <span class="sd">&quot;&quot;&quot;Helper classes for computing performance metrics.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">scorers</span>
@@ -207,6 +208,18 @@
 <span class="sd">      A `tf.Summary` proto.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ConfigurableMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.ConfigurableMetric">[docs]</a><span class="k">class</span> <span class="nc">ConfigurableMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A Metric class with configurable params.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ConfigurableMetric.Params"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.ConfigurableMetric.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span></div>
 
 
 <div class="viewcode-block" id="AverageMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.AverageMetric">[docs]</a><span class="k">class</span> <span class="nc">AverageMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
@@ -532,6 +545,50 @@
       <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">spearmanr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">kendalltau</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="SamplingMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.SamplingMetric">[docs]</a><span class="k">class</span> <span class="nc">SamplingMetric</span><span class="p">(</span><span class="n">ConfigurableMetric</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sampling metric base class.</span>
+
+<span class="sd">  Subclasses must implement _CreateSummary(); sampling will be handled</span>
+<span class="sd">  by this base class.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SamplingMetric.Params"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.SamplingMetric.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_samples&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;The number of samples to store uniformly.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sampler</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">UniformSampler</span><span class="p">(</span><span class="n">num_samples</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_samples</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="o">=</span> <span class="kc">None</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an iterable of sampled decoded outputs to compute Summaries.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sampler</span><span class="o">.</span><span class="n">samples</span>
+
+<div class="viewcode-block" id="SamplingMetric.Update"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.SamplingMetric.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoded_outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Samples the input decoded_outputs NestedMap.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      decoded_outputs: A `.NestedMap`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sampler</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">decoded_outputs</span><span class="p">)</span>
+    <span class="c1"># Invalidate cache.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="SamplingMetric.Summary"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.SamplingMetric.Summary">[docs]</a>  <span class="k">def</span> <span class="nf">Summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummary</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span></div>
+
+<div class="viewcode-block" id="SamplingMetric._CreateSummary"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.SamplingMetric._CreateSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a tf.Summary for this metric.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
 </pre></div>
 
            </div>
