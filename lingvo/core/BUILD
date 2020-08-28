@@ -942,12 +942,13 @@ py_library(
     srcs = ["metrics.py"],
     srcs_version = "PY3",
     deps = [
+        ":hyperparams",
         ":plot",
         ":py_utils",
         ":scorers",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit sklearn dependency.
+        # Implicit sklearn dependency.  # buildcleaner: keep
     ],
 )
 
@@ -982,8 +983,10 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":metrics",
+        ":py_utils",
         ":test_utils",
         "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
