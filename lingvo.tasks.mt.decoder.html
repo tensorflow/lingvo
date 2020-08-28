@@ -599,6 +599,24 @@ renormalized so that final dim (src_len) sums to 1 again; float
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerDecoder._ZeroOutFirstTimeStep">
+<code class="sig-name descname">_ZeroOutFirstTimeStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">token_embs</span></em>, <em class="sig-param"><span class="n">batch</span></em>, <em class="sig-param"><span class="n">target_time</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._ZeroOutFirstTimeStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._ZeroOutFirstTimeStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zeroes out the first time step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token_embs</strong> – [batch, time, model_dim] embeding lookups</p></li>
+<li><p><strong>batch</strong> – Batch size scalar</p></li>
+<li><p><strong>target_time</strong> – Target sequence length scalar.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>modified token_embs with the first time step zeroed out.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._FProp">
 <code class="sig-name descname">_FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">targets</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
@@ -607,18 +625,14 @@ renormalized so that final dim (src_len) sums to 1 again; float
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
-<li><p><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder. Expected to contain:</p>
-<dl class="simple">
-<dt>encoded - source encoding. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is False, it is a</dt><dd><p>tensor of shape [time, batch, depth]. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code>
-is True, it is a tensor of shape
-[time, batch, depth, num_trans_layers] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is
-True, and a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">num_trans_layers</span></code> tensors of shape
-[time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is False.</p>
-</dd>
-</dl>
-<p>padding - source encoding’s padding, of shape [time, batch].
-segment_id - source segment id, of shape [time, batch].</p>
-</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder. Expected to contain:
+encoded - source encoding. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is False, it is a
+tensor of shape [time, batch, depth]. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is True,
+it is a tensor of shape [time, batch, depth, num_trans_layers] if
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is True, and a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">num_trans_layers</span></code> tensors of
+shape [time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is False.  padding - source
+encoding’s padding, of shape [time, batch]. segment_id - source segment
+id, of shape [time, batch].</p></li>
 <li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
 predict. Each tensor in targets is of shape [batch, time].</p></li>
 </ul>
