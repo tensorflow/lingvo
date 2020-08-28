@@ -729,13 +729,15 @@
       <span class="k">return</span> <span class="n">x</span>
 
   <span class="k">def</span> <span class="nf">_CreateOverCapacityRatioSummary</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">position_in_expert</span><span class="p">,</span> <span class="n">capacity</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-    <span class="n">over_capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">mask</span> <span class="o">*</span> <span class="n">position_in_expert</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span> <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="n">over_capacity_ratio</span> <span class="o">=</span> <span class="n">over_capacity</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">))</span>
-    <span class="n">py_utils</span><span class="o">.</span><span class="n">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">)</span>
-    <span class="n">tpu_summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">,</span> <span class="n">while_loop_reduce</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;over_capacity&#39;</span><span class="p">):</span>
+      <span class="n">over_capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">mask</span> <span class="o">*</span> <span class="n">position_in_expert</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span>
+              <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="n">over_capacity_ratio</span> <span class="o">=</span> <span class="n">over_capacity</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">))</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">,</span> <span class="n">while_loop_reduce</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
 
   <span class="c1"># As pointed out by zhifengc@ this method needs to be refactored. lepikhin@</span>
   <span class="c1"># and krikun@ will:</span>
@@ -872,12 +874,13 @@
   <span class="c1"># those of examples not assigned to e with top_k.</span>
   <span class="n">density_1_proxy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">density_denom</span>
 
-  <span class="c1"># The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of</span>
-  <span class="c1"># reduce_mean(density_1_proxy * density_1_proxy). Here we replace one of</span>
-  <span class="c1"># the density_1_proxy with the discrete density_1 following</span>
-  <span class="c1"># mesh_tensorflow/transformer/moe.py?rcl=283569345.</span>
-  <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span> <span class="o">*</span> <span class="n">density_1</span><span class="p">)</span>  <span class="c1"># element-wise</span>
-  <span class="n">aux_loss</span> <span class="o">*=</span> <span class="n">experts_dim</span> <span class="o">*</span> <span class="n">experts_dim</span>  <span class="c1"># const coefficient</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">):</span>
+    <span class="c1"># The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of</span>
+    <span class="c1"># reduce_mean(density_1_proxy * density_1_proxy). Here we replace one of</span>
+    <span class="c1"># the density_1_proxy with the discrete density_1 following</span>
+    <span class="c1"># mesh_tensorflow/transformer/moe.py?rcl=283569345.</span>
+    <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span> <span class="o">*</span> <span class="n">density_1</span><span class="p">)</span>  <span class="c1"># element-wise</span>
+    <span class="n">aux_loss</span> <span class="o">*=</span> <span class="n">experts_dim</span> <span class="o">*</span> <span class="n">experts_dim</span>  <span class="c1"># const coefficient</span>
 
   <span class="c1"># Add the over capacity ratio for expert 1</span>
   <span class="n">_CreateOverCapacityRatioSummary</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">position_in_expert_1</span><span class="p">,</span> <span class="n">capacity</span><span class="p">,</span>
