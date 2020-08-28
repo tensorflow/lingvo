@@ -995,6 +995,9 @@ class TransformerDecoder(MTBaseDecoder):
         'use_lang_dependent_atten', False, 'If True, attention between '
         'encoder and decoder is language dependent.')
 
+    p.Define('zero_token_embs_first_time_step', False,
+             'If True, the first time step uses zeros as the post-emb lookup.')
+
     # Default config for the token embedding.
     p.token_emb.vocab_size = 32000
     p.token_emb.embedding_dim = p.model_dim
@@ -1151,6 +1154,30 @@ class TransformerDecoder(MTBaseDecoder):
     res /= s
     return res
 
+  def _ZeroOutFirstTimeStep(self, token_embs, batch, target_time):
+    """Zeroes out the first time step.
+
+    Args:
+      token_embs:  [batch, time, model_dim] embeding lookups
+      batch: Batch size scalar
+      target_time: Target sequence length scalar.
+
+    Returns:
+      modified token_embs with the first time step zeroed out.
+    """
+    p = self.params
+
+    zero_out_index = tf.expand_dims(tf.constant([0]), axis=1)
+    # [[[0]]]
+    zero_out_index = tf.expand_dims(zero_out_index, axis=1)
+
+    # [[0]...[target_time-1]]
+    time_steps = tf.expand_dims(tf.range(target_time), axis=1)
+    condition = tf.equal(zero_out_index, time_steps)
+    mask = tf.logical_not(tf.tile(condition, [batch, 1, p.model_dim]))
+    mask = tf.cast(mask, dtype=tf.float32)
+    return token_embs * mask
+
   def _FProp(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
 
@@ -1158,16 +1185,13 @@ class TransformerDecoder(MTBaseDecoder):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       encoder_outputs: a NestedMap computed by encoder. Expected to contain:
-
         encoded - source encoding. When `p.is_transparent` is False, it is a
-                  tensor of shape [time, batch, depth]. When `p.is_transparent`
-                  is True, it is a tensor of shape
-                  [time, batch, depth, num_trans_layers] if `self.do_eval` is
-                  True, and a list of `num_trans_layers` tensors of shape
-                  [time, batch, depth] if `self.do_eval` is False.
-
-        padding - source encoding's padding, of shape [time, batch].
-        segment_id - source segment id, of shape [time, batch].
+        tensor of shape [time, batch, depth]. When `p.is_transparent` is True,
+        it is a tensor of shape [time, batch, depth, num_trans_layers] if
+        `self.do_eval` is True, and a list of `num_trans_layers` tensors of
+        shape [time, batch, depth] if `self.do_eval` is False.  padding - source
+        encoding's padding, of shape [time, batch]. segment_id - source segment
+        id, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
         predict. Each tensor in targets is of shape [batch, time].
 
@@ -1216,7 +1240,16 @@ class TransformerDecoder(MTBaseDecoder):
         token_embs = self.token_emb.EmbLookup(theta.token_emb, target_ids)
       else:
         token_embs = self.softmax.EmbLookup(theta.softmax, target_ids)
+
+      target_batch = py_utils.GetShape(target_ids)[0]
       target_time = py_utils.GetShape(target_ids)[1]
+
+      if p.zero_token_embs_first_time_step:
+        # For models that do not use an explicit start-of-sequence token
+        # with associated embedding, but instead use zeros.
+        token_embs = self._ZeroOutFirstTimeStep(token_embs, target_batch,
+                                                target_time)
+
       # [1, time, model_dim]
       if p.packed_input:
         posit_embs = self.position_emb.FPropWithPosition(
@@ -1358,6 +1391,13 @@ class TransformerDecoder(MTBaseDecoder):
         token_embs = self.token_emb.EmbLookup(theta.token_emb, new_ids)
       else:
         token_embs = self.softmax.EmbLookup(theta.softmax, new_ids)
+
+      if p.zero_token_embs_first_time_step:
+        # For models that do not use an explicit start-of-sequence token
+        # with associated embedding, but instead use zeros.
+        zeros = tf.zeros_like(token_embs)
+        token_embs = tf.cond(tf.equal(t, 0), lambda: zeros, lambda: token_embs)
+
       # [time, model_dim]
       posit_embs = tf.slice(
           self.position_emb.FProp(theta.position_emb, p.target_seq_len), [t, 0],
