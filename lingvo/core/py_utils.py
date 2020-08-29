@@ -4958,3 +4958,14 @@ def GetExtraArgs():
   if isinstance(g, func_graph.FuncGraph):
     return g.internal_captures
   return function.get_extra_args()
+
+
+def ShardedFilePatternToGlob(file_pattern):
+  """Converts a file pattern path@shards to path-?????-of-shards."""
+  if ',' in file_pattern:
+    raise ValueError(
+        'ShardedFilePatternToGlob does not support multiple file patterns.')
+  if '@' not in file_pattern:
+    return file_pattern
+  path, shards = file_pattern.split('@')
+  return f'{path}-?????-of-{int(shards):05}'

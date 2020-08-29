@@ -1124,6 +1124,31 @@ class PyUtilsTest(test_utils.TestCase):
     disable_vn = py_utils.DisableVN()
     self.assertNotEqual(default_vn, disable_vn)
 
+  def testShardedFilePatternToGlob(self):
+    file_pattern = '/some/path/to/file@8'
+    self.assertEqual('/some/path/to/file-?????-of-00008',
+                     py_utils.ShardedFilePatternToGlob(file_pattern))
+
+    file_pattern = '/some/path/to/file@000008'
+    self.assertEqual('/some/path/to/file-?????-of-00008',
+                     py_utils.ShardedFilePatternToGlob(file_pattern))
+
+    file_pattern = '/some/path/to/file@888888'
+    self.assertEqual('/some/path/to/file-?????-of-888888',
+                     py_utils.ShardedFilePatternToGlob(file_pattern))
+
+    file_pattern = '/some/path/to/file'
+    self.assertEqual('/some/path/to/file',
+                     py_utils.ShardedFilePatternToGlob(file_pattern))
+
+    file_pattern = '/some/path/to/file*'
+    self.assertEqual('/some/path/to/file*',
+                     py_utils.ShardedFilePatternToGlob(file_pattern))
+
+    file_pattern = '/some/path/to/file1@8,/some/path/to/file2@8'
+    with self.assertRaises(ValueError):
+      py_utils.ShardedFilePatternToGlob(file_pattern)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 
