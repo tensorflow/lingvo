@@ -50,16 +50,6 @@ struct PackRecord {
   int index_in_input;
   TextPacking::PackingIndex packing;
 };
-
-// Requires that `t` is a scalar int32.
-void ValidateScalarInt(OpKernelContext* ctx, const Tensor& t,
-                       absl::string_view name) {
-  OP_REQUIRES(ctx,
-              TensorShapeUtils::IsScalar(t.shape()) &&
-                  (t.dtype() == DataType::DT_INT32),
-              errors::InvalidArgument(
-                  name, " must be a scalar of int32, got: ", t.DebugString()));
-}
 }  // namespace
 
 // An op that outputs a packing pattern based on actual sequence lengths.
@@ -67,10 +57,12 @@ class PackSequencesOp : public OpKernel {
  public:
   explicit PackSequencesOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     int64 seed;
-    auto status = ctx->GetAttr("seed", &seed);
-    if (!status.ok()) {
-      return;
-    }
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("seed", &seed));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("packed_batch_size", &packed_batch_size_));
+    OP_REQUIRES_OK(ctx,
+                   ctx->GetAttr("packed_src_seq_len", &packed_src_seq_len_));
+    OP_REQUIRES_OK(ctx,
+                   ctx->GetAttr("packed_tgt_seq_len", &packed_tgt_seq_len_));
     if (seed == 0) {
       // If seed is unspecified, use completely random seed.
       std::random_device device("/dev/urandom");
@@ -86,22 +78,23 @@ class PackSequencesOp : public OpKernel {
     if (!ctx->status().ok()) {
       return;
     }
-    PackSequencesOutputs outputs;
-    AllocateOutputs(ctx, &outputs);
-    if (!ctx->status().ok()) {
-      return;
-    }
 
     const auto input_num = ctx->input(0).vec<int32>().size();
     std::vector<PackRecord> pack_records;
     pack_records.reserve(input_num);
     const int output_num = PackEntireInputs(ctx, &pack_records);
 
-    // A mapping from the original row index (p.packing.batch) to the new row
-    // index in output. Used if we need to drop packed rows.
+    bool dropping_inputs;
     absl::flat_hash_map<int, int> new_indices;
-    bool dropping_inputs = DropPackedRows(ctx, output_num, &new_indices);
-    WriteOutputs(ctx, pack_records, dropping_inputs, new_indices, &outputs);
+    PackSequencesOutputs outputs;
+    if (packed_batch_size_ == 0) {
+      AllocateOutputs(ctx, &outputs, output_num);
+      dropping_inputs = false;
+    } else {
+      AllocateOutputs(ctx, &outputs, packed_batch_size_);
+      dropping_inputs = DropPackedRows(ctx, output_num, &new_indices);
+    }
+    WriteOutputs(ctx, pack_records, dropping_inputs, &new_indices, &outputs);
   }
 
  private:
@@ -109,7 +102,8 @@ class PackSequencesOp : public OpKernel {
   void ValidateInputs(OpKernelContext* ctx);
 
   // Allocates (and zero initializes) all outputs.
-  void AllocateOutputs(OpKernelContext* ctx, PackSequencesOutputs* outputs);
+  void AllocateOutputs(OpKernelContext* ctx, PackSequencesOutputs* outputs,
+                       const int32 packed_batch_size);
 
   // Pack entire inputs. Returns the number of rows needed to pack all of input
   // sequences. Also outputs the packing records.
@@ -125,9 +119,12 @@ class PackSequencesOp : public OpKernel {
   void WriteOutputs(OpKernelContext* ctx,
                     const std::vector<PackRecord>& pack_records,
                     bool dropping_inputs,
-                    const absl::flat_hash_map<int, int>& new_indices,
+                    const absl::flat_hash_map<int, int>* new_indices,
                     PackSequencesOutputs* outputs);
 
+  int packed_batch_size_;
+  int packed_src_seq_len_;
+  int packed_tgt_seq_len_;
   mutable absl::Mutex mu_;
   // Used for randomizing the dropping of input rows when needed.
   std::mt19937 rnd_ ABSL_GUARDED_BY(mu_);
@@ -156,20 +153,13 @@ void PackSequencesOp::ValidateInputs(OpKernelContext* ctx) {
                   "tgt_actual_seq_len, got: src shape ",
                   src_actual_seq_len.shape().DebugString(), " vs. tgt shape ",
                   tgt_actual_seq_len.shape().DebugString()));
-
-  ValidateScalarInt(ctx, ctx->input(2), "packed_batch_size");
-  ValidateScalarInt(ctx, ctx->input(3), "packed_src_seq_len");
-  ValidateScalarInt(ctx, ctx->input(4), "packed_tgt_seq_len");
 }
 
 void PackSequencesOp::AllocateOutputs(OpKernelContext* ctx,
-                                      PackSequencesOutputs* outputs) {
-  const int32 packed_batch_size = ctx->input(2).scalar<int32>()();
-  const int32 packed_src_seq_len = ctx->input(3).scalar<int32>()();
-  const int32 packed_tgt_seq_len = ctx->input(4).scalar<int32>()();
-
-  TensorShape packed_src_shape({packed_batch_size, packed_src_seq_len});
-  TensorShape packed_tgt_shape({packed_batch_size, packed_tgt_seq_len});
+                                      PackSequencesOutputs* outputs,
+                                      const int32 packed_batch_size) {
+  TensorShape packed_src_shape({packed_batch_size, packed_src_seq_len_});
+  TensorShape packed_tgt_shape({packed_batch_size, packed_tgt_seq_len_});
 
   int output_id = 0;
   OP_REQUIRES_OK(ctx, ctx->allocate_output(output_id++, packed_src_shape,
@@ -198,18 +188,15 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
   const auto& src_actual_seq_len = ctx->input(0).vec<int32>();
   const auto& tgt_actual_seq_len = ctx->input(1).vec<int32>();
   const auto input_num = src_actual_seq_len.size();
-  const int32 packed_src_seq_len = ctx->input(3).scalar<int32>()();
-  const int32 packed_tgt_seq_len = ctx->input(4).scalar<int32>()();
 
   // We ask for a sufficiently large output batch size to pack all input
   // sequences in its entirety. We drop input sequences if needed afterward,
   // We also ensure that the first `packed_batch_size` rows are never empty
   // by packing into them first.
-  const int32 packed_batch_size = ctx->input(2).scalar<int32>()();
   TextPacking packing(/*columns=*/2, /*batch=*/input_num,
-                      {packed_src_seq_len, packed_tgt_seq_len},
+                      {packed_src_seq_len_, packed_tgt_seq_len_},
                       /*align=*/1,
-                      /*pack=*/true, /*spread_first_n=*/packed_batch_size);
+                      /*pack=*/true, /*spread_first_n=*/packed_batch_size_);
   int max_output_batch_idx = 0;
   for (int i = 0; i < input_num; ++i) {
     int src_seq_len = src_actual_seq_len(i);
@@ -241,30 +228,29 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
 bool PackSequencesOp::DropPackedRows(
     OpKernelContext* ctx, int num_rows,
     absl::flat_hash_map<int, int>* new_indices) {
-  const int32 packed_batch_size = ctx->input(2).scalar<int32>()();
-  if (num_rows <= packed_batch_size) {
+  if (num_rows <= packed_batch_size_) {
     return false;
   }
 
   // Simple reservoir sampling to pick `packed_batch_size` items out of
   // `num_rows`:
   // https://en.wikipedia.org/wiki/Reservoir_sampling#Simple_algorithm
-  std::vector<int> indices_kept(packed_batch_size);
-  for (int i = 1; i < packed_batch_size; ++i) {
+  std::vector<int> indices_kept(packed_batch_size_);
+  for (int i = 1; i < packed_batch_size_; ++i) {
     indices_kept[i] = i;
   }
-  for (int i = packed_batch_size; i < num_rows; ++i) {
+  for (int i = packed_batch_size_; i < num_rows; ++i) {
     std::uniform_int_distribution<> distribution(0, i);
     int j;  // Uniformly picked on [0, i].
     {
       absl::MutexLock l(&mu_);
       j = distribution(rnd_);
     }
-    if (j < packed_batch_size) {
+    if (j < packed_batch_size_) {
       indices_kept[j] = i;
     }
   }
-  for (int i = 0; i < packed_batch_size; ++i) {
+  for (int i = 0; i < packed_batch_size_; ++i) {
     new_indices->insert({indices_kept[i], i});
   }
   return true;
@@ -272,7 +258,7 @@ bool PackSequencesOp::DropPackedRows(
 
 void PackSequencesOp::WriteOutputs(
     OpKernelContext* ctx, const std::vector<PackRecord>& pack_records,
-    bool dropping_inputs, const absl::flat_hash_map<int, int>& new_indices,
+    bool dropping_inputs, const absl::flat_hash_map<int, int>* new_indices,
     PackSequencesOutputs* outputs) {
   const auto& src_actual_seq_len = ctx->input(0).vec<int32>();
   const auto& tgt_actual_seq_len = ctx->input(1).vec<int32>();
@@ -287,8 +273,8 @@ void PackSequencesOp::WriteOutputs(
   for (const auto& p : pack_records) {
     int output_idx = p.packing.batch;
     if (dropping_inputs) {
-      auto new_idx_iter = new_indices.find(output_idx);
-      if (new_idx_iter == new_indices.end()) {
+      auto new_idx_iter = new_indices->find(output_idx);
+      if (new_idx_iter == new_indices->end()) {
         // This row is being dropped.
         continue;
       }

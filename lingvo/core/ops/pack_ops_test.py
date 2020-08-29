@@ -116,16 +116,28 @@ class PackSequencesOpTest(test_utils.TestCase):
                                  [[2, 0], [0, 0]], [[1, 1, 1], [0, 0, 0]],
                                  [[0, 1, 2], [0, 0, 0]],
                                  [[2, 2, 2], [0, 0, 0]]),
+        'PackedBatchSize0':
+            PackSequenceTestCase(
+                [3, 1, 2, 0, 1, 6, 2, 3, 4, 1, 1],
+                [4, 2, 1, 1, 0, 2, 6, 1, 1, 4, 3], 0, 5, 5,
+                [[1, 1, 1, 2, 2], [1, 2, 2, 2, 0], [1, 1, 1, 1, 2],
+                 [1, 0, 0, 0, 0]], [[0, 1, 2, 0, 1], [0, 0, 1, 2, 0],
+                                    [0, 1, 2, 3, 0], [0, 0, 0, 0, 0]],
+                [[0, 0, 0, 2, 2], [1, 7, 7, 7, 0], [8, 8, 8, 8, 9],
+                 [10, 0, 0, 0, 0]], [[1, 1, 1, 1, 2], [1, 1, 2, 0, 0],
+                                     [1, 2, 2, 2, 2], [1, 1, 1, 0, 0]],
+                [[0, 1, 2, 3, 0], [0, 1, 0, 0, 0], [0, 0, 1, 2, 3],
+                 [0, 1, 2, 0, 0]], [[0, 0, 0, 0, 2], [1, 1, 7, 0, 0],
+                                    [8, 9, 9, 9, 9], [10, 10, 10, 0, 0]])
     }
     for name, test in test_cases.items():
       with self.session() as sess:
         r = sess.run(
             ops.pack_sequences(
                 tf.constant(test.src_actual_seq_len, tf.int32),
-                tf.constant(test.tgt_actual_seq_len, tf.int32),
-                tf.constant(test.packed_batch_size, tf.int32),
-                tf.constant(test.packed_src_seq_len, tf.int32),
-                tf.constant(test.packed_tgt_seq_len, tf.int32)))
+                tf.constant(test.tgt_actual_seq_len,
+                            tf.int32), test.packed_batch_size,
+                test.packed_src_seq_len, test.packed_tgt_seq_len))
         self.assertEqual(6, len(r), name)
         self.assertAllEqual(r[0], test.src_segment_ids, name)
         self.assertAllEqual(r[1], test.src_segment_pos, name)
@@ -139,9 +151,7 @@ class PackSequencesOpTest(test_utils.TestCase):
         'actual_seq_len must be the same shape':
             PackSequenceTestCase([1, 1, 1], [1, 1], 2, 2, 2),
         'actual_seq_len must be a vector':
-            PackSequenceTestCase([[1], [1]], [[1], [1]], 2, 2, 2),
-        'seq_len must be a scalar':
-            PackSequenceTestCase([1, 1], [1, 1], 2, [2, 2], 2),
+            PackSequenceTestCase([[1], [1]], [[1], [1]], 2, 2, 2)
     }
     for name, test in test_cases.items():
       with self.assertRaisesRegex(tf.errors.InvalidArgumentError, name):
@@ -152,6 +162,15 @@ class PackSequencesOpTest(test_utils.TestCase):
                                  test.packed_batch_size,
                                  test.packed_src_seq_len,
                                  test.packed_tgt_seq_len))
+
+    # seq_len must be a scalar.
+    test = PackSequenceTestCase([1, 1], [1, 1], 2, [2, 2], 2)
+    with self.assertRaisesRegex(TypeError, 'Expected int'):
+      with self.session() as sess:
+        sess.run(
+            ops.pack_sequences(test.src_actual_seq_len, test.tgt_actual_seq_len,
+                               test.packed_batch_size, test.packed_src_seq_len,
+                               test.packed_tgt_seq_len))
 
   def testDroppingInputsFixedSeed(self):
     # Packing 3 rows into 2, where we need to drop one row.
@@ -179,9 +198,9 @@ class PackSequencesOpTest(test_utils.TestCase):
             ops.pack_sequences(
                 tf.constant(test.src_actual_seq_len, tf.int32),
                 tf.constant(test.tgt_actual_seq_len, tf.int32),
-                tf.constant(test.packed_batch_size, tf.int32),
-                tf.constant(test.packed_src_seq_len, tf.int32),
-                tf.constant(test.packed_tgt_seq_len, tf.int32),
+                test.packed_batch_size,
+                test.packed_src_seq_len,
+                test.packed_tgt_seq_len,
                 seed=seed))
         name = 'test case with seed {}'.format(seed)
         self.assertEqual(6, len(r), name)
@@ -216,10 +235,9 @@ class PackSequencesOpTest(test_utils.TestCase):
         r = sess.run(
             ops.pack_sequences(
                 tf.constant(test.src_actual_seq_len, tf.int32),
-                tf.constant(test.tgt_actual_seq_len, tf.int32),
-                tf.constant(test.packed_batch_size, tf.int32),
-                tf.constant(test.packed_src_seq_len, tf.int32),
-                tf.constant(test.packed_tgt_seq_len, tf.int32)))
+                tf.constant(test.tgt_actual_seq_len,
+                            tf.int32), test.packed_batch_size,
+                test.packed_src_seq_len, test.packed_tgt_seq_len))
         match_idx = FindResultFromList(r, test_cases)
         self.assertIsNotNone(match_idx, '{} is not a valid result'.format(r))
         counts[match_idx] += 1

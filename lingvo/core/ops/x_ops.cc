@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/core/framework/types.pb.h"
 #include "x_ops_helper.h"
 
 namespace tensorflow {
@@ -783,16 +784,33 @@ vocab_filepath: filepath to the MLPerf subword vocab file.
 REGISTER_OP("PackSequences")
     .Input("src_actual_seq_len: int32")
     .Input("tgt_actual_seq_len: int32")
-    .Input("packed_batch_size: int32")
-    .Input("packed_src_seq_len: int32")
-    .Input("packed_tgt_seq_len: int32")
-    .SetIsStateful()
+    .Attr("packed_batch_size: int")
+    .Attr("packed_src_seq_len: int")
+    .Attr("packed_tgt_seq_len: int")
+    .SetIsStateful()  // TODO(navari): disable when packed_batch_size==0?
     .Output("src_segment_ids: int32")
     .Output("src_segment_pos: int32")
     .Output("src_indices_in_input: int32")
     .Output("tgt_segment_ids: int32")
     .Output("tgt_segment_pos: int32")
     .Output("tgt_indices_in_input: int32")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      int packed_batch_size, packed_src_seq_len, packed_tgt_seq_len;
+      TF_RETURN_IF_ERROR(c->GetAttr("packed_batch_size", &packed_batch_size));
+      shape_inference::DimensionOrConstant batch_dim = c->UnknownDim();
+      if (packed_batch_size > 0) {
+        batch_dim = packed_batch_size;
+      }
+      TF_RETURN_IF_ERROR(c->GetAttr("packed_src_seq_len", &packed_src_seq_len));
+      TF_RETURN_IF_ERROR(c->GetAttr("packed_tgt_seq_len", &packed_tgt_seq_len));
+      c->set_output(0, c->Matrix(batch_dim, packed_src_seq_len));
+      c->set_output(1, c->Matrix(batch_dim, packed_src_seq_len));
+      c->set_output(2, c->Matrix(batch_dim, packed_src_seq_len));
+      c->set_output(3, c->Matrix(batch_dim, packed_tgt_seq_len));
+      c->set_output(4, c->Matrix(batch_dim, packed_tgt_seq_len));
+      c->set_output(5, c->Matrix(batch_dim, packed_tgt_seq_len));
+      return Status::OK();
+    })
     .Attr("seed: int = 0")
     .Doc(R"doc(
 Produces a packing pattern for the (src, tgt) input pair with the provided
@@ -846,7 +864,8 @@ tgt_actual_seq_len: A tensor of shape [N], where N is the input batch size.
   This tensor contains the actual lengths for the tgt sequence.
 packed_batch_size: A scalar. The output batch size. The packed output will
   be of shape [packed_batch_size, packed_{src,tgt}_seq_len] for src and tgt,
-  respectively.
+  respectively. if this value is set to 0, output will be of variable batch 
+  size, determined by the number of row needed to pack all given inputs.
 packed_src_seq_len: A scalar. The output sequence length for src. A src input
   with shape [N, src_input_seq_len] will be packed into an output with shape
   [packed_batch_size, packed_src_seq_len].
@@ -889,6 +908,17 @@ REGISTER_OP("ApplyPacking")
     .Input("segment_ids: int32")
     .Input("indices_in_input: int32")
     .Output("output: T")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      DataType dtype;
+      TF_RETURN_IF_ERROR(c->GetAttr("T", &dtype));
+      if (dtype == DT_STRING) {
+        const auto batch_size = c->Dim(c->input(2), 0);
+        c->set_output(0, c->Vector(batch_size));
+      } else {
+        c->set_output(0, c->input(2));
+      }
+      return Status::OK();
+    })
     .Attr("T: type")
     .Doc(R"doc(
 Applies a packing pattern on the input to obtain a packed output.
