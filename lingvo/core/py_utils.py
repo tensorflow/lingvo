@@ -4968,4 +4968,6 @@ def ShardedFilePatternToGlob(file_pattern):
   if '@' not in file_pattern:
     return file_pattern
   path, shards = file_pattern.split('@')
+  if shards == '*':
+    return f'{path}-?????-of-*'
   return f'{path}-?????-of-{int(shards):05}'
