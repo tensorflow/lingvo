@@ -1456,7 +1456,7 @@ class TransformerDecoder(MTBaseDecoder):
         out_prefix_states['layer_%i' % i] = updated_prefix_states
         layer_in = layer_out
         # Enforce shape: [batch, src_len]
-        probs = tf.squeeze(probs)
+        probs = tf.squeeze(probs, [0])
         # Remove attention weight on last (EOS) token and re-normalize
         # so that last dimension sums to 1. See b/129097156.
         probs_3d = tf.expand_dims(probs, axis=1)
