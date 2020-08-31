@@ -119,6 +119,7 @@ class PyUtilsTest(test_utils.TestCase):
           py_utils.WeightInit.GaussianSqrtDim,
           py_utils.WeightInit.UniformSqrtDim,
           py_utils.WeightInit.UniformUnitScaling,
+          py_utils.WeightInit.UniformUnitScalingFanAvg,
           py_utils.WeightInit.TruncatedGaussianSqrtDim,
           py_utils.WeightInit.TruncatedGaussianSqrtFanIn,
           py_utils.WeightInit.TruncatedGaussianSqrtFanOut,

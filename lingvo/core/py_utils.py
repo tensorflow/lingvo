@@ -1792,7 +1792,7 @@ def CreateVariable(name,
   elif method in ['uniform_unit_scaling_fan_avg']:
     v_init = tf.variance_scaling_initializer(
         scale=scale,
-        model='fan_avg',
+        mode='fan_avg',
         distribution='uniform',
         seed=seed,
         dtype=init_dtype)
