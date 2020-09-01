@@ -1338,6 +1338,11 @@ class WeightInit:
     return WeightInit._Params('xavier', scale, seed)
 
   @staticmethod
+  def XavierGaussian(scale=1.0, seed=None):
+    """tf.random.normal(0, sqrt(2.0 / (in + out)))."""
+    return WeightInit._Params('xavier_gaussian', scale, seed)
+
+  @staticmethod
   def XavierWithFixupParams(scale=1.0,
                             depth=1.0,
                             layers_per_residual_block=1.0,
@@ -1772,11 +1777,15 @@ def CreateVariable(name,
     _, fan_out = GetFanInFanOut(shape)
     if fan_out is not None:
       scale *= 1.0 / math.sqrt(fan_out)
+  if method == 'xavier_gaussian':
+    fan_in, fan_out = GetFanInFanOut(shape)
+    if fan_in is not None and fan_out is not None:
+      scale *= math.sqrt(2.0 / (fan_in + fan_out))
 
   init_dtype = p.dtype.real_dtype
   if method in [
       'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
-      'gaussian_sqrt_fanout'
+      'gaussian_sqrt_fanout', 'xavier_gaussian'
   ]:
     v_init = init_ops.random_normal_initializer(
         mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
