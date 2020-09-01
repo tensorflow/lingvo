@@ -76,7 +76,6 @@ EmptyLike = inplace_ops.empty_like
 # Move this V2 symbol here to avoid being overwritten by its following V1
 # version.
 where_v2 = where
-while_loop_v2 = while_loop
 
 # Import the local V2 module to maker sure the following V1 overwritting never
 # applies to the global module and symbol.
@@ -369,6 +368,7 @@ if tf1.summary is not None:
   summary.scalar = tf1.summary.scalar
   summary.Summary = tf1.summary.Summary
   summary.Summary.FromString = tf1.summary.Summary.FromString
+  summary.all_summary_ops = tf1.summary.all_v2_summary_ops
 tables_initializer = tf1.tables_initializer
 test.compute_gradient_error = tf1.test.compute_gradient_error
 test.get_temp_dir = tf1.test.get_temp_dir
