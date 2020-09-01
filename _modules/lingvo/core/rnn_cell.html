@@ -1921,6 +1921,16 @@
 <div class="viewcode-block" id="ConvLSTMCell.batch_size"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell.batch_size">[docs]</a>  <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># There is no projection.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">hidden_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
 <div class="viewcode-block" id="ConvLSTMCell.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">height</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inputs_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
