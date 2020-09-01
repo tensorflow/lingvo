@@ -1485,6 +1485,11 @@
     <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); [-x, x]).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;xavier&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="WeightInit.XavierGaussian"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.XavierGaussian">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">XavierGaussian</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;tf.random.normal(0, sqrt(2.0 / (in + out))).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;xavier_gaussian&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="WeightInit.XavierWithFixupParams"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.XavierWithFixupParams">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">XavierWithFixupParams</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
                             <span class="n">depth</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
@@ -1920,11 +1925,15 @@
     <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_out</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier_gaussian&#39;</span><span class="p">:</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">*=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
 
   <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">real_dtype</span>
   <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
       <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;gaussian_sqrt_fanout&#39;</span>
+      <span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;xavier_gaussian&#39;</span>
   <span class="p">]:</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_normal_initializer</span><span class="p">(</span>
         <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
