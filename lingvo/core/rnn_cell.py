@@ -1773,6 +1773,16 @@ class ConvLSTMCell(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
+  @property
+  def output_size(self):
+    # There is no projection.
+    return self.hidden_size
+
+  @property
+  def hidden_size(self):
+    p = self.params
+    return p.cell_shape[1:]
+
   def zero_state(self, theta, batch_size):
     p = self.params
     height = p.inputs_shape[1]
