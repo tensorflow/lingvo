@@ -271,7 +271,11 @@ class BaseBeamSearchDecoder(BaseDecoder):
       initial_results, states = self._InitBeamSearchStateCallback(
           theta, encoder_outputs, num_hyps_per_beam)
       assert hasattr(states, 'time_step')
-      num_hyps = tf.shape(encoder_outputs.padding)[1] * num_hyps_per_beam
+      if tf.is_tensor(encoder_outputs.padding):
+        batch_size = tf.shape(encoder_outputs.padding)[1]
+      else:  # Required for multisource models.
+        batch_size = tf.shape(list(encoder_outputs.padding.values())[0])[1]
+      num_hyps = batch_size * num_hyps_per_beam
       # states.consistent is initially all True
       states.consistent = tf.ones([
           num_hyps,
