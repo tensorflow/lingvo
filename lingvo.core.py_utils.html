@@ -461,6 +461,11 @@ error if dynamic shape checks fail.</p>
 <dd></dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.use_stateless_vars_init">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">use_stateless_vars_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#use_stateless_vars_init"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.use_stateless_vars_init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils.RunOnTpuHost">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">RunOnTpuHost</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RunOnTpuHost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RunOnTpuHost" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs the given function call on TPU host.</p>
@@ -922,7 +927,9 @@ keeping any item dynamically added to the sampler.</p>
 <li><p><strong>init</strong> – Hyperparameters as returned by one of the static implemetaitons in
 RNNCellStateInit.</p></li>
 <li><p><strong>dtype</strong> – The dype of the states. Defaults to tf.float32.</p></li>
-<li><p><strong>name</strong> – An optional name for the operation.</p></li>
+<li><p><strong>name</strong> – A name for the operation. If –stateless_vars_init is set, this name
+is used to generate a seed on a per-variable basis. Otherwise, this name
+is optional.</p></li>
 <li><p><strong>is_eval</strong> – Bool, set to True if we need special behavior in eval mode.</p></li>
 </ul>
 </dd>
@@ -941,7 +948,8 @@ defined by the init parameters.</p>
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit._Params">
 <em class="property">static </em><code class="sig-name descname">_Params</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">seed</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit._Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit._Params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Parameters of this class.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.Gaussian">
@@ -1258,6 +1266,145 @@ Accepted values are constants defined in the class tf.VariableAggregation.</p></
 <dd class="field-even"><p>The created variable.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._CreateVariableStateful">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_CreateVariableStateful</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">params</em>, <em class="sig-param">reuse=None</em>, <em class="sig-param">trainable=True</em>, <em class="sig-param">collections=None</em>, <em class="sig-param">default_seed=None</em>, <em class="sig-param">synchronization=&lt;VariableSynchronization.AUTO: 0&gt;</em>, <em class="sig-param">aggregation=&lt;VariableAggregationV2.NONE: 0&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_CreateVariableStateful"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._CreateVariableStateful" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates tf.Variable using TF stateful RNGs according to param_config.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – A string, name of the variable.</p></li>
+<li><p><strong>params</strong> – A WeightParams specifying the details of how this variable should be
+constructed and initialized.</p></li>
+<li><p><strong>reuse</strong> – Whether or not to reuse an existing variable. It has the same
+semantics as the reuse arg in tf.variable_scope.</p></li>
+<li><p><strong>trainable</strong> – Whether or not the variable is trainable.</p></li>
+<li><p><strong>collections</strong> – Override the default variable collection (
+tf.GraphKeys.GLOBAL_VARIABLES).</p></li>
+<li><p><strong>default_seed</strong> – Seed to use for initialization if not specified in params.
+Used for deterministic initialization in tests.</p></li>
+<li><p><strong>synchronization</strong> – Indicates when a distributed a variable will be aggregated.
+Accepted values are constants defined in the class
+tf.VariableSynchronization. By default the synchronization is set to AUTO
+and the current DistributionStrategy chooses when to synchronize.</p></li>
+<li><p><strong>aggregation</strong> – Indicates how a distributed variable will be aggregated.
+Accepted values are constants defined in the class tf.VariableAggregation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The created variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._CreateVariableStateless">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_CreateVariableStateless</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">params</em>, <em class="sig-param">reuse=None</em>, <em class="sig-param">trainable=True</em>, <em class="sig-param">collections=None</em>, <em class="sig-param">default_seed=None</em>, <em class="sig-param">synchronization=&lt;VariableSynchronization.AUTO: 0&gt;</em>, <em class="sig-param">aggregation=&lt;VariableAggregationV2.NONE: 0&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_CreateVariableStateless"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._CreateVariableStateless" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates tf.Variable using TF stateless RNGs according to <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – A string, name of the variable.</p></li>
+<li><p><strong>params</strong> – A WeightParams specifying the details of how this variable should be
+constructed and initialized.</p></li>
+<li><p><strong>reuse</strong> – Whether or not to reuse an existing variable. It has the same
+semantics as the reuse arg in tf.variable_scope.</p></li>
+<li><p><strong>trainable</strong> – Whether or not the variable is trainable.</p></li>
+<li><p><strong>collections</strong> – Override the default variable collection (
+tf.GraphKeys.GLOBAL_VARIABLES).</p></li>
+<li><p><strong>default_seed</strong> – Seed to use for initialization if not specified in params.
+Used for deterministic initialization in tests.</p></li>
+<li><p><strong>synchronization</strong> – Indicates when a distributed a variable will be aggregated.
+Accepted values are constants defined in the class
+tf.VariableSynchronization. By default the synchronization is set to AUTO
+and the current DistributionStrategy chooses when to synchronize.</p></li>
+<li><p><strong>aggregation</strong> – Indicates how a distributed variable will be aggregated.
+Accepted values are constants defined in the class tf.VariableAggregation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The created variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._RandomXavierUniformInitializer">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_RandomXavierUniformInitializer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">seed</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_RandomXavierUniformInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._RandomXavierUniformInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a random Xavier uniform initializer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._CreateVarInitStateful">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_CreateVarInitStateful</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">dim0</span></em>, <em class="sig-param"><span class="n">seed</span></em>, <em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">init_dtype</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_CreateVarInitStateful"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._CreateVarInitStateful" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates variable initialization function for a stateful RNG.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._GenerateStatelessRngSeed">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_GenerateStatelessRngSeed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">seed</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_GenerateStatelessRngSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._GenerateStatelessRngSeed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a 2-tuple seed for a stateless variable initializer.</p>
+<p>We want to ensure that different variables end up with different random values
+even when they are passed the same seed and shape. To this aim, this function
+generates a pseudo-unique seed by hashing the variable name and mapping it
+into a scalar seed. More specifically, the returned value is a 2-tuple of
+tf.int32 scalar, where the first element is the user-provided seed and the
+second element is obtained by hashing the variable name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The variable name for which to generate a stateless-like seed.</p></li>
+<li><p><strong>seed</strong> – The user-specified scalar seed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A 2-tuple seed of tf.int32 values (for TPU compatibility).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._DeterministicRandomNormalInitializer">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DeterministicRandomNormalInitializer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seed</span></em>, <em class="sig-param"><span class="n">mean</span></em>, <em class="sig-param"><span class="n">stddev</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DeterministicRandomNormalInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DeterministicRandomNormalInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a random normal initializer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._DeterministicRandomUniformInitializer">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DeterministicRandomUniformInitializer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seed</span></em>, <em class="sig-param"><span class="n">minval</span></em>, <em class="sig-param"><span class="n">maxval</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DeterministicRandomUniformInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DeterministicRandomUniformInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a random uniform initializer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._DeterministicRandomTruncatedNormalInitializer">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DeterministicRandomTruncatedNormalInitializer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seed</span></em>, <em class="sig-param"><span class="n">mean</span></em>, <em class="sig-param"><span class="n">stddev</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DeterministicRandomTruncatedNormalInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DeterministicRandomTruncatedNormalInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a random truncated normal initializer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._DeterministicRandomUniformUnitScalingInitializer">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DeterministicRandomUniformUnitScalingInitializer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seed</span></em>, <em class="sig-param"><span class="n">factor</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DeterministicRandomUniformUnitScalingInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DeterministicRandomUniformUnitScalingInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a random uniform unit scaling initializer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._DeterministicRandomVarianceScalingInitializer">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DeterministicRandomVarianceScalingInitializer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">mode</span></em>, <em class="sig-param"><span class="n">distribution</span></em>, <em class="sig-param"><span class="n">seed</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DeterministicRandomVarianceScalingInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DeterministicRandomVarianceScalingInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a variance scaling initializer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._DeterministicRandomXavierUniformInitializer">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DeterministicRandomXavierUniformInitializer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">seed</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DeterministicRandomXavierUniformInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DeterministicRandomXavierUniformInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a variance scaling initializer.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils._CreateVarInitStateless">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_CreateVarInitStateless</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">method</span></em>, <em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">dim0</span></em>, <em class="sig-param"><span class="n">seed</span></em>, <em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">init_dtype</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_CreateVarInitStateless"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._CreateVarInitStateless" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates variable initialization function for a stateless RNG.</p>
 </dd></dl>
 
 <dl class="py function">

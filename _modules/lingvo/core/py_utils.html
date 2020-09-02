@@ -196,6 +196,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">func_graph</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">init_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">stateless_random_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">topology</span> <span class="k">as</span> <span class="n">tf_topology</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">deprecation</span>
@@ -251,6 +252,15 @@
                      <span class="s1">&#39;If True use tf.function for py_utils.WhileLoop().&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;call_defun_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;If True use tf.function for py_utils.CallDefun().&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Use stateless TensorFlow random number generators (RNG) (e.g. &#39;</span>
+    <span class="s1">&#39;tf.random.stateless_uniform) to initialize variables instead of the &#39;</span>
+    <span class="s1">&#39;default ones (e.g. tf.random.uniform). This is useful to make variable &#39;</span>
+    <span class="s1">&#39;initialization deterministic on different replicas such as on TPUs, &#39;</span>
+    <span class="s1">&#39;since XLA does not fully respect the contract with respect to &#39;</span>
+    <span class="s1">&#39;user-specified seeds, when using TensorFlow stateful RNGs.&#39;</span><span class="p">)</span>
 
 <span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
 <span class="c1">#</span>
@@ -809,6 +819,10 @@
 
 <div class="viewcode-block" id="outside_all_rewrites"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.outside_all_rewrites">[docs]</a><span class="k">def</span> <span class="nf">outside_all_rewrites</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="use_stateless_vars_init"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.use_stateless_vars_init">[docs]</a><span class="k">def</span> <span class="nf">use_stateless_vars_init</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">)</span></div>
 
 
 <span class="c1"># TODO(jamesqin): remove once b/147439702 is fixed.</span>
@@ -1427,7 +1441,9 @@
 <span class="sd">    init: Hyperparameters as returned by one of the static implemetaitons in</span>
 <span class="sd">      RNNCellStateInit.</span>
 <span class="sd">    dtype: The dype of the states. Defaults to tf.float32.</span>
-<span class="sd">    name: An optional name for the operation.</span>
+<span class="sd">    name: A name for the operation. If --stateless_vars_init is set, this name</span>
+<span class="sd">      is used to generate a seed on a per-variable basis. Otherwise, this name</span>
+<span class="sd">      is optional.</span>
 <span class="sd">    is_eval: Bool, set to True if we need special behavior in eval mode.</span>
 
 <span class="sd">  Returns:</span>
@@ -1445,8 +1461,16 @@
   <span class="k">if</span> <span class="p">((</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;zeros&#39;</span><span class="p">])</span> <span class="ow">or</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;random_normal&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">is_eval</span><span class="p">)):</span>
     <span class="n">init_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
   <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;random_normal&#39;</span><span class="p">]:</span>
-    <span class="n">init_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">init</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_stateless_vars_init</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;InitRNNCellState() requires a `name` argument when &#39;</span>
+                         <span class="s1">&#39;--stateless_vars_init is enabled.&#39;</span><span class="p">)</span>
+      <span class="n">seed</span> <span class="o">=</span> <span class="n">_GenerateStatelessRngSeed</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">init</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+      <span class="n">init_state</span> <span class="o">=</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_normal</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">init_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">init</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Initialization method (</span><span class="si">%s</span><span class="s1">) not supported.&#39;</span> <span class="o">%</span> <span class="n">method</span><span class="p">)</span>
 
@@ -1458,6 +1482,7 @@
 
 <div class="viewcode-block" id="WeightInit._Params"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit._Params">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">_Params</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parameters of this class.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="s1">&#39;Initialization method.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;Initialization scale.&#39;</span><span class="p">)</span>
@@ -1876,6 +1901,45 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The created variable.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">use_stateless_vars_init</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">_CreateVariableStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">reuse</span><span class="p">,</span> <span class="n">trainable</span><span class="p">,</span> <span class="n">collections</span><span class="p">,</span>
+                                    <span class="n">default_seed</span><span class="p">,</span> <span class="n">synchronization</span><span class="p">,</span> <span class="n">aggregation</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_CreateVariableStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">reuse</span><span class="p">,</span> <span class="n">trainable</span><span class="p">,</span> <span class="n">collections</span><span class="p">,</span>
+                                   <span class="n">default_seed</span><span class="p">,</span> <span class="n">synchronization</span><span class="p">,</span> <span class="n">aggregation</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_CreateVariableStateful"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._CreateVariableStateful">[docs]</a><span class="k">def</span> <span class="nf">_CreateVariableStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                            <span class="n">params</span><span class="p">,</span>
+                            <span class="n">reuse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+                            <span class="n">aggregation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableAggregation</span><span class="o">.</span><span class="n">NONE</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates tf.Variable using TF stateful RNGs according to param_config.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: A string, name of the variable.</span>
+<span class="sd">    params: A WeightParams specifying the details of how this variable should be</span>
+<span class="sd">      constructed and initialized.</span>
+<span class="sd">    reuse: Whether or not to reuse an existing variable. It has the same</span>
+<span class="sd">      semantics as the reuse arg in tf.variable_scope.</span>
+<span class="sd">    trainable: Whether or not the variable is trainable.</span>
+<span class="sd">    collections: Override the default variable collection (</span>
+<span class="sd">      tf.GraphKeys.GLOBAL_VARIABLES).</span>
+<span class="sd">    default_seed: Seed to use for initialization if not specified in params.</span>
+<span class="sd">      Used for deterministic initialization in tests.</span>
+<span class="sd">    synchronization: Indicates when a distributed a variable will be aggregated.</span>
+<span class="sd">      Accepted values are constants defined in the class</span>
+<span class="sd">      tf.VariableSynchronization. By default the synchronization is set to AUTO</span>
+<span class="sd">      and the current DistributionStrategy chooses when to synchronize.</span>
+<span class="sd">    aggregation: Indicates how a distributed variable will be aggregated.</span>
+<span class="sd">      Accepted values are constants defined in the class tf.VariableAggregation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The created variable.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
   <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">shape</span><span class="p">:</span>
@@ -1906,92 +1970,9 @@
         <span class="c1"># variable name as a stable random seed.</span>
         <span class="n">seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
-      <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span>
-  <span class="p">]):</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-      <span class="c1"># This is probably not the right method to use when len(shape) &gt; 2,</span>
-      <span class="c1"># e.g. dim0 will be 3 with a 3x3 conv2d kernel.</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-          <span class="s1">&#39;Initializing </span><span class="si">%s</span><span class="s1"> of shape </span><span class="si">%s</span><span class="s1"> with method </span><span class="si">%s</span><span class="s1">: dim0=</span><span class="si">%s</span><span class="s1">. &#39;</span>
-          <span class="s1">&#39;Make sure that it is intended.&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">dim0</span><span class="p">)</span>
-    <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dim0</span><span class="p">)</span>
-
-  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">]:</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
-  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span><span class="p">]:</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_out</span><span class="p">)</span>
-  <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier_gaussian&#39;</span><span class="p">:</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">scale</span> <span class="o">*=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
-
   <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">real_dtype</span>
-  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
-      <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;xavier_gaussian&#39;</span>
-  <span class="p">]:</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_normal_initializer</span><span class="p">(</span>
-        <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">]:</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
-        <span class="n">minval</span><span class="o">=-</span><span class="n">scale</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_positive&#39;</span><span class="p">]:</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
-        <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling&#39;</span><span class="p">]:</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">uniform_unit_scaling_initializer</span><span class="p">(</span>
-        <span class="n">factor</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling_fan_avg&#39;</span><span class="p">]:</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">variance_scaling_initializer</span><span class="p">(</span>
-        <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
-        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;fan_avg&#39;</span><span class="p">,</span>
-        <span class="n">distribution</span><span class="o">=</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span>
-        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
-      <span class="s1">&#39;truncated_gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span><span class="p">,</span>
-      <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span>
-  <span class="p">]:</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">truncated_normal_initializer</span><span class="p">(</span>
-        <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;constant&#39;</span><span class="p">]:</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">constant_initializer</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;xavier&#39;</span><span class="p">,</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">]:</span>
-    <span class="c1"># pylint: disable=unused-argument</span>
-    <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
-      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span><span class="p">:</span>
-        <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
-      <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
-        <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span> <span class="o">*</span> <span class="n">fan_out</span><span class="p">))</span>
-      <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="n">limit</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
-
-    <span class="c1"># pylint: enable=unused-argument</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">XavierUniform</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
-      <span class="s1">&#39;kaiming_uniform_fanin_relu&#39;</span><span class="p">,</span> <span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span>
-  <span class="p">]:</span>
-    <span class="n">fan_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span><span class="p">:</span>
-      <span class="c1"># Assume the &#39;a&#39; parameter is the &#39;scale&#39; argument.</span>
-      <span class="n">gain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">scale</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">gain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span>
-    <span class="n">std_dev</span> <span class="o">=</span> <span class="n">gain</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
-    <span class="n">bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">std_dev</span>
-    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
-        <span class="n">minval</span><span class="o">=-</span><span class="n">bound</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">bound</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;init_type not supported.&#39;</span>
+  <span class="n">v_init</span> <span class="o">=</span> <span class="n">_CreateVarInitStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
+                                  <span class="n">init_dtype</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
 
@@ -2071,6 +2052,443 @@
             <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">var</span></div>
+
+
+<div class="viewcode-block" id="_CreateVariableStateless"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._CreateVariableStateless">[docs]</a><span class="k">def</span> <span class="nf">_CreateVariableStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                             <span class="n">params</span><span class="p">,</span>
+                             <span class="n">reuse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                             <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">AUTO</span><span class="p">,</span>
+                             <span class="n">aggregation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableAggregation</span><span class="o">.</span><span class="n">NONE</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates tf.Variable using TF stateless RNGs according to `params`.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: A string, name of the variable.</span>
+<span class="sd">    params: A WeightParams specifying the details of how this variable should be</span>
+<span class="sd">      constructed and initialized.</span>
+<span class="sd">    reuse: Whether or not to reuse an existing variable. It has the same</span>
+<span class="sd">      semantics as the reuse arg in tf.variable_scope.</span>
+<span class="sd">    trainable: Whether or not the variable is trainable.</span>
+<span class="sd">    collections: Override the default variable collection (</span>
+<span class="sd">      tf.GraphKeys.GLOBAL_VARIABLES).</span>
+<span class="sd">    default_seed: Seed to use for initialization if not specified in params.</span>
+<span class="sd">      Used for deterministic initialization in tests.</span>
+<span class="sd">    synchronization: Indicates when a distributed a variable will be aggregated.</span>
+<span class="sd">      Accepted values are constants defined in the class</span>
+<span class="sd">      tf.VariableSynchronization. By default the synchronization is set to AUTO</span>
+<span class="sd">      and the current DistributionStrategy chooses when to synchronize.</span>
+<span class="sd">    aggregation: Indicates how a distributed variable will be aggregated.</span>
+<span class="sd">      Accepted values are constants defined in the class tf.VariableAggregation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The created variable.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">shape</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">dim_size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">dim_size</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">]),</span> <span class="n">shape</span>
+    <span class="n">dim0</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">dim0</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;constant&#39;</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">method</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">method</span>
+  <span class="n">scale</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">scale</span>
+  <span class="n">seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">seed</span>
+
+  <span class="k">if</span> <span class="n">IsDefaultParamInit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s1">&#39;WARNING!!! var </span><span class="si">%s</span><span class="s1"> is using the default xavier initializer.&#39;</span>
+        <span class="s1">&#39; Make sure this is intended.&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+    <span class="n">var_name</span> <span class="o">=</span> <span class="n">GetVariableName</span><span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+  <span class="n">user_seed</span> <span class="o">=</span> <span class="n">seed</span> <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_seed</span>
+  <span class="n">seed</span> <span class="o">=</span> <span class="n">_GenerateStatelessRngSeed</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">user_seed</span><span class="p">)</span>
+
+  <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">real_dtype</span>
+  <span class="n">v_init</span> <span class="o">=</span> <span class="n">_CreateVarInitStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
+                                   <span class="n">init_dtype</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+        <span class="s1">&#39;Stateless variable initialization does not support tf.complex64.&#39;</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">LingvoVariableCreator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lingvo variable creator.&quot;&quot;&quot;</span>
+    <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
+    <span class="c1"># variable sharing mechanism.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+      <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
+          <span class="n">scope</span><span class="o">.</span><span class="n">reuse</span><span class="p">,</span>
+          <span class="n">custom_getter</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">custom_getter</span><span class="p">,</span>
+          <span class="n">caching_device</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">caching_device</span><span class="p">,</span>
+          <span class="n">use_resource</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">use_resource</span> <span class="ow">or</span> <span class="n">use_resource_variables</span><span class="p">())</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">reuse</span><span class="p">):</span>
+      <span class="n">var</span> <span class="o">=</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">var_ref</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">experimental_ref</span><span class="p">()</span>  <span class="c1"># For key in dict/set.</span>
+    <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_get_all_vars</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">var_ref</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reusing var </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="n">cached</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span>
+      <span class="k">assert</span> <span class="n">cached</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="p">(</span><span class="s1">&#39;Cached config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> vs new config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                                    <span class="p">(</span><span class="n">cached</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                      <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+      <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">var</span>
+
+  <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">):</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
+        <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
+        <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
+        <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
+        <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
+        <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">var</span></div>
+
+
+<div class="viewcode-block" id="_RandomXavierUniformInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._RandomXavierUniformInitializer">[docs]</a><span class="k">def</span> <span class="nf">_RandomXavierUniformInitializer</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a random Xavier uniform initializer.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span><span class="p">:</span>
+      <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
+      <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span> <span class="o">*</span> <span class="n">fan_out</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="n">limit</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">XavierUniform</span></div>
+
+
+<div class="viewcode-block" id="_CreateVarInitStateful"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._CreateVarInitStateful">[docs]</a><span class="k">def</span> <span class="nf">_CreateVarInitStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates variable initialization function for a stateful RNG.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span>
+  <span class="p">]):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="c1"># This is probably not the right method to use when len(shape) &gt; 2,</span>
+      <span class="c1"># e.g. dim0 will be 3 with a 3x3 conv2d kernel.</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;Initializing </span><span class="si">%s</span><span class="s1"> of shape </span><span class="si">%s</span><span class="s1"> with method </span><span class="si">%s</span><span class="s1">: dim0=</span><span class="si">%s</span><span class="s1">. &#39;</span>
+          <span class="s1">&#39;Make sure that it is intended.&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">dim0</span><span class="p">)</span>
+    <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dim0</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">]:</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span><span class="p">]:</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_out</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier_gaussian&#39;</span><span class="p">:</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">*=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;xavier_gaussian&#39;</span>
+  <span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_normal_initializer</span><span class="p">(</span>
+        <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
+        <span class="n">minval</span><span class="o">=-</span><span class="n">scale</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_positive&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
+        <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">uniform_unit_scaling_initializer</span><span class="p">(</span>
+        <span class="n">factor</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling_fan_avg&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">variance_scaling_initializer</span><span class="p">(</span>
+        <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;fan_avg&#39;</span><span class="p">,</span>
+        <span class="n">distribution</span><span class="o">=</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;truncated_gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span>
+  <span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">truncated_normal_initializer</span><span class="p">(</span>
+        <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;constant&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">constant_initializer</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;xavier&#39;</span><span class="p">,</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
+      <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
+      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span><span class="p">:</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
+      <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span> <span class="o">*</span> <span class="n">fan_out</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="n">limit</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
+
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">XavierUniform</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;kaiming_uniform_fanin_relu&#39;</span><span class="p">,</span> <span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span>
+  <span class="p">]:</span>
+    <span class="n">fan_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span><span class="p">:</span>
+      <span class="c1"># Assume the &#39;a&#39; parameter is the &#39;scale&#39; argument.</span>
+      <span class="n">gain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">scale</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">gain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span>
+    <span class="n">std_dev</span> <span class="o">=</span> <span class="n">gain</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
+    <span class="n">bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">std_dev</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
+        <span class="n">minval</span><span class="o">=-</span><span class="n">bound</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">bound</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;init_type `</span><span class="si">%s</span><span class="s1">` not supported.&#39;</span> <span class="o">%</span> <span class="n">method</span>
+
+  <span class="k">return</span> <span class="n">v_init</span></div>
+
+
+<div class="viewcode-block" id="_GenerateStatelessRngSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._GenerateStatelessRngSeed">[docs]</a><span class="k">def</span> <span class="nf">_GenerateStatelessRngSeed</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generates a 2-tuple seed for a stateless variable initializer.</span>
+
+<span class="sd">  We want to ensure that different variables end up with different random values</span>
+<span class="sd">  even when they are passed the same seed and shape. To this aim, this function</span>
+<span class="sd">  generates a pseudo-unique seed by hashing the variable name and mapping it</span>
+<span class="sd">  into a scalar seed. More specifically, the returned value is a 2-tuple of</span>
+<span class="sd">  tf.int32 scalar, where the first element is the user-provided seed and the</span>
+<span class="sd">  second element is obtained by hashing the variable name.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: The variable name for which to generate a stateless-like seed.</span>
+<span class="sd">    seed: The user-specified scalar seed.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A 2-tuple seed of tf.int32 values (for TPU compatibility).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">seed0</span> <span class="o">=</span> <span class="n">seed</span> <span class="ow">or</span> <span class="mi">0</span>
+  <span class="n">seed1</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="n">seed0</span><span class="p">,</span> <span class="n">seed1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_DeterministicRandomNormalInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DeterministicRandomNormalInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomNormalInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a random normal initializer.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">DeterministicNormal</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+    <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_normal</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">DeterministicNormal</span></div>
+
+
+<div class="viewcode-block" id="_DeterministicRandomUniformInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DeterministicRandomUniformInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomUniformInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="p">,</span> <span class="n">maxval</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a random uniform initializer.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">DeterministicUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+    <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_uniform</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=</span><span class="n">minval</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">maxval</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">DeterministicUniform</span></div>
+
+
+<div class="viewcode-block" id="_DeterministicRandomTruncatedNormalInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DeterministicRandomTruncatedNormalInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomTruncatedNormalInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a random truncated normal initializer.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">DeterministicTruncatedNormal</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+    <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_truncated_normal</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">DeterministicTruncatedNormal</span></div>
+
+
+<div class="viewcode-block" id="_DeterministicRandomUniformUnitScalingInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DeterministicRandomUniformUnitScalingInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomUniformUnitScalingInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a random uniform unit scaling initializer.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">DeterministicUniformUnitScaling</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="c1"># The following logic is originally from (UniformUnitScaling.__call__())</span>
+    <span class="c1"># in TensorFlow: python/ops/init_ops.py</span>
+    <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">shape</span>
+    <span class="k">if</span> <span class="n">partition_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">partition_info</span><span class="o">.</span><span class="n">full_shape</span>
+
+    <span class="n">input_size</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="c1"># Estimating input size is not possible to do perfectly, but we try.</span>
+    <span class="c1"># The estimate, obtained by multiplying all dimensions but the last one,</span>
+    <span class="c1"># is the right thing for matrix multiply and convolutions (see above).</span>
+    <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">scale_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+      <span class="n">input_size</span> <span class="o">*=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+    <span class="c1"># Avoid errors when initializing zero-size tensors.</span>
+    <span class="n">input_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">maxval</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">3</span> <span class="o">/</span> <span class="n">input_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">factor</span>
+    <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_uniform</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=-</span><span class="n">maxval</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">maxval</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">DeterministicUniformUnitScaling</span></div>
+
+
+<div class="viewcode-block" id="_DeterministicRandomVarianceScalingInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DeterministicRandomVarianceScalingInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomVarianceScalingInitializer</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">distribution</span><span class="p">,</span>
+                                                   <span class="n">seed</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a variance scaling initializer.&quot;&quot;&quot;</span>
+
+  <span class="k">if</span> <span class="n">scale</span> <span class="o">&lt;=</span> <span class="mf">0.</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;`scale` must be positive float.&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;fan_in&#39;</span><span class="p">,</span> <span class="s1">&#39;fan_out&#39;</span><span class="p">,</span> <span class="s1">&#39;fan_avg&#39;</span><span class="p">}:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid `mode` argument:&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+  <span class="n">distribution</span> <span class="o">=</span> <span class="n">distribution</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">distribution</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span>
+      <span class="s1">&#39;normal&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_normal&#39;</span><span class="p">,</span> <span class="s1">&#39;untruncated_normal&#39;</span>
+  <span class="p">}:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid `distribution` argument:&#39;</span><span class="p">,</span> <span class="n">distribution</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">DeterministicVarianceScaling</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="c1"># This is originally from TensorFlow: python/ops/init_ops.py</span>
+    <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">shape</span>
+    <span class="k">if</span> <span class="n">partition_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">partition_info</span><span class="o">.</span><span class="n">full_shape</span>
+    <span class="c1"># Handle special case of empty list as shape, since fan_in and fan_out</span>
+    <span class="c1"># are numerically added below. Without this, GetFanInFanOut() would</span>
+    <span class="c1"># return None, None instead.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale_shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">scale_shape</span><span class="p">:</span>
+      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">scale_shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;fan_in&#39;</span><span class="p">:</span>
+      <span class="n">scale_inner</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">fan_in</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;fan_out&#39;</span><span class="p">:</span>
+      <span class="n">scale_inner</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">fan_out</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">scale_inner</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">distribution</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span> <span class="ow">or</span> <span class="n">distribution</span> <span class="o">==</span> <span class="s1">&#39;truncated_normal&#39;</span><span class="p">:</span>
+      <span class="c1"># constant taken from scipy.stats.truncnorm.std(</span>
+      <span class="c1">#                         a=-2, b=2, loc=0., scale=1.)</span>
+      <span class="n">stddev</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">scale_inner</span><span class="p">)</span> <span class="o">/</span> <span class="o">.</span><span class="mi">87962566103423978</span>
+      <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_truncated_normal</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">distribution</span> <span class="o">==</span> <span class="s1">&#39;untruncated_normal&#39;</span><span class="p">:</span>
+      <span class="n">stddev</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">scale_inner</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_normal</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">scale_inner</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_uniform</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=-</span><span class="n">limit</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">DeterministicVarianceScaling</span></div>
+
+
+<div class="viewcode-block" id="_DeterministicRandomXavierUniformInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DeterministicRandomXavierUniformInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomXavierUniformInitializer</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a variance scaling initializer.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span><span class="p">:</span>
+      <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
+      <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span> <span class="o">*</span> <span class="n">fan_out</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_uniform</span><span class="p">(</span>
+        <span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="o">-</span><span class="n">limit</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">XavierUniform</span></div>
+
+
+<div class="viewcode-block" id="_CreateVarInitStateless"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._CreateVarInitStateless">[docs]</a><span class="k">def</span> <span class="nf">_CreateVarInitStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates variable initialization function for a stateless RNG.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span>
+  <span class="p">]):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="c1"># This is probably not the right method to use when len(shape) &gt; 2,</span>
+      <span class="c1"># e.g. dim0 will be 3 with a 3x3 conv2d kernel.</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;Initializing </span><span class="si">%s</span><span class="s1"> of shape </span><span class="si">%s</span><span class="s1"> with method </span><span class="si">%s</span><span class="s1">: dim0=</span><span class="si">%s</span><span class="s1">. &#39;</span>
+          <span class="s1">&#39;Make sure that it is intended.&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">dim0</span><span class="p">)</span>
+    <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dim0</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">]:</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span><span class="p">]:</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_out</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier_gaussian&#39;</span><span class="p">:</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scale</span> <span class="o">*=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;xavier_gaussian&#39;</span>
+  <span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomNormalInitializer</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomUniformInitializer</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=-</span><span class="n">scale</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_positive&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomUniformInitializer</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomUniformUnitScalingInitializer</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling_fan_avg&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomVarianceScalingInitializer</span><span class="p">(</span>
+        <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;fan_avg&#39;</span><span class="p">,</span> <span class="n">distribution</span><span class="o">=</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;truncated_gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span>
+  <span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomTruncatedNormalInitializer</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;constant&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">constant_initializer</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;xavier&#39;</span><span class="p">,</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomXavierUniformInitializer</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
+      <span class="s1">&#39;kaiming_uniform_fanin_relu&#39;</span><span class="p">,</span> <span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span>
+  <span class="p">]:</span>
+    <span class="n">fan_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span><span class="p">:</span>
+      <span class="c1"># Assume the &#39;a&#39; parameter is the &#39;scale&#39; argument.</span>
+      <span class="n">gain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">scale</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">gain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span>
+    <span class="n">std_dev</span> <span class="o">=</span> <span class="n">gain</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
+    <span class="n">bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">std_dev</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomUniformInitializer</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=-</span><span class="n">bound</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">bound</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;init_type </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">method</span>
+
+  <span class="k">return</span> <span class="n">v_init</span></div>
 
 
 <span class="n">_global_variable_scope</span> <span class="o">=</span> <span class="kc">None</span>
