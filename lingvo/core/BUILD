@@ -1201,6 +1201,7 @@ py_test(
         ":base_layer",
         ":builder_layers",
         ":cluster_factory",
+        ":hyperparams",
         ":py_utils",
         ":recurrent",
         ":symbolic",

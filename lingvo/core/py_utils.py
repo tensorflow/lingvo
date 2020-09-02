@@ -48,6 +48,7 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import func_graph
 from tensorflow.python.framework import function
 from tensorflow.python.ops import init_ops
+from tensorflow.python.ops import stateless_random_ops
 from tensorflow.python.tpu import topology as tf_topology
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
@@ -103,6 +104,15 @@ tf.flags.DEFINE_bool('while_loop_use_tf_function', False,
                      'If True use tf.function for py_utils.WhileLoop().')
 tf.flags.DEFINE_bool('call_defun_use_tf_function', False,
                      'If True use tf.function for py_utils.CallDefun().')
+
+tf.flags.DEFINE_bool(
+    'stateless_vars_init', False,
+    'Use stateless TensorFlow random number generators (RNG) (e.g. '
+    'tf.random.stateless_uniform) to initialize variables instead of the '
+    'default ones (e.g. tf.random.uniform). This is useful to make variable '
+    'initialization deterministic on different replicas such as on TPUs, '
+    'since XLA does not fully respect the contract with respect to '
+    'user-specified seeds, when using TensorFlow stateful RNGs.')
 
 # NOTE: Using absl flags in libraries are frowned upon for several reasons:
 #
@@ -661,6 +671,10 @@ def use_resource_variables():  # pylint: disable=invalid-name
 
 def outside_all_rewrites():  # pylint: disable=invalid-name
   return tf.control_dependencies(None)
+
+
+def use_stateless_vars_init():  # pylint: disable=invalid-name
+  return _FromGlobal('stateless_vars_init')
 
 
 # TODO(jamesqin): remove once b/147439702 is fixed.
@@ -1279,7 +1293,9 @@ def InitRNNCellState(shape, init=None, dtype=None, name=None, is_eval=False):
     init: Hyperparameters as returned by one of the static implemetaitons in
       RNNCellStateInit.
     dtype: The dype of the states. Defaults to tf.float32.
-    name: An optional name for the operation.
+    name: A name for the operation. If --stateless_vars_init is set, this name
+      is used to generate a seed on a per-variable basis. Otherwise, this name
+      is optional.
     is_eval: Bool, set to True if we need special behavior in eval mode.
 
   Returns:
@@ -1297,8 +1313,16 @@ def InitRNNCellState(shape, init=None, dtype=None, name=None, is_eval=False):
   if ((method in ['zeros']) or (method in ['random_normal'] and is_eval)):
     init_state = tf.zeros(shape=shape, dtype=dtype, name=name)
   elif method in ['random_normal']:
-    init_state = tf.random.normal(
-        shape=shape, dtype=dtype, name=name, seed=init.seed)
+    if use_stateless_vars_init():
+      if name is None:
+        raise ValueError('InitRNNCellState() requires a `name` argument when '
+                         '--stateless_vars_init is enabled.')
+      seed = _GenerateStatelessRngSeed(name, init.seed)
+      init_state = stateless_random_ops.stateless_random_normal(
+          shape=shape, dtype=dtype, name=name, seed=seed)
+    else:
+      init_state = tf.random.normal(
+          shape=shape, dtype=dtype, name=name, seed=init.seed)
   else:
     raise ValueError('Initialization method (%s) not supported.' % method)
 
@@ -1310,6 +1334,7 @@ class WeightInit:
 
   @staticmethod
   def _Params(method, scale, seed):
+    """Parameters of this class."""
     p = hyperparams.Params()
     p.Define('method', method, 'Initialization method.')
     p.Define('scale', scale, 'Initialization scale.')
@@ -1728,6 +1753,45 @@ def CreateVariable(name,
   Returns:
     The created variable.
   """
+  if use_stateless_vars_init():
+    return _CreateVariableStateless(name, params, reuse, trainable, collections,
+                                    default_seed, synchronization, aggregation)
+  else:
+    return _CreateVariableStateful(name, params, reuse, trainable, collections,
+                                   default_seed, synchronization, aggregation)
+
+
+def _CreateVariableStateful(name,
+                            params,
+                            reuse=None,
+                            trainable=True,
+                            collections=None,
+                            default_seed=None,
+                            synchronization=tf.VariableSynchronization.AUTO,
+                            aggregation=tf.VariableAggregation.NONE):
+  """Creates tf.Variable using TF stateful RNGs according to param_config.
+
+  Args:
+    name: A string, name of the variable.
+    params: A WeightParams specifying the details of how this variable should be
+      constructed and initialized.
+    reuse: Whether or not to reuse an existing variable. It has the same
+      semantics as the reuse arg in tf.variable_scope.
+    trainable: Whether or not the variable is trainable.
+    collections: Override the default variable collection (
+      tf.GraphKeys.GLOBAL_VARIABLES).
+    default_seed: Seed to use for initialization if not specified in params.
+      Used for deterministic initialization in tests.
+    synchronization: Indicates when a distributed a variable will be aggregated.
+      Accepted values are constants defined in the class
+      tf.VariableSynchronization. By default the synchronization is set to AUTO
+      and the current DistributionStrategy chooses when to synchronize.
+    aggregation: Indicates how a distributed variable will be aggregated.
+      Accepted values are constants defined in the class tf.VariableAggregation.
+
+  Returns:
+    The created variable.
+  """
   p = params.Copy()
   shape = tf.TensorShape(ToStaticShape(p.shape)).as_list()
   if shape:
@@ -1758,92 +1822,9 @@ def CreateVariable(name,
         # variable name as a stable random seed.
         seed = GenerateSeedFromName(var_name)
 
-  if (method in [
-      'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'
-  ]):
-    if len(shape) > 2:
-      # This is probably not the right method to use when len(shape) > 2,
-      # e.g. dim0 will be 3 with a 3x3 conv2d kernel.
-      tf.logging.warning(
-          'Initializing %s of shape %s with method %s: dim0=%s. '
-          'Make sure that it is intended.', name, shape, method, dim0)
-    scale *= 1.0 / math.sqrt(dim0)
-
-  if method in ['gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanin']:
-    fan_in, _ = GetFanInFanOut(shape)
-    if fan_in is not None:
-      scale *= 1.0 / math.sqrt(fan_in)
-  if method in ['gaussian_sqrt_fanout', 'truncated_gaussian_sqrt_fanout']:
-    _, fan_out = GetFanInFanOut(shape)
-    if fan_out is not None:
-      scale *= 1.0 / math.sqrt(fan_out)
-  if method == 'xavier_gaussian':
-    fan_in, fan_out = GetFanInFanOut(shape)
-    if fan_in is not None and fan_out is not None:
-      scale *= math.sqrt(2.0 / (fan_in + fan_out))
-
   init_dtype = p.dtype.real_dtype
-  if method in [
-      'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
-      'gaussian_sqrt_fanout', 'xavier_gaussian'
-  ]:
-    v_init = init_ops.random_normal_initializer(
-        mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
-  elif method in ['uniform', 'uniform_sqrt_dim']:
-    v_init = init_ops.random_uniform_initializer(
-        minval=-scale, maxval=scale, seed=seed, dtype=init_dtype)
-  elif method in ['uniform_positive']:
-    v_init = init_ops.random_uniform_initializer(
-        minval=0.0, maxval=scale, seed=seed, dtype=init_dtype)
-  elif method in ['uniform_unit_scaling']:
-    v_init = init_ops.uniform_unit_scaling_initializer(
-        factor=scale, seed=seed, dtype=init_dtype)
-  elif method in ['uniform_unit_scaling_fan_avg']:
-    v_init = tf.variance_scaling_initializer(
-        scale=scale,
-        mode='fan_avg',
-        distribution='uniform',
-        seed=seed,
-        dtype=init_dtype)
-  elif method in [
-      'truncated_gaussian', 'truncated_gaussian_sqrt_dim',
-      'truncated_gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanout'
-  ]:
-    v_init = init_ops.truncated_normal_initializer(
-        mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
-  elif method in ['constant']:
-    v_init = init_ops.constant_initializer(value=scale, dtype=init_dtype)
-  elif method in ['xavier', 'geo_mean_xavier']:
-    # pylint: disable=unused-argument
-    def XavierUniform(shape, dtype, partition_info):
-      """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
-      if not shape:
-        raise ValueError(
-            '\'shape\' must not be \'None\' or 0 for XavierUniform')
-      fan_in, fan_out = GetFanInFanOut(shape)
-      if method == 'xavier':
-        limit = math.sqrt(6. / (fan_in + fan_out))
-      elif method == 'geo_mean_xavier':
-        limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
-      return scale * tf.random.uniform(shape, -limit, limit, dtype, seed)
-
-    # pylint: enable=unused-argument
-    v_init = XavierUniform
-  elif method in [
-      'kaiming_uniform_fanin_relu', 'kaiming_uniform_fanin_leakyrelu'
-  ]:
-    fan_in = np.prod(shape[:-1])
-    if method == 'kaiming_uniform_fanin_leakyrelu':
-      # Assume the 'a' parameter is the 'scale' argument.
-      gain = np.sqrt(2. / (1 + scale**2))
-    else:
-      gain = np.sqrt(2.)
-    std_dev = gain / np.sqrt(fan_in)
-    bound = np.sqrt(3.0) * std_dev
-    v_init = init_ops.random_uniform_initializer(
-        minval=-bound, maxval=bound, seed=seed, dtype=init_dtype)
-  else:
-    assert False, 'init_type not supported.'
+  v_init = _CreateVarInitStateful(name, method, shape, dim0, seed, scale,
+                                  init_dtype)
 
   if p.dtype == tf.complex64:
 
@@ -1923,6 +1904,443 @@ def CreateVariable(name,
             aggregation=aggregation)
 
   return var
+
+
+def _CreateVariableStateless(name,
+                             params,
+                             reuse=None,
+                             trainable=True,
+                             collections=None,
+                             default_seed=None,
+                             synchronization=tf.VariableSynchronization.AUTO,
+                             aggregation=tf.VariableAggregation.NONE):
+  """Creates tf.Variable using TF stateless RNGs according to `params`.
+
+  Args:
+    name: A string, name of the variable.
+    params: A WeightParams specifying the details of how this variable should be
+      constructed and initialized.
+    reuse: Whether or not to reuse an existing variable. It has the same
+      semantics as the reuse arg in tf.variable_scope.
+    trainable: Whether or not the variable is trainable.
+    collections: Override the default variable collection (
+      tf.GraphKeys.GLOBAL_VARIABLES).
+    default_seed: Seed to use for initialization if not specified in params.
+      Used for deterministic initialization in tests.
+    synchronization: Indicates when a distributed a variable will be aggregated.
+      Accepted values are constants defined in the class
+      tf.VariableSynchronization. By default the synchronization is set to AUTO
+      and the current DistributionStrategy chooses when to synchronize.
+    aggregation: Indicates how a distributed variable will be aggregated.
+      Accepted values are constants defined in the class tf.VariableAggregation.
+
+  Returns:
+    The created variable.
+  """
+  p = params.Copy()
+  shape = tf.TensorShape(ToStaticShape(p.shape)).as_list()
+  if shape:
+    assert all([dim_size > 0 for dim_size in shape]), shape
+    dim0 = shape[0]
+  else:
+    dim0 = 1
+  assert p.init.method == 'constant' or np.all(np.asarray(p.init.scale) >= 0)
+  method = p.init.method
+  scale = p.init.scale
+  seed = p.init.seed
+
+  if IsDefaultParamInit(p.init):
+    tf.logging.warning(
+        'WARNING!!! var %s is using the default xavier initializer.'
+        ' Make sure this is intended.', name)
+
+  with tf.variable_scope(name) as scope:
+    var_name = GetVariableName(scope.name)
+
+  user_seed = seed if seed is not None else default_seed
+  seed = _GenerateStatelessRngSeed(var_name, user_seed)
+
+  init_dtype = p.dtype.real_dtype
+  v_init = _CreateVarInitStateless(name, method, shape, dim0, seed, scale,
+                                   init_dtype)
+
+  if p.dtype == tf.complex64:
+    raise TypeError(
+        'Stateless variable initialization does not support tf.complex64.')
+
+  def LingvoVariableCreator(next_creator, **kwargs):
+    """Lingvo variable creator."""
+    # TODO(yonghui): Possibly get away from variable_scope and implement our own
+    # variable sharing mechanism.
+    with tf.variable_scope(name) as scope:
+      var_scope = tf.VariableScope(
+          scope.reuse,
+          custom_getter=scope.custom_getter,
+          caching_device=scope.caching_device,
+          use_resource=scope.use_resource or use_resource_variables())
+    with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
+      var = next_creator(**kwargs)
+
+    var_ref = var.experimental_ref()  # For key in dict/set.
+    all_vars = _get_all_vars()
+    if var_ref in all_vars:
+      tf.logging.info('Reusing var %s', var.name)
+      cached = all_vars[var_ref]
+      assert cached == p.ToText(), ('Cached config:\n %s vs new config:\n %s' %
+                                    (cached, p.ToText()))
+    else:
+      tf.logging.info('Creating var %s shape=%s on device %s', var.name,
+                      var.shape, var.device)
+      all_vars[var_ref] = p.ToText()
+      for col in p.collections:
+        tf.add_to_collection(col, var)
+    return var
+
+  with VariableCreatorScope(LingvoVariableCreator):
+    var = _GetVariableCreator()(
+        var_name=var_name,
+        var_params=p,
+        name='var',
+        shape=GetVariableShapePrefixes() + list(shape),
+        dtype=p.dtype,
+        initializer=v_init,
+        collections=collections,
+        trainable=trainable,
+        validate_shape=True,
+        synchronization=synchronization,
+        aggregation=aggregation)
+
+  return var
+
+
+def _RandomXavierUniformInitializer(method, scale, seed):
+  """Creates a random Xavier uniform initializer."""
+
+  def XavierUniform(shape, dtype, partition_info):
+    """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
+    del partition_info  # Unused.
+    if not shape:
+      raise ValueError('\'shape\' must not be \'None\' or 0 for XavierUniform')
+    fan_in, fan_out = GetFanInFanOut(shape)
+    if method == 'xavier':
+      limit = math.sqrt(6. / (fan_in + fan_out))
+    elif method == 'geo_mean_xavier':
+      limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
+    return scale * tf.random.uniform(shape, -limit, limit, dtype, seed)
+
+  return XavierUniform
+
+
+def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
+  """Creates variable initialization function for a stateful RNG."""
+  if (method in [
+      'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'
+  ]):
+    if len(shape) > 2:
+      # This is probably not the right method to use when len(shape) > 2,
+      # e.g. dim0 will be 3 with a 3x3 conv2d kernel.
+      tf.logging.warning(
+          'Initializing %s of shape %s with method %s: dim0=%s. '
+          'Make sure that it is intended.', name, shape, method, dim0)
+    scale *= 1.0 / math.sqrt(dim0)
+
+  if method in ['gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanin']:
+    fan_in, _ = GetFanInFanOut(shape)
+    if fan_in is not None:
+      scale *= 1.0 / math.sqrt(fan_in)
+  if method in ['gaussian_sqrt_fanout', 'truncated_gaussian_sqrt_fanout']:
+    _, fan_out = GetFanInFanOut(shape)
+    if fan_out is not None:
+      scale *= 1.0 / math.sqrt(fan_out)
+  if method == 'xavier_gaussian':
+    fan_in, fan_out = GetFanInFanOut(shape)
+    if fan_in is not None and fan_out is not None:
+      scale *= math.sqrt(2.0 / (fan_in + fan_out))
+
+  if method in [
+      'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
+      'gaussian_sqrt_fanout', 'xavier_gaussian'
+  ]:
+    v_init = init_ops.random_normal_initializer(
+        mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
+  elif method in ['uniform', 'uniform_sqrt_dim']:
+    v_init = init_ops.random_uniform_initializer(
+        minval=-scale, maxval=scale, seed=seed, dtype=init_dtype)
+  elif method in ['uniform_positive']:
+    v_init = init_ops.random_uniform_initializer(
+        minval=0.0, maxval=scale, seed=seed, dtype=init_dtype)
+  elif method in ['uniform_unit_scaling']:
+    v_init = init_ops.uniform_unit_scaling_initializer(
+        factor=scale, seed=seed, dtype=init_dtype)
+  elif method in ['uniform_unit_scaling_fan_avg']:
+    v_init = tf.variance_scaling_initializer(
+        scale=scale,
+        mode='fan_avg',
+        distribution='uniform',
+        seed=seed,
+        dtype=init_dtype)
+  elif method in [
+      'truncated_gaussian', 'truncated_gaussian_sqrt_dim',
+      'truncated_gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanout'
+  ]:
+    v_init = init_ops.truncated_normal_initializer(
+        mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
+  elif method in ['constant']:
+    v_init = init_ops.constant_initializer(value=scale, dtype=init_dtype)
+  elif method in ['xavier', 'geo_mean_xavier']:
+    def XavierUniform(shape, dtype, partition_info):
+      """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
+      del partition_info  # Unused.
+      if not shape:
+        raise ValueError(
+            '\'shape\' must not be \'None\' or 0 for XavierUniform')
+      fan_in, fan_out = GetFanInFanOut(shape)
+      if method == 'xavier':
+        limit = math.sqrt(6. / (fan_in + fan_out))
+      elif method == 'geo_mean_xavier':
+        limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
+      return scale * tf.random.uniform(shape, -limit, limit, dtype, seed)
+
+    v_init = XavierUniform
+  elif method in [
+      'kaiming_uniform_fanin_relu', 'kaiming_uniform_fanin_leakyrelu'
+  ]:
+    fan_in = np.prod(shape[:-1])
+    if method == 'kaiming_uniform_fanin_leakyrelu':
+      # Assume the 'a' parameter is the 'scale' argument.
+      gain = np.sqrt(2. / (1 + scale**2))
+    else:
+      gain = np.sqrt(2.)
+    std_dev = gain / np.sqrt(fan_in)
+    bound = np.sqrt(3.0) * std_dev
+    v_init = init_ops.random_uniform_initializer(
+        minval=-bound, maxval=bound, seed=seed, dtype=init_dtype)
+  else:
+    assert False, 'init_type `%s` not supported.' % method
+
+  return v_init
+
+
+def _GenerateStatelessRngSeed(name, seed):
+  """Generates a 2-tuple seed for a stateless variable initializer.
+
+  We want to ensure that different variables end up with different random values
+  even when they are passed the same seed and shape. To this aim, this function
+  generates a pseudo-unique seed by hashing the variable name and mapping it
+  into a scalar seed. More specifically, the returned value is a 2-tuple of
+  tf.int32 scalar, where the first element is the user-provided seed and the
+  second element is obtained by hashing the variable name.
+
+  Args:
+    name: The variable name for which to generate a stateless-like seed.
+    seed: The user-specified scalar seed.
+
+  Returns:
+    A 2-tuple seed of tf.int32 values (for TPU compatibility).
+  """
+  seed0 = seed or 0
+  seed1 = GenerateSeedFromName(name)
+  return tf.constant([seed0, seed1], dtype=tf.int32)
+
+
+def _DeterministicRandomNormalInitializer(seed, mean, stddev):
+  """Creates a random normal initializer."""
+
+  def DeterministicNormal(shape, dtype, partition_info):
+    del partition_info  # Unused.
+    return stateless_random_ops.stateless_random_normal(
+        shape=shape, seed=seed, mean=mean, stddev=stddev, dtype=dtype)
+
+  return DeterministicNormal
+
+
+def _DeterministicRandomUniformInitializer(seed, minval, maxval):
+  """Creates a random uniform initializer."""
+
+  def DeterministicUniform(shape, dtype, partition_info):
+    del partition_info  # Unused.
+    return stateless_random_ops.stateless_random_uniform(
+        shape=shape, seed=seed, minval=minval, maxval=maxval, dtype=dtype)
+
+  return DeterministicUniform
+
+
+def _DeterministicRandomTruncatedNormalInitializer(seed, mean, stddev):
+  """Creates a random truncated normal initializer."""
+
+  def DeterministicTruncatedNormal(shape, dtype, partition_info):
+    del partition_info  # Unused.
+    return stateless_random_ops.stateless_truncated_normal(
+        shape=shape, seed=seed, mean=mean, stddev=stddev, dtype=dtype)
+
+  return DeterministicTruncatedNormal
+
+
+def _DeterministicRandomUniformUnitScalingInitializer(seed, factor):
+  """Creates a random uniform unit scaling initializer."""
+
+  def DeterministicUniformUnitScaling(shape, dtype, partition_info):
+    # The following logic is originally from (UniformUnitScaling.__call__())
+    # in TensorFlow: python/ops/init_ops.py
+    scale_shape = shape
+    if partition_info is not None:
+      scale_shape = partition_info.full_shape
+
+    input_size = 1.0
+    # Estimating input size is not possible to do perfectly, but we try.
+    # The estimate, obtained by multiplying all dimensions but the last one,
+    # is the right thing for matrix multiply and convolutions (see above).
+    for dim in scale_shape[:-1]:
+      input_size *= float(dim)
+    # Avoid errors when initializing zero-size tensors.
+    input_size = max(input_size, 1.0)
+    maxval = math.sqrt(3 / input_size) * factor
+    return stateless_random_ops.stateless_random_uniform(
+        shape=shape, seed=seed, minval=-maxval, maxval=maxval, dtype=dtype)
+
+  return DeterministicUniformUnitScaling
+
+
+def _DeterministicRandomVarianceScalingInitializer(scale, mode, distribution,
+                                                   seed):
+  """Creates a variance scaling initializer."""
+
+  if scale <= 0.:
+    raise ValueError('`scale` must be positive float.')
+  if mode not in {'fan_in', 'fan_out', 'fan_avg'}:
+    raise ValueError('Invalid `mode` argument:', mode)
+  distribution = distribution.lower()
+  if distribution not in {
+      'normal', 'uniform', 'truncated_normal', 'untruncated_normal'
+  }:
+    raise ValueError('Invalid `distribution` argument:', distribution)
+
+  def DeterministicVarianceScaling(shape, dtype, partition_info):
+    # This is originally from TensorFlow: python/ops/init_ops.py
+    scale_shape = shape
+    if partition_info is not None:
+      scale_shape = partition_info.full_shape
+    # Handle special case of empty list as shape, since fan_in and fan_out
+    # are numerically added below. Without this, GetFanInFanOut() would
+    # return None, None instead.
+    if isinstance(scale_shape, (list, tuple)) and not scale_shape:
+      fan_in, fan_out = 1, 1
+    else:
+      fan_in, fan_out = GetFanInFanOut(scale_shape)
+    if mode == 'fan_in':
+      scale_inner = scale / max(1., fan_in)
+    elif mode == 'fan_out':
+      scale_inner = scale / max(1., fan_out)
+    else:
+      scale_inner = scale / max(1., (fan_in + fan_out) / 2.)
+    if distribution == 'normal' or distribution == 'truncated_normal':
+      # constant taken from scipy.stats.truncnorm.std(
+      #                         a=-2, b=2, loc=0., scale=1.)
+      stddev = math.sqrt(scale_inner) / .87962566103423978
+      return stateless_random_ops.stateless_truncated_normal(
+          shape=shape, seed=seed, mean=0.0, stddev=stddev, dtype=dtype)
+    elif distribution == 'untruncated_normal':
+      stddev = math.sqrt(scale_inner)
+      return stateless_random_ops.stateless_random_normal(
+          shape=shape, seed=seed, mean=0.0, stddev=stddev, dtype=dtype)
+    else:
+      limit = math.sqrt(3.0 * scale_inner)
+      return stateless_random_ops.stateless_random_uniform(
+          shape=shape, seed=seed, minval=-limit, maxval=limit, dtype=dtype)
+
+  return DeterministicVarianceScaling
+
+
+def _DeterministicRandomXavierUniformInitializer(method, scale, seed):
+  """Creates a variance scaling initializer."""
+
+  def XavierUniform(shape, dtype, partition_info):
+    """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
+    del partition_info  # Unused.
+    if not shape:
+      raise ValueError('\'shape\' must not be \'None\' or 0 for XavierUniform')
+    fan_in, fan_out = GetFanInFanOut(shape)
+    if method == 'xavier':
+      limit = math.sqrt(6. / (fan_in + fan_out))
+    elif method == 'geo_mean_xavier':
+      limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
+    return scale * stateless_random_ops.stateless_random_uniform(
+        shape, seed, -limit, limit, dtype)
+
+  return XavierUniform
+
+
+def _CreateVarInitStateless(name, method, shape, dim0, seed, scale, init_dtype):
+  """Creates variable initialization function for a stateless RNG."""
+  if (method in [
+      'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'
+  ]):
+    if len(shape) > 2:
+      # This is probably not the right method to use when len(shape) > 2,
+      # e.g. dim0 will be 3 with a 3x3 conv2d kernel.
+      tf.logging.warning(
+          'Initializing %s of shape %s with method %s: dim0=%s. '
+          'Make sure that it is intended.', name, shape, method, dim0)
+    scale *= 1.0 / math.sqrt(dim0)
+
+  if method in ['gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanin']:
+    fan_in, _ = GetFanInFanOut(shape)
+    if fan_in is not None:
+      scale *= 1.0 / math.sqrt(fan_in)
+  if method in ['gaussian_sqrt_fanout', 'truncated_gaussian_sqrt_fanout']:
+    _, fan_out = GetFanInFanOut(shape)
+    if fan_out is not None:
+      scale *= 1.0 / math.sqrt(fan_out)
+  if method == 'xavier_gaussian':
+    fan_in, fan_out = GetFanInFanOut(shape)
+    if fan_in is not None and fan_out is not None:
+      scale *= math.sqrt(2.0 / (fan_in + fan_out))
+
+  if method in [
+      'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
+      'gaussian_sqrt_fanout', 'xavier_gaussian'
+  ]:
+    v_init = _DeterministicRandomNormalInitializer(
+        seed=seed, mean=0., stddev=scale)
+  elif method in ['uniform', 'uniform_sqrt_dim']:
+    v_init = _DeterministicRandomUniformInitializer(
+        seed=seed, minval=-scale, maxval=scale)
+  elif method in ['uniform_positive']:
+    v_init = _DeterministicRandomUniformInitializer(
+        seed=seed, minval=0., maxval=scale)
+  elif method in ['uniform_unit_scaling']:
+    v_init = _DeterministicRandomUniformUnitScalingInitializer(
+        seed=seed, factor=scale)
+  elif method in ['uniform_unit_scaling_fan_avg']:
+    v_init = _DeterministicRandomVarianceScalingInitializer(
+        scale=scale, mode='fan_avg', distribution='uniform', seed=seed)
+  elif method in [
+      'truncated_gaussian', 'truncated_gaussian_sqrt_dim',
+      'truncated_gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanout'
+  ]:
+    v_init = _DeterministicRandomTruncatedNormalInitializer(
+        seed=seed, mean=0., stddev=scale)
+  elif method in ['constant']:
+    v_init = init_ops.constant_initializer(value=scale, dtype=init_dtype)
+  elif method in ['xavier', 'geo_mean_xavier']:
+    v_init = _DeterministicRandomXavierUniformInitializer(method, scale, seed)
+  elif method in [
+      'kaiming_uniform_fanin_relu', 'kaiming_uniform_fanin_leakyrelu'
+  ]:
+    fan_in = np.prod(shape[:-1])
+    if method == 'kaiming_uniform_fanin_leakyrelu':
+      # Assume the 'a' parameter is the 'scale' argument.
+      gain = np.sqrt(2. / (1 + scale**2))
+    else:
+      gain = np.sqrt(2.)
+    std_dev = gain / np.sqrt(fan_in)
+    bound = np.sqrt(3.0) * std_dev
+    v_init = _DeterministicRandomUniformInitializer(
+        seed=seed, minval=-bound, maxval=bound)
+  else:
+    assert False, 'init_type %s not supported.' % method
+
+  return v_init
 
 
 _global_variable_scope = None
