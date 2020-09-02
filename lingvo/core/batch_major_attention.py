@@ -697,7 +697,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       per_step_padding: A mask used by decoder self-attention to prevent
         information flow from future (causal padding). It has shape [B, 1, T] if
         not None.
-      time_step: A scalar, the current decode step, 0-based.
+      time_step: A scalar or tensor with [B], current decode step, 0-based.
+        if it's a scalar, all the time step are the same decode step.
+        if it's a tensor, it represents current decode step for each sample.
       use_short_seq_opt: A bool, whether using short sequence optimization.
 
     Returns:
@@ -713,6 +715,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       raise ValueError('Value projection must be enabled for Transformer '
                        'machine translation.')
 
+    time_step = tf.convert_to_tensor(time_step)
+    synced_time_step = (time_step.shape.ndims == 0)
     t, b, n, h = py_utils.GetShape(cached_states.key, 4)
 
     # Project inputs to key, value and query. Each has shape [B, 1, N, H].
@@ -720,11 +724,24 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     new_value_proj = self.value.FProp(theta.value, query_vec)
     query_proj = self.query.FProp(theta.query, query_vec)
 
-    # The extended_key and extended_value have shape [T, B, N, H].
-    extended_key = inplace_ops.alias_inplace_update(
-        cached_states.key, time_step, tf.reshape(new_key_proj, [b, n, h]))
-    extended_value = inplace_ops.alias_inplace_update(
-        cached_states.value, time_step, tf.reshape(new_value_proj, [b, n, h]))
+    # Using a if condtion, in case it's more efficient to update the same index.
+    if synced_time_step:
+      # The extended_key and extended_value have shape [T, B, N, H].
+      extended_key = inplace_ops.alias_inplace_update(
+          cached_states.key, time_step, tf.reshape(new_key_proj, [b, n, h]))
+      extended_value = inplace_ops.alias_inplace_update(
+          cached_states.value, time_step, tf.reshape(new_value_proj, [b, n, h]))
+    else:
+      # The extended_key and extended_value have shape [T, B, N, H].
+      selected_indices = tf.range(b) + time_step * b
+      extended_key = inplace_ops.alias_inplace_update(
+          tf.reshape(cached_states.key, [-1, n, h]), selected_indices,
+          tf.reshape(new_key_proj, [b, n, h]))
+      extended_value = inplace_ops.alias_inplace_update(
+          tf.reshape(cached_states.value, [-1, n, h]), selected_indices,
+          tf.reshape(new_value_proj, [b, n, h]))
+      extended_key = tf.reshape(extended_key, [t, b, n, h])
+      extended_value = tf.reshape(extended_value, [t, b, n, h])
     updated_state = py_utils.NestedMap(key=extended_key, value=extended_value)
 
     if paddings is None:
@@ -850,11 +867,14 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
       query:    [B, N, H].
       key:      [S, B, N, H] or [S, B, N*H/128, 128].
       time_step: Current time step.
+        if it's a scalar, all the time step are the same decode step.
+        if it's a tensor, it represents current decode step for each sample.
 
     Returns:
       A Tensor of shape [S, B, N]
     """
     p = self.params
+    synced_time_step = (time_step.shape.ndims == 0)
     s, b, _, _ = py_utils.GetShape(key, 4)
     n = p.num_heads
     h = p.hidden_dim // n
@@ -866,18 +886,31 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     # term a and c.
     logits = tf.einsum('BNH,SBNH->SBN', query + theta.u,
                        tf.reshape(key, [s, b, n, h]))
-    position = tf.expand_dims(time_step - tf.range(s), 0)
-    # [1, s, emb_dim]
-    sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, position)
-    sin_emb = self.pos_proj.FProp(theta.pos_proj, sin_emb)
-    # [s, n, h]
-    sin_emb = tf.squeeze(sin_emb, 0)
-
-    # term b an d.
-    if not p.skip_term_b:
-      logits += tf.einsum('BNH,SNH->SBN', query + theta.v, sin_emb)
+    if synced_time_step:
+      position = tf.expand_dims(time_step - tf.range(s), 0)
     else:
-      logits += tf.expand_dims(tf.einsum('NH,SNH->SN', theta.v, sin_emb), 1)
+      # [b, s]
+      position = (
+          tf.expand_dims(time_step, -1) -
+          tf.tile(tf.expand_dims(tf.range(s), 0), [b, 1]))
+    # [b, s, emb_dim]
+    sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, position)
+    # [b, s, n, h]
+    sin_emb = self.pos_proj.FProp(theta.pos_proj, sin_emb)
+    if synced_time_step:
+      # [s, n, h]
+      sin_emb = tf.squeeze(sin_emb, 0)
+      # term b an d.
+      if not p.skip_term_b:
+        logits += tf.einsum('BNH,SNH->SBN', query + theta.v, sin_emb)
+      else:
+        logits += tf.expand_dims(tf.einsum('NH,SNH->SN', theta.v, sin_emb), 1)
+    else:
+      # term b an d.
+      if not p.skip_term_b:
+        logits += tf.einsum('BNH,BSNH->SBN', query + theta.v, sin_emb)
+      else:
+        logits += tf.einsum('NH,BSNH->BSN', theta.v, sin_emb)
     return logits
 
   def ExtendStep(self,
@@ -2523,7 +2556,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for fast decoding. key   - [T, B,
         N, H]. value - [T, B, N, H].
-      time_step: A scalar, the current decode step, 0-based.
+      time_step: A scalar or tensor with [B], current decode step, 0-based.
+        if it's a scalar, all the time step are the same decode step.
+        if it's a tensor, it represents current decode step for each sample.
       use_short_seq_opt: A bool, whether using short sequence optimization.
 
     Returns:
@@ -2542,13 +2577,22 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     t, b, _, _ = py_utils.GetShape(cached_states.key, 4)
     unnormalized_query_vec = query_vec
+    time_step = tf.convert_to_tensor(time_step)
+
+    if time_step.shape.ndims == 0:
+      batch_time_step = tf.tile(tf.reshape(time_step, [-1]), [b])
+    else:
+      batch_time_step = time_step
 
     # Generates mask, with shape [b, 1, t].
-    zero_padding = tf.fill([t], tf.constant(0.0, dtype=query_vec.dtype))
+    zero_padding = tf.zeros([b, t], dtype=query_vec.dtype)
+    # [b, t]
     per_step_padding = tf.where(
-        tf.less(tf.range(t), tf.fill([t], time_step + 1)), zero_padding,
+        tf.less(
+            tf.tile(tf.expand_dims(tf.range(t), 0), [b, 1]),
+            tf.expand_dims(batch_time_step + 1, -1)), zero_padding,
         tf.ones_like(zero_padding, dtype=query_vec.dtype))
-    per_step_padding = tf.tile(tf.expand_dims(per_step_padding, axis=0), [b, 1])
+    # [b, 1, t]
     per_step_padding = tf.expand_dims(per_step_padding, 1)
 
     # Layer normalization.

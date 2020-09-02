@@ -396,6 +396,146 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [4.116683, 1.340482, 1.065773, 1.035415, 4.928454, 3.161165],
           np.sum(new_source_vecs, axis=1))
 
+  @parameterized.named_parameters({
+      'testcase_name': '_long_seq',
+      'use_short_seq_opt': False,
+  })
+  def testExtendStepAsyncTimeStepSelfAttention(self, use_short_seq_opt):
+    # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
+    with self.session(use_gpu=True) as sess:
+      query_vec, cached_states, per_step_padding = self._AttentionExtendStepInputs(
+      )
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='atten', num_heads=2, input_dim=4, hidden_dim=4)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+      allzero_time_step = tf.constant([0] * 6)
+      time_step = tf.constant([0, 1, 2, 3, 4, 5])
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      ctx_vec, updated_states = l.ExtendStep(l.theta, query_vec, cached_states,
+                                             None, None, per_step_padding, 0,
+                                             use_short_seq_opt)
+      ctx_vec_async, updated_states_async = l.ExtendStep(
+          l.theta, query_vec, cached_states, None, None, per_step_padding,
+          allzero_time_step, use_short_seq_opt)
+
+      context_vec_out = sess.run(ctx_vec)
+      new_source_vecs = sess.run(updated_states.key)
+      context_vec_out_async = sess.run(ctx_vec_async)
+      new_source_vecs_async = sess.run(updated_states_async.key)
+
+      self.assertAllClose(
+          np.sum(context_vec_out, axis=1),
+          np.sum(context_vec_out_async, axis=1))
+      self.assertAllClose(
+          np.sum(new_source_vecs, axis=1),
+          np.sum(new_source_vecs_async, axis=1))
+
+      ctx_vec_async, updated_states_async = l.ExtendStep(
+          l.theta, query_vec, cached_states, None, None, per_step_padding,
+          time_step, use_short_seq_opt)
+      _, updated_states_step1 = l.ExtendStep(l.theta, query_vec, cached_states,
+                                             None, None, per_step_padding, 1,
+                                             use_short_seq_opt)
+
+      context_vec_out_async = sess.run(ctx_vec_async)
+      new_source_vecs_async = sess.run(updated_states_async.key)
+
+      new_source_vecs_async_step1 = sess.run(updated_states_step1.key)
+
+      context_vec_out_async = np.reshape(context_vec_out_async, (6, 4))
+      self.assertAllClose(
+          [5.381485, -1.943824, 2.214111, 0.840045, -0.939259, 0.752783],
+          np.sum(context_vec_out_async, axis=1))
+      # Updated status are the same at step 0.
+      self.assertAllClose(new_source_vecs_async[0][0], new_source_vecs[0][0])
+      self.assertAllClose(new_source_vecs_async[1][1],
+                          new_source_vecs_async_step1[1][1])
+
+  @parameterized.named_parameters({
+      'testcase_name': '_long_seq',
+      'use_short_seq_opt': False,
+  })
+  def testMultipleExtendStepAsyncTimeStepSelfAttention(self, use_short_seq_opt):
+    # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
+    num_heads, input_dim, hidden_dim, batch, seqlen = 2, 4, 4, 6, 6
+    with self.session(use_gpu=True):
+      tf.random.set_seed(12345)
+      (query_vec, _, paddings, _, _, _, _, _) = _AttentionInputs()
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      tf.global_variables_initializer().run()
+
+      # Verify ExtendStep() via compare N ExtendStep() with one FProp() call on
+      # a seq with length N.
+      per_step_padding = 1 - tf.linalg.band_part(
+          tf.ones((seqlen, seqlen)), -1, 0)
+      per_step_padding = tf.stack([per_step_padding] * batch)
+      dims_per_head = hidden_dim // num_heads
+
+      def _ResetCachedStates():
+        cached_source_vecs = tf.constant(
+            np.random.normal(0.1, 0.5,
+                             [seqlen, batch, num_heads, dims_per_head]),
+            dtype=tf.float32)
+        cached_source_ctxs = tf.constant(
+            np.random.normal(0.1, 0.5,
+                             [seqlen, batch, num_heads, dims_per_head]),
+            dtype=tf.float32)
+        cached_states = py_utils.NestedMap(
+            key=cached_source_vecs, value=cached_source_ctxs)
+        return cached_states
+
+      encoded_all = []
+      cached_states = _ResetCachedStates()
+      for i in range(seqlen):
+        per_step_paddings = 1. - tf.cast(
+            tf.sequence_mask([i + 1] * batch, seqlen), tf.float32)
+        per_step_paddings = tf.expand_dims(per_step_paddings, 1)
+        encoded, cached_states = l.ExtendStep(l.theta, query_vec[:, i:i + 1, :],
+                                              cached_states, paddings, None,
+                                              per_step_paddings, i)
+        # [batch, 1, dims_per_head]
+        encoded_all.append(encoded)
+
+      encoded_all_async = []
+      cached_states = _ResetCachedStates()
+      for i in range(seqlen):
+        # Sample 1 to batch -1 time step are synchoronized: 1 -> Seqlen
+        # Sample batch, the time step are [0, 0, 0, 1, .., Seqlen-2]
+        index = i - 3 if i > 2 else 0
+        new_query_vec = tf.concat([
+            query_vec[:(batch - 1), i:i + 1, :], query_vec[(batch - 1):,
+                                                           index:index + 1, :]
+        ],
+                                  axis=0)
+        time_step = tf.constant([i] * (batch - 1) + [index], dtype=tf.int32)
+        per_step_paddings = 1. - tf.cast(
+            tf.sequence_mask([i + 1] *
+                             (batch - 1) + [index + 1], seqlen), tf.float32)
+        per_step_paddings = tf.expand_dims(per_step_paddings, 1)
+        encoded, cached_states = l.ExtendStep(l.theta, new_query_vec,
+                                              cached_states, paddings, None,
+                                              per_step_paddings, time_step)
+        # [batch, 1, dims_per_head]
+        encoded_all_async.append(encoded)
+      # [batch, T, dims_per_head]
+      actual_ctx_vec = tf.concat(encoded_all, axis=1)
+      actual_ctx_vec_async = tf.concat(encoded_all_async, axis=1)
+
+      self.assertAllClose(actual_ctx_vec_async.eval()[:-1],
+                          actual_ctx_vec.eval()[:-1])
+      # Sample batch move 3 step slower than the synchronized version.
+      self.assertAllClose(actual_ctx_vec_async.eval()[-1][3:],
+                          actual_ctx_vec.eval()[-1][:3])
+
 
 class MultiSourceMultiHeadedAttentionTest(MultiHeadedAttentionTest):
 
@@ -603,6 +743,88 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(
           [32.33513, 28.584404, 20.54517, 23.407812, 18.616188, 24.212755],
           np.sum(context_vec_out, axis=1))
+
+  def testExtendStepAsyncTimeStepSelfAttention(self):
+    num_heads, input_dim, hidden_dim, batch, seqlen = 2, 4, 4, 6, 6
+    emb_dim = 4
+    with self.session(use_gpu=True):
+      tf.random.set_seed(12345)
+      query_vec, paddings = self._AttentionExtendStepInputs(
+          input_dim, batch, seqlen)
+      p = attention.MultiHeadedAttentionXL.Params().Set(
+          name='atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          rel_pos_emb_dim=emb_dim,
+          random_seed=0)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      tf.global_variables_initializer().run()
+
+      # Verify ExtendStep() via compare N ExtendStep() with one FProp() call on
+      # a seq with length N.
+      per_step_padding = 1 - tf.linalg.band_part(
+          tf.ones((seqlen, seqlen)), -1, 0)
+      per_step_padding = tf.stack([per_step_padding] * batch)
+      dims_per_head = hidden_dim // num_heads
+
+      def _ResetCachedStates():
+        cached_source_vecs = tf.constant(
+            np.random.normal(0.1, 0.5,
+                             [seqlen, batch, num_heads, dims_per_head]),
+            dtype=tf.float32)
+        cached_source_ctxs = tf.constant(
+            np.random.normal(0.1, 0.5,
+                             [seqlen, batch, num_heads, dims_per_head]),
+            dtype=tf.float32)
+        cached_states = py_utils.NestedMap(
+            key=cached_source_vecs, value=cached_source_ctxs)
+        return cached_states
+
+      encoded_all = []
+      cached_states = _ResetCachedStates()
+      for i in range(seqlen):
+        per_step_paddings = 1. - tf.cast(
+            tf.sequence_mask([i + 1] * batch, seqlen), tf.float32)
+        per_step_paddings = tf.expand_dims(per_step_paddings, 1)
+        encoded, cached_states = l.ExtendStep(l.theta, query_vec[:, i:i + 1, :],
+                                              cached_states, paddings, None,
+                                              per_step_paddings, i)
+        # [batch, 1, dims_per_head]
+        encoded_all.append(encoded)
+
+      encoded_all_async = []
+      cached_states = _ResetCachedStates()
+      for i in range(seqlen):
+        # Sample 1 to batch -1 time step are synchoronized: 1 -> Seqlen
+        # Sample batch, the time step are [0, 0, 0, 1, .., Seqlen-2]
+        index = i - 3 if i > 2 else 0
+        new_query_vec = tf.concat([
+            query_vec[:(batch - 1), i:i + 1, :], query_vec[(batch - 1):,
+                                                           index:index + 1, :]
+        ],
+                                  axis=0)
+        time_step = tf.constant([i] * (batch - 1) + [index], dtype=tf.int32)
+        per_step_paddings = 1. - tf.cast(
+            tf.sequence_mask([i + 1] *
+                             (batch - 1) + [index + 1], seqlen), tf.float32)
+        per_step_paddings = tf.expand_dims(per_step_paddings, 1)
+        encoded, cached_states = l.ExtendStep(l.theta, new_query_vec,
+                                              cached_states, paddings, None,
+                                              per_step_paddings, time_step)
+        # [batch, 1, dims_per_head]
+        encoded_all_async.append(encoded)
+      # [batch, T, dims_per_head]
+      actual_ctx_vec = tf.concat(encoded_all, axis=1)
+      actual_ctx_vec_async = tf.concat(encoded_all_async, axis=1)
+
+      self.assertAllClose(actual_ctx_vec_async.eval()[:-1],
+                          actual_ctx_vec.eval()[:-1])
+      # Sample batch move 3 step slower than the synchronized version.
+      self.assertAllClose(actual_ctx_vec_async.eval()[-1][3:],
+                          actual_ctx_vec.eval()[-1][:3])
 
   def testExtendStepSelfAttention(self):
     num_heads, input_dim, hidden_dim, batch, seqlen = 2, 4, 4, 6, 6
