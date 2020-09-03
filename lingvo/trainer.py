@@ -233,7 +233,7 @@ class Controller(base_runner.BaseRunner):
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
-        self._summary_op = tf.summary.all_summary_ops()
+        self._summary_op = tf.summary.merge_all()
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
         self._initialize_global_vars = tf.global_variables_initializer()
@@ -316,8 +316,7 @@ class Controller(base_runner.BaseRunner):
           if isinstance(summary_str, np.ndarray) and summary_str.size == 0:
             tf.logging.info('Skipping summary: %s', summary_str)
           else:
-            for summary in summary_str:
-              self._summary_writer.add_summary(summary, global_step)
+            self._summary_writer.add_summary(summary_str, global_step)
           self._SummarizeValue(global_step, 'total_num_params',
                                self._total_num_params)
           next_summary_step = global_step + summary_interval_steps
