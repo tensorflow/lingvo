@@ -28,8 +28,6 @@ To run locally:
 To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.
 """
 # pylint: enable=line-too-long
-
-
 import os
 import re
 import sys
@@ -53,8 +51,11 @@ from lingvo.core import summary_utils
 import numpy as np
 
 from lingvo import base_runner
+
 # pylint:disable=g-direct-tensorflow-import
+from tensorflow.core.protobuf.tpu import compilation_result_pb2 as tpu_compilation_result
 from tensorflow.python.tpu import device_assignment as device_assignment_lib
+from tensorflow.python.tpu import tpu
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.tpu import training_loop as tpu_training_loop
 from tensorflow.python.tpu.ops import tpu_ops
@@ -502,6 +503,7 @@ class TrainerTpu(base_runner.BaseRunner):
     self._step_rate_tracker = summary_utils.StepRateTracker()
 
     self._cluster_def = self._cluster.worker_cluster_def
+    self._compile_op = None
 
     self._initialized = threading.Event()
 
@@ -592,7 +594,7 @@ class TrainerTpu(base_runner.BaseRunner):
           # Final metrics are the avg across self._steps_per_loop steps.
           return self._eval_metrics.FinalizeMetrics(loop_result)
 
-        batch_parallel_res = tf.tpu.batch_parallel(
+        self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
             TpuTrain,
             num_shards=data_parallelism,
             device_assignment=py_utils.GetTpuDeviceAssignment())
@@ -760,7 +762,9 @@ class TrainerTpu(base_runner.BaseRunner):
       tf.logging.info('Training skipped (trial requested to stop).')
       return
     # Wait for _Loop to initialize variables first before attempting to infeed.
+    tf.logging.info('_LoopEnqueue waiting for _initialized...')
     self._initialized.wait()
+    tf.logging.info('_LoopEnqueue proceeding.')
 
     # The global step may not be initialized in this thread if the target server
     # uses session state isolation (e.g. Cloud TPUs).
@@ -790,6 +794,15 @@ class TrainerTpu(base_runner.BaseRunner):
 
       if FLAGS.run_locally == 'tpu':
         sess.run(self._initialize_global_vars)
+
+      self._SetStatusMessage('Compiling ...')
+      compilation_result = sess.run(self._compile_op)
+      comp_result_proto = tpu_compilation_result.CompilationResultProto()
+      comp_result_proto.ParseFromString(compilation_result)
+      if comp_result_proto.status_error_message:
+        tf.logging.fatal('Compilation failed: {}'.format(
+            comp_result_proto.status_error_message))
+      self._SetStatusMessage('Compiling done.')
 
       if FLAGS.checkpoint_in_trainer_tpu:
         # For b/134415393 -- better to initialize to a known state than
