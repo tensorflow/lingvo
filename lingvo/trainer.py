@@ -731,9 +731,14 @@ class TrainerTpu(base_runner.BaseRunner):
     concatenated_arrays = [array.concat() for array in output_arrays]
     return dict(zip(sorted(per_example_tensors), concatenated_arrays))
 
+  def _CleanUp(self):
+    # If there's an exception, we want _LoopEnqueue to wait until
+    # everything is initialized before starting up.
+    self._initialized.clear()
+
   def Start(self):
     # Run training.
-    self._RunLoop('trainer', self._Loop)
+    self._RunLoop('trainer', self._Loop, cleanup_func=self._CleanUp)
 
   def _InfeedLoop(self, sess):
     tf.logging.info('_InfeedLoop start')

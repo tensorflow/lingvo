@@ -182,13 +182,14 @@ class BaseRunner:
     return path
 
   @py_utils.Retry()
-  def _RunLoop(self, job_name, loop_func, loop_args=()):
+  def _RunLoop(self, job_name, loop_func, loop_args=(), cleanup_func=None):
     """Runs `loop_func`, retrying on expected errors.
 
     Args:
       job_name: string job name.
       loop_func: callable to run and retry on expected errors.
       loop_args: list or tuple of arguments to be passed to the loop_func.
+      cleanup_func: callable to run before retry.
     """
     try:
       tf.logging.info('%s started.', job_name)
@@ -248,6 +249,8 @@ class BaseRunner:
         for msg in traceback.format_exc().split('\n'):
           tf.logging.vlog(1, msg)
 
+        if cleanup_func:
+          cleanup_func()
         raise
       else:
         # Allow the job to complete on errors that are unlikely to be transient,
