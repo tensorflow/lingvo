@@ -241,7 +241,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
         raise ValueError('use_per_core_infeed need to have use_per_host_infeed '
                          'but not use_partitioned_infeed_queue.')
     if (cluster.num_devices_per_split > num_cores_per_host and
-        p.use_per_host_infeed):
+        (p.use_per_host_infeed and not p.use_per_core_infeed)):
       tf.logging.fatal('Doesn\'t support per host infeed mode when '
                        'num_devices_per_split({}) > num_cores_per_host({}).'
                        'Each host must be able to accommodate >= 1 split when '
