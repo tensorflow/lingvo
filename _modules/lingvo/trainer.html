@@ -879,9 +879,14 @@
     <span class="n">concatenated_arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">array</span><span class="o">.</span><span class="n">concat</span><span class="p">()</span> <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">output_arrays</span><span class="p">]</span>
     <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">),</span> <span class="n">concatenated_arrays</span><span class="p">))</span></div>
 
+<div class="viewcode-block" id="TrainerTpu._CleanUp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._CleanUp">[docs]</a>  <span class="k">def</span> <span class="nf">_CleanUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># If there&#39;s an exception, we want _LoopEnqueue to wait until</span>
+    <span class="c1"># everything is initialized before starting up.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="TrainerTpu.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Run training.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_CleanUp</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainerTpu._InfeedLoop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._InfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_InfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop start&#39;</span><span class="p">)</span>

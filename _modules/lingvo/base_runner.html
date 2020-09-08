@@ -330,13 +330,14 @@
     <span class="k">return</span> <span class="n">path</span></div>
 
 <div class="viewcode-block" id="BaseRunner._RunLoop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunLoop">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">()</span>
-  <span class="k">def</span> <span class="nf">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">loop_func</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">()):</span>
+  <span class="k">def</span> <span class="nf">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">loop_func</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">(),</span> <span class="n">cleanup_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs `loop_func`, retrying on expected errors.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      job_name: string job name.</span>
 <span class="sd">      loop_func: callable to run and retry on expected errors.</span>
 <span class="sd">      loop_args: list or tuple of arguments to be passed to the loop_func.</span>
+<span class="sd">      cleanup_func: callable to run before retry.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> started.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
@@ -396,6 +397,8 @@
         <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">cleanup_func</span><span class="p">:</span>
+          <span class="n">cleanup_func</span><span class="p">()</span>
         <span class="k">raise</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Allow the job to complete on errors that are unlikely to be transient,</span>
