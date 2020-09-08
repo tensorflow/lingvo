@@ -23,6 +23,8 @@ from lingvo.core import bn_layers
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
+from lingvo.core import py_utils
+from lingvo.core import recurrent
 
 
 class LConvLayer(base_layer.BaseLayer):
@@ -154,9 +156,13 @@ class LConvLayer(base_layer.BaseLayer):
       inputs = tf.expand_dims(inputs, 2)
       inputs, paddings = self.depthwise_conv1d.FProp(theta.depthwise_conv1d,
                                                      inputs, paddings)
+      # normalize on 4d inputs. sometimes normalization layer reshapes inputs,
+      # so there's no hurry to squeeze the input back, which adds extra overhead
+      # on tpu.
+      # TODO(jamesqin): add paddings in the call, for causal case.
+      inputs = self.norm.FProp(theta.norm, inputs)
       inputs = tf.squeeze(inputs, 2)
 
-      inputs = self.norm.FProp(theta.norm, inputs)
       inputs = self._ApplyActivation(inputs, p.conv_activation)
 
       inputs = self.linear_end.FProp(theta.linear_end, inputs)
@@ -222,6 +228,10 @@ class ConformerLayer(base_layer.BaseLayer):
              layers_with_attention.TransformerFeedForwardLayer.Params(),
              'Layer params for Feed forward layer at the end.')
     p.Define('final_ln_tpl', layers.LayerNorm.Params(), 'Final layer norm.')
+    # https://b.corp.google.com/issues/167460492#comment16
+    p.Define(
+        'remat', False, 'If to rematerialize the layer. If true, '
+        'intermediate tensors are not saved in FProp().')
     return p
 
   @classmethod
@@ -339,7 +349,7 @@ class ConformerLayer(base_layer.BaseLayer):
     inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
     return inputs, paddings
 
-  def FProp(self, theta, inputs, paddings):
+  def _FProp(self, theta, inputs, paddings):
     p = self.params
 
     with tf.name_scope(p.name):
@@ -355,3 +365,24 @@ class ConformerLayer(base_layer.BaseLayer):
 
       inputs = self.final_ln.FProp(theta.final_ln, inputs)
       return inputs, paddings
+
+  def FProp(self, theta, inputs, paddings):
+    p = self.params
+    if not p.remat:
+      return self._FProp(theta, inputs, paddings)
+
+    def CellFn(theta, state0, unused_inputs):
+      outs, out_paddings = self._FProp(theta, state0.inputs, state0.paddings)
+      return py_utils.NestedMap(
+          inputs=outs, paddings=out_paddings), py_utils.NestedMap()
+
+    state0 = py_utils.NestedMap(inputs=inputs, paddings=paddings)
+    _, state1 = recurrent.Recurrent(
+        theta=theta,
+        state0=state0,
+        inputs=py_utils.NestedMap(
+            inputs=tf.zeros([1, 0])),  # A dummy input of shape [T, ?].
+        cell_fn=CellFn,
+        allow_implicit_capture=p.allow_implicit_capture)
+
+    return state1.inputs, state1.paddings
