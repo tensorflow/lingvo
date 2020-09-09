@@ -1785,6 +1785,38 @@ value - [target_time, target_batch, num_heads, dim_per_head].</p>
 
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.batch_major_attention.TransformerFlops">
+<code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">TransformerFlops</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">num_heads</span></em>, <em class="sig-param"><span class="n">ff_dim</span></em>, <em class="sig-param"><span class="n">atten_dim</span></em>, <em class="sig-param"><span class="n">model_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerFlops"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerFlops" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute FLOPs for Transformer layer without auxiliary attention.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Attention Layer FLOPs (N = num attention heads, H = dim per head):</dt><dd><p>q, k, v projections, incl bias: 3 x ‘BTD,DNH-&gt;BTNH’ -&gt; 6*N*H*D*B*T
+logits: ‘BTNH,BDNH-&gt;BNTD’ -&gt; (2*H-1)*N*B*T^2
+softmax: 5 ops per element in BNTD -&gt; 5*N*D*B*T
+context: ‘BNTD,BDNH-&gt;BTNH’ -&gt; (2*T-1)*N*H*B*T
+output proj: ‘BTNH,DNH-&gt;BTD’ -&gt; (2*N-1)*(2*H-1)*D*B*T</p>
+</dd>
+</dl>
+<p>2 residuals FLOPs: 2*D*B*T
+1 FF layer FLOPs: 4*ff_hidden*D*B*T</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Input dimensions to the layer, [Batch, Time, Dim].</p></li>
+<li><p><strong>num_heads</strong> – Number of attention heads for layer.</p></li>
+<li><p><strong>ff_dim</strong> – Feedforward hidden dimension.</p></li>
+<li><p><strong>atten_dim</strong> – Attention hidden dimension.</p></li>
+<li><p><strong>model_dim</strong> – Dimension of the model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Total FLOPs of the transformer layer.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt id="lingvo.core.batch_major_attention.MultiSourceTransformerLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">MultiSourceTransformerLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiSourceTransformerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiSourceTransformerLayer" title="Permalink to this definition">¶</a></dt>

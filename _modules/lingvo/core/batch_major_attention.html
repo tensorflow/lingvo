@@ -172,6 +172,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention_util</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">computation_cost</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_builder</span> <span class="k">as</span> <span class="n">conv_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gpipe</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
@@ -2881,6 +2882,8 @@
             <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">2048</span><span class="p">),</span> <span class="s1">&#39;Transformer Feed-Forward Layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, each training example may pack multiple sequences.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;compute_flops&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If True adds computation cost for the layer FLOPs&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TransformerLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
@@ -3009,6 +3012,18 @@
 <span class="sd">      atten_probs: [B, N, T, S].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_flops</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Current FLOPs computation does not include auxiliary attention&#39;</span><span class="p">)</span>
+      <span class="n">computation_cost</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span>
+          <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;flops&#39;</span><span class="p">,</span>
+          <span class="n">TransformerFlops</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+              <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span>
+                                <span class="n">p</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">),</span>
+              <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span>
+                                <span class="n">p</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">),</span>
+              <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)))</span>
     <span class="c1"># First the self-attention layer.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">aux_segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Need to specify aux_segment_mask &#39;</span>
@@ -3106,6 +3121,44 @@
         <span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">atten_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">cur_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
+
+
+<span class="c1"># TODO(garrettaxel): Distribute the computation to downstream layers.</span>
+<div class="viewcode-block" id="TransformerFlops"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerFlops">[docs]</a><span class="k">def</span> <span class="nf">TransformerFlops</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">ff_dim</span><span class="p">,</span> <span class="n">atten_dim</span><span class="p">,</span> <span class="n">model_dim</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute FLOPs for Transformer layer without auxiliary attention.</span>
+
+<span class="sd">    Attention Layer FLOPs (N = num attention heads, H = dim per head):</span>
+<span class="sd">      q, k, v projections, incl bias: 3 x &#39;BTD,DNH-&gt;BTNH&#39; -&gt; 6*N*H*D*B*T</span>
+<span class="sd">      logits: &#39;BTNH,BDNH-&gt;BNTD&#39; -&gt; (2*H-1)*N*B*T^2</span>
+<span class="sd">      softmax: 5 ops per element in BNTD -&gt; 5*N*D*B*T</span>
+<span class="sd">      context: &#39;BNTD,BDNH-&gt;BTNH&#39; -&gt; (2*T-1)*N*H*B*T</span>
+<span class="sd">      output proj: &#39;BTNH,DNH-&gt;BTD&#39; -&gt; (2*N-1)*(2*H-1)*D*B*T</span>
+
+<span class="sd">    2 residuals FLOPs: 2*D*B*T</span>
+<span class="sd">    1 FF layer FLOPs: 4*ff_hidden*D*B*T</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    inputs:    Input dimensions to the layer, [Batch, Time, Dim].</span>
+<span class="sd">    num_heads: Number of attention heads for layer.</span>
+<span class="sd">    ff_dim:    Feedforward hidden dimension.</span>
+<span class="sd">    atten_dim: Attention hidden dimension.</span>
+<span class="sd">    model_dim: Dimension of the model.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Total FLOPs of the transformer layer.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">f</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ff_dim</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+  <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">atten_dim</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+  <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+  <span class="n">d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>  <span class="c1"># dim per head</span>
+  <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">multi_head_atten_flops</span> <span class="o">=</span> <span class="p">(</span><span class="mi">6</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">d</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
+                            <span class="mi">5</span> <span class="o">*</span> <span class="n">n</span> <span class="o">*</span> <span class="n">d</span> <span class="o">+</span> <span class="n">d</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+  <span class="n">residual_flops</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">d</span>
+  <span class="n">ff_flops</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">f</span> <span class="o">*</span> <span class="n">d</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">multi_head_atten_flops</span> <span class="o">+</span> <span class="n">residual_flops</span> <span class="o">+</span> <span class="n">ff_flops</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">t</span></div>
 
 
 <div class="viewcode-block" id="MultiSourceTransformerLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceTransformerLayer">[docs]</a><span class="k">class</span> <span class="nc">MultiSourceTransformerLayer</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">):</span>
