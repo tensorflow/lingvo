@@ -59,6 +59,21 @@ class TestLayer(base_layer.BaseLayer):
             ]))
 
 
+class TestParentLayer(base_layer.BaseLayer):
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('child', TestLayer.Params(), 'The child layer params.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self.CreateChild('child_0', p.child)
+    self.CreateChild('child_1', p.child)
+
+
 class BaseLayerTest(test_utils.TestCase):
 
   def testCopyBaseParams(self):
@@ -85,6 +100,22 @@ class BaseLayerTest(test_utils.TestCase):
     self.assertFalse(to_param.vn.global_vn)
     self.assertEqual(4321, to_param.random_seed)
     self.assertFalse(to_param.skip_lp_regularization)
+
+  def testCreateChild(self):
+    layer_p = TestParentLayer.Params()
+    layer_p.name = 'test'
+    layer = layer_p.Instantiate()
+    self.assertEqual(
+        {
+            'child_0': {
+                'w': [4, 4],
+                'b': [4]
+            },
+            'child_1': {
+                'w': [4, 4],
+                'b': [4]
+            },
+        }, tf.nest.map_structure(lambda v: v.shape.as_list(), layer.vars))
 
   def testCreateChildren(self):
     layer_p = base_layer.BaseLayer.Params()

@@ -870,9 +870,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     if hasattr(self, '_disable_create_child') and self._disable_create_child:
       raise ValueError('Attempting to call CreateChild outside of __init__.')
     self._CheckName(name)
-    if not params.name:
-      params.name = name
     p = self.CopyBaseParams(self.params, params.Copy())
+    if not p.name:
+      p.name = name
     child = p.Instantiate()
     self._private_children[name] = child
 
