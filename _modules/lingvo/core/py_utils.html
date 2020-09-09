@@ -245,13 +245,9 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;disable_py_utils_debug&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;If True disables all py_utils.Debug() logs.&#39;</span><span class="p">)</span>
 
-<span class="c1"># TODO(laigd): remove these after the migration.</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;if_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-                     <span class="s1">&#39;If True use tf.function for py_utils.If().&#39;</span><span class="p">)</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;while_loop_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-                     <span class="s1">&#39;If True use tf.function for py_utils.WhileLoop().&#39;</span><span class="p">)</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;call_defun_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-                     <span class="s1">&#39;If True use tf.function for py_utils.CallDefun().&#39;</span><span class="p">)</span>
+<span class="c1"># TODO(laigd): remove after the migration.</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;If True use tf.function for If/WhileLoop/CallDefun.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -5199,7 +5195,7 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A Nested Structure equivalent to what fwd(args) computes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;call_defun_use_tf_function&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">):</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineDefun</span>
@@ -5225,7 +5221,7 @@
   <span class="n">ret_dtypes</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
   <span class="n">get_dtype</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
 
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;if_use_tf_function&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">):</span>
 
     <span class="nd">@_WrapFunction</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">inputs</span><span class="p">)))</span>
     <span class="k">def</span> <span class="nf">ThenBranch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -5298,7 +5294,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">state</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">loop_state</span><span class="o">=</span><span class="n">loop_state</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;while_loop_use_tf_function&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">):</span>
 
     <span class="nd">@_WrapFunction</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">state</span><span class="p">)))</span>
     <span class="k">def</span> <span class="nf">LoopCond</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
