@@ -97,13 +97,9 @@ tf.flags.DEFINE_bool(
 tf.flags.DEFINE_bool('disable_py_utils_debug', False,
                      'If True disables all py_utils.Debug() logs.')
 
-# TODO(laigd): remove these after the migration.
-tf.flags.DEFINE_bool('if_use_tf_function', False,
-                     'If True use tf.function for py_utils.If().')
-tf.flags.DEFINE_bool('while_loop_use_tf_function', False,
-                     'If True use tf.function for py_utils.WhileLoop().')
-tf.flags.DEFINE_bool('call_defun_use_tf_function', False,
-                     'If True use tf.function for py_utils.CallDefun().')
+# TODO(laigd): remove after the migration.
+tf.flags.DEFINE_bool('use_tf_function', False,
+                     'If True use tf.function for If/WhileLoop/CallDefun.')
 
 tf.flags.DEFINE_bool(
     'stateless_vars_init', False,
@@ -5051,7 +5047,7 @@ def CallDefun(fwd,
   Returns:
     A Nested Structure equivalent to what fwd(args) computes.
   """
-  if _FromGlobal('call_defun_use_tf_function'):
+  if _FromGlobal('use_tf_function'):
     fn = _DefineFunction
   else:
     fn = _DefineDefun
@@ -5077,7 +5073,7 @@ def If(cond, inputs, then_branch, else_branch):
   ret_dtypes = NestedMap()
   get_dtype = lambda x: x.dtype
 
-  if _FromGlobal('if_use_tf_function'):
+  if _FromGlobal('use_tf_function'):
 
     @_WrapFunction(input_signature=Flatten(_TensorSpecs(inputs)))
     def ThenBranch(*args):
@@ -5150,7 +5146,7 @@ def WhileLoop(cond, body, loop_state):
   """
   state = NestedMap(loop_state=loop_state)
 
-  if _FromGlobal('while_loop_use_tf_function'):
+  if _FromGlobal('use_tf_function'):
 
     @_WrapFunction(input_signature=Flatten(_TensorSpecs(state)))
     def LoopCond(*args):

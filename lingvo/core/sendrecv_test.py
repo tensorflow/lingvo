@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for sendrecv."""
 
+from absl.testing import flagsaver
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import py_utils
@@ -64,41 +65,41 @@ class SendrecvTest(test_utils.TestCase, parameterized.TestCase):
       ("_function", True),
   )
   def testInsideFunction(self, use_tf_function):
-    FLAGS.call_defun_use_tf_function = use_tf_function
-    devices = _ListDevices(_Target())
-    sender, recver = devices[0], devices[-1]
-    shape = []
+    with flagsaver.flagsaver(use_tf_function=use_tf_function):
+      devices = _ListDevices(_Target())
+      sender, recver = devices[0], devices[-1]
+      shape = []
 
-    def SendRecv(graph, dtype):
-      to_send = np.array(3.1415 + 2j).astype(dtype.as_numpy_dtype)
-      with graph.as_default():
-        ch = sendrecv.Channel(dtype, shape, sender, recver, "test")
-        with tf.device(sender):
+      def SendRecv(graph, dtype):
+        to_send = np.array(3.1415 + 2j).astype(dtype.as_numpy_dtype)
+        with graph.as_default():
+          ch = sendrecv.Channel(dtype, shape, sender, recver, "test")
+          with tf.device(sender):
 
-          # py_utils.CallDefun requires non-empty inputs. Same below.
-          def Send(_):
-            src_val = tf.constant(to_send)
-            ch.Send(src_val)
-            return tf.convert_to_tensor(1.0)
+            # py_utils.CallDefun requires non-empty inputs. Same below.
+            def Send(_):
+              src_val = tf.constant(to_send)
+              ch.Send(src_val)
+              return tf.convert_to_tensor(1.0)
 
-          send_op = py_utils.CallDefun(Send, tf.convert_to_tensor(0))
+            send_op = py_utils.CallDefun(Send, tf.convert_to_tensor(0))
 
-        with tf.device(recver):
+          with tf.device(recver):
 
-          def Recv(_):
-            return ch.Recv()
+            def Recv(_):
+              return ch.Recv()
 
-          recv_val = py_utils.CallDefun(Recv, tf.convert_to_tensor(0))
-      return send_op, recv_val, to_send
+            recv_val = py_utils.CallDefun(Recv, tf.convert_to_tensor(0))
+        return send_op, recv_val, to_send
 
-    for dtype in tf.float32, tf.complex64:
-      g = tf.Graph()
-      send_op, recv_val, sent_val = SendRecv(g, dtype)
+      for dtype in tf.float32, tf.complex64:
+        g = tf.Graph()
+        send_op, recv_val, sent_val = SendRecv(g, dtype)
 
-      with tf.Session(_Target(), graph=g):
-        _, val = self.evaluate([send_op, recv_val])
+        with tf.Session(_Target(), graph=g):
+          _, val = self.evaluate([send_op, recv_val])
 
-      self.assertAllClose(sent_val, val)
+        self.assertAllClose(sent_val, val)
 
 
 if __name__ == "__main__":

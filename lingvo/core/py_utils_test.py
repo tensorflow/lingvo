@@ -2908,7 +2908,7 @@ def CallDefunTestParameters(test_fn):
     # TODO(laigd): remove this check when 312743821 is in the release.
     if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
       return
-    with flagsaver.flagsaver(call_defun_use_tf_function=use_tf_function):
+    with flagsaver.flagsaver(use_tf_function=use_tf_function):
       test_fn(self, bak_as_function)
 
   decorator = parameterized.named_parameters(
@@ -3035,7 +3035,7 @@ def IfTestParameters(test_fn):
     # TODO(laigd): remove this check when 313682500 is in the release.
     if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
       return
-    with flagsaver.flagsaver(if_use_tf_function=use_tf_function):
+    with flagsaver.flagsaver(use_tf_function=use_tf_function):
       test_fn(self)
 
   decorator = parameterized.named_parameters(

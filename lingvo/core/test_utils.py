@@ -34,9 +34,7 @@ FLAGS = tf.flags.FLAGS
 # release.
 if tf.executing_eagerly() and tf.compat.v1.__version__ >= '2.3.0':
   try:
-    FLAGS.if_use_tf_function = True
-    FLAGS.while_loop_use_tf_function = True
-    FLAGS.call_defun_use_tf_function = True
+    FLAGS.use_tf_function = True
   except tf.flags.UnrecognizedFlagError:
     pass
 

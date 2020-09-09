@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for recurrent."""
 
+from absl.testing import flagsaver
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -151,10 +152,8 @@ def RecurrentTestParameters(test_fn):
     # release.
     if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
       return
-    FLAGS.if_use_tf_function = use_tf_function
-    FLAGS.while_loop_use_tf_function = use_tf_function
-    FLAGS.call_defun_use_tf_function = use_tf_function
-    test_fn(self)
+    with flagsaver.flagsaver(use_tf_function=use_tf_function):
+      test_fn(self)
 
   decorator = parameterized.named_parameters(
       ('_defun', False),
