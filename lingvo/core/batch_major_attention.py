@@ -24,6 +24,7 @@ from lingvo import compat as tf
 from lingvo.core import attention_util
 from lingvo.core import base_layer
 from lingvo.core import builder
+from lingvo.core import computation_cost
 from lingvo.core import conv_layers_builder as conv_layers
 from lingvo.core import gpipe
 from lingvo.core import hyperparams
@@ -2733,6 +2734,8 @@ class TransformerLayer(base_layer.BaseLayer):
             hidden_dim=2048), 'Transformer Feed-Forward Layer params.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
+    p.Define('compute_flops', False,
+             'If True adds computation cost for the layer FLOPs')
     return p
 
   @classmethod
@@ -2861,6 +2864,18 @@ class TransformerLayer(base_layer.BaseLayer):
       atten_probs: [B, N, T, S].
     """
     p = self.params
+    if p.compute_flops:
+      assert not p.has_aux_atten, (
+          'Current FLOPs computation does not include auxiliary attention')
+      computation_cost.Add(
+          self, 'flops',
+          TransformerFlops(
+              tf.shape(query_vec), p.tr_atten_tpl.num_heads,
+              symbolic.EvalExpr(symbolic.TENSOR_VALUES,
+                                p.tr_fflayer_tpl.hidden_dim),
+              symbolic.EvalExpr(symbolic.TENSOR_VALUES,
+                                p.tr_atten_tpl.hidden_dim),
+              symbolic.EvalExpr(symbolic.TENSOR_VALUES, p.input_dim)))
     # First the self-attention layer.
     if p.packed_input:
       assert aux_segment_mask is not None, ('Need to specify aux_segment_mask '
@@ -2958,6 +2973,44 @@ class TransformerLayer(base_layer.BaseLayer):
         theta.fflayer, atten_vec,
         tf.zeros([target_batch, 1], dtype=atten_vec.dtype))
     return cur_output, updated_states
+
+
+# TODO(garrettaxel): Distribute the computation to downstream layers.
+def TransformerFlops(inputs, num_heads, ff_dim, atten_dim, model_dim):
+  """Compute FLOPs for Transformer layer without auxiliary attention.
+
+    Attention Layer FLOPs (N = num attention heads, H = dim per head):
+      q, k, v projections, incl bias: 3 x 'BTD,DNH->BTNH' -> 6*N*H*D*B*T
+      logits: 'BTNH,BDNH->BNTD' -> (2*H-1)*N*B*T^2
+      softmax: 5 ops per element in BNTD -> 5*N*D*B*T
+      context: 'BNTD,BDNH->BTNH' -> (2*T-1)*N*H*B*T
+      output proj: 'BTNH,DNH->BTD' -> (2*N-1)*(2*H-1)*D*B*T
+
+    2 residuals FLOPs: 2*D*B*T
+    1 FF layer FLOPs: 4*ff_hidden*D*B*T
+
+  Args:
+    inputs:    Input dimensions to the layer, [Batch, Time, Dim].
+    num_heads: Number of attention heads for layer.
+    ff_dim:    Feedforward hidden dimension.
+    atten_dim: Attention hidden dimension.
+    model_dim: Dimension of the model.
+
+  Returns:
+    Total FLOPs of the transformer layer.
+  """
+  f = tf.cast(ff_dim, tf.int64)
+  a = tf.cast(atten_dim, tf.int64)
+  n = tf.cast(num_heads, tf.int64)
+  d = tf.cast(model_dim, tf.int64)
+  h = tf.cast(a / n, tf.int64)  # dim per head
+  inputs = tf.cast(inputs, tf.int64)
+  b, t = inputs[0], inputs[1]
+  multi_head_atten_flops = (6 * a * d + n * t * (2 * h - 1) + a * (2 * t - 1) +
+                            5 * n * d + d * (2 * h - 1) * (2 * n - 1))
+  residual_flops = 2 * d
+  ff_flops = 4 * f * d
+  return (multi_head_atten_flops + residual_flops + ff_flops) * b * t
 
 
 class MultiSourceTransformerLayer(TransformerLayer):
