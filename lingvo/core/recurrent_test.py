@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for recurrent."""
 
-from absl.testing import flagsaver
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -146,19 +145,17 @@ def ElmanOutGrad(dout):
 
 
 def RecurrentTestParameters(test_fn):
+  use_tf_function = py_utils._FromGlobal('use_tf_function')
 
-  def WrappedTestFn(self, use_tf_function):
+  def WrappedTestFn(self):
     # TODO(laigd): remove this check when 312743821 and 313682500 are in the
     # release.
     if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
       return
-    with flagsaver.flagsaver(use_tf_function=use_tf_function):
-      test_fn(self)
+    test_fn(self)
 
-  decorator = parameterized.named_parameters(
-      ('_defun', False),
-      ('_function', True),
-  )
+  decorator = parameterized.named_parameters((
+      '_function',) if use_tf_function else ('_defun',))
   return decorator(WrappedTestFn)
 
 

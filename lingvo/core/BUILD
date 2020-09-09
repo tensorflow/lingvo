@@ -1422,7 +1422,6 @@ py_library(
         ":recurrent",
         ":symbolic",
         ":test_utils",
-        # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
@@ -1535,7 +1534,6 @@ py_test(
     deps = [
         ":sendrecv",
         ":test_utils",
-        # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
