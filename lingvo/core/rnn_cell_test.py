@@ -807,47 +807,52 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
   # pyformat: disable
   @parameterized.named_parameters(
-      ('LSTMCell', rnn_cell.LayerNormalizedLSTMCell, None,
+      ('LSTMCell', rnn_cell.LayerNormalizedLSTMCell, None, None,
        [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
         [-0.00272907, 0.31641623]],
        [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
         [-0.01014781, 0.46336061]]),
-      ('LSTMCellSimple', rnn_cell.LayerNormalizedLSTMCellSimple, None,
+      ('LSTMCellSimple', rnn_cell.LayerNormalizedLSTMCellSimple, None, True,
        [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
         [-0.00272907, 0.31641623]],
        [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
         [-0.01014781, 0.46336061]]),
-      ('NormLSTMCellSimple', rnn_cell.NormalizedLSTMCellSimple, None,
+      ('NormLSTMCellSimple', rnn_cell.NormalizedLSTMCellSimple, None, False,
        [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
         [-0.00272907, 0.31641623]],
        [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
         [-0.01014781, 0.46336061]]),
-      ('LSTMCellLean', rnn_cell.LayerNormalizedLSTMCellLean, None,
+      ('LSTMCellLean', rnn_cell.LayerNormalizedLSTMCellLean, None, False,
        [[-0.20482419, 0.55676991], [-0.55648255, 0.20511301],
         [-0.20482422, 0.55676997]],
        [[0.14834785, 0.3804915], [-0.00927544, 0.38059637],
         [-0.01014781, 0.46336061]]),
-      ('LSTMCellProj', rnn_cell.LayerNormalizedLSTMCellSimple, 4,
+      ('LSTMCellProj', rnn_cell.LayerNormalizedLSTMCellSimple, 4, True,
        [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
         [0.47132283, 0.03284446]],
        [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
         [-0.15832338, 1.22740746, 0.19910297, -0.14970526],
         [-0.57552528, 0.9139322, 0.41805002, 0.58792269]]),
-      ('NormLSTMCellProj', rnn_cell.NormalizedLSTMCellSimple, 4,
+      ('NormLSTMCellProj', rnn_cell.NormalizedLSTMCellSimple, 4, False,
        [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
         [0.47132283, 0.03284446]],
        [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
         [-0.15832338, 1.22740746, 0.19910297, -0.14970526],
         [-0.57552528, 0.9139322, 0.41805002, 0.58792269]]),
-      ('LSTMCellLeanProj', rnn_cell.LayerNormalizedLSTMCellLean, 4,
+      ('LSTMCellLeanProj', rnn_cell.LayerNormalizedLSTMCellLean, 4, False,
        [[0.51581347, 0.22646663], [0.56025136, 0.16842051],
         [0.58704823, -0.07126484]],
        [[-0.36676273, 1.03294277, 0.24229959, 0.43976486],
         [-0.15832338, 1.22740746, 0.19910295, -0.14970522],
         [-0.57552516, 0.9139322, 0.41805002, 0.58792269]]))
   # pyformat: enable
-  def testLN(self, cell_cls, num_hidden_nodes, m_expected, c_expected):
-    m_v, c_v = self._testLNLSTMCell(cell_cls.Params(), num_hidden_nodes)
+  def testLN(self, cell_cls, num_hidden_nodes, enable_lstm_bias, m_expected,
+             c_expected):
+    tf.logging.info('cell_cls is %s', cell_cls)
+    cell_params = cell_cls.Params()
+    if enable_lstm_bias is not None:
+      cell_params.Set(enable_lstm_bias=enable_lstm_bias)
+    m_v, c_v = self._testLNLSTMCell(cell_params, num_hidden_nodes)
     self.assertAllClose(m_expected, m_v)
     self.assertAllClose(c_expected, c_v)
 

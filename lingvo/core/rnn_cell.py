@@ -1290,14 +1290,20 @@ class NormalizedLSTMCellSimple(LSTMCellSimple):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
+    # p.enable_lstm_bias and p.forget_gate_bias are not used in this cell.
+    assert p.forget_gate_bias == 0.0
+    assert not p.enable_lstm_bias
     gates_name = ['i_i', 'i_g', 'f_g', 'o_g']
     for gate in gates_name:
       norm_layer_p = p.norm_layer_tpl.Copy().Set(input_dim=self.hidden_size)
       self.CreateChild('norm_' + gate, norm_layer_p)
 
   def _Gates(self, xmw, theta, state0, inputs):
+    p = self.params
     # Retrieve i_i, i_g, f_g, o_g
-    gates = self._RetrieveAndSplitGates(xmw, theta)
+    gates = tf.split(xmw, num_or_size_splits=self.num_gates, axis=1)
+    if p.couple_input_forget_gates:
+      gates = gates[0], None, gates[1], gates[2]
     gates_name = ['i_i', 'i_g', 'f_g', 'o_g']
     for i, gate_name in enumerate(gates_name):
       norm_layer_name = 'norm_' + gate_name
