@@ -233,6 +233,31 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">_UnitZ</span><span class="p">(</span><span class="n">yaw</span><span class="p">),</span> <span class="n">_UnitX</span><span class="p">(</span><span class="n">roll</span><span class="p">)),</span> <span class="n">_UnitY</span><span class="p">(</span><span class="n">pitch</span><span class="p">))</span></div>
 
 
+<div class="viewcode-block" id="BatchMakeRotationMatrix"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.BatchMakeRotationMatrix">[docs]</a><span class="k">def</span> <span class="nf">BatchMakeRotationMatrix</span><span class="p">(</span><span class="n">yaw</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Create a Nx3x3 rotation matrix from yaw.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    yaw: float tensor representing a yaw angle in radians.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A [N, 3, 3] tensor corresponding to a rotation matrix.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">cos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">yaw</span><span class="p">)</span>
+  <span class="n">sin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">yaw</span><span class="p">)</span>
+  <span class="n">zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">cos</span><span class="p">)</span>
+  <span class="n">one</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">cos</span><span class="p">)</span>
+
+  <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+      <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span>
+      <span class="o">-</span><span class="n">sin</span><span class="p">,</span> <span class="n">cos</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span>
+      <span class="n">zero</span><span class="p">,</span> <span class="n">zero</span><span class="p">,</span> <span class="n">one</span>
+  <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pyformat: disable</span>
+  <span class="n">rotation_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rotation_matrix</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+  <span class="k">return</span> <span class="n">rotation_matrix</span></div>
+
+
 <div class="viewcode-block" id="CoordinateTransform"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.CoordinateTransform">[docs]</a><span class="k">def</span> <span class="nf">CoordinateTransform</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">pose</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Translate &#39;points&#39; to coordinates according to &#39;pose&#39; vector.</span>
 
