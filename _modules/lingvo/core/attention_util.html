@@ -389,12 +389,38 @@
     <span class="k">return</span> <span class="n">term_d</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="_AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util._AttenLogits">[docs]</a><span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
-                 <span class="n">key</span><span class="p">,</span>
-                 <span class="n">abs_pos_emb</span><span class="p">,</span>
-                 <span class="n">content_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">positional_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.AttenLogits">[docs]</a><span class="k">def</span> <span class="nf">AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes attention logits.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    query: A Tensor of shape [B, T, N, H]</span>
+<span class="sd">    key: A Tensor of shape [B, T, N, H]</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Tensor of shape [B, N, T, S]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,BSNH-&gt;BNTS&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AttenContext"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.AttenContext">[docs]</a><span class="k">def</span> <span class="nf">AttenContext</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes the attention context vector based on per-head probs and value.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    probs: [B, N, T, S].</span>
+<span class="sd">    value: [B, S, N, H].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    encoded: [B, T, N, H].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNTS,BSNH-&gt;BTNH&#39;</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_AttenLogitsXL"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util._AttenLogitsXL">[docs]</a><span class="k">def</span> <span class="nf">_AttenLogitsXL</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
+                   <span class="n">key</span><span class="p">,</span>
+                   <span class="n">abs_pos_emb</span><span class="p">,</span>
+                   <span class="n">content_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">positional_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Attention logits from ...</span>
 
 <span class="sd">  Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of</span>
@@ -477,8 +503,8 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The attention logits tensor. [B, N, T, T]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">positional_bias</span><span class="p">,</span>
-                      <span class="n">skip_term_b</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">_AttenLogitsXL</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">positional_bias</span><span class="p">,</span>
+                        <span class="n">skip_term_b</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="AttenLogitsRPE"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.AttenLogitsRPE">[docs]</a><span class="k">def</span> <span class="nf">AttenLogitsRPE</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">):</span>
@@ -503,7 +529,7 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The attention logits tensor. [B, N, T, T]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">_AttenLogitsXL</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="KMeansClusteringForAtten"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten">[docs]</a><span class="k">class</span> <span class="nc">KMeansClusteringForAtten</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>

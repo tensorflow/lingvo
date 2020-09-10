@@ -280,8 +280,45 @@ abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util._AttenLogits">
-<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positional_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_term_b</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#_AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.attention_util.AttenLogits">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes attention logits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> – A Tensor of shape [B, T, N, H]</p></li>
+<li><p><strong>key</strong> – A Tensor of shape [B, T, N, H]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [B, N, T, S]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util.AttenContext">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">AttenContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">probs</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the attention context vector based on per-head probs and value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>probs</strong> – [B, N, T, S].</p></li>
+<li><p><strong>value</strong> – [B, S, N, H].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, T, N, H].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>encoded</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util._AttenLogitsXL">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">_AttenLogitsXL</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positional_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_term_b</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#_AttenLogitsXL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util._AttenLogitsXL" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits from …</p>
 <p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
 self attention with relative position embedding.</p>
