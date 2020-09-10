@@ -559,6 +559,96 @@ and denotes the batch dimension.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">TFDataSequenceInputGenerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="lingvo.core.base_input_generator.BaseSequenceInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseSequenceInputGenerator</span></code></a></p>
+<p>tf.data input pipeline for sequences.</p>
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InputBatch">
+<code class="sig-name descname">_InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a NestedMap containing an input batch.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._GetDatasetInternal">
+<code class="sig-name descname">_GetDatasetInternal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._GetDatasetInternal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._GetDatasetInternal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator.GetDataset">
+<code class="sig-name descname">GetDataset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator.GetDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.GetDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads a dataset.</p>
+<p>Subclasses should either override this function or both of _LoadDataset()
+and _ProcessDataset().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A NestedMap containing tensors without a leading batch dimension.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._LoadDataset">
+<code class="sig-name descname">_LoadDataset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._LoadDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._LoadDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads a dataset from a filename.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._ProcessDataset">
+<code class="sig-name descname">_ProcessDataset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dataset</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._ProcessDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._ProcessDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes a dataset returned by _LoadDataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dataset</strong> – A dataset containing NestedMaps with scalar ‘data’ containing the
+value returned by _LoadDataset and scalar ‘source_id’ containing the
+source id.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A processed dataset containing NestedMaps of Tensors without a leading
+batch dimension.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InputShape">
+<code class="sig-name descname">_InputShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._InputShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InputShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the final shape of the tensor corresponding to key as a tuple.</p>
+<p>The shape should not include a leading batch dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>key</strong> – The NestedMap key to return shape for.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InputPaddingValue">
+<code class="sig-name descname">_InputPaddingValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">tensorspec</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._InputPaddingValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InputPaddingValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the value to pad the tensor corresponding to key with.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._GetBucketId">
+<code class="sig-name descname">_GetBucketId</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">example</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._GetBucketId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._GetBucketId" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns scalar bucket id for the example NestedMap from the dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._BatchDataset">
+<code class="sig-name descname">_BatchDataset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dataset</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#TFDataSequenceInputGenerator._BatchDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._BatchDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batches a dataset containing NestedMaps of tensors.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.TFDataSequenceInputGenerator._map_args">
+<em class="property">property </em><code class="sig-name descname">_map_args</code><a class="headerlink" href="#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._map_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default args for tf.data.DataSet.map().</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.base_input_generator.BaseDataExampleInputGenerator">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">BaseDataExampleInputGenerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseDataExampleInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseDataExampleInputGenerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_input_generator.BaseInputGenerator" title="lingvo.core.base_input_generator.BaseInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseInputGenerator</span></code></a></p>
