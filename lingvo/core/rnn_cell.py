@@ -1258,6 +1258,87 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
 
 
+class LayerNormMaskedLSTMCellSimple(LayerNormalizedLSTMCellSimple):
+  """An implementation of layer normalized LSTM for federated dropout.
+
+  The main function is to make the normalization aware of the mask, which
+  requires to be updated externally for it to take effect.
+
+  theta:
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
+
+  state:
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
+
+  inputs:
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'layernorm_mask', None,
+        'The mask for layer normalization. This mask would drop the same nodes '
+        'of gates as the mask of weight matrix, but has the shape of a vector.')
+    return p
+
+  def _Gates(self, xmw, theta, state0, inputs):
+    """Overriding the _Gates function with the masked layer normalization."""
+
+    def _MaskedLayerNorm(x, mask):
+      """Applies layer normalization on the last dimension of masked 'x'.
+
+      Args:
+        x: activation tensor, where the last dimension represents channels.
+        mask: the mask applied on x.
+
+      Returns:
+        Layer normalized 'x', with the same shape as the input.
+      """
+      masked_x = x * mask
+      mean = tf.reduce_sum(
+          masked_x, axis=-1, keepdims=True) / tf.reduce_sum(mask[0])
+      variance = tf.reduce_sum(
+          tf.square(masked_x - mean) * mask, axis=-1,
+          keepdims=True) / tf.reduce_sum(mask[0])
+      return (masked_x - mean) * mask * tf.math.rsqrt(variance +
+                                                      p.layer_norm_epsilon)
+
+    p = self.params
+    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
+
+    bs = tf.split(b, num_or_size_splits=self.num_gates, axis=1)
+    ln_scales = tf.split(
+        theta.ln_scale, num_or_size_splits=self.num_gates, axis=0)
+    gates = tf.split(xmw, num_or_size_splits=self.num_gates, axis=1)
+
+    assert p.layernorm_mask is not None
+    assert py_utils.GetShape(p.layernorm_mask)[0] == self.hidden_size
+    ln_masks = tf.tile([p.layernorm_mask], [py_utils.GetShape(gates[0])[0], 1])
+
+    for i in range(self.num_gates):
+      # i_g is None when p.couple_input_forget_gates is True.
+      if gates[i] is not None:
+        gates[i] = tf.multiply(
+            _MaskedLayerNorm(gates[i], ln_masks),
+            self.hidden_size / tf.reduce_sum(ln_masks[0]))
+        gates[i] = gates[i] * tf.expand_dims(ln_scales[i], 0)
+        gates[i] = self.fns.qadd(gates[i], bs[i], qt='add_bias_{}'.format(i))
+
+    if not p.couple_input_forget_gates:
+      i_i, i_g, f_g, o_g = gates
+    else:
+      i_i, i_g, f_g, o_g = gates[0], None, gates[1], gates[2]
+    return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
+
+
 class NormalizedLSTMCellSimple(LSTMCellSimple):
   """LSTM Cell that allows customzied normalization.
 

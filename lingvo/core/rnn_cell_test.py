@@ -807,52 +807,53 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
   # pyformat: disable
   @parameterized.named_parameters(
-      ('LSTMCell', rnn_cell.LayerNormalizedLSTMCell, None, None,
+      ('LSTMCell', rnn_cell.LayerNormalizedLSTMCell, 2, 2, None, None,
        [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
         [-0.00272907, 0.31641623]],
        [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
         [-0.01014781, 0.46336061]]),
-      ('LSTMCellSimple', rnn_cell.LayerNormalizedLSTMCellSimple, None, True,
-       [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
-        [-0.00272907, 0.31641623]],
+      ('LSTMCellSimple', rnn_cell.LayerNormalizedLSTMCellSimple, 2, 2, None,
+       True, [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
+              [-0.00272907, 0.31641623]],
        [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
         [-0.01014781, 0.46336061]]),
-      ('NormLSTMCellSimple', rnn_cell.NormalizedLSTMCellSimple, None, False,
-       [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
-        [-0.00272907, 0.31641623]],
+      ('NormLSTMCellSimple', rnn_cell.NormalizedLSTMCellSimple, 2, 2, None,
+       False, [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
+               [-0.00272907, 0.31641623]],
        [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
         [-0.01014781, 0.46336061]]),
-      ('LSTMCellLean', rnn_cell.LayerNormalizedLSTMCellLean, None, False,
+      ('LSTMCellLean', rnn_cell.LayerNormalizedLSTMCellLean, 2, 2, None, False,
        [[-0.20482419, 0.55676991], [-0.55648255, 0.20511301],
         [-0.20482422, 0.55676997]],
        [[0.14834785, 0.3804915], [-0.00927544, 0.38059637],
         [-0.01014781, 0.46336061]]),
-      ('LSTMCellProj', rnn_cell.LayerNormalizedLSTMCellSimple, 4, True,
+      ('LSTMCellProj', rnn_cell.LayerNormalizedLSTMCellSimple, 2, 2, 4, True,
        [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
         [0.47132283, 0.03284446]],
        [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
         [-0.15832338, 1.22740746, 0.19910297, -0.14970526],
         [-0.57552528, 0.9139322, 0.41805002, 0.58792269]]),
-      ('NormLSTMCellProj', rnn_cell.NormalizedLSTMCellSimple, 4, False,
+      ('NormLSTMCellProj', rnn_cell.NormalizedLSTMCellSimple, 2, 2, 4, False,
        [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
         [0.47132283, 0.03284446]],
        [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
         [-0.15832338, 1.22740746, 0.19910297, -0.14970526],
         [-0.57552528, 0.9139322, 0.41805002, 0.58792269]]),
-      ('LSTMCellLeanProj', rnn_cell.LayerNormalizedLSTMCellLean, 4, False,
-       [[0.51581347, 0.22646663], [0.56025136, 0.16842051],
-        [0.58704823, -0.07126484]],
+      ('LSTMCellLeanProj', rnn_cell.LayerNormalizedLSTMCellLean, 2, 2, 4,
+       False, [[0.51581347, 0.22646663], [0.56025136, 0.16842051],
+               [0.58704823, -0.07126484]],
        [[-0.36676273, 1.03294277, 0.24229959, 0.43976486],
         [-0.15832338, 1.22740746, 0.19910295, -0.14970522],
         [-0.57552516, 0.9139322, 0.41805002, 0.58792269]]))
   # pyformat: enable
-  def testLN(self, cell_cls, num_hidden_nodes, enable_lstm_bias, m_expected,
-             c_expected):
+  def testLN(self, cell_cls, num_input_nodes, num_output_nodes,
+             num_hidden_nodes, enable_lstm_bias, m_expected, c_expected):
     tf.logging.info('cell_cls is %s', cell_cls)
     cell_params = cell_cls.Params()
     if enable_lstm_bias is not None:
       cell_params.Set(enable_lstm_bias=enable_lstm_bias)
-    m_v, c_v = self._testLNLSTMCell(cell_params, num_hidden_nodes)
+    m_v, c_v = self._testLNLSTMCell(cell_params, num_input_nodes,
+                                    num_output_nodes, num_hidden_nodes)
     self.assertAllClose(m_expected, m_v)
     self.assertAllClose(c_expected, c_v)
 
@@ -923,12 +924,13 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
             grads.ln_scale_o_g
         ]))
 
-  def _testLNLSTMCellHelper(self, params, num_hidden_nodes):
+  def _testLNLSTMCellHelper(self, params, num_input_nodes, num_output_nodes,
+                            num_hidden_nodes):
     params = params.Copy().Set(
         name='lstm',
         params_init=py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED),
-        num_input_nodes=2,
-        num_output_nodes=2,
+        num_input_nodes=num_input_nodes,
+        num_output_nodes=num_output_nodes,
         random_seed=_RANDOM_SEED)
     if num_hidden_nodes is not None:
       params.num_hidden_nodes = num_hidden_nodes
@@ -937,7 +939,10 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     lstm = params.Instantiate()
     np.random.seed(_NUMPY_RANDOM_SEED)
     inputs = py_utils.NestedMap(
-        act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
+        act=[
+            tf.constant(
+                np.random.uniform(size=(3, num_input_nodes)), tf.float32)
+        ],
         padding=tf.zeros([3, 1]))
     state0 = py_utils.NestedMap(
         c=tf.constant(
@@ -947,9 +952,15 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     state1, _ = lstm.FPropDefaultTheta(state0, inputs)
     return lstm, state0, state1
 
-  def _testLNLSTMCell(self, params, num_hidden_nodes=None):
+  def _testLNLSTMCell(self,
+                      params,
+                      num_input_nodes=2,
+                      num_output_nodes=2,
+                      num_hidden_nodes=None):
     tf.reset_default_graph()
-    _, _, state1 = self._testLNLSTMCellHelper(params, num_hidden_nodes)
+    _, _, state1 = self._testLNLSTMCellHelper(params, num_input_nodes,
+                                              num_output_nodes,
+                                              num_hidden_nodes)
     with self.session(use_gpu=False):
       self.evaluate(tf.global_variables_initializer())
       m_v = state1.m.eval()
@@ -958,9 +969,34 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     tf.logging.info('c_v = %s', np.array_repr(c_v))
     return m_v, c_v
 
+  # pyformat: disable
+  @parameterized.named_parameters(
+      ('WithoutProj', rnn_cell.LayerNormMaskedLSTMCellSimple, 2, 5, None,
+       [[0.0065042, 0.15772603, 0.3693921, 0.15781447, 0.12396155],
+        [0.08000945, 0.00209706, 0.36252916, 0.07412559, -0.01524802],
+        [0.01209623, 0.20519827, 0.49992552, 0.17341803, 0.34704077]],
+       [[0.04659522, 0.32658854, 1.5585221, 0.32678494, 0.13846233],
+        [1.5193346, 0.00419415, 0.5612371, 0.14935185, -0.01889721],
+        [0.14045686, 0.43608797, 0.80760527, 0.36184266, 0.47827372]]),
+      ('WithProj', rnn_cell.LayerNormMaskedLSTMCellSimple, 2, 2, 5,
+       [[0.32549405, -0.01501668], [0.20374557, 0.07251732],
+        [0.26784134, 0.27937523]],
+       [[-0.1942511, 0.32658854, 1.537509, 0.32678494, 0.07504145],
+        [0.8267509, 0.00419415, 0.45417657, 0.14935185, 0.45168093],
+        [0.59822744, 0.43608797, 0.57707494, 0.36184266, 0.4334712]]))
+  # pyformat: enable
+  # TODO(yohu): update the above parameters after fixing the sigmoid function.
+  def testLNMasked(self, cell_cls, num_input_nodes, num_output_nodes,
+                   num_hidden_nodes, m_expected, c_expected):
+    params = cell_cls.Params().Copy().Set(layernorm_mask=[1.0, 0, 1, 0, 1])
+    m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
+                                    num_hidden_nodes)
+    self.assertAllClose(m_expected, m_v)
+    self.assertAllClose(c_expected, c_v)
+
   def _testLNLSTMCellFPropBProp(self, params, num_hidden_nodes=None):
     tf.reset_default_graph()
-    lstm, _, state1 = self._testLNLSTMCellHelper(params, num_hidden_nodes)
+    lstm, _, state1 = self._testLNLSTMCellHelper(params, 2, 2, num_hidden_nodes)
     loss = -tf.math.log(
         tf.sigmoid(
             tf.reduce_sum(tf.square(state1.m)) +
