@@ -167,6 +167,7 @@
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numbers</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">activations</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
@@ -278,50 +279,6 @@
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span></div></div>
 
-
-<div class="viewcode-block" id="Gelu"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Gelu">[docs]</a><span class="k">def</span> <span class="nf">Gelu</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Gaussian Error Linear Unit.</span>
-
-<span class="sd">  This is a smoother version of the RELU.</span>
-<span class="sd">  Original paper: https://arxiv.org/abs/1606.08415</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    input_tensor: float Tensor to perform activation.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    `input_tensor` with the GELU activation applied.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">cdf</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">erf</span><span class="p">(</span>
-      <span class="n">input_tensor</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
-  <span class="k">return</span> <span class="n">input_tensor</span> <span class="o">*</span> <span class="n">cdf</span></div>
-
-
-<span class="c1"># Supported activation functions.</span>
-<span class="n">_ACTIVATIONS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
-    <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span>
-    <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span>
-    <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span>
-    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="n">Gelu</span><span class="p">,</span>
-    <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">swish</span><span class="p">,</span>
-    <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softplus</span><span class="p">,</span>
-<span class="p">}</span>
-
-<span class="n">_ACTIVATIONS_FLOPS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-    <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="c1"># 1 / (1 + exp(-x))</span>
-    <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># neg, exp, add, div</span>
-    <span class="c1"># (exp(2*x) - 1) / (exp(2*x) - 1)</span>
-    <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># mul, exp, sub, mul, exp, add, div</span>
-    <span class="c1"># Gelu is tough, let&#39;s assume it is approximated as x * sigmoid(1.702 * x).</span>
-    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># mul, sigmoid, mul</span>
-    <span class="c1"># x * sigmoid(x)</span>
-    <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># sigmoid, mul</span>
-    <span class="c1"># ln(1+exp(x))</span>
-    <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># exp, add, ln</span>
-<span class="p">}</span>
 
 <span class="c1"># A subset of activation functions are supported by TFLite as fused activation</span>
 <span class="c1"># functions with a preceding matmul or conv. If this is the case, then they</span>
@@ -452,7 +409,7 @@
     <span class="c1"># Bias is not needed with batch_norm=True.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span>
-    <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">in</span> <span class="n">_ACTIVATIONS</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">activations</span><span class="o">.</span><span class="n">IsSupported</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
       <span class="c1"># batch normalization dimension is number of input channels</span>
@@ -823,7 +780,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">disable_activation_quantization</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
 
@@ -850,7 +807,7 @@
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">bn</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">out_padding_expanded</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
 
     <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
 
@@ -1076,7 +1033,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">in</span> <span class="n">_ACTIVATIONS</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">activations</span><span class="o">.</span><span class="n">IsSupported</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
           <span class="s1">&#39;ProjectionLayer.batch_norm not set explicitly for </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
@@ -1268,7 +1225,7 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
           <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-          <span class="n">out</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+          <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyProjectionKernel</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">with_activation</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Normal ordered projection.</span>
@@ -1284,7 +1241,7 @@
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
               <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="n">out</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
@@ -1418,7 +1375,7 @@
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">quant</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
@@ -1441,7 +1398,7 @@
     <span class="c1"># matmuls.</span>
     <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">*</span> <span class="mi">2</span>
     <span class="c1"># activations.</span>
-    <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">*</span> <span class="n">_ACTIVATIONS_FLOPS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">]</span>
+    <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">*</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFlops</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
       <span class="n">flops</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
     <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">])</span>
@@ -5110,8 +5067,8 @@
 
     <span class="k">def</span> <span class="nf">OpWrapper</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Wrapper for retrieve tf operations.&quot;&quot;&quot;</span>
-      <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_ACTIVATIONS</span><span class="p">:</span>
-        <span class="n">op</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">activations</span><span class="o">.</span><span class="n">IsSupported</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;EXP&#39;</span><span class="p">:</span>
           <span class="n">op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span>
@@ -5119,7 +5076,7 @@
           <span class="n">op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">op</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">op</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
 
     <span class="n">scale_output</span> <span class="o">=</span> <span class="n">OpWrapper</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">scale_fn</span><span class="p">,</span> <span class="n">scale_output</span><span class="p">)</span>
     <span class="n">shift_output</span> <span class="o">=</span> <span class="n">OpWrapper</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shift_fn</span><span class="p">,</span> <span class="n">shift_output</span><span class="p">)</span>

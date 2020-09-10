@@ -273,8 +273,9 @@ tuples into one tuple.</p>
 <code class="sig-name descname">_Fn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">fn</span></em>, <em class="sig-param"><span class="n">fn_out</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fn_flops</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Fn" title="Permalink to this definition">¶</a></dt>
 <dd><p>y = fn(x).</p>
 <p>Applies a fn: tuple(Tensor) -&gt; a single Tensor or tuple(Tensor) to the input
-tuple.  Typically, fn is a very simple python function. If fn is rather
-complicated, we advice to implement the logic as a sub-class of BaseLayer.</p>
+tuple.  Typically, fn is a very simple python function. This layer can be
+used for prototyping but we advice to implement the logic as a sub-class of
+BaseLayer for all established layers as FnLayer can’t be serialized.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -384,7 +385,7 @@ on multiple devices.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.builder.Base._Activation">
-<code class="sig-name descname">_Activation</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">fn=&lt;function relu&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Activation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Activation" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_Activation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">fn</span><span class="o">=</span><span class="default_value">'RELU'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Activation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Activation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Activation layer.</p>
 </dd></dl>
 

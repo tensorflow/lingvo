@@ -167,11 +167,15 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">activations</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tshape</span>
+
+
+<span class="n">ActivationLayer</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">ActivationLayer</span>
 
 
 <div class="viewcode-block" id="ComputeConvOutputShape"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.ComputeConvOutputShape">[docs]</a><span class="k">def</span> <span class="nf">ComputeConvOutputShape</span><span class="p">(</span><span class="n">in_shape</span><span class="p">,</span>
@@ -855,32 +859,6 @@
     <span class="n">paddings_expanded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">bned</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings_expanded</span><span class="p">,</span> <span class="n">class_emb</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">bned</span><span class="p">,</span> <span class="n">paddings</span></div></div>
-
-
-<span class="c1"># Supported activation functions.</span>
-<span class="n">_ACTIVATIONS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
-    <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span>
-    <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span>
-    <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span>
-    <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">swish</span><span class="p">,</span>
-    <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
-<span class="p">}</span>
-
-
-<div class="viewcode-block" id="ActivationLayer"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.ActivationLayer">[docs]</a><span class="k">class</span> <span class="nc">ActivationLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Applies activation function to the inputs.&quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="ActivationLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.ActivationLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;The activation function to apply&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-<div class="viewcode-block" id="ActivationLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.ActivationLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">](</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">paddings</span></div></div>
 
 
 <div class="viewcode-block" id="PaddingLayer"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.PaddingLayer">[docs]</a><span class="k">class</span> <span class="nc">PaddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>

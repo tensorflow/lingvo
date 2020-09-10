@@ -634,7 +634,8 @@
         <span class="c1"># We represent a NoneType by the absence of any of the oneof.</span>
         <span class="k">pass</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Unsupported type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Unsupported type: </span><span class="si">%s</span><span class="s1"> for value </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                             <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">),</span> <span class="n">val</span><span class="p">))</span>
       <span class="k">return</span> <span class="n">param_pb</span>
 
     <span class="k">def</span> <span class="nf">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>

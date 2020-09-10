@@ -3821,6 +3821,125 @@
     <span class="k">return</span> <span class="n">cur_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
 
 
+<div class="viewcode-block" id="ResidualAddLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ResidualAddLayer">[docs]</a><span class="k">class</span> <span class="nc">ResidualAddLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer to add inputs with residual weight.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ResidualAddLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ResidualAddLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params for `ResidualAddLayer`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Residual weight.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="ResidualAddLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ResidualAddLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return combined inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: weights defined in this layer.</span>
+<span class="sd">      x: input tensor.</span>
+<span class="sd">      y: input tensor to apply weight to.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Added tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_weight</span> <span class="o">*</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="ResidualAddLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ResidualAddLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="PaddingLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PaddingLayer">[docs]</a><span class="k">class</span> <span class="nc">PaddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that applies paddings to the inputs.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PaddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PaddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return combined inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: weights defined in this layer.</span>
+<span class="sd">      inputs: input tensor.</span>
+<span class="sd">      paddings: paddings tensor, should be of shape tf.shape(inputs)[:-1].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Tensor with paddings applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">inputs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PaddingLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PaddingLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">flops</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">(),</span> <span class="n">paddings</span><span class="o">.</span><span class="n">num_elements</span><span class="p">())</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="StrideLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StrideLayer">[docs]</a><span class="k">class</span> <span class="nc">StrideLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that does stride.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StrideLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StrideLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params for `StrideLayer`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;stride&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;To use every k-th token, set the stride to k. When &#39;</span>
+        <span class="s1">&#39;stride == 0, only returns the first token of the input. When &#39;</span>
+        <span class="s1">&#39;stride == 1, returns every token in the input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;first_n&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;only considers the first N tokens for the &#39;</span>
+        <span class="s1">&#39;output. We use [:first_n:stride] to select the output tokens. If &#39;</span>
+        <span class="s1">&#39;first_n is None, this flag is a no-op. If stride is positive, the&#39;</span>
+        <span class="s1">&#39; output sequence length is &quot;(first_n-1) // stride + 1&quot;. If stride&#39;</span>
+        <span class="s1">&#39; is 0, first_n has to be None or 1. first_n ca not be 0. If &#39;</span>
+        <span class="s1">&#39;first_n &lt;= stride, only the first token is used.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="StrideLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StrideLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies stride to the inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: weights defined in this layer.</span>
+<span class="sd">      x: input tensor, [batch, time, ...]. Stride is applied to the time dim.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Strided tensor, with the stride applied to the second dim in x.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">==</span> <span class="mi">1</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">::</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="StrideLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StrideLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">x</span><span class="p">,))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span>
+      <span class="c1"># out_seq_len is 1 if first_n is 1 ~ stride and is 2 if it&#39;s stride+1 ~</span>
+      <span class="c1"># 2*stride...</span>
+      <span class="n">out_seq_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">out_seq_len</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,))</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),))</span></div></div>
+
+
 <span class="c1"># pyformat: disable</span>
 <div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Builder for self-attention layers.&quot;&quot;&quot;</span>
@@ -3836,7 +3955,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_dropout_prob&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
              <span class="s1">&#39;Dropout prob to the output of each sub-layer before it is added &#39;</span>
              <span class="s1">&#39;to the sub-layer input.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_activation_fn&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_activation_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
              <span class="s1">&#39;Activation function in Feedforward layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_residual_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Weight given to F(x) in the residual &#39;</span>
              <span class="s1">&#39;connection: y = x + ff_residual_weight * F(x), in Feedforward &#39;</span>
@@ -3889,8 +4008,7 @@
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">drop_prob</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._Add"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Add">[docs]</a>  <span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">residual_weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">residual_weight</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span>
-                    <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">ResidualAddLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">residual_weight</span><span class="o">=</span><span class="n">residual_weight</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._ExpandDims"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._ExpandDims">[docs]</a>  <span class="k">def</span> <span class="nf">_ExpandDims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
@@ -3921,11 +4039,7 @@
                     <span class="n">fn_flops</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">15</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._Pad"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Pad">[docs]</a>  <span class="k">def</span> <span class="nf">_Pad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">x</span><span class="p">),</span>
-        <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
-        <span class="n">fn_flops</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">size</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">PaddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._MultiHeadedAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._MultiHeadedAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_MultiHeadedAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a MultiHeadedAttention params.&quot;&quot;&quot;</span>
@@ -4139,33 +4253,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A layer params that does stride.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">first_n</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">first_n</span> <span class="o">==</span> <span class="mi">1</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-          <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span>
-          <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),</span>
-          <span class="n">fn_flops</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">first_n</span><span class="p">:</span>
-      <span class="c1"># out_seq_len is 1 if first_n is 1 ~ stride and is 2 if it&#39;s stride+1 ~</span>
-      <span class="c1"># 2*stride...</span>
-      <span class="n">out_seq_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">first_n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">stride</span> <span class="o">+</span> <span class="mi">1</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-          <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">first_n</span><span class="p">:</span><span class="n">stride</span><span class="p">],</span>
-          <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">out_seq_len</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),</span>
-          <span class="n">fn_flops</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">::</span><span class="n">stride</span><span class="p">],</span>
-        <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">stride</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),</span>
-        <span class="n">fn_flops</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">StrideLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._StridedAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._StridedAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_StridedAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes self attention with optional stride.</span>
