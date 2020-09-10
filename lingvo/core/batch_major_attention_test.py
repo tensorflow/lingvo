@@ -2642,6 +2642,25 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       actual_out = sess.run(out)
       self.assertAllClose(actual_out, 17.40516)
 
+  def testSerialization(self):
+    heads = [1, 2, 4]
+    ff_dims = [16, 32, 16]
+    atten_builder = attention.Builder.Params().Set(
+        model_dim=16, num_heads=heads, ff_hidden_dim=ff_dims).Instantiate()
+    layers = []
+    for layer_i, (head, ff_dim) in enumerate(zip(heads, ff_dims)):
+      layers.append(
+          atten_builder.TransformerEncoderLayer(
+              name='atten_{}'.format(layer_i),
+              ff_hidden_dim=ff_dim,
+              num_heads=head,
+              stride=1 if layer_i < 2 else 0))
+    p = atten_builder.Seq('model', *layers)
+
+    serialized = p.ToProto()
+    p2 = hyperparams.InstantiableParams.FromProto(serialized)
+    self.assertLen(p2.sub, len(p.sub))
+
 
 class LmBuilderTest(test_utils.TestCase):
 

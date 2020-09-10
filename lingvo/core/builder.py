@@ -23,7 +23,7 @@ WARNING:
 """
 
 import functools
-from lingvo import compat as tf
+from lingvo.core import activations
 from lingvo.core import builder_layers
 from lingvo.core import hyperparams
 from lingvo.core import layers
@@ -151,8 +151,9 @@ class Base:
     """y = fn(x).
 
     Applies a fn: tuple(Tensor) -> a single Tensor or tuple(Tensor) to the input
-    tuple.  Typically, fn is a very simple python function. If fn is rather
-    complicated, we advice to implement the logic as a sub-class of BaseLayer.
+    tuple.  Typically, fn is a very simple python function. This layer can be
+    used for prototyping but we advice to implement the logic as a sub-class of
+    BaseLayer for all established layers as FnLayer can't be serialized.
 
     Args:
       name: The layer name.
@@ -278,9 +279,9 @@ class Base:
     return builder_layers.BiasLayer.Params().Set(
         name=name, dims=dims, fprop_dtype=self.params.fprop_dtype)
 
-  def _Activation(self, name, fn=tf.nn.relu):
+  def _Activation(self, name, fn='RELU'):
     """Activation layer."""
-    return self._Fn(name, fn)
+    return activations.ActivationLayer.Params().Set(activation=fn, name=name)
 
   def _FC(self, name, idims, odims):
     """Feed-forward fully connected. y = relu(matmul(x, w) + b)."""

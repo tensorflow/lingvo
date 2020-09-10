@@ -486,7 +486,8 @@ class Params:
         # We represent a NoneType by the absence of any of the oneof.
         pass
       else:
-        raise AttributeError('Unsupported type: %s' % type(val))
+        raise AttributeError('Unsupported type: %s for value %s' %
+                             (type(val), val))
       return param_pb
 
     def _ToParam(val):

@@ -104,6 +104,7 @@ class ModelBuilderBase:
       bias_params = bias_params.Set(params_init=params_init)
     return bias_params
 
+  # TODO(tilarids): Consider using lingvo.core.activations.
   def _Activation(self, name, activation_fn):
     return builder_layers.MapLayer.Params().Set(name=name, fn=activation_fn)
 

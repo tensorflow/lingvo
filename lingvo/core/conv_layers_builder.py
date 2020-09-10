@@ -18,6 +18,7 @@ import math
 from absl import flags
 
 import lingvo.compat as tf
+from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import builder
 from lingvo.core import builder_layers
@@ -33,7 +34,7 @@ DepthwiseConv2DLayer = conv_layers_with_time_padding.DepthwiseConv2DLayer
 CausalDepthwiseConv2DLayer = conv_layers_with_time_padding.CausalDepthwiseConv2DLayer
 ConvBatchNormLayer = conv_layers_with_time_padding.ConvBatchNormLayer
 ConvCategoricalBN = conv_layers_with_time_padding.ConvCategoricalBN
-ActivationLayer = conv_layers_with_time_padding.ActivationLayer
+ActivationLayer = activations.ActivationLayer
 PaddingLayer = conv_layers_with_time_padding.PaddingLayer
 NormalizedDepthwiseConv2DLayer = conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer
 CausalNormalizedDepthwiseConv2DLayer = conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer

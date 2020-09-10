@@ -17,6 +17,7 @@
 
 from lingvo import compat as tf
 
+from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import batch_major_attention as attention_lib
 from lingvo.core import bn_layers
@@ -58,7 +59,7 @@ class LConvLayer(base_layer.BaseLayer):
     p.Define('conv_activation', 'SWISH', 'Activation after normalization.')
     p.Define(
         'glu_activation', 'NONE',
-        'Activation in GLU. Check lingvo.core.layers._ACTIVATIONS for '
+        'Activation in GLU. Check lingvo.core.activations._ACTIVATIONS for '
         'other options.')
     p.Define('dropout_prob', 0., 'Dropout probability.')
 
@@ -128,7 +129,7 @@ class LConvLayer(base_layer.BaseLayer):
   def _ApplyActivation(self, inputs, act_name):
     if act_name == 'NONE':
       return inputs
-    return layers._ACTIVATIONS[act_name](inputs)  # pylint:disable=protected-access
+    return activations.GetFn(act_name)(inputs)
 
   def FProp(self, theta, inputs, paddings):
     """Builds FProp graph.

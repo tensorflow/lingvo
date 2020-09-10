@@ -19,6 +19,7 @@ import copy
 import math
 import numbers
 import lingvo.compat as tf
+from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import bn_layers
 from lingvo.core import builder_layers
@@ -130,50 +131,6 @@ class DeconvLayer(base_layer.BaseLayer):
     inputs = py_utils.HasShape(inputs, [-1, -1, -1, p.filter_shape[3]])
     return self._ApplyConv(theta, inputs)
 
-
-def Gelu(input_tensor):
-  """Gaussian Error Linear Unit.
-
-  This is a smoother version of the RELU.
-  Original paper: https://arxiv.org/abs/1606.08415
-
-  Args:
-    input_tensor: float Tensor to perform activation.
-
-  Returns:
-    `input_tensor` with the GELU activation applied.
-  """
-  cdf = 0.5 * (1.0 + tf.math.erf(
-      input_tensor / tf.cast(tf.sqrt(2.0), input_tensor.dtype)))
-  return input_tensor * cdf
-
-
-# Supported activation functions.
-_ACTIVATIONS = {
-    'RELU': tf.nn.relu,
-    'RELU6': tf.nn.relu6,
-    'SIGMOID': tf.sigmoid,
-    'TANH': tf.tanh,
-    'GELU': Gelu,
-    'SWISH': tf.nn.swish,
-    'SOFTPLUS': tf.nn.softplus,
-}
-
-_ACTIVATIONS_FLOPS = {
-    'NONE': 0,
-    'RELU': 1,
-    'RELU6': 1,
-    # 1 / (1 + exp(-x))
-    'SIGMOID': 4,  # neg, exp, add, div
-    # (exp(2*x) - 1) / (exp(2*x) - 1)
-    'TANH': 7,  # mul, exp, sub, mul, exp, add, div
-    # Gelu is tough, let's assume it is approximated as x * sigmoid(1.702 * x).
-    'GELU': 6,  # mul, sigmoid, mul
-    # x * sigmoid(x)
-    'SWISH': 5,  # sigmoid, mul
-    # ln(1+exp(x))
-    'SOFTPLUS': 3,  # exp, add, ln
-}
 
 # A subset of activation functions are supported by TFLite as fused activation
 # functions with a preceding matmul or conv. If this is the case, then they
@@ -304,7 +261,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     # Bias is not needed with batch_norm=True.
     if p.batch_norm:
       assert not p.bias
-    assert (p.activation == 'NONE' or p.activation in _ACTIVATIONS)
+    assert (p.activation == 'NONE' or activations.IsSupported(p.activation))
 
     if p.batch_norm:
       # batch normalization dimension is number of input channels
@@ -675,7 +632,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     if p.activation != 'NONE':
       if p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES:
         out = self.QTensor('pre_activation', out)
-      out = _ACTIVATIONS[p.activation](out)
+      out = activations.GetFn(p.activation)(out)
     if not p.disable_activation_quantization:
       out = self.QTensor('activation', out)
 
@@ -702,7 +659,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
       out = self.bn.FProp(theta.bn, out, out_padding_expanded)
 
     if p.activation != 'NONE':
-      out = _ACTIVATIONS[p.activation](out)
+      out = activations.GetFn(p.activation)(out)
 
     out = self._ApplyConv(theta, out)
 
@@ -928,7 +885,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     assert p.name
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
-    assert p.activation == 'NONE' or p.activation in _ACTIVATIONS
+    assert p.activation == 'NONE' or activations.IsSupported(p.activation)
     if p.batch_norm is None:
       raise RuntimeError(
           'ProjectionLayer.batch_norm not set explicitly for %s' % self.path)
@@ -1120,7 +1077,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         if p.activation != 'NONE':
           if not p.is_inference:
             out = py_utils.CheckNumerics(out)
-          out = _ACTIVATIONS[p.activation](out)
+          out = activations.GetFn(p.activation)(out)
         out = self._ApplyProjectionKernel(w, b, out, with_activation=False)
       else:
         # Normal ordered projection.
@@ -1136,7 +1093,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           if p.activation != 'NONE':
             if not p.is_inference:
               out = py_utils.CheckNumerics(out)
-            out = _ACTIVATIONS[p.activation](out)
+            out = activations.GetFn(p.activation)(out)
       return py_utils.ApplyPadding(self.QRPadding(paddings), out)
 
   @property
@@ -1270,7 +1227,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         out = self.QTensor(self._pre_activation_qt_name, out)
       if not p.is_inference:
         out = py_utils.CheckNumerics(out)
-      out = _ACTIVATIONS[p.activation](out)
+      out = activations.GetFn(p.activation)(out)
     if quant:
       out = self.QTensor(self._output_qt_name, out)
     if not p.use_einsum:
@@ -1293,7 +1250,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     # matmuls.
     flops += other_dims * p.input_dim * p.output_dim * 2
     # activations.
-    flops += other_dims * p.output_dim * _ACTIVATIONS_FLOPS[p.activation]
+    flops += other_dims * p.output_dim * activations.GetFlops(p.activation)
     if p.has_bias:
       flops += p.output_dim
     out_shape = tshape.Shape(inputs[:-1] + [p.output_dim])
@@ -4962,8 +4919,8 @@ class CondScaleShiftFFNLayer(base_layer.BaseLayer):
 
     def OpWrapper(name, tensor):
       """Wrapper for retrieve tf operations."""
-      if name in _ACTIVATIONS:
-        op = _ACTIVATIONS[name]
+      if activations.IsSupported(name):
+        op = activations.GetFn(name)
       else:
         if name == 'EXP':
           op = tf.exp
@@ -4971,7 +4928,7 @@ class CondScaleShiftFFNLayer(base_layer.BaseLayer):
           op = tf.identity
         else:
           raise ValueError()
-        return op(tensor)
+      return op(tensor)
 
     scale_output = OpWrapper(p.scale_fn, scale_output)
     shift_output = OpWrapper(p.shift_fn, shift_output)

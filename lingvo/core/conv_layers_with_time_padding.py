@@ -19,11 +19,15 @@ WARNING: Strided convolutions are buggy. Consider using v2_padding=True.
 """
 
 import lingvo.compat as tf
+from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import bn_layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
+
+
+ActivationLayer = activations.ActivationLayer
 
 
 def ComputeConvOutputShape(in_shape,
@@ -707,32 +711,6 @@ class ConvCategoricalBN(bn_layers.CategoricalBN):
     paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
     bned = super().FProp(theta, inputs, paddings_expanded, class_emb)
     return bned, paddings
-
-
-# Supported activation functions.
-_ACTIVATIONS = {
-    'RELU': tf.nn.relu,
-    'RELU6': tf.nn.relu6,
-    'SIGMOID': tf.sigmoid,
-    'TANH': tf.tanh,
-    'SWISH': tf.nn.swish,
-    'NONE': tf.identity,
-}
-
-
-class ActivationLayer(base_layer.BaseLayer):
-  """Applies activation function to the inputs."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('activation', 'RELU', 'The activation function to apply')
-    return p
-
-  def FProp(self, theta, inputs, paddings):
-    p = self.params
-    out = _ACTIVATIONS[p.activation](inputs)
-    return out, paddings
 
 
 class PaddingLayer(base_layer.BaseLayer):

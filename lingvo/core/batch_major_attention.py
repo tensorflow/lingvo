@@ -3673,6 +3673,125 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
     return cur_output, updated_states
 
 
+class ResidualAddLayer(base_layer.BaseLayer):
+  """A layer to add inputs with residual weight."""
+
+  @classmethod
+  def Params(cls):
+    """Params for `ResidualAddLayer`."""
+    p = super().Params()
+    p.Define('residual_weight', 1.0, 'Residual weight.')
+    return p
+
+  def FProp(self, theta, x, y):
+    """Return combined inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      x: input tensor.
+      y: input tensor to apply weight to.
+
+    Returns:
+      Added tensors.
+    """
+    p = self.params
+    return x + p.residual_weight * y
+
+  @classmethod
+  def FPropMeta(cls, p, x, y):
+    py_utils.CheckShapes((x, y))
+    return py_utils.NestedMap(flops=x.num_elements() * 2, out_shapes=(x,))
+
+
+class PaddingLayer(base_layer.BaseLayer):
+  """A layer that applies paddings to the inputs."""
+
+  def FProp(self, theta, inputs, paddings):
+    """Return combined inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      inputs: input tensor.
+      paddings: paddings tensor, should be of shape tf.shape(inputs)[:-1].
+
+    Returns:
+      Tensor with paddings applied.
+    """
+    return py_utils.ApplyPadding(tf.expand_dims(paddings, -1), inputs)
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings):
+    py_utils.CheckShapes((inputs, paddings))
+    return py_utils.NestedMap(
+        flops=max(inputs.num_elements(), paddings.num_elements()) * 2,
+        out_shapes=(inputs,))
+
+
+class StrideLayer(base_layer.BaseLayer):
+  """A layer that does stride."""
+
+  @classmethod
+  def Params(cls):
+    """Params for `StrideLayer`."""
+    p = super().Params()
+    p.Define(
+        'stride', 0, 'To use every k-th token, set the stride to k. When '
+        'stride == 0, only returns the first token of the input. When '
+        'stride == 1, returns every token in the input.')
+    p.Define(
+        'first_n', None, 'only considers the first N tokens for the '
+        'output. We use [:first_n:stride] to select the output tokens. If '
+        'first_n is None, this flag is a no-op. If stride is positive, the'
+        ' output sequence length is "(first_n-1) // stride + 1". If stride'
+        ' is 0, first_n has to be None or 1. first_n ca not be 0. If '
+        'first_n <= stride, only the first token is used.')
+    return p
+
+  def FProp(self, theta, x):
+    """Applies stride to the inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      x: input tensor, [batch, time, ...]. Stride is applied to the time dim.
+
+    Returns:
+      Strided tensor, with the stride applied to the second dim in x.
+    """
+    p = self.params
+    assert p.first_n is None or p.first_n > 0
+    if p.stride == 0:
+      assert p.first_n is None or p.first_n == 1
+      return tf.expand_dims(x[:, 0], 1)
+
+    if p.first_n:
+      return x[:, :p.first_n:p.stride]
+
+    if p.stride == 1:
+      return x
+
+    return x[:, ::p.stride]
+
+  @classmethod
+  def FPropMeta(cls, p, x):
+    py_utils.CheckShapes((x,))
+    if p.stride == 0:
+      return py_utils.NestedMap(
+          flops=1, out_shapes=(tshape.Shape(x[0:1] + [1] + x[2:]),))
+
+    if p.first_n:
+      # out_seq_len is 1 if first_n is 1 ~ stride and is 2 if it's stride+1 ~
+      # 2*stride...
+      out_seq_len = (p.first_n - 1) // p.stride + 1
+      return py_utils.NestedMap(
+          flops=1, out_shapes=(tshape.Shape(x[0:1] + [out_seq_len] + x[2:]),))
+
+    if p.stride == 1:
+      return py_utils.NestedMap(flops=0, out_shapes=(x,))
+
+    return py_utils.NestedMap(
+        flops=1, out_shapes=(tshape.Shape(x[0:1] + x[1] // p.stride + x[2:]),))
+
+
 # pyformat: disable
 class Builder(builder.Base):
   """Builder for self-attention layers."""
@@ -3688,7 +3807,7 @@ class Builder(builder.Base):
     p.Define('residual_dropout_prob', 0,
              'Dropout prob to the output of each sub-layer before it is added '
              'to the sub-layer input.')
-    p.Define('ff_activation_fn', tf.nn.relu,
+    p.Define('ff_activation_fn', 'RELU',
              'Activation function in Feedforward layer.')
     p.Define('ff_residual_weight', 1.0, 'Weight given to F(x) in the residual '
              'connection: y = x + ff_residual_weight * F(x), in Feedforward '
@@ -3741,8 +3860,7 @@ class Builder(builder.Base):
     return super()._Dropout(name, keep_prob=1.0 - drop_prob)
 
   def _Add(self, name, residual_weight=1.0):
-    return self._Fn(name, fn=lambda x, y: x + residual_weight * y,
-                    fn_out=lambda x, y: x)
+    return ResidualAddLayer.Params().Set(residual_weight=residual_weight)
 
   def _ExpandDims(self, name):
     return self._Fn(name,
@@ -3773,11 +3891,7 @@ class Builder(builder.Base):
                     fn_flops=lambda x: 15 * x.size)
 
   def _Pad(self, name):
-    return self._Fn(
-        name,
-        fn=lambda x, p: py_utils.ApplyPadding(tf.expand_dims(p, -1), x),
-        fn_out=lambda x, p: x,
-        fn_flops=lambda x, p: 2 * max(x.size, p.size))
+    return PaddingLayer.Params().Set(name=name)
 
   def _MultiHeadedAtten(self, name, num_heads=None):
     """Returns a MultiHeadedAttention params."""
@@ -3991,33 +4105,7 @@ class Builder(builder.Base):
     Returns:
       A layer params that does stride.
     """
-    assert first_n is None or first_n > 0
-    if stride == 0:
-      assert first_n is None or first_n == 1
-      return self._Fn(
-          name=name,
-          fn=lambda x: tf.expand_dims(x[:, 0], 1),
-          fn_out=lambda x: tshape.Shape(x[0:1] + [1] + x[2:]),
-          fn_flops=lambda x: 1)
-
-    if first_n:
-      # out_seq_len is 1 if first_n is 1 ~ stride and is 2 if it's stride+1 ~
-      # 2*stride...
-      out_seq_len = (first_n - 1) // stride + 1
-      return self._Fn(
-          name=name,
-          fn=lambda x: x[:, :first_n:stride],
-          fn_out=lambda x: tshape.Shape(x[0:1] + [out_seq_len] + x[2:]),
-          fn_flops=lambda x: 1)
-
-    if stride == 1:
-      return self._Id(name)
-
-    return self._Fn(
-        name=name,
-        fn=lambda x: x[:, ::stride],
-        fn_out=lambda x: tshape.Shape(x[0:1] + x[1] // stride + x[2:]),
-        fn_flops=lambda x: 1)
+    return StrideLayer.Params().Set(stride=stride, first_n=first_n, name=name)
 
   def _StridedAttention(self, name, stride=1, first_n=None, num_heads=None):
     """Computes self attention with optional stride.
