@@ -316,7 +316,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     Returns:
       A Tensor of shape [B, N, T, S]
     """
-    return tf.einsum('BTNH,BSNH->BNTS', query, key)
+    return attention_util.AttenLogits(query, key)
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.
@@ -410,7 +410,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     return probs, probs_sum
 
   def _AttenContext(self, theta, probs, value):
-    return tf.einsum('BNTS,BSNH->BTNH', probs, value)
+    return attention_util.AttenContext(probs, value)
 
   def _AttenContextOneStep(self, theta, probs, value, time_step):
     s, b, _, _ = py_utils.GetShape(value, 4)

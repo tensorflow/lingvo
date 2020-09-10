@@ -241,12 +241,38 @@ def RelPositionBias(content, abs_pos_emb, skip_term_b=False):
     return term_d[:, :, t - 1::-1]
 
 
-def _AttenLogits(query,
-                 key,
-                 abs_pos_emb,
-                 content_bias=None,
-                 positional_bias=None,
-                 skip_term_b=False):
+def AttenLogits(query, key):
+  """Computes attention logits.
+
+  Args:
+    query: A Tensor of shape [B, T, N, H]
+    key: A Tensor of shape [B, T, N, H]
+
+  Returns:
+    A Tensor of shape [B, N, T, S]
+  """
+  return tf.einsum('BTNH,BSNH->BNTS', query, key)
+
+
+def AttenContext(probs, value):
+  """Computes the attention context vector based on per-head probs and value.
+
+  Args:
+    probs: [B, N, T, S].
+    value: [B, S, N, H].
+
+  Returns:
+    encoded: [B, T, N, H].
+  """
+  return tf.einsum('BNTS,BSNH->BTNH', probs, value)
+
+
+def _AttenLogitsXL(query,
+                   key,
+                   abs_pos_emb,
+                   content_bias=None,
+                   positional_bias=None,
+                   skip_term_b=False):
   """Attention logits from ...
 
   Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of
@@ -329,8 +355,8 @@ def AttenLogitsTransformerXL(query,
   Returns:
     The attention logits tensor. [B, N, T, T]
   """
-  return _AttenLogits(query, key, abs_pos_emb, content_bias, positional_bias,
-                      skip_term_b)
+  return _AttenLogitsXL(query, key, abs_pos_emb, content_bias, positional_bias,
+                        skip_term_b)
 
 
 def AttenLogitsRPE(query, key, abs_pos_emb):
@@ -355,7 +381,7 @@ def AttenLogitsRPE(query, key, abs_pos_emb):
   Returns:
     The attention logits tensor. [B, N, T, T]
   """
-  return _AttenLogits(query, key, abs_pos_emb)
+  return _AttenLogitsXL(query, key, abs_pos_emb)
 
 
 class KMeansClusteringForAtten(base_layer.BaseLayer):
