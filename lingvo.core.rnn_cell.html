@@ -769,6 +769,42 @@ Shape [batch, 1]</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.rnn_cell.</code><code class="sig-name descname">LayerNormMaskedLSTMCellSimple</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormMaskedLSTMCellSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple" title="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple</span></code></a></p>
+<p>An implementation of layer normalized LSTM for federated dropout.</p>
+<p>The main function is to make the normalization aware of the mask, which
+requires to be updated externally for it to take effect.</p>
+<p>theta:</p>
+<ul class="simple">
+<li><p>wm: the parameter weight matrix. All gates combined.</p></li>
+<li><p>b: the combined bias vector.</p></li>
+</ul>
+<p>state:</p>
+<ul class="simple">
+<li><p>m: the lstm output. [batch, cell_nodes]</p></li>
+<li><p>c: the lstm cell state. [batch, cell_nodes]</p></li>
+</ul>
+<p>inputs:</p>
+<ul class="simple">
+<li><p>act: a list of input activations. [batch, input_nodes]</p></li>
+<li><p>padding: the padding. [batch, 1].</p></li>
+</ul>
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormMaskedLSTMCellSimple.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple._Gates">
+<code class="sig-name descname">_Gates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xmw</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormMaskedLSTMCellSimple._Gates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple._Gates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overriding the _Gates function with the masked layer normalization.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.rnn_cell.NormalizedLSTMCellSimple">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.rnn_cell.</code><code class="sig-name descname">NormalizedLSTMCellSimple</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#NormalizedLSTMCellSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.NormalizedLSTMCellSimple" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
