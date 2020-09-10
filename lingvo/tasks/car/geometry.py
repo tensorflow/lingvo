@@ -85,6 +85,31 @@ def _MakeRotationMatrix(yaw, roll, pitch):
   return tf.matmul(tf.matmul(_UnitZ(yaw), _UnitX(roll)), _UnitY(pitch))
 
 
+def BatchMakeRotationMatrix(yaw):
+  """Create a Nx3x3 rotation matrix from yaw.
+
+  Args:
+    yaw: float tensor representing a yaw angle in radians.
+
+  Returns:
+    A [N, 3, 3] tensor corresponding to a rotation matrix.
+  """
+
+  cos = tf.cos(yaw)
+  sin = tf.sin(yaw)
+  zero = tf.zeros_like(cos)
+  one = tf.ones_like(cos)
+
+  rotation_matrix = tf.stack([
+      cos, sin, zero,
+      -sin, cos, zero,
+      zero, zero, one
+  ], axis=-1)  # pyformat: disable
+  rotation_matrix = tf.reshape(rotation_matrix, [-1, 3, 3])
+
+  return rotation_matrix
+
+
 def CoordinateTransform(points, pose):
   """Translate 'points' to coordinates according to 'pose' vector.
 

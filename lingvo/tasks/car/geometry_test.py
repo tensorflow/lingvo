@@ -201,6 +201,24 @@ class GeometryTest(test_utils.TestCase):
     transforms = tf.stack(translation_matrices, axis=0)
     return transforms
 
+  def testBatchMakeRotationMatrix(self):
+    batch_size, num_points, num_boxes = 10, 8, 1
+    points = tf.random.uniform((batch_size, num_boxes, num_points, 3))
+    boxes = tf.random.uniform((batch_size, num_boxes, 7))
+
+    # Rotate the points
+    rot_matrix = geometry.BatchMakeRotationMatrix(-boxes[..., -1])
+    rot_matrix = tf.reshape(rot_matrix, [batch_size, num_boxes, 3, 3])
+    rotated_points = tf.einsum('bnpm,bnmc->bnpc', points, rot_matrix)
+    with self.session():
+      actual_points, actual_rotated_points = self.evaluate(
+          (points, rotated_points))
+
+    # Points are the same on the z-axis (no rotation).
+    self.assertAllClose(actual_points[..., 2], actual_rotated_points[..., 2])
+    # Points are transformed, and different.
+    self.assertNotAllClose(actual_points, actual_rotated_points)
+
   def testTransformPointsRotation(self):
     batch_size, num_points = 10, 8
     points = tf.random.uniform((batch_size, num_points, 3))
