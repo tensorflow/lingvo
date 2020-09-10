@@ -4746,14 +4746,17 @@ def _DefineDefun(fwd,
     device: the device on which to run fwd and bak.
 
   Returns:
-    A function that wraps fwd.
+    A NestedMap containing:
+
+    - forward: the forward function.
+    - rets: the output of the forward function.
   """
   assert fwd is not None
 
   # fwd signature (tf.Tensor dtypes).
+  fwd_sig = Transform(tf.convert_to_tensor, fwd_sig)
   get_dtype = lambda x: x.dtype
   arg_dtypes = Flatten(Transform(get_dtype, fwd_sig))
-
   get_shape = lambda x: x.shape
   arg_shapes = Flatten(Transform(get_shape, fwd_sig))
 
@@ -4761,8 +4764,9 @@ def _DefineDefun(fwd,
   noinline = not compiled
 
   # Used to hold:
-  # - the output dtypes/shapes of fwd, which will be set in Forward.
-  # - the real Backward function used by Grad, which will be defined later.
+  # - the forward function.
+  # - the output of the forward function, which will be set in Forward.
+  # - the backward function used by Grad, which will be defined if bak is set.
   sigs = NestedMap()
 
   python_grad_func = None
@@ -4796,57 +4800,49 @@ def _DefineDefun(fwd,
   def Forward(*args):
     """The forward function."""
     _SetShape(args, arg_shapes)
-    with RemoveAssertContext(remove=noinline), tf.device(device):
-      rets = fwd(Pack(fwd_sig, args))
-    sigs.ret_dtypes = Transform(get_dtype, rets)
-    sigs.ret_shapes = Transform(get_shape, rets)
+    with RemoveAssertContext(remove=noinline):
+      xs = Pack(fwd_sig, args)
+      if device is None:
+        # Defun will handle the device assignment.
+        rets = fwd(xs)
+      else:
+        with tf.device(device):
+          rets = fwd(xs)
+    sigs.rets = rets
     return Flatten(rets)
 
-  # Invokes fwd() to get sigs.ret_dtypes and sigs.ret_shapes.
+  # Invokes fwd() to get sigs.rets.
   Forward.add_to_graph(tf.get_default_graph())
   implicit_captures.captured = Forward.captured_inputs
+  sigs.forward = Forward
 
   if bak:
+    ret_dtypes = Transform(get_dtype, sigs.rets)
+    ret_shapes = Transform(get_shape, sigs.rets)
 
     def Backward(*args):
       """The backward function."""
-      xs_len = len(arg_dtypes)
-      ys_len = len(Flatten(sigs.ret_dtypes))
-      xs = args[:xs_len]
-      ys = args[xs_len:(xs_len + ys_len)]
-      dys = args[xs_len + ys_len:]
-      assert len(dys) == ys_len
-
-      _SetShape(xs, arg_shapes)
-      _SetShape(ys, Flatten(sigs.ret_shapes))
-      _SetShape(dys, Flatten(sigs.ret_shapes))
-
-      xs = Pack(fwd_sig, xs)
-      ys = Pack(sigs.ret_dtypes, ys)
-      dys = Pack(sigs.ret_dtypes, dys)
-      with RemoveAssertContext(remove=noinline), tf.device(device):
-        dxs = bak(xs, ys, dys)
+      _SetShape(args, Flatten([arg_shapes, ret_shapes, ret_shapes]))
+      xs, ys, dys = Pack([fwd_sig, ret_dtypes, ret_dtypes], args)
+      with RemoveAssertContext(remove=noinline):
+        if device is None:
+          # Defun will handle the device assignment.
+          dxs = bak(xs, ys, dys)
+        else:
+          with tf.device(device):
+            dxs = bak(xs, ys, dys)
       return Flatten(dxs)
 
     if bak_as_function:
       sigs.backward = tf.Defun(
-          *Flatten([arg_dtypes, sigs.ret_dtypes, sigs.ret_dtypes]),
-          noinline=noinline)(
+          *Flatten([arg_dtypes, ret_dtypes, ret_dtypes]), noinline=noinline)(
               Backward)
 
       sigs.backward.add_to_graph(tf.get_default_graph())
     else:
       sigs.backward = Backward
 
-  def Call(args):
-    """Wrapper of fwd."""
-    flat_rets = Forward(*Flatten(args))
-    if not isinstance(flat_rets, (tuple, list)):
-      flat_rets = [flat_rets]
-    _SetShape(flat_rets, Flatten(sigs.ret_shapes))
-    return Pack(sigs.ret_dtypes, flat_rets)
-
-  return Call
+  return sigs
 
 
 # Global variable to control rendezvous sharing in tf.function.
@@ -4931,14 +4927,25 @@ def _DefineFunction(fwd,
     device: the device on which to run fwd and bak.
 
   Returns:
-    A function that wraps fwd.
+    A NestedMap containing:
+
+    - forward: the forward function.
+    - rets: the output of the forward function.
   """
   assert fwd is not None
   noinline = not use_xla()
   fwd_sig = _TensorSpecs(fwd_sig)
 
-  # Only used to hold the output signature of fwd in sigs.rets, which will be
-  # set in Forward.
+  if device is None:
+    # Get the current device to mimic Defun's behavior.
+    # pylint: disable=protected-access
+    device_funcs = tf.get_default_graph()._device_functions_outer_to_inner
+    device = device_funcs[-1] if device_funcs else None
+    # pylint: enable=protected-access
+
+  # Used to hold:
+  # - the forward function.
+  # - the output of the forward function, which will be set in Forward.
   sigs = NestedMap()
 
   @_WrapFunction(input_signature=Flatten(fwd_sig))
@@ -4947,84 +4954,74 @@ def _DefineFunction(fwd,
     with RemoveAssertContext(remove=noinline), tf.device(device):
       xs = Pack(fwd_sig, args)
       rets = fwd(xs)
-    sigs.rets = _TensorSpecs(rets)
+    sigs.rets = rets
     return Flatten(rets)
+
+  if not bak:
+    sigs.forward = Forward
+    return sigs
 
   shared_rendezvous = _GetSharedRendezvous()
   implicit_captures = Forward.captured_inputs
 
-  if not bak:
-    forward = Forward
+  ret_specs = _TensorSpecs(sigs.rets)
+
+  def Backward(*args):
+    xs, ys, dys = Pack([fwd_sig, ret_specs, ret_specs], args)
+    with RemoveAssertContext(remove=noinline), tf.device(device):
+      dxs = bak(xs, ys, dys)
+    return Flatten(dxs)
+
+  if bak_as_function:
+    backward_cf = _WrapFunction(
+        Backward, input_signature=Flatten([fwd_sig, ret_specs, ret_specs]))
   else:
 
-    def Backward(*args):
-      xs_len = len(Flatten(fwd_sig))
-      ys_len = len(Flatten(sigs.rets))
-      xs = Pack(fwd_sig, args[:xs_len])
-      ys = Pack(sigs.rets, args[xs_len:(xs_len + ys_len)])
-      dys = Pack(sigs.rets, args[xs_len + ys_len:])
-      with RemoveAssertContext(remove=noinline), tf.device(device):
-        dxs = bak(xs, ys, dys)
-      return Flatten(dxs)
+    def BackwardWithSharedRendezvous(*args):
+      with _SharedRendezvousScope(shared_rendezvous):
+        return Backward(*args)
 
-    if bak_as_function:
-      backward_cf = _WrapFunction(
-          Backward, input_signature=Flatten([fwd_sig, sigs.rets, sigs.rets]))
-    else:
+    backward_cf = BackwardWithSharedRendezvous
 
-      def BackwardWithSharedRendezvous(*args):
-        with _SharedRendezvousScope(shared_rendezvous):
-          return Backward(*args)
+  @tf.custom_gradient
+  def ForwardWithGrad(*args):
+    """Forward function and its custom gradient."""
+    # Note that `args` includes implicit_captures. This is required by
+    # tf.custom_gradient so that when the Grad() outputs include gradients to
+    # implicit captures, they match the inputs to ForwardWithGrad().
+    #
+    # However, Forward doesn't take implicit_captures as input, so we exclude
+    # them here.
+    fwd_args = args[:(len(args) - len(Flatten(implicit_captures)))]
+    op = NestedMap(inputs=args, outputs=Forward(*fwd_args))
 
-      backward_cf = BackwardWithSharedRendezvous
+    def Grad(*args, **kwargs):
+      """Gradient function for the forward function.
 
-    @tf.custom_gradient
-    def ForwardWithGrad(*args):
-      """Forward function and its custom gradient."""
-      # Note that `args` includes implicit_captures. This is required by
-      # tf.custom_gradient so that when the Grad() outputs include gradients to
-      # implicit captures, they match the inputs to ForwardWithGrad().
-      #
-      # However, Forward doesn't take implicit_captures as input, so we exclude
-      # them here.
-      fwd_args = args[:(len(args) - len(Flatten(implicit_captures)))]
-      op = NestedMap(inputs=args, outputs=Forward(*fwd_args))
+      Args:
+        *args: Gradients wrt op.outputs.
+        **kwargs: Additional arguments from tf.custom_gradient.
 
-      def Grad(*args, **kwargs):
-        """Gradient function for the forward function.
+      Returns:
+        Tuple of derivatives.
+      """
+      if kwargs:
+        tf.logging.warning(
+            'Ignoring additional arguments used by tf.custom_gradient: %s',
+            str(kwargs))
 
-        Args:
-          *args: Gradients wrt op.outputs.
-          **kwargs: Additional arguments from tf.custom_gradient.
+      _AssertInputsMatch(op, fwd_sig, implicit_captures)
 
-        Returns:
-          Tuple of derivatives.
-        """
-        if kwargs:
-          tf.logging.warning(
-              'Ignoring additional arguments used by tf.custom_gradient: %s',
-              str(kwargs))
+      # Ensure dys contains no None.
+      args = ConvertNoneGradientToZeros(list(op.outputs), list(args))
 
-        _AssertInputsMatch(op, fwd_sig, implicit_captures)
+      xs, _ = Pack([fwd_sig, implicit_captures], op.inputs)
+      return backward_cf(*Flatten([xs, op.outputs, args]))
 
-        # Ensure dys contains no None.
-        args = ConvertNoneGradientToZeros(list(op.outputs), list(args))
+    return op.outputs, Grad
 
-        xs, _ = Pack([fwd_sig, implicit_captures], op.inputs)
-        return backward_cf(*Flatten([xs, op.outputs, args]))
-
-      return op.outputs, Grad
-
-    forward = lambda *args: ForwardWithGrad(*Flatten([args, implicit_captures]))
-
-  def Call(args):
-    """Wrapper of fwd."""
-    flat_rets = forward(*Flatten(args))
-    if not isinstance(flat_rets, (tuple, list)):
-      flat_rets = [flat_rets]
-    return Pack(sigs.rets, flat_rets)
-
-  return Call
+  sigs.forward = lambda *xs: ForwardWithGrad(*Flatten([xs, implicit_captures]))
+  return sigs
 
 
 def CallDefun(fwd,
@@ -5047,12 +5044,21 @@ def CallDefun(fwd,
   Returns:
     A Nested Structure equivalent to what fwd(args) computes.
   """
-  if _FromGlobal('use_tf_function'):
-    fn = _DefineFunction
+  use_tf_function = _FromGlobal('use_tf_function')
+  fn = _DefineFunction if use_tf_function else _DefineDefun
+  sigs = fn(fwd, args, bak, bak_as_function, device)
+  flat_rets = sigs.forward(*Flatten(args))
+  if not isinstance(flat_rets, (tuple, list)):
+    flat_rets = [flat_rets]
+
+  if use_tf_function:
+    return Pack(sigs.rets, flat_rets)
   else:
-    fn = _DefineDefun
-  call = fn(fwd, args, bak, bak_as_function, device)
-  return call(args)
+    # Set the output shapes since Defun can not infer shape automatically.
+    for dst, src in zip(flat_rets, Flatten(sigs.rets)):
+      if isinstance(dst, tf.Tensor):
+        dst.set_shape(src.shape)
+    return Pack(sigs.rets, flat_rets)
 
 
 def If(cond, inputs, then_branch, else_branch):
@@ -5070,61 +5076,18 @@ def If(cond, inputs, then_branch, else_branch):
   Returns:
     Output returned by the call to either 'then_branch' or 'else_branch'.
   """
-  ret_dtypes = NestedMap()
-  get_dtype = lambda x: x.dtype
-
-  if _FromGlobal('use_tf_function'):
-
-    @_WrapFunction(input_signature=Flatten(_TensorSpecs(inputs)))
-    def ThenBranch(*args):
-      inp = Pack(inputs, args)
-      out = then_branch(inp)
-      ret_dtypes.then_out = Transform(get_dtype, out)
-      return Flatten(out)
-
-    @_WrapFunction(input_signature=Flatten(_TensorSpecs(inputs)))
-    def ElseBranch(*args):
-      inp = Pack(inputs, args)
-      out = else_branch(inp)
-      ret_dtypes.else_out = Transform(get_dtype, out)
-      return Flatten(out)
-
-    ret = tf.If(
-        cond=cond,
-        inputs=Flatten(inputs),
-        then_branch=ThenBranch,
-        else_branch=ElseBranch)
-  else:
-    dtypes = Flatten(Transform(lambda x: x.dtype, inputs))
-
-    @tf.Defun(*dtypes)
-    def ThenBranch(*args):
-      for dst, src in zip(args, Flatten(inputs)):
-        dst.set_shape(src.shape)
-      inp = Pack(inputs, args)
-      out = then_branch(inp)
-      ret_dtypes.then_out = Transform(get_dtype, out)
-      return Flatten(out)
-
-    @tf.Defun(*dtypes)
-    def ElseBranch(*args):
-      for dst, src in zip(args, Flatten(inputs)):
-        dst.set_shape(src.shape)
-      inp = Pack(inputs, args)
-      out = else_branch(inp)
-      ret_dtypes.else_out = Transform(get_dtype, out)
-      return Flatten(out)
-
-    ret = tf.If(
-        cond=cond,
-        inputs=Flatten(inputs),
-        then_branch=ThenBranch,
-        else_branch=ElseBranch)
-
-  assert IsCompatible(ret_dtypes.then_out, ret_dtypes.else_out), (
+  fn = _DefineFunction if _FromGlobal('use_tf_function') else _DefineDefun
+  then_sigs = fn(then_branch, inputs)
+  else_sigs = fn(else_branch, inputs)
+  assert IsCompatible(then_sigs.rets, else_sigs.rets), (
       'Outputs of then_branch and else_branch are not compatible: {} vs {}'
-      .format(ret_dtypes.then_out, ret_dtypes.else_out))
-  return Pack(ret_dtypes.then_out, ret)
+      .format(then_sigs.rets, else_sigs.rets))
+  ret = tf.If(
+      cond=cond,
+      inputs=Flatten(inputs),
+      then_branch=then_sigs.forward,
+      else_branch=else_sigs.forward)
+  return Pack(then_sigs.rets, ret)
 
 
 def _Itype():
@@ -5144,38 +5107,14 @@ def WhileLoop(cond, body, loop_state):
   Returns:
     The final loop state in the same structure as loop_state.
   """
-  state = NestedMap(loop_state=loop_state)
-
-  if _FromGlobal('use_tf_function'):
-
-    @_WrapFunction(input_signature=Flatten(_TensorSpecs(state)))
-    def LoopCond(*args):
-      s = state.Pack(args)
-      return cond(s.loop_state)
-
-    @_WrapFunction(input_signature=Flatten(_TensorSpecs(state)))
-    def LoopBody(*args):
-      s = state.Pack(args)
-      s.loop_state = body(s.loop_state)
-      return s.Flatten()
-
-    new_state = tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)
-  else:
-    dtypes = state.Transform(lambda x: x.dtype).Flatten()
-
-    @tf.Defun(*dtypes)
-    def LoopCond(*args):
-      s = state.Pack(args)
-      return cond(s.loop_state)
-
-    @tf.Defun(*dtypes)
-    def LoopBody(*args):
-      s = state.Pack(args)
-      s.loop_state = body(s.loop_state)
-      return s.Flatten()
-
-    new_state = tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)
-  return state.Pack(new_state).loop_state
+  fn = _DefineFunction if _FromGlobal('use_tf_function') else _DefineDefun
+  cond_sigs = fn(cond, loop_state)
+  body_sigs = fn(body, loop_state)
+  new_state = tf.While(
+      input_=Flatten(loop_state),
+      cond=cond_sigs.forward,
+      body=body_sigs.forward)
+  return Pack(loop_state, new_state)
 
 
 def ForLoop(body, start, limit, delta, loop_state):
