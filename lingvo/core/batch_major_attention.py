@@ -1217,7 +1217,7 @@ class LocalSelfAttention(MultiHeadedAttention):
                  key,
                  paddings,
                  segment_mask,
-                 unused_per_step_padding=None):
+                 per_step_padding=None):
     """Compute attention probability.
 
     Args:
@@ -1227,11 +1227,13 @@ class LocalSelfAttention(MultiHeadedAttention):
       key:      [B, S=T, N, H].
       paddings: [B, T].
       segment_mask: [B, 1, T, S] not used right now.
-      unused_per_step_padding: Not used.
+      per_step_padding: Not used.
 
     Returns:
-      logits: [B, U, N, W, 2 * W]
+      probs: [B, U, N, W, 2 * W]
+      probs_sum: [B, U, N, W, 1].
     """
+    del per_step_padding
     p = self.params
     key = py_utils.HasRank(key, 4)
     b, t, n, h = py_utils.GetShape(key, 4)
@@ -1281,48 +1283,31 @@ class LocalSelfAttention(MultiHeadedAttention):
         tf.constant(-0.7, dtype=logits.dtype))
     padded_logits = tf.where(paddings > 0.0, very_negative_logits, logits)
 
-    probs = tf.nn.softmax(padded_logits)
-    return probs
+    if p.enable_scaling_code_motion:
+      # Split the softmax into two parts. Do the 1st part here; the 2nd part
+      # (scaling) is moved after _AttenContext for better performance.
+      probs = padded_logits - tf.stop_gradient(
+          tf.reduce_max(padded_logits, -1, True))
+      probs = tf.cast(tf.exp(probs), key.dtype)
+      probs_sum = tf.reduce_sum(probs, -1, True)
+    else:
+      probs = tf.cast(tf.nn.softmax(padded_logits), key.dtype)
+      probs_sum = None
 
-  def _DotAtten(self,
-                theta,
-                query,
-                key,
-                value,
-                paddings,
-                segment_mask,
-                per_step_padding=None):
-    """Main attention function.
+    return probs, probs_sum
+
+  def _AttenContext(self, theta, probs, value):
+    """Computes the local attention context vector.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      query:    [B, T, N, H].
-      key:      [B, S=T, N, H].
-      value:    [B, S=T, N, H].
-      paddings: [B, S=T].
-      segment_mask: [B, 1, S=T, S=T].
-      per_step_padding: A mask of shape [B, T, S=T] if not None.
+     theta: Layer theta: NestedMap.
+     probs: Local-self-MultiHeaded Attention probablities: [B, N, U, W, C].
+     value: Input value vector: [B, S=T, N, H].
 
     Returns:
-      encoded: [B, T, N, H].
-      atten_probs: [B, N, T, S].
+     encoded: Attention context vector: [B, T, N, H].
     """
     p = self.params
-    # Scale the query projection.
-    if p.enable_per_dim_scale:
-      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
-    else:
-      query *= (p.hidden_dim // p.num_heads)**-0.5
-    t0 = py_utils.GetShape(query)[1]
-
-    # -> [B, N, U, W, C]
-    probs = self.AttenProbs(theta, query, key, paddings, segment_mask,
-                            per_step_padding)
-
-    # Apply dropout to probs.
-    probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
-
     # -> [B, U, C, N, H]
     value_block_context = attention_util.ExtractBlockContext(
         value,
@@ -1336,8 +1321,55 @@ class LocalSelfAttention(MultiHeadedAttention):
     b, u, w, n, h = py_utils.GetShape(encoded)
     encoded = tf.reshape(encoded, [b, u * w, n, h])
     # Remove the extra time padding introduced by converting to blocks.
+    # Note: t0 works presently only for self-attention.
+    # For cross-atten, needs query[1] which'll be different.
+    t0 = py_utils.GetShape(value)[1]
     encoded = encoded[:, :t0, ...]
-    return encoded, probs
+    return encoded
+
+  def FProp(self,
+            theta,
+            query_vec,
+            key_vec,
+            value_vec,
+            paddings,
+            segment_mask=None,
+            per_step_padding=None):
+    """Computes the value vector given the current query output.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [B, T, D].
+      key_vec:   [B, S, D] with S == T (self-attention).
+      value_vec: [B, S, D] with S == T (self-attention).
+      paddings:  [B, S] with S == T (self-attention).
+      segment_mask: [B, 1, T, S]. A mask only applied if packed_input=True.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, T] if
+        not None.
+
+    Returns:
+      encoded: [B, T, D].
+      atten_probs: [B, N, T, S].
+
+    Raises:
+      ValueError: If value projection is disabled.
+    """
+    b, t, d = py_utils.GetShape(query_vec, 3)
+    # LocalSelfAttention doesn't support cross-attention at the moment.
+    # Verify T == S, for query and value vector.
+    value_vec = py_utils.HasShape(value_vec, [b, t, d])
+    key_vec = py_utils.HasShape(key_vec, [b, t, d])
+    paddings = py_utils.HasShape(paddings, [b, t])
+    return super().FProp(
+        theta,
+        query_vec,
+        key_vec,
+        value_vec,
+        paddings,
+        segment_mask=segment_mask,
+        per_step_padding=per_step_padding)
 
   def ExtendStep(self,
                  theta,
