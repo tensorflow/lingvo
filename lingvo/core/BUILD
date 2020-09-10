@@ -255,6 +255,7 @@ py_library(
         ":tokenizers",
         "//lingvo:compat",
         "//lingvo/core/ops",
+        # Implicit tensorflow dependency.
     ],
 )
 

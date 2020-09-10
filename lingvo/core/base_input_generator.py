@@ -971,6 +971,198 @@ class BaseTinyDatasetInput(BaseInputGenerator):
     return raw
 
 
+class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
+  """tf.data input pipeline for sequences."""
+
+  def __init__(self, params):
+    """Constructor."""
+    if params.file_datasource:
+      raise ValueError(
+          'TFDataSequenceInputGenerator does not support p.file_datasource.')
+
+    super().__init__(params)
+
+  def _InputBatch(self):
+    """Returns a NestedMap containing an input batch."""
+    dataset = self._GetDatasetInternal()
+    dataset = self._BatchDataset(dataset)
+    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+    batch = tf.data.make_one_shot_iterator(dataset).get_next()
+
+    # Set tensor shapes.
+    if py_utils.use_tpu():
+      # TPU requires every batch has the same size.
+      b = max(self.infeed_bucket_batch_limit)
+      assert b == min(self.infeed_bucket_batch_limit)
+    else:
+      b = None
+    for name, t in batch.FlattenItems():
+      t.set_shape((b,) + self._InputShape(name))
+
+    return batch
+
+  def _GetDatasetInternal(self):
+    return self.GetDataset()
+
+  def GetDataset(self):
+    """Loads a dataset.
+
+    Subclasses should either override this function or both of _LoadDataset()
+    and _ProcessDataset().
+
+    Returns:
+      A NestedMap containing tensors without a leading batch dimension.
+    """
+    p = self.params
+    require_sequential_order = p.require_sequential_order or self.do_eval
+
+    if isinstance(p.file_pattern, str):
+      file_patterns = p.file_pattern.split(',')
+      weights = None
+    else:
+      if not p.use_within_batch_mixing:
+        raise ValueError(
+            'Only p.use_within_batch_mixing is supported with multiple '
+            'file_patterns.')
+
+      if all([isinstance(x, str) for x in p.file_pattern]):
+        file_patterns = p.file_pattern
+        weights = None
+      elif all([isinstance(x, tuple) for x in p.file_pattern]):
+        file_patterns, weights = zip(*p.file_pattern)
+      else:
+        raise ValueError(
+            f'p.file_pattern must be all strings or all tuples, but got: '
+            f'{p.file_pattern}.')
+
+    def LoadDatasetFromSingleGlob(file_pattern_glob, source_id):
+      dataset = tf.data.Dataset.list_files(
+          file_pattern_glob,
+          shuffle=not require_sequential_order,
+          seed=p.file_random_seed)
+      num_files = len(tf.io.gfile.glob(file_pattern_glob))
+      dataset = dataset.interleave(
+          self._LoadDataset,
+          cycle_length=(1 if require_sequential_order else min(
+              num_files, p.file_parallelism)),
+          num_parallel_calls=tf.data.experimental.AUTOTUNE,
+          deterministic=require_sequential_order)
+
+      if not require_sequential_order:
+        dataset = dataset.shuffle(p.file_buffer_size)
+      if not self.do_eval:
+        dataset = dataset.repeat()
+
+      def MakeExample(*values):
+        return py_utils.NestedMap(
+            data=values[0] if len(values) == 1 else values, source_id=source_id)
+
+      dataset = dataset.map(MakeExample, **self._map_args)
+      return dataset
+
+    datasets = []
+    for i, file_pattern in enumerate(file_patterns):
+      file_pattern = py_utils.ShardedFilePatternToGlob(file_pattern)
+      datasets.append(LoadDatasetFromSingleGlob(file_pattern, i))
+    if len(file_patterns) > 1:
+      tf.logging.info(f'Mixing files {file_patterns} with weights {weights}.')
+      dataset = tf.data.experimental.sample_from_datasets(
+          datasets, weights, p.random_seed or None)
+    else:
+      dataset = datasets[0]
+
+    dataset = self._ProcessDataset(dataset)
+
+    if self.do_eval:
+      dataset = dataset.take(p.num_samples)
+
+    return dataset
+
+  def _LoadDataset(self, filename):
+    """Loads a dataset from a filename."""
+    raise NotImplementedError()
+
+  def _ProcessDataset(self, dataset):
+    """Processes a dataset returned by _LoadDataset.
+
+    Args:
+      dataset: A dataset containing NestedMaps with scalar 'data' containing the
+        value returned by _LoadDataset and scalar 'source_id' containing the
+        source id.
+
+    Returns:
+      A processed dataset containing NestedMaps of Tensors without a leading
+      batch dimension.
+    """
+    raise NotImplementedError()
+
+  def _InputShape(self, key):
+    """Returns the final shape of the tensor corresponding to key as a tuple.
+
+    The shape should not include a leading batch dimension.
+
+    Args:
+      key: The NestedMap key to return shape for.
+    """
+    if key == 'source_id':
+      return ()
+
+    raise ValueError('Unexpected key %s' % key)
+
+  def _InputPaddingValue(self, key, tensorspec):
+    """Returns the value to pad the tensor corresponding to key with."""
+    if key.endswith('_paddings'):
+      return tf.ones([], dtype=tensorspec.dtype)
+    else:
+      return tf.zeros([], dtype=tensorspec.dtype)
+
+  def _GetBucketId(self, example):
+    """Returns scalar bucket id for the example NestedMap from the dataset."""
+    raise NotImplementedError()
+
+  def _BatchDataset(self, dataset):
+    """Batches a dataset containing NestedMaps of tensors."""
+    p = self.params
+
+    def SetBucketKeys(example):
+      example.bucket_keys = self._GetBucketId(example)
+      return example
+
+    dataset = dataset.map(SetBucketKeys, **self._map_args)
+
+    dataset_structure = py_utils.NestedMap.FromNestedDict(
+        tf.data.experimental.get_structure(dataset))
+
+    padded_shapes = dataset_structure.TransformWithKey(
+        lambda k, _: tf.TensorShape(self._InputShape(k)))
+    padding_values = dataset_structure.TransformWithKey(self._InputPaddingValue)
+
+    dataset_structure.VLog(0, 'dataset_structure:')
+    padded_shapes.VLog(0, 'padded_shapes:')
+
+    dataset = dataset.apply(
+        tf.data.experimental.bucket_by_sequence_length(
+            self._GetBucketId,
+            p.bucket_upper_bound,
+            self.infeed_bucket_batch_limit + [1],
+            padded_shapes=padded_shapes,
+            padding_values=padding_values,
+            pad_to_bucket_boundary=True,
+            drop_remainder=py_utils.use_tpu()))
+
+    return dataset
+
+  @property
+  def _map_args(self):
+    """Default args for tf.data.DataSet.map()."""
+    p = self.params
+    require_sequential_order = p.require_sequential_order or self.do_eval
+    return dict(
+        num_parallel_calls=1
+        if require_sequential_order else p.num_batcher_threads,
+        deterministic=require_sequential_order)
+
+
 class BaseDataExampleInputGenerator(BaseInputGenerator):
   """Base class for input generators that read Feature protos via tf.data."""
 
