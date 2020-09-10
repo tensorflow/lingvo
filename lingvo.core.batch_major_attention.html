@@ -964,7 +964,7 @@ its children layers.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs">
-<code class="sig-name descname">AttenProbs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">unused_per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.AttenProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AttenProbs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.AttenProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute attention probability.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -975,41 +975,68 @@ its children layers.</p></li>
 <li><p><strong>key</strong> – [B, S=T, N, H].</p></li>
 <li><p><strong>paddings</strong> – [B, T].</p></li>
 <li><p><strong>segment_mask</strong> – [B, 1, T, S] not used right now.</p></li>
-<li><p><strong>unused_per_step_padding</strong> – Not used.</p></li>
+<li><p><strong>per_step_padding</strong> – Not used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>[B, U, N, W, 2 * W]</p>
+<dd class="field-even"><p>[B, U, N, W, 2 * W]
+probs_sum: [B, U, N, W, 1].</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>logits</p>
+<dd class="field-odd"><p>probs</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._DotAtten">
-<code class="sig-name descname">_DotAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._DotAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._DotAtten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Main attention function.</p>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._AttenContext">
+<code class="sig-name descname">_AttenContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">probs</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._AttenContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._AttenContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the local attention context vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Layer theta: NestedMap.</p></li>
+<li><p><strong>probs</strong> – Local-self-MultiHeaded Attention probablities: [B, N, U, W, C].</p></li>
+<li><p><strong>value</strong> – Input value vector: [B, S=T, N, H].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Attention context vector: [B, T, N, H].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>encoded</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">key_vec</span></em>, <em class="sig-param"><span class="n">value_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the value vector given the current query output.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
-<li><p><strong>query</strong> – [B, T, N, H].</p></li>
-<li><p><strong>key</strong> – [B, S=T, N, H].</p></li>
-<li><p><strong>value</strong> – [B, S=T, N, H].</p></li>
-<li><p><strong>paddings</strong> – [B, S=T].</p></li>
-<li><p><strong>segment_mask</strong> – [B, 1, S=T, S=T].</p></li>
-<li><p><strong>per_step_padding</strong> – A mask of shape [B, T, S=T] if not None.</p></li>
+<li><p><strong>query_vec</strong> – [B, T, D].</p></li>
+<li><p><strong>key_vec</strong> – [B, S, D] with S == T (self-attention).</p></li>
+<li><p><strong>value_vec</strong> – [B, S, D] with S == T (self-attention).</p></li>
+<li><p><strong>paddings</strong> – [B, S] with S == T (self-attention).</p></li>
+<li><p><strong>segment_mask</strong> – [B, 1, T, S]. A mask only applied if packed_input=True.</p></li>
+<li><p><strong>per_step_padding</strong> – A mask used by decoder self-attention to prevent
+information flow from future (causal padding). It has shape [B, T, T] if
+not None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>[B, T, N, H].
+<dd class="field-even"><p>[B, T, D].
 atten_probs: [B, N, T, S].</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>encoded</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If value projection is disabled.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1107,7 +1134,7 @@ state: updated state.</p>
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">
 <em class="property">classmethod </em><code class="sig-name descname">FPropMeta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns metadata about the <code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code> computation for this layer.</p>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.batch_major_attention.LocalSelfAttention.FProp" title="lingvo.core.batch_major_attention.LocalSelfAttention.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
 <p><strong>Experimental feature.</strong>
 Don’t use or depend on it without consulting Lingvo authors.</p>
 <p>E.g.:</p>
@@ -1116,7 +1143,7 @@ Don’t use or depend on it without consulting Lingvo authors.</p>
 </pre></div>
 </div>
 <p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
-one <code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code> given an input tensor of shape [128, 20, 50, channels].
+one <a class="reference internal" href="#lingvo.core.batch_major_attention.LocalSelfAttention.FProp" title="lingvo.core.batch_major_attention.LocalSelfAttention.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
 of tensors this layer will return.</p>
 <dl class="field-list simple">
