@@ -1900,6 +1900,7 @@ py_library(
 py_library(
     name = "moe_layers",
     srcs = ["moe_layers.py"],
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",

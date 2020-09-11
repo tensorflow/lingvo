@@ -117,7 +117,7 @@ class _CacheDataset(dataset_ops.UnaryUnchangedStructureDataset):
         input_dataset._variant_tensor,  # pylint: disable=protected-access
         filename=self._filename,
         **self._flat_structure)
-    super(_CacheDataset, self).__init__(input_dataset, variant_tensor)
+    super().__init__(input_dataset, variant_tensor)
 
 
 class _ShuffleDataset(dataset_ops.UnaryUnchangedStructureDataset):
@@ -144,7 +144,7 @@ class _ShuffleDataset(dataset_ops.UnaryUnchangedStructureDataset):
         seed2=self._seed2,
         reshuffle_each_iteration=self._reshuffle_each_iteration,
         **self._flat_structure)
-    super(_ShuffleDataset, self).__init__(input_dataset, variant_tensor)
+    super().__init__(input_dataset, variant_tensor)
 
 
 def stateless_shuffle_dataset(buffer_size,
