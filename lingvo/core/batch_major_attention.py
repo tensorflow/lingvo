@@ -3207,8 +3207,11 @@ class StackedTransformerLayers(base_layer.BaseLayer):
              'Apply dropout at this prob at various places.')
     p.Define('add_unnormalized_input', True,
              'If set, uses unnormalized input in the residual add.')
-    p.Define('transformer_layer_params_tpl', TransformerLayer.Params(),
-             'A template of TransformerLayer.params.')
+    p.Define(
+        'transformer_layer_params_tpl', TransformerLayer.Params(),
+        'A template of TransformerLayer.params, can be a list of params '
+        'of length equal to the num_layers or a factor of num_layers.'
+        'For a factor, the params are tiled as [a, a, ..., b, b,...,].')
     p.Define('final_layer_norm', False,
              'If true, apply layer normalization to the final output.')
     p.Define('packed_input', False,
@@ -3237,9 +3240,18 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     assert p.num_atten_heads > 0
     assert 0.0 <= p.dropout_prob < 1.0
 
+    if isinstance(p.transformer_layer_params_tpl, list):
+      if p.num_layers % len(p.transformer_layer_params_tpl):
+        raise ValueError('num_layers should be divisible by '
+                         'transformer_layer_params_tpl')
+
     def _LayerParams(ii):
       """Construct ii-th layer params."""
-      p_ii = p.transformer_layer_params_tpl.Copy()
+      if isinstance(p.transformer_layer_params_tpl, list):
+        i = ii // len(p.transformer_layer_params_tpl)
+        p_ii = p.transformer_layer_params_tpl[i].Copy()
+      else:
+        p_ii = p.transformer_layer_params_tpl.Copy()
       p_ii.name = 'layer_%d' % ii
       p_ii.has_aux_atten = p.has_aux_atten
       p_ii.mask_self_atten = p.mask_self_atten
