@@ -15,6 +15,7 @@
 # ==============================================================================
 """The compatible tensorflow library."""
 
+import os
 import tensorflow.compat.v1 as tf1
 from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-import-order
 
@@ -24,7 +25,6 @@ from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-impo
 from absl import flags
 from absl import logging
 # pylint: disable=g-direct-tensorflow-import
-
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.data.ops import dataset_ops
 from tensorflow.python.data.util import random_seed
@@ -39,7 +39,10 @@ from tensorflow.python.ops import gen_io_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.platform import app
+from tensorflow.python.tf2 import enabled as tf2_enabled
 from tensorflow.python.util import module_wrapper as _module_wrapper
+# For determining if we are running with --define=tf_api_version=1 or 2.
+from tensorflow import _major_api_version
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
@@ -63,6 +66,17 @@ def _clone_module(m):
   out = type(m)(m.__name__, m.__doc__)
   out.__dict__.update(m.__dict__)
   return out
+
+
+def summarize_tf2_status():
+  """Summarize the TF version environment."""
+  tf2_behavior_env = os.environ.get("TF2_BEHAVIOR")
+  return "; ".join([
+      f"tf._major_api_version: {_major_api_version}",
+      f"tf2_enabled() == {tf2_enabled()}",
+      f"TF2_BEHAVIOR == {tf2_behavior_env}",
+  ])
+
 
 # Aliases to a few routines lingvo libraries uses often.
 Defun = _function_lib.Defun
