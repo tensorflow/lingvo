@@ -125,8 +125,8 @@ class ParamsTest(test_utils.TestCase):
     self.assertNotIn('c', dest)
 
   def testCopyFieldsToDoesNotCopyClass(self):
-    source = _params.InstantiableParams(cls=_params.Params)
-    dest = _params.InstantiableParams(cls=_params.InstantiableParams)
+    source = _params.InstantiableParams(_params.Params)
+    dest = _params.InstantiableParams(_params.InstantiableParams)
     _params.CopyFieldsTo(source, dest)
     self.assertEqual(dest.cls, _params.InstantiableParams)
 
