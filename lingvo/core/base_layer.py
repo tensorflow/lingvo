@@ -17,6 +17,7 @@
 
 import abc
 import collections
+import contextlib
 import enum
 import itertools
 import re
@@ -350,6 +351,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._is_variable_free = False
     self._variables_to_create = {}
     self._create_variables_status = _CreateLayerVariablesStatus.NOT_CALLED
+    # Keep track of the tf.variable_scope(p.name) this layer creates so we can
+    # reenter it without creating a new one.
+    self._self_variable_scope = None
 
   def SetVariableFree(self, value=True):
     """Marks this layer as having no variables.
@@ -773,6 +777,21 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       value = meta.theta_fn(value)
     self._private_theta[name] = value
 
+  @contextlib.contextmanager
+  def _SelfVariableScope(self):
+    """Internal. Used to ensure the same variable & name scopes are used."""
+    if not self._self_variable_scope:
+      with tf.variable_scope(py_utils.SanitizeScopeKey(
+          self.params.name)) as scope:
+        self._self_variable_scope = scope
+    with contextlib.ExitStack() as stack:
+      stack.enter_context(
+          tf.variable_scope(
+              self._self_variable_scope, auxiliary_name_scope=False))
+      stack.enter_context(
+          tf.name_scope(self._self_variable_scope.original_name_scope))
+      yield stack
+
   def InstantiateVariables(self):
     """Create variables for this layer and child layers.
 
@@ -790,9 +809,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
       if not self._is_variable_free:
         self.AddExtraTheta('global_step', self._global_step)
-        with tf.variable_scope(
-            py_utils.SanitizeScopeKey(self.params.name),
-            auxiliary_name_scope=False):
+        with self._SelfVariableScope():
           for name, meta in list(self._variables_to_create.items()):
             self._CreateVariableInternal(name, meta)
           self._CreateLayerVariables()
@@ -821,9 +838,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self.CreateVariable() in _CreateLayerVariables(). If you are okay with
     breaking old checkpoints, you can go ahead and delete those functions.
     """
-    with tf.variable_scope(
-        py_utils.SanitizeScopeKey(self.params.name),
-        auxiliary_name_scope=False):
+    with self._SelfVariableScope():
       for child in self._children_list:
         if self._is_variable_free and not child._is_variable_free:  # pylint: disable=protected-access
           raise ValueError(
