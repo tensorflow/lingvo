@@ -225,6 +225,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     assert not self._tpu_queues, ('CreateTpuEnqueueOps should only be called '
                                   'once.')
     self._tpu_queues = []
+    self._per_host_batches = []
     p = self.params
     cluster = self.cluster
     num_tpu_hosts = cluster.num_tpu_hosts
@@ -272,23 +273,24 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
       with tf.device(host_device):
-        self._batch = self.GetPreprocessedInputBatch()
-        if isinstance(self._batch, py_utils.NestedMap):
+        batch = self.GetPreprocessedInputBatch()
+        if isinstance(batch, py_utils.NestedMap):
           # Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.
           # Note that when MultiTaskData is used, bucket_keys will be at the
           # second level of the dictionary.
-          self._batch = self._batch.FilterKeyVal(
-              lambda k, _: not k.endswith('bucket_keys'))
-        tf.logging.info('host_device: %s, batch: %r', host_device, self._batch)
+          batch = batch.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
+        self._batch_nm_types = batch
+        tf.logging.info('host_device: %s, batch: %r', host_device, batch)
+        self._per_host_batches.append(batch)
 
-        for k, x in self._batch.FlattenItems():
+        for k, x in batch.FlattenItems():
           assert x.shape.is_fully_defined(), (
               'Shape must be fully defined: %s: %s' % (k, x))
           # TODO(cwhipkey): if it's a string (or other type not supported on
           # TPU), drop it from feeding and on the other end add in an op that
           # fails if used.
-        shapes = self._batch.Transform(lambda x: x.shape).Flatten()
-        dtypes = self._batch.Transform(lambda x: x.dtype).Flatten()
+        shapes = batch.Transform(lambda x: x.shape).Flatten()
+        dtypes = batch.Transform(lambda x: x.dtype).Flatten()
 
         tf.logging.info('host_device: %s infeed shapes: %r', host_device,
                         shapes)
@@ -326,7 +328,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
         self._tpu_queues.append(q)
 
         if p.use_partitioned_infeed_queue:
-          input_ops = q.generate_enqueue_ops([self._batch.Flatten()])
+          input_ops = q.generate_enqueue_ops([batch.Flatten()])
         elif p.use_per_host_infeed:
           # TODO(ylc/zhifengc): Add this to a policy module and test it.
           def TPUOrdinalFunction(shard_index_in_host):
@@ -342,12 +344,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
               return shard_index_in_host
 
           input_ops = q.split_inputs_and_generate_enqueue_ops(
-              self._batch.Flatten(),
+              batch.Flatten(),
               placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
               tpu_ordinal_function=TPUOrdinalFunction)
         else:
           input_ops = q.split_inputs_and_generate_enqueue_ops(
-              self._batch.Flatten(),
+              batch.Flatten(),
               device_assignment=py_utils.GetTpuDeviceAssignment())
         input_ops_list += input_ops
 
@@ -371,7 +373,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       # only cares about the shape/types being dequeued
       # which is why this is hard-coded to the first Queue.
       tensors = self._tpu_queues[0].generate_dequeue_op()
-    return self._batch.Pack(tensors)
+    return self._batch_nm_types.Pack(tensors)
 
   def CreateTpuEmbeddingEnqueueOps(self):
     """Creates the TpuEmbedding enqueue ops on the host.
@@ -401,24 +403,19 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
     if not tpu_embedding:
       return
-
+    assert len(self._per_host_batches) == num_infeed_hosts
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
+      batch = self._per_host_batches[task_id]
       with tf.device(host_device):
-        if isinstance(self._batch, py_utils.NestedMap):
-          # Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.
-          # Note that when MultiTaskData is used, bucket_keys will be at the
-          # second level of the dictionary.
-          self._batch = self._batch.FilterKeyVal(
-              lambda k, _: not k.endswith('bucket_keys'))
-        tf.logging.info('host_device: %s, batch: %r', host_device, self._batch)
+        tf.logging.info('host_device: %s, batch: %r', host_device, batch)
 
         enqueue_dict_per_core = [
             {} for _ in range(tpu_embedding.num_cores_per_host)
         ]
         num_cores_per_host = tpu_embedding.num_cores_per_host
         for key in tpu_emb_input_keys:
-          feat = self._batch[key]
+          feat = batch[key]
           tpu_emb_feat_splitted = tf.split(feat, num_cores_per_host)
           for core, split in enumerate(tpu_emb_feat_splitted):
             # Dense to sparse. Note the assumption of a padding id.
