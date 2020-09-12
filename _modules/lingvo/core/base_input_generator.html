@@ -373,6 +373,7 @@
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;CreateTpuEnqueueOps should only be called &#39;</span>
                                   <span class="s1">&#39;once.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
@@ -420,23 +421,24 @@
     <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
       <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
           <span class="c1"># Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.</span>
           <span class="c1"># Note that when MultiTaskData is used, bucket_keys will be at the</span>
           <span class="c1"># second level of the dictionary.</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span>
-              <span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;bucket_keys&#39;</span><span class="p">))</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">)</span>
+          <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;bucket_keys&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_nm_types</span> <span class="o">=</span> <span class="n">batch</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
           <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">(),</span> <span class="p">(</span>
               <span class="s1">&#39;Shape must be fully defined: </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
           <span class="c1"># TODO(cwhipkey): if it&#39;s a string (or other type not supported on</span>
           <span class="c1"># TPU), drop it from feeding and on the other end add in an op that</span>
           <span class="c1"># fails if used.</span>
-        <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-        <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+        <span class="n">shapes</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+        <span class="n">dtypes</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1"> infeed shapes: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span>
                         <span class="n">shapes</span><span class="p">)</span>
@@ -474,7 +476,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span><span class="p">:</span>
-          <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
+          <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">([</span><span class="n">batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
         <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
           <span class="c1"># TODO(ylc/zhifengc): Add this to a policy module and test it.</span>
           <span class="k">def</span> <span class="nf">TPUOrdinalFunction</span><span class="p">(</span><span class="n">shard_index_in_host</span><span class="p">):</span>
@@ -490,12 +492,12 @@
               <span class="k">return</span> <span class="n">shard_index_in_host</span>
 
           <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+              <span class="n">batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
               <span class="n">placement_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">host_device</span><span class="p">,</span>  <span class="c1"># pylint: disable=cell-var-from-loop</span>
               <span class="n">tpu_ordinal_function</span><span class="o">=</span><span class="n">TPUOrdinalFunction</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+              <span class="n">batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
               <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
         <span class="n">input_ops_list</span> <span class="o">+=</span> <span class="n">input_ops</span>
 
@@ -519,7 +521,7 @@
       <span class="c1"># only cares about the shape/types being dequeued</span>
       <span class="c1"># which is why this is hard-coded to the first Queue.</span>
       <span class="n">tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">generate_dequeue_op</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_nm_types</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.CreateTpuEmbeddingEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEmbeddingEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates the TpuEmbedding enqueue ops on the host.</span>
@@ -549,24 +551,19 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;tpu_emb_input_keys: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">tpu_emb_input_keys</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tpu_embedding</span><span class="p">:</span>
       <span class="k">return</span>
-
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_infeed_hosts</span>
     <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
       <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
-          <span class="c1"># Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.</span>
-          <span class="c1"># Note that when MultiTaskData is used, bucket_keys will be at the</span>
-          <span class="c1"># second level of the dictionary.</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span>
-              <span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;bucket_keys&#39;</span><span class="p">))</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
 
         <span class="n">enqueue_dict_per_core</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">num_cores_per_host</span><span class="p">)</span>
         <span class="p">]</span>
         <span class="n">num_cores_per_host</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">num_cores_per_host</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tpu_emb_input_keys</span><span class="p">:</span>
-          <span class="n">feat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+          <span class="n">feat</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
           <span class="n">tpu_emb_feat_splitted</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">feat</span><span class="p">,</span> <span class="n">num_cores_per_host</span><span class="p">)</span>
           <span class="k">for</span> <span class="n">core</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tpu_emb_feat_splitted</span><span class="p">):</span>
             <span class="c1"># Dense to sparse. Note the assumption of a padding id.</span>
