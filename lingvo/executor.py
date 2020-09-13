@@ -192,6 +192,8 @@ class ExecutorTpu(base_runner.BaseRunner):
     # BaseRunner legacy
     self.enqueue_ops = None
 
+    train_cfg = self.params
+
     @py_utils.RetryOnTransientTfError()
     def _WaitTillInit():
       """Wait until the model is ready."""
@@ -202,11 +204,19 @@ class ExecutorTpu(base_runner.BaseRunner):
         ) as sess:
           topology = sess.run(
               tf.tpu.initialize_system(embedding_config=None, job=None))
-          device_assignment = device_assignment_lib.device_assignment(
-              topology,
-              computation_shape=py_utils.ComputationShape(
-                  num_devices_per_split, topology),
-              num_replicas=data_parallelism)
+          if train_cfg.train.tpu_device_order_mode is None:
+            device_assignment = device_assignment_lib.device_assignment(
+                topology,
+                computation_shape=py_utils.ComputationShape(
+                    num_devices_per_split, topology),
+                num_replicas=data_parallelism)
+          else:
+            device_assignment = device_assignment_lib.device_assignment(
+                topology,
+                computation_shape=py_utils.ComputationShape(
+                    num_devices_per_split, topology),
+                num_replicas=data_parallelism,
+                device_order_mode=train_cfg.train.tpu_device_order_mode)
           py_utils.SetTpuDeviceAssignment(device_assignment)
           tf.logging.info('device_assignment.core_assignment: %s',
                           str(device_assignment.core_assignment))
@@ -221,7 +231,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       mlp_log.mlperf_print(key='init_start', value=None)
     _WaitTillInit()
 
-    train_cfg = self.params
     shared_model = self._MaybeConstructSharedModel(train_cfg)
 
     self._program_schedule_dict = {}

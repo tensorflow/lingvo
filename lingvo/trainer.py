@@ -530,11 +530,19 @@ class TrainerTpu(base_runner.BaseRunner):
         with self._GetSession(graph=dummy_graph) as sess:
           topology = sess.run(tpu_initialize_system_op)
 
-        device_assignment = device_assignment_lib.device_assignment(
-            topology,
-            computation_shape=py_utils.ComputationShape(num_devices_per_split,
-                                                        topology),
-            num_replicas=data_parallelism)
+        if self.params.train.tpu_device_order_mode is None:
+          device_assignment = device_assignment_lib.device_assignment(
+              topology,
+              computation_shape=py_utils.ComputationShape(
+                  num_devices_per_split, topology),
+              num_replicas=data_parallelism)
+        else:
+          device_assignment = device_assignment_lib.device_assignment(
+              topology,
+              computation_shape=py_utils.ComputationShape(
+                  num_devices_per_split, topology),
+              num_replicas=data_parallelism,
+              device_order_mode=self.params.train.tpu_device_order_mode)
         py_utils.SetTpuDeviceAssignment(device_assignment)
         tf.logging.info('device_assignment.core_assignment: %s',
                         str(device_assignment.core_assignment))

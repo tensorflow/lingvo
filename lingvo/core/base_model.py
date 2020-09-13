@@ -84,6 +84,12 @@ class BaseTask(base_layer.BaseLayer):
     tp.Define('tpu_steps_per_loop', 1000, 'The number of training steps per '
               'training loop for TPUs.')
     tp.Define(
+        'tpu_device_order_mode', None,
+        'A device_assignment_lib.DeviceOrderMode enum that determines whether '
+        'to assign devices in a way that the order of replicas or '
+        'model-parallel cores will form a ring or mesh, or let the library to '
+        'choose. Default None to AUTO.')
+    tp.Define(
         'vn_start_step', 200000000,
         'Step starting from which variational noise is added to '
         'params values during training.')
@@ -878,6 +884,12 @@ class BaseModel(base_layer.BaseLayer):
     tp.Define('tpu_steps_per_loop', 1000, 'The number of training steps per '
               'training loop for TPUs.')
     tp.Define(
+        'tpu_device_order_mode', None,
+        'A device_assignment_lib.DeviceOrderMode enum that determines whether '
+        'to assign devices in a way that the order of replicas or '
+        'model-parallel cores will form a ring or mesh, or let the library to '
+        'choose. Default None to AUTO.')
+    tp.Define(
         'ema_decay', 0.0,
         'If > 0, enable ExponentialMovingAverage during training '
         'with the give decay. '
@@ -1034,6 +1046,7 @@ class SingleTaskModel(SingleTaskBase):
       tp.start_up_delay_steps = p.task.train.start_up_delay_steps
       tp.max_steps = p.task.train.max_steps
       tp.tpu_steps_per_loop = p.task.train.tpu_steps_per_loop
+      tp.tpu_device_order_mode = p.task.train.tpu_device_order_mode
       # init_from_checkpoint_rules does not need to be copied.
       tp.early_stop = p.task.train.early_stop
       tp.enqueue_max_steps = p.task.train.enqueue_max_steps
