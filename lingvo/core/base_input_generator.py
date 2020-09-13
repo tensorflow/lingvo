@@ -112,11 +112,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
              'Params to configure remote input policy.')
     pp = p.remote
     pp.Define(
-        'shardable_batch', True,
-        'True if and only if this input generates simple batches whose 1st '
-        'dimension of every tensor in a batch is the batch dimension, and '
-        'other dimensions are always the same.')
-    pp.Define(
         'max_inflights_per_target', 32, 'The maximum number of '
         'concurrent inflight remote input fetches per remote target.')
 
@@ -747,7 +742,6 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     """Defaults params for sequence input generators."""
     p = super().Params()
     p.Delete('batch_size')
-    p.remote.shardable_batch = False
 
     # How input should be bucketized.
     p.Define(
@@ -1181,7 +1175,6 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
         '`tf.errors.OutOfRangeError` is thrown after the limit is reached.')
     p.Define('randomize_shuffle_size', 500,
              'Size of the random shuffle buffer.')
-    p.remote.shardable_batch = False
     return p
 
   def __init__(self, params):
