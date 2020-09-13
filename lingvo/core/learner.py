@@ -398,6 +398,9 @@ class Learner(base_layer.BaseLayer):
 
     else:
       grad_scale = self._GetGlobalGradScale(all_grad_norm, has_nan_or_inf)
+      # grad_norm/all is both a eval metric(collected by trainer) and a summary
+      # (collected by controller).
+      summary_utils.scalar(f'grad_norm/all/{p.name}', all_grad_norm)
       self._AddEvalMetric('grad_norm/all', all_grad_norm, tf.constant(1.0))
       self._AddEvalMetric('var_norm/all', all_var_norm, tf.constant(1.0))
       self._AddEvalMetric('grad_scale_all', grad_scale, tf.constant(1.0))

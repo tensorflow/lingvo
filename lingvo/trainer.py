@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 # pylint: disable=line-too-long
-"""Trainer.
+r"""Trainer.
 
 To run locally:
 
@@ -312,24 +312,26 @@ class Controller(base_runner.BaseRunner):
 
         # Summary.
         if self._summary_op is not None and global_step >= next_summary_step:
-          tf.logging.info('Write summary @%s', global_step)
-          summary_str = sess.run(self._summary_op)
+          global_step, summary_str = sess.run(
+              [self._model.global_step, self._summary_op])
+          next_summary_step = global_step + summary_interval_steps
+
           if isinstance(summary_str, np.ndarray) and summary_str.size == 0:
             tf.logging.info('Skipping summary: %s', summary_str)
           else:
             self._summary_writer.add_summary(summary_str, global_step)
+          tf.logging.info('Write summary @%s', global_step)
           self._SummarizeValue(global_step, 'total_num_params',
                                self._total_num_params)
-          next_summary_step = global_step + summary_interval_steps
           tf.logging.info('Write summary done: step %d', global_step)
 
         now = time.time()
         if now < next_iteration_seconds:
           time.sleep(next_iteration_seconds - now)
 
-  def _SummarizeValue(self, steps, tag, value):
+  def _SummarizeValue(self, step, tag, value):
     self._summary_writer.add_summary(
-        metrics.CreateScalarSummary(tag, value), steps)
+        metrics.CreateScalarSummary(tag, value), step)
 
 
 class Trainer(base_runner.BaseRunner):
@@ -1311,7 +1313,7 @@ def _GetClusterSpecDict():
     # ps_host=worker1:1231,worker2:1234
     job_machines = job_spec.split('=')
     if len(job_machines) != 2:
-      raise ValueError('Invalid job specification: %s', job_spec)
+      raise ValueError(f'Invalid job specification: {job_spec}')
     cluster_spec_dict[job_machines[0]] = job_machines[1].split(',')
 
   return cluster_spec_dict
@@ -1413,7 +1415,7 @@ class RunnerManager:
     cluster_spec_dict = _GetClusterSpecDict()
     if FLAGS.job == 'trainer_client':
       FLAGS.tf_master = 'grpc://%s' % cluster_spec_dict['worker'][FLAGS.task]
-    for job in cluster_spec_dict.keys():
+    for job in cluster_spec_dict:
       if job.startswith('decoder_'):
         assert len(job_specs) == 1, 'Decoder jobs must run on their own'
         assert ',' not in job_specs[0], 'Only single machine supported'
