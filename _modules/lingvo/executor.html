@@ -340,6 +340,8 @@
     <span class="c1"># BaseRunner legacy</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="kc">None</span>
 
+    <span class="n">train_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">_WaitTillInit</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Wait until the model is ready.&quot;&quot;&quot;</span>
@@ -350,11 +352,19 @@
         <span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
           <span class="n">topology</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
-          <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
-              <span class="n">topology</span><span class="p">,</span>
-              <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span>
-                  <span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">topology</span><span class="p">),</span>
-              <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
+                <span class="n">topology</span><span class="p">,</span>
+                <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span>
+                    <span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">topology</span><span class="p">),</span>
+                <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
+                <span class="n">topology</span><span class="p">,</span>
+                <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span>
+                    <span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">topology</span><span class="p">),</span>
+                <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
+                <span class="n">device_order_mode</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span><span class="p">)</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.core_assignment: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
                           <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
@@ -369,7 +379,6 @@
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;init_start&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">_WaitTillInit</span><span class="p">()</span>
 
-    <span class="n">train_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">shared_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeConstructSharedModel</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span> <span class="o">=</span> <span class="p">{}</span>

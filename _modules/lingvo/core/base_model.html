@@ -232,6 +232,12 @@
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_steps_per_loop&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;The number of training steps per &#39;</span>
               <span class="s1">&#39;training loop for TPUs.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;tpu_device_order_mode&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A device_assignment_lib.DeviceOrderMode enum that determines whether &#39;</span>
+        <span class="s1">&#39;to assign devices in a way that the order of replicas or &#39;</span>
+        <span class="s1">&#39;model-parallel cores will form a ring or mesh, or let the library to &#39;</span>
+        <span class="s1">&#39;choose. Default None to AUTO.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;vn_start_step&#39;</span><span class="p">,</span> <span class="mi">200000000</span><span class="p">,</span>
         <span class="s1">&#39;Step starting from which variational noise is added to &#39;</span>
         <span class="s1">&#39;params values during training.&#39;</span><span class="p">)</span>
@@ -1026,6 +1032,12 @@
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_steps_per_loop&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;The number of training steps per &#39;</span>
               <span class="s1">&#39;training loop for TPUs.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;tpu_device_order_mode&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A device_assignment_lib.DeviceOrderMode enum that determines whether &#39;</span>
+        <span class="s1">&#39;to assign devices in a way that the order of replicas or &#39;</span>
+        <span class="s1">&#39;model-parallel cores will form a ring or mesh, or let the library to &#39;</span>
+        <span class="s1">&#39;choose. Default None to AUTO.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="s1">&#39;If &gt; 0, enable ExponentialMovingAverage during training &#39;</span>
         <span class="s1">&#39;with the give decay. &#39;</span>
@@ -1182,6 +1194,7 @@
       <span class="n">tp</span><span class="o">.</span><span class="n">start_up_delay_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">start_up_delay_steps</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">tpu_device_order_mode</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span>
       <span class="c1"># init_from_checkpoint_rules does not need to be copied.</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">early_stop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span>
