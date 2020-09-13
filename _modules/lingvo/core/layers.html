@@ -2768,6 +2768,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, computes the per example &#39;</span>
         <span class="s1">&#39;xent by small chunks along the batch dimension.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for logits.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="SoftmaxLayer.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">unused</span><span class="p">):</span>
@@ -2972,7 +2974,8 @@
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._GetInputs"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._GetInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_GetInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
