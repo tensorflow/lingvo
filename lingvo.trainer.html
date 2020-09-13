@@ -171,7 +171,9 @@
 <p>Trainer.</p>
 <p>To run locally:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ bazel build -c opt //lingvo:trainer
-$ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>image.mnist.LeNet5 --mode<span class="o">=</span>sync --logdir<span class="o">=</span>/tmp/lenet5       --run_locally<span class="o">=</span>cpu
+$ bazel-bin/lingvo/trainer --logtostderr <span class="se">\</span>
+    --model<span class="o">=</span>image.mnist.LeNet5 --mode<span class="o">=</span>sync --logdir<span class="o">=</span>/tmp/lenet5 <span class="se">\</span>
+    --run_locally<span class="o">=</span>cpu
 </pre></div>
 </div>
 <p>To use GPU, add <code class="xref py py-obj docutils literal notranslate"><span class="pre">--config=cuda</span></code> to build command and set <code class="xref py py-obj docutils literal notranslate"><span class="pre">--run_locally=gpu</span></code>.</p>
@@ -213,7 +215,7 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 
 <dl class="py method">
 <dt id="lingvo.trainer.Controller._SummarizeValue">
-<code class="sig-name descname">_SummarizeValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">steps</span></em>, <em class="sig-param"><span class="n">tag</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._SummarizeValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._SummarizeValue" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_SummarizeValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">step</span></em>, <em class="sig-param"><span class="n">tag</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._SummarizeValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._SummarizeValue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -493,7 +495,7 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 
 <dl class="py method">
 <dt id="lingvo.trainer.RunnerManager.Controller._SummarizeValue">
-<code class="sig-name descname">_SummarizeValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">steps</span></em>, <em class="sig-param"><span class="n">tag</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._SummarizeValue" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_SummarizeValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">step</span></em>, <em class="sig-param"><span class="n">tag</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._SummarizeValue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
