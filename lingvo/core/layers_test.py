@@ -3081,6 +3081,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
                             class_probabilities=None,
                             num_samples=0,
                             default_qdomain=None,
+                            logits_qdomain=None,
                             training_step=-1,
                             seed=None,
                             dtype=tf.float32,
@@ -3121,6 +3122,8 @@ class SoftmaxLayerTest(test_utils.TestCase):
 
       if default_qdomain is not None:
         params.qdomain.default = default_qdomain
+      if logits_qdomain is not None:
+        params.qdomain.logits = logits_qdomain
 
       if num_samples > 0:
         # Turn on sampled soft-max; the asserts need to hold for it to be used.
@@ -3417,8 +3420,11 @@ class SoftmaxLayerTest(test_utils.TestCase):
     default_qdomain.cc_schedule = quant_utils.FakeQuantizationSchedule.Params(
     ).Set(
         clip_start_step=0, clip_end_step=2, quant_start_step=2)
+    logits_qdomain = default_qdomain.Copy()
     xent_loss = self._RunSimpleFullSoftmax(
-        default_qdomain=default_qdomain, training_step=5)
+        default_qdomain=default_qdomain,
+        logits_qdomain=logits_qdomain,
+        training_step=5)
     loss = xent_loss.total_xent
     log_perplexity = xent_loss.avg_xent
     print(['loss', loss])

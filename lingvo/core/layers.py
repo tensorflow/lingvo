@@ -2620,6 +2620,8 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     p.Define(
         'chunk_size', 0, 'If non-zero, computes the per example '
         'xent by small chunks along the batch dimension.')
+
+    p.qdomain.Define('logits', None, 'Quantization domain for logits.')
     return p
 
   def Logits(self, **unused):
@@ -2824,7 +2826,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
       for i in range(p.num_shards):
         self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
 
-    self.TrackQTensor('inputs', 'logits')
+    self.TrackQTensor('inputs')
+    self.TrackQTensor('logits', domain='logits')
 
   def _GetInputs(self, inputs):
     if isinstance(inputs, list):
