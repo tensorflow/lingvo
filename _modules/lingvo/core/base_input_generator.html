@@ -260,11 +260,6 @@
              <span class="s1">&#39;Params to configure remote input policy.&#39;</span><span class="p">)</span>
     <span class="n">pp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">remote</span>
     <span class="n">pp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;shardable_batch&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s1">&#39;True if and only if this input generates simple batches whose 1st &#39;</span>
-        <span class="s1">&#39;dimension of every tensor in a batch is the batch dimension, and &#39;</span>
-        <span class="s1">&#39;other dimensions are always the same.&#39;</span><span class="p">)</span>
-    <span class="n">pp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;max_inflights_per_target&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="s1">&#39;The maximum number of &#39;</span>
         <span class="s1">&#39;concurrent inflight remote input fetches per remote target.&#39;</span><span class="p">)</span>
 
@@ -895,7 +890,6 @@
     <span class="sd">&quot;&quot;&quot;Defaults params for sequence input generators.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">remote</span><span class="o">.</span><span class="n">shardable_batch</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="c1"># How input should be bucketized.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -1329,7 +1323,6 @@
         <span class="s1">&#39;`tf.errors.OutOfRangeError` is thrown after the limit is reached.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;randomize_shuffle_size&#39;</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span>
              <span class="s1">&#39;Size of the random shuffle buffer.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">remote</span><span class="o">.</span><span class="n">shardable_batch</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
