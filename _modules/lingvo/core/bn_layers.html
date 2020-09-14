@@ -255,8 +255,8 @@
         <span class="s1">&#39; batch normalization.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;enable_cross_replica_sum_on_tpu&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s1">&#39;If true, calls cross_replica_sum to the aggregate moving averages&#39;</span>
-        <span class="s1">&#39; across all replicas.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;If true, computes global mean and variance across all replicas.&#39;</span>
+        <span class="s1">&#39;Only effective for tpu.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_moving_avg_in_training&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If True, use global moving avg (mean, variance) during training&#39;</span>
@@ -846,6 +846,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;min_group_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Minimum group size for GroupNorm&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cumulative&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If true, only normalize by current and &#39;</span>
              <span class="s1">&#39;previous time steps.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;enable_cross_replica_sum_on_tpu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, computes global mean and variance across all replicas.&#39;</span>
+        <span class="s1">&#39;Only effective for tpu.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_rank&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;Rank of input. Only 3(BTD) and 4(NHWC) are &#39;</span>
              <span class="s1">&#39;supported.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -930,12 +934,17 @@
               <span class="n">expanded_paddings</span><span class="p">,</span>
               <span class="n">reduce_over_dims</span><span class="o">=</span><span class="n">reduce_over_dims</span><span class="p">,</span>
               <span class="n">cumulative_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+              <span class="n">enable_cross_replica_sum_on_tpu</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_cross_replica_sum_on_tpu</span><span class="p">,</span>
               <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="c1"># Skip d0, d[-2]</span>
           <span class="n">reduce_over_dims</span> <span class="o">=</span> <span class="n">all_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">all_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
           <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="n">ComputeMomentsWithPadding</span><span class="p">(</span>
-              <span class="n">x</span><span class="p">,</span> <span class="n">expanded_paddings</span><span class="p">,</span> <span class="n">reduce_over_dims</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+              <span class="n">x</span><span class="p">,</span>
+              <span class="n">expanded_paddings</span><span class="p">,</span>
+              <span class="n">reduce_over_dims</span><span class="p">,</span>
+              <span class="n">enable_cross_replica_sum_on_tpu</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_cross_replica_sum_on_tpu</span><span class="p">,</span>
+              <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="n">norm_mean</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span>
           <span class="n">norm_mean</span><span class="p">,</span> <span class="s1">&#39;mean of </span><span class="si">%s</span><span class="s1"> failed numeric check&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
