@@ -107,8 +107,8 @@ class BatchNormLayer(base_layer.BaseLayer):
         ' batch normalization.')
     p.Define(
         'enable_cross_replica_sum_on_tpu', True,
-        'If true, calls cross_replica_sum to the aggregate moving averages'
-        ' across all replicas.')
+        'If true, computes global mean and variance across all replicas.'
+        'Only effective for tpu.')
     p.Define(
         'use_moving_avg_in_training', False,
         'If True, use global moving avg (mean, variance) during training'
@@ -698,6 +698,10 @@ class GroupNormLayer(base_layer.BaseLayer):
     p.Define('min_group_size', 1, 'Minimum group size for GroupNorm')
     p.Define('cumulative', False, 'If true, only normalize by current and '
              'previous time steps.')
+    p.Define(
+        'enable_cross_replica_sum_on_tpu', False,
+        'If true, computes global mean and variance across all replicas.'
+        'Only effective for tpu.')
     p.Define('input_rank', 4, 'Rank of input. Only 3(BTD) and 4(NHWC) are '
              'supported.')
     return p
@@ -782,12 +786,17 @@ class GroupNormLayer(base_layer.BaseLayer):
               expanded_paddings,
               reduce_over_dims=reduce_over_dims,
               cumulative_axis=1,
+              enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
               keepdims=True)
         else:
           # Skip d0, d[-2]
           reduce_over_dims = all_dims[1:-2] + all_dims[-1:]
           norm_mean, norm_variance = ComputeMomentsWithPadding(
-              x, expanded_paddings, reduce_over_dims, keepdims=True)
+              x,
+              expanded_paddings,
+              reduce_over_dims,
+              enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
+              keepdims=True)
 
       norm_mean = py_utils.CheckNumerics(
           norm_mean, 'mean of %s failed numeric check' % p.name)
