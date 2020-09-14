@@ -301,7 +301,7 @@ class ConformerLayer(base_layer.BaseLayer):
     self._ConfigSelfAttenParams(trans_atten_p)
     self.CreateChild('trans_atten', trans_atten_p)
 
-    lconv_p = p.lconv_tpl.cls.CommonParams(
+    lconv_p = p.lconv_tpl.Copy().Set(
         input_dim=p.input_dim, kernel_size=p.kernel_size)
     self.CreateChild('lconv', lconv_p)
 

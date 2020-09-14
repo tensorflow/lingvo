@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for conformer layers as in https://arxiv.org/abs/2005.08100."""
 # Lint as: PY3
+from unittest import mock
 from absl.testing import parameterized
 
 from lingvo import compat as tf
@@ -148,6 +149,19 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       for (k, v1), (_, v2) in zip(base_grads_val.FlattenItems(),
                                   new_grads_val.FlattenItems()):
         self.assertAllClose(v1, v2, msg=k)
+
+  def testCommonParamsAbuse(self):
+    """Checks CommonParams() is not called in __init__()."""
+    p = self._GetParams()
+    with mock.patch(
+        'lingvo.core.conformer_layer.ConformerLayer.CommonParams',
+        autospec=True) as m1:
+      with mock.patch(
+          'lingvo.core.conformer_layer.LConvLayer.CommonParams',
+          autospec=True) as m2:
+        p.Instantiate()
+        self.assertFalse(m1.called)
+        self.assertFalse(m2.called)
 
 
 if __name__ == '__main__':
