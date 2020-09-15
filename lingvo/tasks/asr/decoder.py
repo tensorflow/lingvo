@@ -1091,7 +1091,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           logits=tf.transpose(adjusted_logits, [1, 0, 2]),
           # softmax_input is of shape [time, batch, dim] for compatibility.
           softmax_input=softmax_input)
-      attention_map = py_utils.NestedMap(probs=accumulated_states.atten_probs)
+      attention_map = py_utils.NestedMap(
+          probs=accumulated_states.atten_probs,
+          contexts=accumulated_states.atten_context)
       for k, v in additional_atten_probs:
         attention_map[k] = v
       # Transpose attention probs from [target_length, batch, source_length] to
