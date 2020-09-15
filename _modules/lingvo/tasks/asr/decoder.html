@@ -1239,7 +1239,9 @@
           <span class="n">logits</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">adjusted_logits</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
           <span class="c1"># softmax_input is of shape [time, batch, dim] for compatibility.</span>
           <span class="n">softmax_input</span><span class="o">=</span><span class="n">softmax_input</span><span class="p">)</span>
-      <span class="n">attention_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">probs</span><span class="o">=</span><span class="n">accumulated_states</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">)</span>
+      <span class="n">attention_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">probs</span><span class="o">=</span><span class="n">accumulated_states</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">,</span>
+          <span class="n">contexts</span><span class="o">=</span><span class="n">accumulated_states</span><span class="o">.</span><span class="n">atten_context</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">additional_atten_probs</span><span class="p">:</span>
         <span class="n">attention_map</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
       <span class="c1"># Transpose attention probs from [target_length, batch, source_length] to</span>
