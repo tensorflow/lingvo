@@ -99,7 +99,7 @@ tf.flags.DEFINE_bool('disable_py_utils_debug', False,
 
 # TODO(laigd): remove after the migration.
 tf.flags.DEFINE_bool('use_tf_function', False,
-                     'If True use tf.function for If/WhileLoop/CallDefun.')
+                     'If True use tf.function instead of Defun.')
 
 tf.flags.DEFINE_bool(
     'stateless_vars_init', False,
@@ -4722,9 +4722,10 @@ def _AssertInputsMatch(op, args, implicit_captures):
                       len(Flatten(implicit_captures)), implicit_captures))
 
 
-def _TensorSpecs(nmap):
+def TensorSpecs(nmap, keep_shape=True):
   """Transforms tensors in the input nested structure to TensorSpecs."""
-  return Transform(lambda t: tf.TensorSpec(t.shape, t.dtype), nmap)
+  fn = lambda t: tf.TensorSpec(t.shape if keep_shape else None, t.dtype)
+  return Transform(fn, nmap)
 
 
 def _DefineDefun(fwd,
@@ -4736,41 +4737,48 @@ def _DefineDefun(fwd,
 
   Args:
     fwd: A callable xs: Nested Structure -> ys: Nested Structure.
-    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of
-      fwd.
+    fwd_sig: A Nested Structure of tf.TensorSpec representing the input
+      signature of `fwd`, or None (meaning that fwd takes no inputs).
     bak: A callable xs, ys, dys: Nested Structure -> dxs[, dcapture]: Nested
-      Structure. The custom backprop function for fwd. bak needs to return
+      Structure. The custom backprop function for `fwd`. bak needs to return
       dcapture if fwd uses any implicitly captured tensors, whose gradients are
       dcapture.
-    bak_as_function: Whether to create a TF graph function for bak.
-    device: the device on which to run fwd and bak.
+    bak_as_function: Whether to create a TF graph function for `bak`.
+    device: the device on which to run `fwd` and `bak`.
 
   Returns:
     A NestedMap containing:
 
-    - forward: the forward function.
-    - rets: the output of the forward function.
+    - call: A callable that will execute `fwd`. It has the same input and output
+      signatures as `fwd`.
+    - func: The underlying TF function that `call` calls. If not None, it will
+      be a _DefinedFunction or ConcreteFunction that takes flat inputs and
+      returns flat outputs, and can be used by routines that require a TF
+      function object (e.g. tf.If, tf.While, etc).
+      Always not None when `bak` is None.
+    - output_dtypes: A nested structure compatible with the outputs of `fwd`
+      containing the corresponding output dtypes.
+    - stateful_ops: A list of (op_name, op_type) tuples representing the
+      stateful ops used by `fwd`.
+    - captured_inputs: Implicit inputs captured by `fwd`.
   """
   assert fwd is not None
+  noinline = not use_xla()
 
-  # fwd signature (tf.Tensor dtypes).
-  fwd_sig = Transform(tf.convert_to_tensor, fwd_sig)
+  if fwd_sig is None:
+    fwd_sig = []
   get_dtype = lambda x: x.dtype
   arg_dtypes = Flatten(Transform(get_dtype, fwd_sig))
   get_shape = lambda x: x.shape
   arg_shapes = Flatten(Transform(get_shape, fwd_sig))
 
-  compiled = use_xla()
-  noinline = not compiled
-
-  # Used to hold:
-  # - the forward function.
-  # - the output of the forward function, which will be set in Forward.
-  # - the backward function used by Grad, which will be defined if bak is set.
+  # Used to hold the backward function used by Grad, which will be defined if
+  # bak is set.
   sigs = NestedMap()
+  # Output of this method.
+  res = NestedMap()
 
   python_grad_func = None
-  implicit_captures = NestedMap()  # Will be set after Forward is defined.
   if bak:
 
     def Grad(op, *args):
@@ -4783,7 +4791,7 @@ def _DefineDefun(fwd,
       Returns:
         Tuple of derivatives.
       """
-      _AssertInputsMatch(op, fwd_sig, implicit_captures)
+      _AssertInputsMatch(op, fwd_sig, res.captured_inputs)
       # Ensure dys contains no None.
       args = ConvertNoneGradientToZeros(list(op.outputs), list(args))
       xs = op.inputs[:len(arg_dtypes)]  # The rest are captures.
@@ -4801,29 +4809,48 @@ def _DefineDefun(fwd,
     """The forward function."""
     _SetShape(args, arg_shapes)
     with RemoveAssertContext(remove=noinline):
-      xs = Pack(fwd_sig, args)
+      call = lambda: fwd(Pack(fwd_sig, args)) if args else fwd()
       if device is None:
         # Defun will handle the device assignment.
-        rets = fwd(xs)
+        rets = call()
       else:
         with tf.device(device):
-          rets = fwd(xs)
-    sigs.rets = rets
+          rets = call()
+    res.outputs = rets
     return Flatten(rets)
 
-  # Invokes fwd() to get sigs.rets.
-  Forward.add_to_graph(tf.get_default_graph())
-  implicit_captures.captured = Forward.captured_inputs
-  sigs.forward = Forward
+  forward = Forward
+  if not arg_dtypes:
+    # In this case Forward is an _OverloadedFunction, we need to instantiate it.
+    forward = Forward.instantiate([])
+
+  # Invokes fwd() to get res.outputs.
+  forward.add_to_graph(tf.get_default_graph())
+  res.func = forward
+  res.stateful_ops = forward.stateful_ops
+  res.captured_inputs = forward.captured_inputs
+  output_dtypes = Transform(get_dtype, res.outputs)
+  output_shapes = Transform(get_shape, res.outputs)
+
+  def Call(args=None):
+    """Wrapper of fwd."""
+    if args is None:
+      flat_rets = forward()
+    else:
+      flat_rets = forward(*Flatten(args))
+    if not isinstance(flat_rets, (tuple, list)):
+      flat_rets = [flat_rets]
+    _SetShape(flat_rets, Flatten(output_shapes))
+    return Pack(output_dtypes, flat_rets)
+
+  res.call = Call
 
   if bak:
-    ret_dtypes = Transform(get_dtype, sigs.rets)
-    ret_shapes = Transform(get_shape, sigs.rets)
 
     def Backward(*args):
       """The backward function."""
-      _SetShape(args, Flatten([arg_shapes, ret_shapes, ret_shapes]))
-      xs, ys, dys = Pack([fwd_sig, ret_dtypes, ret_dtypes], args)
+      _SetShape(args, Flatten([arg_shapes, output_shapes, output_shapes]))
+      xs, ys, dys = Pack([fwd_sig, output_dtypes, output_dtypes], args)
       with RemoveAssertContext(remove=noinline):
         if device is None:
           # Defun will handle the device assignment.
@@ -4835,14 +4862,15 @@ def _DefineDefun(fwd,
 
     if bak_as_function:
       sigs.backward = tf.Defun(
-          *Flatten([arg_dtypes, ret_dtypes, ret_dtypes]), noinline=noinline)(
+          *Flatten([arg_dtypes, output_dtypes, output_dtypes]),
+          noinline=noinline)(
               Backward)
 
       sigs.backward.add_to_graph(tf.get_default_graph())
     else:
       sigs.backward = Backward
 
-  return sigs
+  return res
 
 
 # Global variable to control rendezvous sharing in tf.function.
@@ -4877,7 +4905,7 @@ def _ApplySharedRendezvous(func):
 
 
 def _WrapFunction(func=None, input_signature=None):
-  """Wraps func as a tf.function to be used in If/WhileLoop/CallDefun."""
+  """Wraps func as a tf.function."""
   if input_signature is None:
     input_signature = []
 
@@ -4917,24 +4945,36 @@ def _DefineFunction(fwd,
 
   Args:
     fwd: A callable xs: Nested Structure -> ys: Nested Structure.
-    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of
-      fwd.
+    fwd_sig: A Nested Structure of tf.TensorSpec representing the input
+      signature of `fwd`, or None (meaning that fwd takes no inputs).
     bak: A callable xs, ys, dys: Nested Structure -> dxs[, dcapture]: Nested
-      Structure. The custom backprop function for fwd. bak needs to return
+      Structure. The custom backprop function for `fwd`. bak needs to return
       dcapture if fwd uses any implicitly captured tensors, whose gradients are
       dcapture.
-    bak_as_function: Whether to create a TF graph function for bak.
-    device: the device on which to run fwd and bak.
+    bak_as_function: Whether to create a TF graph function for `bak`.
+    device: the device on which to run `fwd` and `bak`.
 
   Returns:
     A NestedMap containing:
 
-    - forward: the forward function.
-    - rets: the output of the forward function.
+    - call: A callable that will execute `fwd`. It has the same input and output
+      signatures as `fwd`.
+    - func: The underlying TF function that `call` calls. If not None, it will
+      be a _DefinedFunction or ConcreteFunction that takes flat inputs and
+      returns flat outputs, and can be used by routines that require a TF
+      function object (e.g. tf.If, tf.While, etc).
+      Always not None when `bak` is None.
+    - outputs: The outputs of `fwd`. Used for reflection only (e.g. to get the
+      output dtypes, shapes, etc).
+    - stateful_ops: A list of (op_name, op_type) tuples representing the
+      stateful ops used by `fwd`.
+    - captured_inputs: Implicit inputs captured by `fwd`.
   """
   assert fwd is not None
   noinline = not use_xla()
-  fwd_sig = _TensorSpecs(fwd_sig)
+
+  if fwd_sig is None:
+    fwd_sig = []
 
   if device is None:
     # Get the current device to mimic Defun's behavior.
@@ -4943,28 +4983,47 @@ def _DefineFunction(fwd,
     device = device_funcs[-1] if device_funcs else None
     # pylint: enable=protected-access
 
-  # Used to hold:
-  # - the forward function.
-  # - the output of the forward function, which will be set in Forward.
-  sigs = NestedMap()
+  # Output of this method.
+  res = NestedMap()
 
   @_WrapFunction(input_signature=Flatten(fwd_sig))
   def Forward(*args):
     """The forward function."""
     with RemoveAssertContext(remove=noinline), tf.device(device):
-      xs = Pack(fwd_sig, args)
-      rets = fwd(xs)
-    sigs.rets = rets
+      if args:
+        xs = Pack(fwd_sig, args)
+        rets = fwd(xs)
+      else:
+        rets = fwd()
+    res.outputs = rets
     return Flatten(rets)
 
+  res.captured_inputs = Forward.captured_inputs
+
+  # Get the stateful ops used in cell_fn. Logic borrowed from
+  # _EagerDefinedFunction.__init__().
+  graph = Forward.graph
+  input_ops = set(arg.op for arg in graph.inputs)
+  operations = [op for op in graph.get_operations() if op not in input_ops]
+  res.stateful_ops = [(o.name, o.type) for o in operations if o._is_stateful]  # pylint: disable=protected-access
+
+  def Call(func, args=None):
+    """Wrapper of fwd."""
+    if args is None:
+      flat_rets = func()
+    else:
+      flat_rets = func(*Flatten(args))
+    if not isinstance(flat_rets, (tuple, list)):
+      flat_rets = [flat_rets]
+    return Pack(res.outputs, flat_rets)
+
   if not bak:
-    sigs.forward = Forward
-    return sigs
+    res.func = Forward
+    res.call = lambda args=None: Call(Forward, args)
+    return res
 
   shared_rendezvous = _GetSharedRendezvous()
-  implicit_captures = Forward.captured_inputs
-
-  ret_specs = _TensorSpecs(sigs.rets)
+  ret_specs = TensorSpecs(res.outputs)
 
   def Backward(*args):
     xs, ys, dys = Pack([fwd_sig, ret_specs, ret_specs], args)
@@ -4986,13 +5045,13 @@ def _DefineFunction(fwd,
   @tf.custom_gradient
   def ForwardWithGrad(*args):
     """Forward function and its custom gradient."""
-    # Note that `args` includes implicit_captures. This is required by
+    # Note that `args` includes implicit captures. This is required by
     # tf.custom_gradient so that when the Grad() outputs include gradients to
     # implicit captures, they match the inputs to ForwardWithGrad().
     #
-    # However, Forward doesn't take implicit_captures as input, so we exclude
+    # However, Forward doesn't take implicit captures as input, so we exclude
     # them here.
-    fwd_args = args[:(len(args) - len(Flatten(implicit_captures)))]
+    fwd_args = args[:(len(args) - len(Flatten(res.captured_inputs)))]
     op = NestedMap(inputs=args, outputs=Forward(*fwd_args))
 
     def Grad(*args, **kwargs):
@@ -5010,18 +5069,203 @@ def _DefineFunction(fwd,
             'Ignoring additional arguments used by tf.custom_gradient: %s',
             str(kwargs))
 
-      _AssertInputsMatch(op, fwd_sig, implicit_captures)
+      _AssertInputsMatch(op, fwd_sig, res.captured_inputs)
 
       # Ensure dys contains no None.
       args = ConvertNoneGradientToZeros(list(op.outputs), list(args))
 
-      xs, _ = Pack([fwd_sig, implicit_captures], op.inputs)
+      xs, _ = Pack([fwd_sig, res.captured_inputs], op.inputs)
       return backward_cf(*Flatten([xs, op.outputs, args]))
 
     return op.outputs, Grad
 
-  sigs.forward = lambda *xs: ForwardWithGrad(*Flatten([xs, implicit_captures]))
-  return sigs
+  res.func = None
+  forward = lambda *xs: ForwardWithGrad(*Flatten([xs, res.captured_inputs]))
+  res.call = lambda args=None: Call(forward, args)
+  return res
+
+
+class Function(object):
+  """Function builds a TensorFlow graph function from a callable.
+
+  In the high level this is similar to tf.Defun and tf.function. In fact this
+  relies on those as underlying implementations, but with specific configuration
+  so it's easier to use and can work well in some extreme cases in Lingvo.
+
+  Example usage:
+
+  - No inputs:
+
+    >>> @Function()
+    >>> def foo():
+    ...   return tf.constant(1.0)
+    >>> y = foo()
+
+  - Scalar input:
+
+    >>> @Function(fwd_sig=tf.TensorSpec(None, tf.float32))
+    >>> def foo(x):
+    ...   return x * 2
+    >>> y = foo(1.0)
+
+  - Nested input:
+
+    >>> @Function(fwd_sig=NestedMap(x=tf.TensorSpec(None, tf.float32)))
+    >>> def foo(nmap):
+    ...   return nmap.x * 2
+    >>> y = foo(NestedMap(x=1.0))
+
+  - With gradient function:
+
+    >>> def bar(x, y, dy):
+    ...   del y, dy
+    ...   return 4.0 * x * dy
+    >>>
+    >>> @Function(fwd_sig=tf.TensorSpec(None, tf.float32), bak=bak)
+    ... def foo(x):
+    ...   return 2.0 * x * x
+
+  - Used in control flow ops:
+
+    >>> then_branch = Function(tf.TensorSpec([], tf.int32))(lambda x: x / 2)
+    >>> else_branch = Function(tf.TensorSpec([], tf.int32))(lambda x: 3 * x + 1)
+    >>> y = tf.If(cond, inputs, then_branch.func, else_branch.func)
+  """
+
+  # TODO(laigd): the use_tf_function option is added for backward compatibility
+  # reasons. Remove it after the migration.
+  def __init__(self,
+               fwd_sig=None,
+               bak=None,
+               bak_as_function=False,
+               device=None,
+               use_tf_function=None):
+    """Constructor.
+
+    Below we assume `fwd` is the input to `__call__` that is used to build the
+    TensorFlow graph function encapsulated by this object.
+
+    Args:
+      fwd_sig: A Nested Structure of tf.TensorSpec representing the input
+        signature of `fwd`, or None (meaning that `fwd` takes no inputs). The
+        actual inputs should be compatible with this (have same shapes and
+        dtypes).
+      bak: A callable xs, ys, dys: Nested Structure -> dxs[, dcapture]: Nested
+        Structure. The custom backprop function for `fwd`. bak needs to return
+        dcapture if `fwd` uses any implicitly captured tensors, whose gradients
+        are dcapture.
+      bak_as_function: Whether to create a TF graph function for `bak`.
+      device: The device on which to run `fwd` and `bak`. Defaults to the
+        current device.
+      use_tf_function: Whether use tf.function. Defaults to the value of
+        FLAGS.use_tf_function.
+    """
+    self._fwd_sig = fwd_sig
+    self._bak = bak
+    self._bak_as_function = bak_as_function
+    self._device = device
+    self._use_tf_function = use_tf_function
+
+  def __call__(self, fwd):
+    """Creates a graph function.
+
+    Args:
+      fwd: a callable xs: Nested Structure -> ys: Nested Structure.
+
+    Returns:
+      A DefinedFunction object encapsulating `fwd` as a graph function.
+    """
+    assert callable(fwd)
+    return DefinedFunction(fwd, self._fwd_sig, self._bak, self._bak_as_function,
+                           self._device, self._use_tf_function)
+
+
+class DefinedFunction(object):
+  """Encapsulates a TensorFlow graph function and its properties."""
+
+  def __init__(self,
+               fwd,
+               fwd_sig=None,
+               bak=None,
+               bak_as_function=False,
+               device=None,
+               use_tf_function=None):
+    """Constructor.
+
+    Args:
+      fwd: A callable xs: Nested Structure -> ys: Nested Structure. Used to
+        build the TensorFlow graph function that this object encapsulates.
+      fwd_sig: A Nested Structure of tf.TensorSpec representing the input
+        signature of `fwd`, or None (meaning that `fwd` takes no inputs). The
+        actual inputs should be compatible with this (have same shapes and
+        dtypes).
+      bak: A callable xs, ys, dys: Nested Structure -> dxs[, dcapture]: Nested
+        Structure. The custom backprop function for `fwd`. bak needs to return
+        dcapture if `fwd` uses any implicitly captured tensors, whose gradients
+        are dcapture.
+      bak_as_function: Whether to create a TF graph function for `bak`.
+      device: The device on which to run `fwd` and `bak`. Defaults to the
+        current device.
+      use_tf_function: Whether use tf.function. Defaults to the value of
+        FLAGS.use_tf_function.
+    """
+    if use_tf_function is None:
+      use_tf_function = _FromGlobal('use_tf_function')
+    fn = _DefineFunction if use_tf_function else _DefineDefun
+    self._data = fn(
+        fwd=fwd,
+        fwd_sig=fwd_sig,
+        bak=bak,
+        bak_as_function=bak_as_function,
+        device=device)
+    self._fwd_sig = fwd_sig
+
+  def __call__(self, args=None):
+    """Invokes the graph function.
+
+    Args:
+      args: the inputs to the graph function, must be compatible with `fwd_sig`.
+
+    Returns:
+      The output tensors with the same structure as the output of `fwd`,
+      returned by a call to the graph function.
+    """
+    assert IsCompatible(args,
+                        self._fwd_sig), '{} vs {}'.format(args, self._fwd_sig)
+    return self._data.call(args)
+
+  @property
+  def func(self):
+    """The underlying TensorFlow graph function that this object encapsulates.
+
+    The returned graph function is created by tracing `fwd` during construction.
+    If not None, it will be a _DefinedFunction or ConcreteFunction that takes
+    flat inputs and returns flat outputs, and can be used by routines that
+    require a TensorFlow function object (e.g. tf.If, tf.While, etc).
+
+    If no backprop function is provided during construction, the result is
+    always not None.
+    """
+    return self._data.func
+
+  @property
+  def output_dtypes(self):
+    """Output dtypes of the graph function.
+
+    The result will have the same structure as the outputs of `fwd` but contain
+    the corresponding output dtypes.
+    """
+    return Transform(lambda x: x.dtype, self._data.outputs)
+
+  @property
+  def stateful_ops(self):
+    """Stateful ops used by `fwd`, as a list of (op_name, op_type) tuples."""
+    return self._data.stateful_ops
+
+  @property
+  def captured_inputs(self):
+    """Implicit input tensors captured by `fwd`."""
+    return self._data.captured_inputs
 
 
 def CallDefun(fwd,
@@ -5044,21 +5288,14 @@ def CallDefun(fwd,
   Returns:
     A Nested Structure equivalent to what fwd(args) computes.
   """
-  use_tf_function = _FromGlobal('use_tf_function')
-  fn = _DefineFunction if use_tf_function else _DefineDefun
-  sigs = fn(fwd, args, bak, bak_as_function, device)
-  flat_rets = sigs.forward(*Flatten(args))
-  if not isinstance(flat_rets, (tuple, list)):
-    flat_rets = [flat_rets]
-
-  if use_tf_function:
-    return Pack(sigs.rets, flat_rets)
-  else:
-    # Set the output shapes since Defun can not infer shape automatically.
-    for dst, src in zip(flat_rets, Flatten(sigs.rets)):
-      if isinstance(dst, tf.Tensor):
-        dst.set_shape(src.shape)
-    return Pack(sigs.rets, flat_rets)
+  args = Transform(tf.convert_to_tensor, args)
+  sigs = Function(
+      fwd_sig=TensorSpecs(args),
+      bak=bak,
+      bak_as_function=bak_as_function,
+      device=device)(
+          fwd=fwd)
+  return sigs(args)
 
 
 def If(cond, inputs, then_branch, else_branch):
@@ -5068,26 +5305,25 @@ def If(cond, inputs, then_branch, else_branch):
     cond: A scalar `Tensor` that can be converted to boolean.
     inputs: A flattenable representing the input tensors of the if/else
       statement.
-    then_branch: A callable 'inputs' -> flattenable. The returned value
-      should be compatible with what 'else_branch' returns.
-    else_branch: A callable 'inputs' -> flattenable. The returned value
-      should be compatible with what 'then_branch' returns.
+    then_branch: A callable 'inputs' -> flattenable. The returned value should
+      be compatible with what 'else_branch' returns.
+    else_branch: A callable 'inputs' -> flattenable. The returned value should
+      be compatible with what 'then_branch' returns.
 
   Returns:
     Output returned by the call to either 'then_branch' or 'else_branch'.
   """
-  fn = _DefineFunction if _FromGlobal('use_tf_function') else _DefineDefun
-  then_sigs = fn(then_branch, inputs)
-  else_sigs = fn(else_branch, inputs)
-  assert IsCompatible(then_sigs.rets, else_sigs.rets), (
+  then_sigs = Function(fwd_sig=TensorSpecs(inputs))(fwd=then_branch)
+  else_sigs = Function(fwd_sig=TensorSpecs(inputs))(fwd=else_branch)
+  assert IsCompatible(then_sigs.output_dtypes, else_sigs.output_dtypes), (
       'Outputs of then_branch and else_branch are not compatible: {} vs {}'
-      .format(then_sigs.rets, else_sigs.rets))
+      .format(then_sigs.output_dtypes, else_sigs.output_dtypes))
   ret = tf.If(
       cond=cond,
       inputs=Flatten(inputs),
-      then_branch=then_sigs.forward,
-      else_branch=else_sigs.forward)
-  return Pack(then_sigs.rets, ret)
+      then_branch=then_sigs.func,
+      else_branch=else_sigs.func)
+  return Pack(then_sigs.output_dtypes, ret)
 
 
 def _Itype():
@@ -5107,13 +5343,10 @@ def WhileLoop(cond, body, loop_state):
   Returns:
     The final loop state in the same structure as loop_state.
   """
-  fn = _DefineFunction if _FromGlobal('use_tf_function') else _DefineDefun
-  cond_sigs = fn(cond, loop_state)
-  body_sigs = fn(body, loop_state)
+  cond_sigs = Function(fwd_sig=TensorSpecs(loop_state))(fwd=cond)
+  body_sigs = Function(fwd_sig=TensorSpecs(loop_state))(fwd=body)
   new_state = tf.While(
-      input_=Flatten(loop_state),
-      cond=cond_sigs.forward,
-      body=body_sigs.forward)
+      input_=Flatten(loop_state), cond=cond_sigs.func, body=body_sigs.func)
   return Pack(loop_state, new_state)
 
 

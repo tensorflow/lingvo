@@ -2901,7 +2901,7 @@ class FromGlobalTest(test_utils.TestCase):
     tf.flags.FLAGS(sys.argv)
 
 
-def CallDefunTestParameters(test_fn):
+def FunctionTestParameters(test_fn):
   use_tf_function = py_utils._FromGlobal('use_tf_function')
   suffix = '_function' if use_tf_function else '_defun'
 
@@ -2918,62 +2918,88 @@ def CallDefunTestParameters(test_fn):
   return decorator(WrappedTestFn)
 
 
-class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
+class FunctionTest(test_utils.TestCase, parameterized.TestCase):
 
-  @CallDefunTestParameters
-  def testSimple(self, bak_as_function):
+  def testNoInputs(self):
     with self.session():
+
+      @py_utils.Function()
+      def Fwd():
+        return tf.constant(1.0)
+
+      self.assertEqual(tf.float32, Fwd.output_dtypes)
+      ys = Fwd()
+      self.assertEqual(1.0, self.evaluate(ys))
+
+  @FunctionTestParameters
+  def testScalarInput(self, bak_as_function):
+    with self.session():
+      sig = tf.TensorSpec(None, tf.float32)
+
+      def Bak(x, y, dy):
+        del y
+        return 4 * x * dy
+
+      @py_utils.Function(fwd_sig=sig)
+      def Fwd(x):
+        return x * x * 2
+
+      @py_utils.Function(fwd_sig=sig, bak=Bak, bak_as_function=bak_as_function)
+      def FwdWithBak(x):
+        return x * x * 2
+
+      x = tf.constant(3.0)
+      for fwd in [Fwd, FwdWithBak]:
+        self.assertEqual(tf.float32, fwd.output_dtypes)
+        y = fwd(x)
+        dx = tf.gradients(ys=[y], xs=[x], grad_ys=[5.0])
+        self.assertEqual([18.0, 60.0], self.evaluate([y] + dx))
+
+  @FunctionTestParameters
+  def testListInput(self, bak_as_function):
+    with self.session():
+      sig = [tf.TensorSpec((2, 2), tf.float32)] * 2
 
       def Bak(xs, ys, dys):
         del ys
         w, x = xs
-        return (tf.matmul(dys, tf.transpose(x)) + 100.,
-                tf.matmul(tf.transpose(w), dys) + 200.)
+        return [
+            tf.matmul(dys[0], tf.transpose(x)) + 100.,
+            tf.matmul(tf.transpose(w), dys[0]) + 200.
+        ]
 
+      @py_utils.Function(fwd_sig=sig)
       def Fwd(args):
         w, x = args
-        return tf.matmul(w, x)
+        return [tf.matmul(w, x)]
 
-      a = np.array([[1.0, 2.0], [0.0, -3.0]])
-      b = np.array([[2.0, 0.0], [1.0, 1.0]])
+      @py_utils.Function(fwd_sig=sig, bak=Bak, bak_as_function=bak_as_function)
+      def FwdWithBak(args):
+        w, x = args
+        return [tf.matmul(w, x)]
+
+      a = np.array([[1.0, 2.0], [0.0, -3.0]], dtype=np.float32)
+      b = np.array([[2.0, 0.0], [1.0, 1.0]], dtype=np.float32)
       xs = [tf.constant(a), tf.constant(b)]
-      ys = py_utils.CallDefun(Fwd, xs, bak=Bak, bak_as_function=bak_as_function)
-      loss = tf.reduce_sum(tf.square(ys))
-      dw, dx, dy = tf.gradients(xs=xs + [ys], ys=loss)
-      y, dw, dx, dy = self.evaluate([ys, dw, dx, dy])
-      self.assertAllEqual(y, a.dot(b))
-      self.assertAllEqual(dy, 2 * y)
-      self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
-      self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
+      for fwd in [Fwd, FwdWithBak]:
+        self.assertEqual([tf.float32], fwd.output_dtypes)
+        ys = fwd(xs)
+        self.assertIsInstance(ys, list)
+        loss = tf.reduce_sum(tf.square(ys[0]))
+        dw, dx, dy = tf.gradients(ys=loss, xs=xs + ys)
+        y, dw, dx, dy = self.evaluate(ys + [dw, dx, dy])
+        self.assertAllEqual(y, a.dot(b))
+        self.assertAllEqual(dy, 2 * y)
+        self.assertAllEqual(dw, (2 * y).dot(b.T) +
+                            (100 if fwd is FwdWithBak else 0))
+        self.assertAllEqual(dx,
+                            a.T.dot(2 * y) + (200 if fwd is FwdWithBak else 0))
 
-  @CallDefunTestParameters
-  def testPreserveStaticShape(self, bak_as_function):
+  @FunctionTestParameters
+  def testNestedMapInput(self, bak_as_function):
     with self.session():
-
-      def Bak(x, y, dy):
-        del x, y
-        return dy
-
-      def Fwd(args):
-        x = args
-        shape = py_utils.GetShape(x)
-        if isinstance(shape, tf.Tensor):
-          return tf.ones_like(x)
-        else:
-          for dim in shape:
-            if isinstance(dim, tf.Tensor):
-              return tf.ones_like(x) + 1
-          return tf.zeros_like(x)
-
-      a = np.array([[1.0, 2.0], [0.0, -3.0]])
-      x = tf.constant(a)
-      y = self.evaluate(
-          py_utils.CallDefun(Fwd, x, bak=Bak, bak_as_function=bak_as_function))
-      self.assertAllEqual(y, np.zeros_like(a))
-
-  @CallDefunTestParameters
-  def testNestedMap(self, bak_as_function):
-    with self.session():
+      spec = tf.TensorSpec((2, 2), tf.float32)
+      sig = py_utils.NestedMap(w=spec, x=spec)
 
       def Bak(xs, ys, dys):
         del ys
@@ -2981,30 +3007,35 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
             w=tf.matmul(dys.y, tf.transpose(xs.x)) + 100.,
             x=tf.matmul(tf.transpose(xs.w), dys.y) + 200.)
 
+      @py_utils.Function(fwd_sig=sig)
       def Fwd(xs):
         return py_utils.NestedMap(y=tf.matmul(xs.w, xs.x))
 
-      a = np.array([[1.0, 2.0], [0.0, -3.0]])
-      b = np.array([[2.0, 0.0], [1.0, 1.0]])
-      xs = py_utils.NestedMap(w=tf.constant(a), x=tf.constant(b))
-      ys = py_utils.CallDefun(Fwd, xs, bak=Bak, bak_as_function=bak_as_function)
-      loss = tf.reduce_sum(tf.square(ys.y))
-      dw, dx, dy = tf.gradients(xs=xs.Flatten() + ys.Flatten(), ys=loss)
-      y, dw, dx, dy = self.evaluate([ys.y, dw, dx, dy])
-      self.assertAllEqual(y, a.dot(b))
-      self.assertAllEqual(dy, 2 * y)
-      self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
-      self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
+      @py_utils.Function(fwd_sig=sig, bak=Bak, bak_as_function=bak_as_function)
+      def FwdWithBak(xs):
+        return py_utils.NestedMap(y=tf.matmul(xs.w, xs.x))
 
-  @CallDefunTestParameters
+      a = np.array([[1.0, 2.0], [0.0, -3.0]], dtype=np.float32)
+      b = np.array([[2.0, 0.0], [1.0, 1.0]], dtype=np.float32)
+      xs = py_utils.NestedMap(w=tf.constant(a), x=tf.constant(b))
+      for fwd in [Fwd, FwdWithBak]:
+        self.assertEqual(py_utils.NestedMap(y=tf.float32), fwd.output_dtypes)
+        ys = fwd(xs)
+        loss = tf.reduce_sum(tf.square(ys.y))
+        dw, dx, dy = tf.gradients(xs=xs.Flatten() + ys.Flatten(), ys=loss)
+        y, dw, dx, dy = self.evaluate([ys.y, dw, dx, dy])
+        self.assertAllEqual(y, a.dot(b))
+        self.assertAllEqual(dy, 2 * y)
+        self.assertAllEqual(dw, (2 * y).dot(b.T) +
+                            (100 if fwd is FwdWithBak else 0))
+        self.assertAllEqual(dx,
+                            a.T.dot(2 * y) + (200 if fwd is FwdWithBak else 0))
+
+  @FunctionTestParameters
   def testImplicitInput(self, bak_as_function):
     with self.session() as sess:
       w = tf.placeholder(tf.float32)
-
-      def Fwd(xs):
-        ret = py_utils.NestedMap(y=tf.matmul(w, xs.x))
-        assert py_utils.GetExtraArgs()
-        return ret
+      sig = py_utils.NestedMap(x=tf.TensorSpec((2, 2), tf.float32))
 
       def Bak(xs, ys, dys):
         del ys
@@ -3014,17 +3045,106 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
           assert py_utils.GetExtraArgs()
         return ret, dw
 
-      a = np.array([[1.0, 2.0], [0.0, -3.0]])
-      b = np.array([[2.0, 0.0], [1.0, 1.0]])
+      @py_utils.Function(fwd_sig=sig)
+      def Fwd(xs):
+        ret = py_utils.NestedMap(y=tf.matmul(w, xs.x))
+        assert py_utils.GetExtraArgs()
+        return ret
+
+      @py_utils.Function(fwd_sig=sig, bak=Bak, bak_as_function=bak_as_function)
+      def FwdWithBak(xs):
+        ret = py_utils.NestedMap(y=tf.matmul(w, xs.x))
+        assert py_utils.GetExtraArgs()
+        return ret
+
+      a = np.array([[1.0, 2.0], [0.0, -3.0]], dtype=np.float32)
+      b = np.array([[2.0, 0.0], [1.0, 1.0]], dtype=np.float32)
       xs = py_utils.NestedMap(x=tf.constant(b, dtype=tf.float32))
-      ys = py_utils.CallDefun(Fwd, xs, bak=Bak, bak_as_function=bak_as_function)
-      loss = tf.reduce_sum(tf.square(ys.y))
-      dw, dx, dy = tf.gradients(xs=[w] + xs.Flatten() + ys.Flatten(), ys=loss)
-      y, dw, dx, dy = sess.run([ys.y, dw, dx, dy], feed_dict={w: a})
-      self.assertAllEqual(y, a.dot(b))
-      self.assertAllEqual(dy, 2 * y)
-      self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
-      self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
+      for fwd in [Fwd, FwdWithBak]:
+        self.assertEqual([w], fwd.captured_inputs)
+        self.assertEqual(py_utils.NestedMap(y=tf.float32), fwd.output_dtypes)
+        ys = fwd(xs)
+        loss = tf.reduce_sum(tf.square(ys.y))
+        dw, dx, dy = tf.gradients(xs=[w] + xs.Flatten() + ys.Flatten(), ys=loss)
+        y, dw, dx, dy = sess.run([ys.y, dw, dx, dy], feed_dict={w: a})
+        self.assertAllEqual(y, a.dot(b))
+        self.assertAllEqual(dy, 2 * y)
+        self.assertAllEqual(dw, (2 * y).dot(b.T) +
+                            (100 if fwd is FwdWithBak else 0))
+        self.assertAllEqual(dx,
+                            a.T.dot(2 * y) + (200 if fwd is FwdWithBak else 0))
+
+  @FunctionTestParameters
+  def testPreserveStaticShape(self, bak_as_function):
+    with self.session():
+
+      def Bak(x, y, dy):
+        del x, y
+        return dy
+
+      def Fwd(x):
+        shape = py_utils.GetShape(x)
+        if isinstance(shape, tf.Tensor):
+          return tf.ones_like(x)
+        else:
+          for dim in shape:
+            if isinstance(dim, tf.Tensor):
+              return tf.ones_like(x) + 1
+          return tf.zeros_like(x)
+
+      a = np.array([[1.0, 2.0], [0.0, -3.0]], dtype=np.float32)
+      x = tf.constant(a)
+      sig = tf.TensorSpec((2, 2), tf.float32)
+      for fwd in [
+          py_utils.Function(fwd_sig=sig)(fwd=Fwd),
+          py_utils.Function(
+              fwd_sig=sig, bak=Bak, bak_as_function=bak_as_function)(fwd=Fwd)
+      ]:
+        y = self.evaluate(fwd(x))
+        self.assertAllEqual(y, np.zeros_like(a))
+
+  def testStatefulOps(self):
+
+    @py_utils.Function()
+    def Stateless():
+      return tf.constant(1.0)
+
+    @py_utils.Function()
+    def Stateful():
+      return tf.random.uniform([1])
+
+    @py_utils.Function()
+    def StatelessCall():
+      return Stateless()
+
+    @py_utils.Function()
+    def StatefulCall():
+      return Stateful()
+
+    self.assertEmpty(Stateless.stateful_ops)
+    self.assertEqual(['RandomUniform'], [op[1] for op in Stateful.stateful_ops])
+    self.assertEmpty(StatelessCall.stateful_ops)
+    self.assertLen(StatefulCall.stateful_ops, 1)
+
+  def testFuncType(self):
+    defun_type = type(tf.Defun()(lambda: 1))
+    function_type = type(tf.function(lambda: 1).get_concrete_function())
+
+    @py_utils.Function(fwd_sig=tf.TensorSpec(None, tf.float32))
+    def Fwd(xs):
+      return xs * 2
+
+    self.assertIsInstance(
+        Fwd.func, function_type
+        if py_utils._FromGlobal('use_tf_function') else defun_type)
+
+  def testWithControlFlowOps(self):
+    with self.session():
+      fwd_sig = tf.TensorSpec([], tf.int32)
+      then_branch = py_utils.Function(fwd_sig)(lambda x: x / 2)
+      else_branch = py_utils.Function(fwd_sig)(lambda x: 3 * x + 1)
+      y = tf.If(True, [2], then_branch.func, else_branch.func)
+      self.assertEqual([1], self.evaluate(y))
 
 
 def IfTestParameters(test_fn):
