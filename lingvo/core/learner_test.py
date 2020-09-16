@@ -61,7 +61,7 @@ class GradientSum(gradient_combiner.GradientCombiner):
 
     grads = [l_and_g.grads for l_and_g in losses_and_grads.values()]
     tf.logging.info('grads: %s', grads)
-    return tf.nest.map_structure(GradSum, vmap, *grads)
+    return tf.nest.map_structure(GradSum, vmap, *grads), {}
 
 
 class LearnerTest(test_utils.TestCase):

@@ -197,19 +197,21 @@ class Learner(base_layer.BaseLayer):
     """
     # We apply gradients outside the name_scope to maintain backwards
     # compatibility on variables created by self.optimizer.Apply().
-    losses, var_grads = self._ComputeLossesAndGradients(metrics, vmap)
+    losses, var_grads, eval_metrics = self._ComputeLossesAndGradients(
+        metrics, vmap)
 
     var_grads, stats = self.AdjustGradients(
         var_grads,
         gradient_mask=gradient_mask,
         gradient_adjuster=gradient_adjuster)
+    eval_metrics.update(stats)
     self._var_grads = var_grads
 
     assert self.theta.global_step is not None, self.theta
     lr = self.LearningRate(self.theta.global_step)
 
     var_update_op = self.optimizer.Apply(lr, var_grads)
-    return losses, var_update_op, stats
+    return losses, var_update_op, eval_metrics
 
   def _CustomComputeGradientsFn(self):
     """Returns the compute_gradients_fn to use for py_utils.ComputeGradients."""
@@ -242,6 +244,7 @@ class Learner(base_layer.BaseLayer):
 
     loss_name = p.loss_name or p.name
     losses = []
+    eval_metrics = {}
     if isinstance(loss_name, (list, tuple)):
       losses_and_grads = {}
       variables = None
@@ -256,14 +259,16 @@ class Learner(base_layer.BaseLayer):
         else:
           tf.nest.assert_same_structure(variables, current_vars)
         losses.append(loss_metric[0])
-      grads = self.gradient_combiner.Combine(variables, losses_and_grads)
+
+      grads, eval_metrics = self.gradient_combiner.Combine(
+          variables, losses_and_grads)
       var_grads = tf.nest.map_structure(
           lambda v, g: py_utils.VarGrad(var=v, grad=g), variables, grads)
     else:
       loss_metric, var_grads = LossAndGradients(loss_name)
       losses.append(loss_metric[0])
 
-    return losses, py_utils.SkipNoneGradients(var_grads)
+    return losses, py_utils.SkipNoneGradients(var_grads), eval_metrics
 
   def AdjustGradients(self,
                       var_grads,
