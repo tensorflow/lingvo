@@ -173,6 +173,11 @@
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 
+<div class="viewcode-block" id="_AddTpuEmbeddingSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._AddTpuEmbeddingSummaryTensor">[docs]</a><span class="k">def</span> <span class="nf">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_SUMMARY_TENSORS</span><span class="p">,</span>
+                       <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">)))</span></div>
+
+
 <div class="viewcode-block" id="_TPUEmbeddingOptimizer"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer">[docs]</a><span class="k">class</span> <span class="nc">_TPUEmbeddingOptimizer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers.&quot;&quot;&quot;</span>
 
@@ -376,6 +381,19 @@
         <span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Table optimizer parameters. Will override the optimizer parameters &#39;</span>
         <span class="s1">&#39;defined in this table</span><span class="se">\&#39;</span><span class="s1">s TPUEmbeddingLayer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Static learning rate for this table. If &#39;</span>
+        <span class="s1">&#39;learning_rate and lr_schedule are both `None`, static learning &#39;</span>
+        <span class="s1">&#39;rate as specified in local optimization_parameters will be used. &#39;</span>
+        <span class="s1">&#39;In case local optimization_parameters is None, TPUEmbeddingLayer &#39;</span>
+        <span class="s1">&#39;optimization_parameters will be used. lr_schedule must be None &#39;</span>
+        <span class="s1">&#39;if learning_rate is not None.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Use dynamic learning rate given by a Lingvo &#39;</span>
+        <span class="s1">&#39;lr schedule. If learning_rate and lr_schedule are both &#39;</span>
+        <span class="s1">&#39;None, static learning rate as specified in &#39;</span>
+        <span class="s1">&#39;optimization_parameters is used. learning_rate must be None if &#39;</span>
+        <span class="s1">&#39;lr_schedule is not None.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -401,11 +419,27 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">GetLearningRateFn</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">LearningRateFn</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+          <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+          <span class="n">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="s1">&#39;tpu_embedding_lr/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+                                        <span class="n">lr</span><span class="p">)</span>
+          <span class="k">return</span> <span class="n">lr</span>
+
+        <span class="k">return</span> <span class="n">LearningRateFn</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_table&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TableConfig</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>
         <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span>
+        <span class="n">learning_rate_fn</span><span class="o">=</span><span class="n">GetLearningRateFn</span><span class="p">(),</span>
         <span class="n">optimization_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span>
         <span class="o">.</span><span class="n">tpu_embedding_optimizer_parameters</span><span class="p">)</span>
 
