@@ -90,7 +90,6 @@ EmptyLike = inplace_ops.empty_like
 # Move this V2 symbol here to avoid being overwritten by its following V1
 # version.
 where_v2 = where
-while_loop_v2 = while_loop
 
 # Import the local V2 module to maker sure the following V1 overwritting never
 # applies to the global module and symbol.
