@@ -623,8 +623,14 @@ class BaseTask(base_layer.BaseLayer):
       tpu_embedding_activations_dict = tpu_embedding_activations[0]
       tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
       tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
-          self.loss, tpu_embedding_activations_dict, tpu_embedding)
+          self.loss, tpu_embedding_activations_dict, tpu_embedding,
+          self.global_step)
       train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
+
+      tpu_embedding_summary_tensors = tf.get_collection(
+          py_utils.TPU_EMBEDDING_SUMMARY_TENSORS)
+      for name, value, weight in tpu_embedding_summary_tensors:
+        self.AddEvalMetric(name, value, weight)
 
     for op_name, op in train_ops.items():
       assert op is not None, op_name

@@ -25,6 +25,11 @@ from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 # pylint:enable=g-direct-tensorflow-import
 
 
+def _AddTpuEmbeddingSummaryTensor(name, value, weight=1.0):
+  tf.add_to_collection(py_utils.TPU_EMBEDDING_SUMMARY_TENSORS,
+                       (name, value, tf.convert_to_tensor(weight)))
+
+
 class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
   """Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers."""
 
@@ -228,6 +233,19 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         'optimizer', None,
         'Table optimizer parameters. Will override the optimizer parameters '
         'defined in this table\'s TPUEmbeddingLayer.')
+    p.Define(
+        'learning_rate', None, 'Static learning rate for this table. If '
+        'learning_rate and lr_schedule are both `None`, static learning '
+        'rate as specified in local optimization_parameters will be used. '
+        'In case local optimization_parameters is None, TPUEmbeddingLayer '
+        'optimization_parameters will be used. lr_schedule must be None '
+        'if learning_rate is not None.')
+    p.Define(
+        'lr_schedule', None, 'Use dynamic learning rate given by a Lingvo '
+        'lr schedule. If learning_rate and lr_schedule are both '
+        'None, static learning rate as specified in '
+        'optimization_parameters is used. learning_rate must be None if '
+        'lr_schedule is not None.')
     return p
 
   def __init__(self, params):
@@ -253,11 +271,27 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
     self.CreateChild('optimizer', p.optimizer)
 
+    def GetLearningRateFn():
+      if p.lr_schedule is None:
+        return None
+      else:
+        self.CreateChild('schedule', p.lr_schedule)
+
+        def LearningRateFn(step):
+          lr = self.schedule.Value(step)
+          _AddTpuEmbeddingSummaryTensor('tpu_embedding_lr/{}'.format(p.name),
+                                        lr)
+          return lr
+
+        return LearningRateFn
+
     self._table_name = '{}_table'.format(p.name)
     self._table_config = tpu_embedding_lib.TableConfig(
         self._padded_vocab_size,
         p.embedding_dim,
         combiner=p.combiner,
+        learning_rate=p.learning_rate,
+        learning_rate_fn=GetLearningRateFn(),
         optimization_parameters=self.optimizer
         .tpu_embedding_optimizer_parameters)
 
