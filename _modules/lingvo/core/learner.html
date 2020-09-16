@@ -345,19 +345,21 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># We apply gradients outside the name_scope to maintain backwards</span>
     <span class="c1"># compatibility on variables created by self.optimizer.Apply().</span>
-    <span class="n">losses</span><span class="p">,</span> <span class="n">var_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeLossesAndGradients</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">vmap</span><span class="p">)</span>
+    <span class="n">losses</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">,</span> <span class="n">eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeLossesAndGradients</span><span class="p">(</span>
+        <span class="n">metrics</span><span class="p">,</span> <span class="n">vmap</span><span class="p">)</span>
 
     <span class="n">var_grads</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AdjustGradients</span><span class="p">(</span>
         <span class="n">var_grads</span><span class="p">,</span>
         <span class="n">gradient_mask</span><span class="o">=</span><span class="n">gradient_mask</span><span class="p">,</span>
         <span class="n">gradient_adjuster</span><span class="o">=</span><span class="n">gradient_adjuster</span><span class="p">)</span>
+    <span class="n">eval_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">var_grads</span>
 
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span>
     <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
     <span class="n">var_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">stats</span></div>
+    <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">eval_metrics</span></div>
 
 <div class="viewcode-block" id="Learner._CustomComputeGradientsFn"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._CustomComputeGradientsFn">[docs]</a>  <span class="k">def</span> <span class="nf">_CustomComputeGradientsFn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the compute_gradients_fn to use for py_utils.ComputeGradients.&quot;&quot;&quot;</span>
@@ -390,6 +392,7 @@
 
     <span class="n">loss_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_name</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">eval_metrics</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">losses_and_grads</span> <span class="o">=</span> <span class="p">{}</span>
       <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span>
@@ -404,14 +407,16 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">assert_same_structure</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">current_vars</span><span class="p">)</span>
         <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_metric</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-      <span class="n">grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_combiner</span><span class="o">.</span><span class="n">Combine</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">losses_and_grads</span><span class="p">)</span>
+
+      <span class="n">grads</span><span class="p">,</span> <span class="n">eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_combiner</span><span class="o">.</span><span class="n">Combine</span><span class="p">(</span>
+          <span class="n">variables</span><span class="p">,</span> <span class="n">losses_and_grads</span><span class="p">)</span>
       <span class="n">var_grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
           <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VarGrad</span><span class="p">(</span><span class="n">var</span><span class="o">=</span><span class="n">v</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="n">g</span><span class="p">),</span> <span class="n">variables</span><span class="p">,</span> <span class="n">grads</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">loss_metric</span><span class="p">,</span> <span class="n">var_grads</span> <span class="o">=</span> <span class="n">LossAndGradients</span><span class="p">(</span><span class="n">loss_name</span><span class="p">)</span>
       <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_metric</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-    <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SkipNoneGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SkipNoneGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">),</span> <span class="n">eval_metrics</span></div>
 
 <div class="viewcode-block" id="Learner.AdjustGradients"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">var_grads</span><span class="p">,</span>
