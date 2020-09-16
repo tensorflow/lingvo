@@ -247,7 +247,7 @@
 
 <span class="c1"># TODO(laigd): remove after the migration.</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-                     <span class="s1">&#39;If True use tf.function for If/WhileLoop/CallDefun.&#39;</span><span class="p">)</span>
+                     <span class="s1">&#39;If True use tf.function instead of Defun.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -4870,9 +4870,10 @@
                       <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)),</span> <span class="n">implicit_captures</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="_TensorSpecs"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._TensorSpecs">[docs]</a><span class="k">def</span> <span class="nf">_TensorSpecs</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+<div class="viewcode-block" id="TensorSpecs"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.TensorSpecs">[docs]</a><span class="k">def</span> <span class="nf">TensorSpecs</span><span class="p">(</span><span class="n">nmap</span><span class="p">,</span> <span class="n">keep_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Transforms tensors in the input nested structure to TensorSpecs.&quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">nmap</span><span class="p">)</span></div>
+  <span class="n">fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span> <span class="k">if</span> <span class="n">keep_shape</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">nmap</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_DefineDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DefineDefun">[docs]</a><span class="k">def</span> <span class="nf">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span>
@@ -4884,41 +4885,48 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
-<span class="sd">    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of</span>
-<span class="sd">      fwd.</span>
+<span class="sd">    fwd_sig: A Nested Structure of tf.TensorSpec representing the input</span>
+<span class="sd">      signature of `fwd`, or None (meaning that fwd takes no inputs).</span>
 <span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
-<span class="sd">      Structure. The custom backprop function for fwd. bak needs to return</span>
+<span class="sd">      Structure. The custom backprop function for `fwd`. bak needs to return</span>
 <span class="sd">      dcapture if fwd uses any implicitly captured tensors, whose gradients are</span>
 <span class="sd">      dcapture.</span>
-<span class="sd">    bak_as_function: Whether to create a TF graph function for bak.</span>
-<span class="sd">    device: the device on which to run fwd and bak.</span>
+<span class="sd">    bak_as_function: Whether to create a TF graph function for `bak`.</span>
+<span class="sd">    device: the device on which to run `fwd` and `bak`.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A NestedMap containing:</span>
 
-<span class="sd">    - forward: the forward function.</span>
-<span class="sd">    - rets: the output of the forward function.</span>
+<span class="sd">    - call: A callable that will execute `fwd`. It has the same input and output</span>
+<span class="sd">      signatures as `fwd`.</span>
+<span class="sd">    - func: The underlying TF function that `call` calls. If not None, it will</span>
+<span class="sd">      be a _DefinedFunction or ConcreteFunction that takes flat inputs and</span>
+<span class="sd">      returns flat outputs, and can be used by routines that require a TF</span>
+<span class="sd">      function object (e.g. tf.If, tf.While, etc).</span>
+<span class="sd">      Always not None when `bak` is None.</span>
+<span class="sd">    - output_dtypes: A nested structure compatible with the outputs of `fwd`</span>
+<span class="sd">      containing the corresponding output dtypes.</span>
+<span class="sd">    - stateful_ops: A list of (op_name, op_type) tuples representing the</span>
+<span class="sd">      stateful ops used by `fwd`.</span>
+<span class="sd">    - captured_inputs: Implicit inputs captured by `fwd`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">fwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+  <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">use_xla</span><span class="p">()</span>
 
-  <span class="c1"># fwd signature (tf.Tensor dtypes).</span>
-  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">fwd_sig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="n">get_dtype</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
   <span class="n">arg_dtypes</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">))</span>
   <span class="n">get_shape</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
   <span class="n">arg_shapes</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">Transform</span><span class="p">(</span><span class="n">get_shape</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">))</span>
 
-  <span class="n">compiled</span> <span class="o">=</span> <span class="n">use_xla</span><span class="p">()</span>
-  <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">compiled</span>
-
-  <span class="c1"># Used to hold:</span>
-  <span class="c1"># - the forward function.</span>
-  <span class="c1"># - the output of the forward function, which will be set in Forward.</span>
-  <span class="c1"># - the backward function used by Grad, which will be defined if bak is set.</span>
+  <span class="c1"># Used to hold the backward function used by Grad, which will be defined if</span>
+  <span class="c1"># bak is set.</span>
   <span class="n">sigs</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+  <span class="c1"># Output of this method.</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
 
   <span class="n">python_grad_func</span> <span class="o">=</span> <span class="kc">None</span>
-  <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>  <span class="c1"># Will be set after Forward is defined.</span>
   <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">Grad</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -4931,7 +4939,7 @@
 <span class="sd">      Returns:</span>
 <span class="sd">        Tuple of derivatives.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
-      <span class="n">_AssertInputsMatch</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">)</span>
+      <span class="n">_AssertInputsMatch</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">)</span>
       <span class="c1"># Ensure dys contains no None.</span>
       <span class="n">args</span> <span class="o">=</span> <span class="n">ConvertNoneGradientToZeros</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
       <span class="n">xs</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">arg_dtypes</span><span class="p">)]</span>  <span class="c1"># The rest are captures.</span>
@@ -4949,29 +4957,48 @@
     <span class="sd">&quot;&quot;&quot;The forward function.&quot;&quot;&quot;</span>
     <span class="n">_SetShape</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">arg_shapes</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">call</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">fwd</span><span class="p">(</span><span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="n">fwd</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Defun will handle the device assignment.</span>
-        <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">rets</span> <span class="o">=</span> <span class="n">call</span><span class="p">()</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
-          <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-    <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span> <span class="o">=</span> <span class="n">rets</span>
+          <span class="n">rets</span> <span class="o">=</span> <span class="n">call</span><span class="p">()</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="n">rets</span>
     <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 
-  <span class="c1"># Invokes fwd() to get sigs.rets.</span>
-  <span class="n">Forward</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
-  <span class="n">implicit_captures</span><span class="o">.</span><span class="n">captured</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">captured_inputs</span>
-  <span class="n">sigs</span><span class="o">.</span><span class="n">forward</span> <span class="o">=</span> <span class="n">Forward</span>
+  <span class="n">forward</span> <span class="o">=</span> <span class="n">Forward</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">arg_dtypes</span><span class="p">:</span>
+    <span class="c1"># In this case Forward is an _OverloadedFunction, we need to instantiate it.</span>
+    <span class="n">forward</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">instantiate</span><span class="p">([])</span>
+
+  <span class="c1"># Invokes fwd() to get res.outputs.</span>
+  <span class="n">forward</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
+  <span class="n">res</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">forward</span>
+  <span class="n">res</span><span class="o">.</span><span class="n">stateful_ops</span> <span class="o">=</span> <span class="n">forward</span><span class="o">.</span><span class="n">stateful_ops</span>
+  <span class="n">res</span><span class="o">.</span><span class="n">captured_inputs</span> <span class="o">=</span> <span class="n">forward</span><span class="o">.</span><span class="n">captured_inputs</span>
+  <span class="n">output_dtypes</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+  <span class="n">output_shapes</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_shape</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">Call</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper of fwd.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">forward</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">forward</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+      <span class="n">flat_rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">flat_rets</span><span class="p">]</span>
+    <span class="n">_SetShape</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">output_shapes</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span>
+
+  <span class="n">res</span><span class="o">.</span><span class="n">call</span> <span class="o">=</span> <span class="n">Call</span>
 
   <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
-    <span class="n">ret_dtypes</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">)</span>
-    <span class="n">ret_shapes</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_shape</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;The backward function.&quot;&quot;&quot;</span>
-      <span class="n">_SetShape</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">arg_shapes</span><span class="p">,</span> <span class="n">ret_shapes</span><span class="p">,</span> <span class="n">ret_shapes</span><span class="p">]))</span>
-      <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">ret_dtypes</span><span class="p">,</span> <span class="n">ret_dtypes</span><span class="p">],</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">_SetShape</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">arg_shapes</span><span class="p">,</span> <span class="n">output_shapes</span><span class="p">,</span> <span class="n">output_shapes</span><span class="p">]))</span>
+      <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">output_dtypes</span><span class="p">,</span> <span class="n">output_dtypes</span><span class="p">],</span> <span class="n">args</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="c1"># Defun will handle the device assignment.</span>
@@ -4983,14 +5010,15 @@
 
     <span class="k">if</span> <span class="n">bak_as_function</span><span class="p">:</span>
       <span class="n">sigs</span><span class="o">.</span><span class="n">backward</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
-          <span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">arg_dtypes</span><span class="p">,</span> <span class="n">ret_dtypes</span><span class="p">,</span> <span class="n">ret_dtypes</span><span class="p">]),</span> <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">)(</span>
+          <span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">arg_dtypes</span><span class="p">,</span> <span class="n">output_dtypes</span><span class="p">,</span> <span class="n">output_dtypes</span><span class="p">]),</span>
+          <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">)(</span>
               <span class="n">Backward</span><span class="p">)</span>
 
       <span class="n">sigs</span><span class="o">.</span><span class="n">backward</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">sigs</span><span class="o">.</span><span class="n">backward</span> <span class="o">=</span> <span class="n">Backward</span>
 
-  <span class="k">return</span> <span class="n">sigs</span></div>
+  <span class="k">return</span> <span class="n">res</span></div>
 
 
 <span class="c1"># Global variable to control rendezvous sharing in tf.function.</span>
@@ -5025,7 +5053,7 @@
 
 
 <div class="viewcode-block" id="_WrapFunction"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._WrapFunction">[docs]</a><span class="k">def</span> <span class="nf">_WrapFunction</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_signature</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Wraps func as a tf.function to be used in If/WhileLoop/CallDefun.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Wraps func as a tf.function.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">input_signature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">input_signature</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -5065,24 +5093,36 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
-<span class="sd">    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of</span>
-<span class="sd">      fwd.</span>
+<span class="sd">    fwd_sig: A Nested Structure of tf.TensorSpec representing the input</span>
+<span class="sd">      signature of `fwd`, or None (meaning that fwd takes no inputs).</span>
 <span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
-<span class="sd">      Structure. The custom backprop function for fwd. bak needs to return</span>
+<span class="sd">      Structure. The custom backprop function for `fwd`. bak needs to return</span>
 <span class="sd">      dcapture if fwd uses any implicitly captured tensors, whose gradients are</span>
 <span class="sd">      dcapture.</span>
-<span class="sd">    bak_as_function: Whether to create a TF graph function for bak.</span>
-<span class="sd">    device: the device on which to run fwd and bak.</span>
+<span class="sd">    bak_as_function: Whether to create a TF graph function for `bak`.</span>
+<span class="sd">    device: the device on which to run `fwd` and `bak`.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A NestedMap containing:</span>
 
-<span class="sd">    - forward: the forward function.</span>
-<span class="sd">    - rets: the output of the forward function.</span>
+<span class="sd">    - call: A callable that will execute `fwd`. It has the same input and output</span>
+<span class="sd">      signatures as `fwd`.</span>
+<span class="sd">    - func: The underlying TF function that `call` calls. If not None, it will</span>
+<span class="sd">      be a _DefinedFunction or ConcreteFunction that takes flat inputs and</span>
+<span class="sd">      returns flat outputs, and can be used by routines that require a TF</span>
+<span class="sd">      function object (e.g. tf.If, tf.While, etc).</span>
+<span class="sd">      Always not None when `bak` is None.</span>
+<span class="sd">    - outputs: The outputs of `fwd`. Used for reflection only (e.g. to get the</span>
+<span class="sd">      output dtypes, shapes, etc).</span>
+<span class="sd">    - stateful_ops: A list of (op_name, op_type) tuples representing the</span>
+<span class="sd">      stateful ops used by `fwd`.</span>
+<span class="sd">    - captured_inputs: Implicit inputs captured by `fwd`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">fwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">use_xla</span><span class="p">()</span>
-  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">fwd_sig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[]</span>
 
   <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Get the current device to mimic Defun&#39;s behavior.</span>
@@ -5091,28 +5131,47 @@
     <span class="n">device</span> <span class="o">=</span> <span class="n">device_funcs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">device_funcs</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="c1"># pylint: enable=protected-access</span>
 
-  <span class="c1"># Used to hold:</span>
-  <span class="c1"># - the forward function.</span>
-  <span class="c1"># - the output of the forward function, which will be set in Forward.</span>
-  <span class="n">sigs</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+  <span class="c1"># Output of this method.</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
 
   <span class="nd">@_WrapFunction</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">))</span>
   <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The forward function.&quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-      <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-    <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span> <span class="o">=</span> <span class="n">rets</span>
+      <span class="k">if</span> <span class="n">args</span><span class="p">:</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">()</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="n">rets</span>
     <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 
+  <span class="n">res</span><span class="o">.</span><span class="n">captured_inputs</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">captured_inputs</span>
+
+  <span class="c1"># Get the stateful ops used in cell_fn. Logic borrowed from</span>
+  <span class="c1"># _EagerDefinedFunction.__init__().</span>
+  <span class="n">graph</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">graph</span>
+  <span class="n">input_ops</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">op</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+  <span class="n">operations</span> <span class="o">=</span> <span class="p">[</span><span class="n">op</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()</span> <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">input_ops</span><span class="p">]</span>
+  <span class="n">res</span><span class="o">.</span><span class="n">stateful_ops</span> <span class="o">=</span> <span class="p">[(</span><span class="n">o</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">o</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">operations</span> <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">_is_stateful</span><span class="p">]</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+  <span class="k">def</span> <span class="nf">Call</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper of fwd.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">func</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+      <span class="n">flat_rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">flat_rets</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span>
+
   <span class="k">if</span> <span class="ow">not</span> <span class="n">bak</span><span class="p">:</span>
-    <span class="n">sigs</span><span class="o">.</span><span class="n">forward</span> <span class="o">=</span> <span class="n">Forward</span>
-    <span class="k">return</span> <span class="n">sigs</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">Forward</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">call</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">:</span> <span class="n">Call</span><span class="p">(</span><span class="n">Forward</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span>
 
   <span class="n">shared_rendezvous</span> <span class="o">=</span> <span class="n">_GetSharedRendezvous</span><span class="p">()</span>
-  <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">captured_inputs</span>
-
-  <span class="n">ret_specs</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">)</span>
+  <span class="n">ret_specs</span> <span class="o">=</span> <span class="n">TensorSpecs</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">ret_specs</span><span class="p">,</span> <span class="n">ret_specs</span><span class="p">],</span> <span class="n">args</span><span class="p">)</span>
@@ -5134,13 +5193,13 @@
   <span class="nd">@tf</span><span class="o">.</span><span class="n">custom_gradient</span>
   <span class="k">def</span> <span class="nf">ForwardWithGrad</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Forward function and its custom gradient.&quot;&quot;&quot;</span>
-    <span class="c1"># Note that `args` includes implicit_captures. This is required by</span>
+    <span class="c1"># Note that `args` includes implicit captures. This is required by</span>
     <span class="c1"># tf.custom_gradient so that when the Grad() outputs include gradients to</span>
     <span class="c1"># implicit captures, they match the inputs to ForwardWithGrad().</span>
     <span class="c1">#</span>
-    <span class="c1"># However, Forward doesn&#39;t take implicit_captures as input, so we exclude</span>
+    <span class="c1"># However, Forward doesn&#39;t take implicit captures as input, so we exclude</span>
     <span class="c1"># them here.</span>
-    <span class="n">fwd_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)))]</span>
+    <span class="n">fwd_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">)))]</span>
     <span class="n">op</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">fwd_args</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">Grad</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -5158,18 +5217,203 @@
             <span class="s1">&#39;Ignoring additional arguments used by tf.custom_gradient: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
             <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">))</span>
 
-      <span class="n">_AssertInputsMatch</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">)</span>
+      <span class="n">_AssertInputsMatch</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">)</span>
 
       <span class="c1"># Ensure dys contains no None.</span>
       <span class="n">args</span> <span class="o">=</span> <span class="n">ConvertNoneGradientToZeros</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
 
-      <span class="n">xs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">],</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">xs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">],</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">backward_cf</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">args</span><span class="p">]))</span>
 
     <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">Grad</span>
 
-  <span class="n">sigs</span><span class="o">.</span><span class="n">forward</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">xs</span><span class="p">:</span> <span class="n">ForwardWithGrad</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">]))</span>
-  <span class="k">return</span> <span class="n">sigs</span></div>
+  <span class="n">res</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">forward</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">xs</span><span class="p">:</span> <span class="n">ForwardWithGrad</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">]))</span>
+  <span class="n">res</span><span class="o">.</span><span class="n">call</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">:</span> <span class="n">Call</span><span class="p">(</span><span class="n">forward</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="Function"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Function">[docs]</a><span class="k">class</span> <span class="nc">Function</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Function builds a TensorFlow graph function from a callable.</span>
+
+<span class="sd">  In the high level this is similar to tf.Defun and tf.function. In fact this</span>
+<span class="sd">  relies on those as underlying implementations, but with specific configuration</span>
+<span class="sd">  so it&#39;s easier to use and can work well in some extreme cases in Lingvo.</span>
+
+<span class="sd">  Example usage:</span>
+
+<span class="sd">  - No inputs:</span>
+
+<span class="sd">    &gt;&gt;&gt; @Function()</span>
+<span class="sd">    &gt;&gt;&gt; def foo():</span>
+<span class="sd">    ...   return tf.constant(1.0)</span>
+<span class="sd">    &gt;&gt;&gt; y = foo()</span>
+
+<span class="sd">  - Scalar input:</span>
+
+<span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=tf.TensorSpec(None, tf.float32))</span>
+<span class="sd">    &gt;&gt;&gt; def foo(x):</span>
+<span class="sd">    ...   return x * 2</span>
+<span class="sd">    &gt;&gt;&gt; y = foo(1.0)</span>
+
+<span class="sd">  - Nested input:</span>
+
+<span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=NestedMap(x=tf.TensorSpec(None, tf.float32)))</span>
+<span class="sd">    &gt;&gt;&gt; def foo(nmap):</span>
+<span class="sd">    ...   return nmap.x * 2</span>
+<span class="sd">    &gt;&gt;&gt; y = foo(NestedMap(x=1.0))</span>
+
+<span class="sd">  - With gradient function:</span>
+
+<span class="sd">    &gt;&gt;&gt; def bar(x, y, dy):</span>
+<span class="sd">    ...   del y, dy</span>
+<span class="sd">    ...   return 4.0 * x * dy</span>
+<span class="sd">    &gt;&gt;&gt;</span>
+<span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=tf.TensorSpec(None, tf.float32), bak=bak)</span>
+<span class="sd">    ... def foo(x):</span>
+<span class="sd">    ...   return 2.0 * x * x</span>
+
+<span class="sd">  - Used in control flow ops:</span>
+
+<span class="sd">    &gt;&gt;&gt; then_branch = Function(tf.TensorSpec([], tf.int32))(lambda x: x / 2)</span>
+<span class="sd">    &gt;&gt;&gt; else_branch = Function(tf.TensorSpec([], tf.int32))(lambda x: 3 * x + 1)</span>
+<span class="sd">    &gt;&gt;&gt; y = tf.If(cond, inputs, then_branch.func, else_branch.func)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># TODO(laigd): the use_tf_function option is added for backward compatibility</span>
+  <span class="c1"># reasons. Remove it after the migration.</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">fwd_sig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">use_tf_function</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructor.</span>
+
+<span class="sd">    Below we assume `fwd` is the input to `__call__` that is used to build the</span>
+<span class="sd">    TensorFlow graph function encapsulated by this object.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fwd_sig: A Nested Structure of tf.TensorSpec representing the input</span>
+<span class="sd">        signature of `fwd`, or None (meaning that `fwd` takes no inputs). The</span>
+<span class="sd">        actual inputs should be compatible with this (have same shapes and</span>
+<span class="sd">        dtypes).</span>
+<span class="sd">      bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
+<span class="sd">        Structure. The custom backprop function for `fwd`. bak needs to return</span>
+<span class="sd">        dcapture if `fwd` uses any implicitly captured tensors, whose gradients</span>
+<span class="sd">        are dcapture.</span>
+<span class="sd">      bak_as_function: Whether to create a TF graph function for `bak`.</span>
+<span class="sd">      device: The device on which to run `fwd` and `bak`. Defaults to the</span>
+<span class="sd">        current device.</span>
+<span class="sd">      use_tf_function: Whether use tf.function. Defaults to the value of</span>
+<span class="sd">        FLAGS.use_tf_function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bak</span> <span class="o">=</span> <span class="n">bak</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bak_as_function</span> <span class="o">=</span> <span class="n">bak_as_function</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">device</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_use_tf_function</span> <span class="o">=</span> <span class="n">use_tf_function</span>
+
+  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fwd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a graph function.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fwd: a callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A DefinedFunction object encapsulating `fwd` as a graph function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">callable</span><span class="p">(</span><span class="n">fwd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">DefinedFunction</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bak_as_function</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_tf_function</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DefinedFunction"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.DefinedFunction">[docs]</a><span class="k">class</span> <span class="nc">DefinedFunction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Encapsulates a TensorFlow graph function and its properties.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">fwd</span><span class="p">,</span>
+               <span class="n">fwd_sig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">use_tf_function</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure. Used to</span>
+<span class="sd">        build the TensorFlow graph function that this object encapsulates.</span>
+<span class="sd">      fwd_sig: A Nested Structure of tf.TensorSpec representing the input</span>
+<span class="sd">        signature of `fwd`, or None (meaning that `fwd` takes no inputs). The</span>
+<span class="sd">        actual inputs should be compatible with this (have same shapes and</span>
+<span class="sd">        dtypes).</span>
+<span class="sd">      bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
+<span class="sd">        Structure. The custom backprop function for `fwd`. bak needs to return</span>
+<span class="sd">        dcapture if `fwd` uses any implicitly captured tensors, whose gradients</span>
+<span class="sd">        are dcapture.</span>
+<span class="sd">      bak_as_function: Whether to create a TF graph function for `bak`.</span>
+<span class="sd">      device: The device on which to run `fwd` and `bak`. Defaults to the</span>
+<span class="sd">        current device.</span>
+<span class="sd">      use_tf_function: Whether use tf.function. Defaults to the value of</span>
+<span class="sd">        FLAGS.use_tf_function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">use_tf_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">use_tf_function</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">)</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span> <span class="k">if</span> <span class="n">use_tf_function</span> <span class="k">else</span> <span class="n">_DefineDefun</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span>
+        <span class="n">fwd</span><span class="o">=</span><span class="n">fwd</span><span class="p">,</span>
+        <span class="n">fwd_sig</span><span class="o">=</span><span class="n">fwd_sig</span><span class="p">,</span>
+        <span class="n">bak</span><span class="o">=</span><span class="n">bak</span><span class="p">,</span>
+        <span class="n">bak_as_function</span><span class="o">=</span><span class="n">bak_as_function</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
+
+  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Invokes the graph function.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      args: the inputs to the graph function, must be compatible with `fwd_sig`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The output tensors with the same structure as the output of `fwd`,</span>
+<span class="sd">      returned by a call to the graph function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">IsCompatible</span><span class="p">(</span><span class="n">args</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The underlying TensorFlow graph function that this object encapsulates.</span>
+
+<span class="sd">    The returned graph function is created by tracing `fwd` during construction.</span>
+<span class="sd">    If not None, it will be a _DefinedFunction or ConcreteFunction that takes</span>
+<span class="sd">    flat inputs and returns flat outputs, and can be used by routines that</span>
+<span class="sd">    require a TensorFlow function object (e.g. tf.If, tf.While, etc).</span>
+
+<span class="sd">    If no backprop function is provided during construction, the result is</span>
+<span class="sd">    always not None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">func</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">output_dtypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Output dtypes of the graph function.</span>
+
+<span class="sd">    The result will have the same structure as the outputs of `fwd` but contain</span>
+<span class="sd">    the corresponding output dtypes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">stateful_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stateful ops used by `fwd`, as a list of (op_name, op_type) tuples.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">stateful_ops</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">captured_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Implicit input tensors captured by `fwd`.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">captured_inputs</span></div>
 
 
 <div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span>
@@ -5192,21 +5436,14 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A Nested Structure equivalent to what fwd(args) computes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">use_tf_function</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">)</span>
-  <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span> <span class="k">if</span> <span class="n">use_tf_function</span> <span class="k">else</span> <span class="n">_DefineDefun</span>
-  <span class="n">sigs</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">bak_as_function</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-  <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">sigs</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-    <span class="n">flat_rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">flat_rets</span><span class="p">]</span>
-
-  <span class="k">if</span> <span class="n">use_tf_function</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="c1"># Set the output shapes since Defun can not infer shape automatically.</span>
-    <span class="k">for</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">)):</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="n">dst</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span></div>
+  <span class="n">args</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="n">sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span>
+      <span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+      <span class="n">bak</span><span class="o">=</span><span class="n">bak</span><span class="p">,</span>
+      <span class="n">bak_as_function</span><span class="o">=</span><span class="n">bak_as_function</span><span class="p">,</span>
+      <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)(</span>
+          <span class="n">fwd</span><span class="o">=</span><span class="n">fwd</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">sigs</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="If"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.If">[docs]</a><span class="k">def</span> <span class="nf">If</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">then_branch</span><span class="p">,</span> <span class="n">else_branch</span><span class="p">):</span>
@@ -5216,26 +5453,25 @@
 <span class="sd">    cond: A scalar `Tensor` that can be converted to boolean.</span>
 <span class="sd">    inputs: A flattenable representing the input tensors of the if/else</span>
 <span class="sd">      statement.</span>
-<span class="sd">    then_branch: A callable &#39;inputs&#39; -&gt; flattenable. The returned value</span>
-<span class="sd">      should be compatible with what &#39;else_branch&#39; returns.</span>
-<span class="sd">    else_branch: A callable &#39;inputs&#39; -&gt; flattenable. The returned value</span>
-<span class="sd">      should be compatible with what &#39;then_branch&#39; returns.</span>
+<span class="sd">    then_branch: A callable &#39;inputs&#39; -&gt; flattenable. The returned value should</span>
+<span class="sd">      be compatible with what &#39;else_branch&#39; returns.</span>
+<span class="sd">    else_branch: A callable &#39;inputs&#39; -&gt; flattenable. The returned value should</span>
+<span class="sd">      be compatible with what &#39;then_branch&#39; returns.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Output returned by the call to either &#39;then_branch&#39; or &#39;else_branch&#39;.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span> <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">_DefineDefun</span>
-  <span class="n">then_sigs</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">then_branch</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-  <span class="n">else_sigs</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">else_branch</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-  <span class="k">assert</span> <span class="n">IsCompatible</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">),</span> <span class="p">(</span>
+  <span class="n">then_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">then_branch</span><span class="p">)</span>
+  <span class="n">else_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">else_branch</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="n">IsCompatible</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">),</span> <span class="p">(</span>
       <span class="s1">&#39;Outputs of then_branch and else_branch are not compatible: </span><span class="si">{}</span><span class="s1"> vs </span><span class="si">{}</span><span class="s1">&#39;</span>
-      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">))</span>
+      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">))</span>
   <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
       <span class="n">cond</span><span class="o">=</span><span class="n">cond</span><span class="p">,</span>
       <span class="n">inputs</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
-      <span class="n">then_branch</span><span class="o">=</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">forward</span><span class="p">,</span>
-      <span class="n">else_branch</span><span class="o">=</span><span class="n">else_sigs</span><span class="o">.</span><span class="n">forward</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span></div>
+      <span class="n">then_branch</span><span class="o">=</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">,</span>
+      <span class="n">else_branch</span><span class="o">=</span><span class="n">else_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_Itype"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._Itype">[docs]</a><span class="k">def</span> <span class="nf">_Itype</span><span class="p">():</span>
@@ -5255,13 +5491,10 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The final loop state in the same structure as loop_state.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span> <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">_DefineDefun</span>
-  <span class="n">cond_sigs</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">loop_state</span><span class="p">)</span>
-  <span class="n">body_sigs</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">loop_state</span><span class="p">)</span>
+  <span class="n">cond_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">loop_state</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">cond</span><span class="p">)</span>
+  <span class="n">body_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">loop_state</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
   <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
-      <span class="n">input_</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">loop_state</span><span class="p">),</span>
-      <span class="n">cond</span><span class="o">=</span><span class="n">cond_sigs</span><span class="o">.</span><span class="n">forward</span><span class="p">,</span>
-      <span class="n">body</span><span class="o">=</span><span class="n">body_sigs</span><span class="o">.</span><span class="n">forward</span><span class="p">)</span>
+      <span class="n">input_</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">loop_state</span><span class="p">),</span> <span class="n">cond</span><span class="o">=</span><span class="n">cond_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">loop_state</span><span class="p">,</span> <span class="n">new_state</span><span class="p">)</span></div>
 
 

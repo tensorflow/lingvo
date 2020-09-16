@@ -2660,8 +2660,8 @@ inputs of ‘op’.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.py_utils._TensorSpecs">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_TensorSpecs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_TensorSpecs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._TensorSpecs" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.py_utils.TensorSpecs">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">TensorSpecs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap</span></em>, <em class="sig-param"><span class="n">keep_shape</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#TensorSpecs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.TensorSpecs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transforms tensors in the input nested structure to TensorSpecs.</p>
 </dd></dl>
 
@@ -2673,20 +2673,30 @@ inputs of ‘op’.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fwd</strong> – A callable xs: Nested Structure -&gt; ys: Nested Structure.</p></li>
-<li><p><strong>fwd_sig</strong> – A Nested Structure of tf.Tensor representing the input signature of
-fwd.</p></li>
+<li><p><strong>fwd_sig</strong> – A Nested Structure of tf.TensorSpec representing the input
+signature of <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>, or None (meaning that fwd takes no inputs).</p></li>
 <li><p><strong>bak</strong> – A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested
-Structure. The custom backprop function for fwd. bak needs to return
+Structure. The custom backprop function for <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>. bak needs to return
 dcapture if fwd uses any implicitly captured tensors, whose gradients are
 dcapture.</p></li>
-<li><p><strong>bak_as_function</strong> – Whether to create a TF graph function for bak.</p></li>
-<li><p><strong>device</strong> – the device on which to run fwd and bak.</p></li>
+<li><p><strong>bak_as_function</strong> – Whether to create a TF graph function for <code class="xref py py-obj docutils literal notranslate"><span class="pre">bak</span></code>.</p></li>
+<li><p><strong>device</strong> – the device on which to run <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">bak</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p>forward: the forward function.</p></li>
-<li><p>rets: the output of the forward function.</p></li>
+<li><p>call: A callable that will execute <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>. It has the same input and output
+signatures as <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>.</p></li>
+<li><p>func: The underlying TF function that <code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code> calls. If not None, it will
+be a _DefinedFunction or ConcreteFunction that takes flat inputs and
+returns flat outputs, and can be used by routines that require a TF
+function object (e.g. tf.If, tf.While, etc).
+Always not None when <code class="xref py py-obj docutils literal notranslate"><span class="pre">bak</span></code> is None.</p></li>
+<li><p>output_dtypes: A nested structure compatible with the outputs of <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>
+containing the corresponding output dtypes.</p></li>
+<li><p>stateful_ops: A list of (op_name, op_type) tuples representing the
+stateful ops used by <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>.</p></li>
+<li><p>captured_inputs: Implicit inputs captured by <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>.</p></li>
 </ul>
 </p>
 </dd>
@@ -2716,7 +2726,7 @@ dcapture.</p></li>
 <dl class="py function">
 <dt id="lingvo.core.py_utils._WrapFunction">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_WrapFunction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">input_signature</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_WrapFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._WrapFunction" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wraps func as a tf.function to be used in If/WhileLoop/CallDefun.</p>
+<dd><p>Wraps func as a tf.function.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -2727,20 +2737,30 @@ dcapture.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fwd</strong> – A callable xs: Nested Structure -&gt; ys: Nested Structure.</p></li>
-<li><p><strong>fwd_sig</strong> – A Nested Structure of tf.Tensor representing the input signature of
-fwd.</p></li>
+<li><p><strong>fwd_sig</strong> – A Nested Structure of tf.TensorSpec representing the input
+signature of <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>, or None (meaning that fwd takes no inputs).</p></li>
 <li><p><strong>bak</strong> – A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested
-Structure. The custom backprop function for fwd. bak needs to return
+Structure. The custom backprop function for <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>. bak needs to return
 dcapture if fwd uses any implicitly captured tensors, whose gradients are
 dcapture.</p></li>
-<li><p><strong>bak_as_function</strong> – Whether to create a TF graph function for bak.</p></li>
-<li><p><strong>device</strong> – the device on which to run fwd and bak.</p></li>
+<li><p><strong>bak_as_function</strong> – Whether to create a TF graph function for <code class="xref py py-obj docutils literal notranslate"><span class="pre">bak</span></code>.</p></li>
+<li><p><strong>device</strong> – the device on which to run <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">bak</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p>forward: the forward function.</p></li>
-<li><p>rets: the output of the forward function.</p></li>
+<li><p>call: A callable that will execute <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>. It has the same input and output
+signatures as <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>.</p></li>
+<li><p>func: The underlying TF function that <code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code> calls. If not None, it will
+be a _DefinedFunction or ConcreteFunction that takes flat inputs and
+returns flat outputs, and can be used by routines that require a TF
+function object (e.g. tf.If, tf.While, etc).
+Always not None when <code class="xref py py-obj docutils literal notranslate"><span class="pre">bak</span></code> is None.</p></li>
+<li><p>outputs: The outputs of <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>. Used for reflection only (e.g. to get the
+output dtypes, shapes, etc).</p></li>
+<li><p>stateful_ops: A list of (op_name, op_type) tuples representing the
+stateful ops used by <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>.</p></li>
+<li><p>captured_inputs: Implicit inputs captured by <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>.</p></li>
 </ul>
 </p>
 </dd>
@@ -2748,6 +2768,100 @@ dcapture.</p></li>
 <dd class="field-odd"><p>A NestedMap containing</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.py_utils.Function">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Function</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd_sig</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak_as_function</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_tf_function</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Function builds a TensorFlow graph function from a callable.</p>
+<p>In the high level this is similar to tf.Defun and tf.function. In fact this
+relies on those as underlying implementations, but with specific configuration
+so it’s easier to use and can work well in some extreme cases in Lingvo.</p>
+<p>Example usage:</p>
+<ul>
+<li><p>No inputs:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@Function</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">foo</span><span class="p">():</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+<li><p>Scalar input:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">foo</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p>Nested input:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">foo</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="p">(</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">1.0</span><span class="p">))</span>
+</pre></div>
+</div>
+</li>
+<li><p>With gradient function:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">bar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="k">del</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">dy</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bak</span><span class="o">=</span><span class="n">bak</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span> <span class="nf">foo</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span>
+</pre></div>
+</div>
+</li>
+<li><p>Used in control flow ops:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">then_branch</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">else_branch</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">then_branch</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">else_branch</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.py_utils.DefinedFunction">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">DefinedFunction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">fwd_sig</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak_as_function</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_tf_function</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DefinedFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.DefinedFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Encapsulates a TensorFlow graph function and its properties.</p>
+<dl class="py method">
+<dt id="lingvo.core.py_utils.DefinedFunction.func">
+<em class="property">property </em><code class="sig-name descname">func</code><a class="headerlink" href="#lingvo.core.py_utils.DefinedFunction.func" title="Permalink to this definition">¶</a></dt>
+<dd><p>The underlying TensorFlow graph function that this object encapsulates.</p>
+<p>The returned graph function is created by tracing <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code> during construction.
+If not None, it will be a _DefinedFunction or ConcreteFunction that takes
+flat inputs and returns flat outputs, and can be used by routines that
+require a TensorFlow function object (e.g. tf.If, tf.While, etc).</p>
+<p>If no backprop function is provided during construction, the result is
+always not None.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.py_utils.DefinedFunction.output_dtypes">
+<em class="property">property </em><code class="sig-name descname">output_dtypes</code><a class="headerlink" href="#lingvo.core.py_utils.DefinedFunction.output_dtypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output dtypes of the graph function.</p>
+<p>The result will have the same structure as the outputs of <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code> but contain
+the corresponding output dtypes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.py_utils.DefinedFunction.stateful_ops">
+<em class="property">property </em><code class="sig-name descname">stateful_ops</code><a class="headerlink" href="#lingvo.core.py_utils.DefinedFunction.stateful_ops" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stateful ops used by <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>, as a list of (op_name, op_type) tuples.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.py_utils.DefinedFunction.captured_inputs">
+<em class="property">property </em><code class="sig-name descname">captured_inputs</code><a class="headerlink" href="#lingvo.core.py_utils.DefinedFunction.captured_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implicit input tensors captured by <code class="xref py py-obj docutils literal notranslate"><span class="pre">fwd</span></code>.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
@@ -2783,10 +2897,10 @@ dcapture.</p></li>
 <li><p><strong>cond</strong> – A scalar <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> that can be converted to boolean.</p></li>
 <li><p><strong>inputs</strong> – A flattenable representing the input tensors of the if/else
 statement.</p></li>
-<li><p><strong>then_branch</strong> – A callable ‘inputs’ -&gt; flattenable. The returned value
-should be compatible with what ‘else_branch’ returns.</p></li>
-<li><p><strong>else_branch</strong> – A callable ‘inputs’ -&gt; flattenable. The returned value
-should be compatible with what ‘then_branch’ returns.</p></li>
+<li><p><strong>then_branch</strong> – A callable ‘inputs’ -&gt; flattenable. The returned value should
+be compatible with what ‘else_branch’ returns.</p></li>
+<li><p><strong>else_branch</strong> – A callable ‘inputs’ -&gt; flattenable. The returned value should
+be compatible with what ‘then_branch’ returns.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
