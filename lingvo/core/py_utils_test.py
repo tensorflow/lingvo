@@ -1113,7 +1113,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
   def testRemoveAssertContext(self):
 
-    @tf.Defun(tf.float32, noinline=True)
+    @WrapFunction(tf.float32, noinline=True)
     def Op(x):
       with py_utils.RemoveAssertContext(remove=True):
         x = py_utils.with_dependencies(
@@ -2530,7 +2530,7 @@ class RematerializeFnTest(test_utils.TestCase):
       self.assertAllEqual(v2, v4)
 
 
-def WrapFunction(*dtypes):
+def WrapFunction(*dtypes, noinline=False):
   """Wrap a python function as a Defun or tf.function."""
   if py_utils._FromGlobal('use_tf_function'):
 
@@ -2545,7 +2545,7 @@ def WrapFunction(*dtypes):
 
     return Decorated
   else:
-    return tf.Defun(*dtypes)
+    return tf.Defun(*dtypes, noinline=noinline)
 
 
 def StatefulRandomOpsInDefunTestParameters(test_fn):
