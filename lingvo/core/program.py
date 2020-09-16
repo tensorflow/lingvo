@@ -365,6 +365,8 @@ class TrainProgram(BaseProgram):
         self._task.per_example_tensors, self._steps_per_loop,
         self.num_splits_per_client)
 
+    self._task.input.CreateTpuEmbeddingEnqueueOps()
+
     # Get metric result from a single replica; they are all same here.
 
     def _ConstructPostTrainingLoop(train_loop_op, outfeed_dequeue_op):

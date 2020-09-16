@@ -263,6 +263,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         for program in self._programs:
           program.SetStatusMessageFn(self._SetStatusMessage)
           program.CreateCheckpointer()
+
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
 
@@ -271,6 +272,13 @@ class ExecutorTpu(base_runner.BaseRunner):
             model=None,
             train_params=train_cfg.train,
             save_only=True)
+
+      self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
+      self._retrieve_ops = tf.get_collection(
+          py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
+      tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
+      self._tpu_embedding = (
+          tpu_embedding_collection[0] if tpu_embedding_collection else None)
 
   def _MaybeConstructSharedModel(self, train_cfg):
     """Construct a single shared copy of the model if this is a MultiTaskModel.
@@ -307,13 +315,22 @@ class ExecutorTpu(base_runner.BaseRunner):
         cluster_def=self._cluster_def,
         disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
     ) as sess:
+
+      config_proto = (
+          self._tpu_embedding.config_proto
+          if self._tpu_embedding is not None else None)
+      sess.run(
+          tf.tpu.initialize_system(embedding_config=config_proto, job=None))
+
       # Initialize the variables first, if needed.
       for program in self._programs:
         program.RestoreIfNeeded(sess)
         program.Compile(sess)
+
       sess.run(self._initialize_tables)
       sess.run(self._initialize_local_vars)
 
+      sess.run(self._load_ops)
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
         if self._ShouldStop(sess, global_step):
@@ -345,4 +362,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         # steps ahead already, due to program_schedule.Run(sess).
         #
         if not self._ml_perf_log:
+          tf.logging.info('Retrieve params.')
+          sess.run(self._retrieve_ops)
+          tf.logging.info('Retrieve params done.')
           self.save_only_checkpointer.MaybeSave(sess, py_utils.GetGlobalStep())
