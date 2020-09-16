@@ -4582,6 +4582,32 @@
   <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_ToPlacerholder</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="Softmax"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Softmax">[docs]</a><span class="k">def</span> <span class="nf">Softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Softmax with extra_logits, might be useful for large xformer LM.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">extra_logit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+  <span class="n">axis</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">axis</span>
+
+  <span class="k">def</span> <span class="nf">ReduceLogSumExp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">max_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">base_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_logit</span><span class="p">,</span> <span class="n">extra_logit</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">-=</span> <span class="n">base_logit</span>
+    <span class="n">exp_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">sum_exp_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">exp_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">sum_exp_x</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">extra_logit</span> <span class="o">-</span> <span class="n">base_logit</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">sum_exp_x</span><span class="p">)</span> <span class="o">+</span> <span class="n">base_logit</span>
+
+  <span class="k">def</span> <span class="nf">LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">-</span> <span class="n">ReduceLogSumExp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">LogSoftmax</span><span class="p">(</span><span class="n">logits</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="SoftmaxCrossEntropyFocalLoss"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss">[docs]</a><span class="k">def</span> <span class="nf">SoftmaxCrossEntropyFocalLoss</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span>
                                  <span class="n">label_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">label_probs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>

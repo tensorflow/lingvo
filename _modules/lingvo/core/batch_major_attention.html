@@ -410,6 +410,9 @@
         <span class="s1">&#39;of T^2 to the side of T for better performance. This may result &#39;</span>
         <span class="s1">&#39;in model quality drops when using bf16 for some models due to &#39;</span>
         <span class="s1">&#39;different XLA fusion decisions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;atten_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Extra logit for attention softmax.&#39;</span>
+        <span class="s1">&#39;Notice None and 0 are different.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -513,6 +516,8 @@
 <span class="sd">      probs: [B, N, T, S].</span>
 <span class="sd">      probs_sum: [B, N, T, 1].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
@@ -551,7 +556,9 @@
       <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">probs_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">),</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">),</span>
+          <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">probs_sum</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">s</span><span class="p">])</span>
@@ -679,7 +686,8 @@
 
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pad</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
+          <span class="n">padded_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
       <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
 
       <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenContextOneStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">)</span>
@@ -713,7 +721,8 @@
                      <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)))</span>
 
       <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pad</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
+          <span class="n">padded_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_DotStep</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Computes encoded activation.</span>
@@ -1439,7 +1448,9 @@
       <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">probs_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">),</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">),</span>
+          <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">probs_sum</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">return</span> <span class="n">probs</span><span class="p">,</span> <span class="n">probs_sum</span></div>
@@ -1680,7 +1691,8 @@
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenLogitsOneStep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key_input</span><span class="p">,</span>
                                       <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># [T, B, N]</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">posteriors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">posteriors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
+        <span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
     <span class="n">posteriors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">posteriors</span><span class="p">,</span> <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
     <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;TBN, TBNH-&gt;BNH&#39;</span><span class="p">,</span> <span class="n">posteriors</span><span class="p">,</span> <span class="n">value_input</span><span class="p">)</span>
 
