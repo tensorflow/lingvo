@@ -3452,5 +3452,34 @@ class HasShapeTest(test_utils.TestCase):
             })
 
 
+class SoftmaxTest(test_utils.TestCase, parameterized.TestCase):
+
+  @parameterized.named_parameters(('Base',), ('ExtraLogit', 0.))
+  def testCompute(self, extra_logit=None):
+    tf.random.set_seed(123)
+    x = np.array([
+        [10, 20, 1e10, 1e30],
+        [-1e30, -1e10, -20, 10],
+        [-20, -10, 1, 2],
+    ])
+    y = py_utils.Softmax(x, extra_logit=extra_logit)
+
+    if extra_logit is None:
+      expected = np.array([
+          [0., 0., 0., 1.],
+          [0., 0., 0., 1.],
+          [0., 0., 0.268940, 0.731055],
+      ])
+
+    else:
+      expected = np.array([
+          [0., 0., 0., 1.],
+          [0., 0., 0., 0.999954],
+          [0., 0., 0.244727, 0.665238],
+      ])
+    with self.session():
+      self.assertAllClose(expected, y.eval(), atol=1e-5, rtol=1e-5)
+
+
 if __name__ == '__main__':
   tf.test.main()

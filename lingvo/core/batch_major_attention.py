@@ -262,6 +262,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         'of T^2 to the side of T for better performance. This may result '
         'in model quality drops when using bf16 for some models due to '
         'different XLA fusion decisions.')
+    p.Define(
+        'atten_extra_logit', None, 'Extra logit for attention softmax.'
+        'Notice None and 0 are different.')
     return p
 
   def __init__(self, params):
@@ -365,6 +368,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       probs: [B, N, T, S].
       probs_sum: [B, N, T, 1].
     """
+    p = self.params
+
     key = py_utils.HasRank(key, 4)
     b, s, n, h = py_utils.GetShape(key, 4)
     query = py_utils.HasShape(query, [b, -1, n, h])
@@ -403,7 +408,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       probs = tf.cast(tf.exp(probs), key.dtype)
       probs_sum = tf.reduce_sum(probs, -1, True)
     else:
-      probs = tf.cast(tf.nn.softmax(padded_logits), key.dtype)
+      probs = tf.cast(
+          py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
+          key.dtype)
       probs_sum = None
 
     probs = py_utils.HasShape(probs, [b, n, t, s])
@@ -531,7 +538,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
       logits = tf.reshape(logits, [s, -1])
       padded_logits = tf.where(pad > 0.0, very_negative_logits, logits)
-      probs = tf.nn.softmax(padded_logits, axis=0)
+      probs = py_utils.Softmax(
+          padded_logits, axis=0, extra_logit=p.atten_extra_logit)
       probs = tf.reshape(probs, [s, b, n])
 
       encoded = self._AttenContextOneStep(theta, probs, value, time_step)
@@ -565,7 +573,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
                      tf.zeros([], tf.int32)))
 
       padded_logits = tf.where(pad > 0.0, very_negative_logits, logits)
-      probs = tf.nn.softmax(padded_logits, axis=0)
+      probs = py_utils.Softmax(
+          padded_logits, axis=0, extra_logit=p.atten_extra_logit)
 
       def _DotStep(o, p, v, ts):
         """Computes encoded activation.
@@ -1291,7 +1300,9 @@ class LocalSelfAttention(MultiHeadedAttention):
       probs = tf.cast(tf.exp(probs), key.dtype)
       probs_sum = tf.reduce_sum(probs, -1, True)
     else:
-      probs = tf.cast(tf.nn.softmax(padded_logits), key.dtype)
+      probs = tf.cast(
+          py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
+          key.dtype)
       probs_sum = None
 
     return probs, probs_sum
@@ -1532,7 +1543,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     logits = self._AttenLogitsOneStep(self.theta, query_proj, key_input,
                                       t - 1)  # [T, B, N]
     logits = tf.reshape(logits, [t, -1])
-    posteriors = tf.nn.softmax(logits, axis=0)
+    posteriors = py_utils.Softmax(
+        logits, axis=0, extra_logit=p.atten_extra_logit)
     posteriors = tf.reshape(posteriors, [t, b, n])
     output = tf.einsum('TBN, TBNH->BNH', posteriors, value_input)
 

@@ -4434,6 +4434,32 @@ def ToPlaceholders(nmap, dtype=None):
   return nmap.Transform(_ToPlacerholder)
 
 
+def Softmax(logits, axis=None, extra_logit=None, name=None):
+  """Softmax with extra_logits, might be useful for large xformer LM."""
+  if extra_logit is None:
+    return tf.nn.softmax(logits, axis=axis, name=name)
+
+  axis = -1 if axis is None else axis
+
+  def ReduceLogSumExp(x):
+    max_logit = tf.math.reduce_max(
+        tf.stop_gradient(x), axis=axis, keepdims=True)
+
+    base_logit = tf.math.maximum(max_logit, extra_logit)
+    x -= base_logit
+    exp_x = tf.math.exp(x)
+    sum_exp_x = tf.math.reduce_sum(exp_x, axis=axis, keepdims=True)
+
+    sum_exp_x += tf.math.exp(extra_logit - base_logit)
+    return tf.math.log(sum_exp_x) + base_logit
+
+  def LogSoftmax(x):
+    return x - ReduceLogSumExp(x)
+
+  with tf.name_scope(name):
+    return tf.math.exp(LogSoftmax(logits))
+
+
 def SoftmaxCrossEntropyFocalLoss(logits,
                                  label_ids=None,
                                  label_probs=None,
