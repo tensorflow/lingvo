@@ -405,8 +405,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       # (scaling) is moved after _AttenContext for better performance.
       probs = padded_logits - tf.stop_gradient(
           tf.reduce_max(padded_logits, -1, True))
-      probs = tf.cast(tf.exp(probs), key.dtype)
+      probs = tf.exp(probs)
       probs_sum = tf.reduce_sum(probs, -1, True)
+      probs = tf.cast(probs, key.dtype)
+      probs_sum = tf.cast(probs_sum, key.dtype)
     else:
       probs = tf.cast(
           py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
