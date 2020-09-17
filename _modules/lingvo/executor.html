@@ -411,6 +411,7 @@
         <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
           <span class="n">program</span><span class="o">.</span><span class="n">SetStatusMessageFn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">)</span>
           <span class="n">program</span><span class="o">.</span><span class="n">CreateCheckpointer</span><span class="p">()</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
 
@@ -419,6 +420,13 @@
             <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">save_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_load_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_LOAD_OPS</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">)</span>
+      <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">_MaybeConstructSharedModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_cfg</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct a single shared copy of the model if this is a MultiTaskModel.</span>
@@ -455,13 +463,22 @@
         <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">,</span>
         <span class="n">disable_meta_optimizer</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_meta_optimizer_in_executor</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+
+      <span class="n">config_proto</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">config_proto</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="n">config_proto</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+
       <span class="c1"># Initialize the variables first, if needed.</span>
       <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
         <span class="n">program</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
         <span class="n">program</span><span class="o">.</span><span class="n">Compile</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
 
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_ops</span><span class="p">)</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
@@ -493,6 +510,9 @@
         <span class="c1"># steps ahead already, due to program_schedule.Run(sess).</span>
         <span class="c1">#</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
+          <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 </pre></div>
 
