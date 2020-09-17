@@ -213,6 +213,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define('image_output_dtype', tf.uint8, 'The image output dtype.')
     p.Define('camera_names',
              ['FRONT', 'FRONT_LEFT', 'FRONT_RIGHT', 'SIDE_LEFT', 'SIDE_RIGHT'],
              'The names of the cameras from which images will be extracted.')
@@ -272,7 +273,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
           _Dense(features['image_%s_velocity' % camera_name]), [6])
 
       outputs[camera_name] = py_utils.NestedMap()
-      outputs[camera_name]['image'] = image
+      outputs[camera_name]['image'] = tf.cast(image, p.image_output_dtype)
       outputs[camera_name]['intrinsics'] = intrinsics
       outputs[camera_name]['extrinsics'] = extrinsics
       outputs[camera_name]['pose'] = pose
@@ -322,7 +323,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
     dtypes = py_utils.NestedMap()
     for camera_name in p.camera_names:
       dtypes[camera_name] = py_utils.NestedMap()
-      dtypes[camera_name]['image'] = tf.uint8
+      dtypes[camera_name]['image'] = p.image_output_dtype
       dtypes[camera_name]['intrinsics'] = tf.float32
       dtypes[camera_name]['extrinsics'] = tf.float32
       dtypes[camera_name]['pose'] = tf.float32
