@@ -16,13 +16,32 @@
 """Utilities for dataset information."""
 import inspect
 
+import lingvo.compat as tf
 
-def GetDatasets(cls):
+
+class DatasetFunctionError(TypeError):
+  pass
+
+
+def GetDatasets(cls, warn_on_error=False):
   """Returns the list of dataset functions (e.g. Train, Dev, ...)."""
   datasets = []
   for name, _ in inspect.getmembers(
       cls, lambda x: inspect.isfunction(x) or inspect.ismethod(x)):
     if name not in ['GetDatasetParams', 'Model', 'Task', 'ProgramSchedule'
                    ] and not name.startswith('_'):
-      datasets += [name]
+      # Datasets are assumed to have no required positional arguments.
+      # Check this assumption for all arguments beyond the first (which will be
+      # 'self' or 'cls').
+      args = list(inspect.signature(getattr(cls, name)).parameters.values())[1:]
+      positional_arguments = [p.name for p in args if p.default == p.empty]
+      if positional_arguments:
+        message = (f'Found a public function {name} in {cls.__name__} with '
+                   f'required positional arguments: {positional_arguments}.')
+        if warn_on_error:
+          tf.logging.warning(message)
+        else:
+          raise DatasetFunctionError(message)
+      else:
+        datasets += [name]
   return datasets

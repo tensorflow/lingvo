@@ -158,6 +158,18 @@ py_library(
     srcs_version = "PY3",
 )
 
+py_test(
+    name = "datasets_test",
+    srcs = ["datasets_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":compat",
+        ":datasets_lib",
+        "//lingvo/core:test_utils",
+    ],
+)
+
 py_library(
     name = "trainer_lib",
     srcs = ["trainer.py"],
