@@ -4057,6 +4057,10 @@ class GradNormTracker(base_layer.BaseLayer):
         'grad_norm_clip_cap_min', 0.0,
         'We stop clipping if grad norm is already smaller than this'
         ' value.')
+    p.Define(
+        'dry_run', False, 'If True, always return 1.0 in FProp() to signify '
+        'no grad clipping suggested, in which case the class only collects '
+        'stats and summaries.')
     return p
 
   def __init__(self, params):
@@ -4144,7 +4148,8 @@ class GradNormTracker(base_layer.BaseLayer):
                         tf.cast(trigger, tf.float32)))
 
       return py_utils.with_dependencies([update_moving_avg],
-                                        1.0 - tf.cast(trigger, tf.float32))
+                                        1.0 if p.dry_run else 1.0 -
+                                        tf.cast(trigger, tf.float32))
 
 
 class WeightedSumLayer(base_layer.BaseLayer):
