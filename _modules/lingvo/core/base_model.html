@@ -439,15 +439,18 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
           <span class="c1"># Dataset size is unknown. Computes eval summary based on num_samples.</span>
           <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="k">elif</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&lt;</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&lt;</span>
                                                    <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
-          <span class="c1"># If we know the dataset size and we want to evaluate the full</span>
-          <span class="c1"># set, we need to coordinate the input generator to flush out</span>
-          <span class="c1"># all samples so the evaler and decoder compute metrics on the</span>
-          <span class="c1"># whole set for each summary step.</span>
-          <span class="k">if</span> <span class="n">seq_inp</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">flush_every_n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+            <span class="c1"># If we know the dataset size and we want to evaluate the full</span>
+            <span class="c1"># set, we need to coordinate the input generator to flush out</span>
+            <span class="c1"># all samples so the evaler and decoder compute metrics on the</span>
+            <span class="c1"># whole set for each summary step.</span>
+            <span class="k">if</span> <span class="n">seq_inp</span><span class="p">:</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">flush_every_n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
         <span class="k">if</span> <span class="n">seq_inp</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
               <span class="s1">&#39;input.num_batcher_threads &gt; 1 inside eval mode.  &#39;</span>
