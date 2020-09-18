@@ -4205,6 +4205,10 @@
         <span class="s1">&#39;grad_norm_clip_cap_min&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="s1">&#39;We stop clipping if grad norm is already smaller than this&#39;</span>
         <span class="s1">&#39; value.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dry_run&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, always return 1.0 in FProp() to signify &#39;</span>
+        <span class="s1">&#39;no grad clipping suggested, in which case the class only collects &#39;</span>
+        <span class="s1">&#39;stats and summaries.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -4292,7 +4296,8 @@
                         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">trigger</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)))</span>
 
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span><span class="n">update_moving_avg</span><span class="p">],</span>
-                                        <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">trigger</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span></div></div>
+                                        <span class="mf">1.0</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dry_run</span> <span class="k">else</span> <span class="mf">1.0</span> <span class="o">-</span>
+                                        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">trigger</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="WeightedSumLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.WeightedSumLayer">[docs]</a><span class="k">class</span> <span class="nc">WeightedSumLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
