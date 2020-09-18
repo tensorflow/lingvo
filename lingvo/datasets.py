@@ -23,7 +23,7 @@ class DatasetFunctionError(TypeError):
   pass
 
 
-def GetDatasets(cls, warn_on_error=False):
+def GetDatasets(cls, warn_on_error=True):
   """Returns the list of dataset functions (e.g. Train, Dev, ...)."""
   datasets = []
   for name, _ in inspect.getmembers(

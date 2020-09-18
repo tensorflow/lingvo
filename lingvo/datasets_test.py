@@ -47,7 +47,7 @@ class DatasetsTest(test_utils.TestCase):
         pass
 
     with self.assertRaises(datasets.DatasetFunctionError):
-      datasets.GetDatasets(DummyDatasetHolder)
+      datasets.GetDatasets(DummyDatasetHolder, warn_on_error=False)
 
   def testGetDatasetsWarnsOnError(self):
 
