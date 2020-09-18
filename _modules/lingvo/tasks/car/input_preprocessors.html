@@ -3457,6 +3457,76 @@
     <span class="k">return</span> <span class="n">dtypes</span></div></div>
 
 
+<div class="viewcode-block" id="RandomChoicePreprocessor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomChoicePreprocessor">[docs]</a><span class="k">class</span> <span class="nc">RandomChoicePreprocessor</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Randomly applies a preprocessor with specified weights.</span>
+
+<span class="sd">  The input at features[p.weight_tensor_key] must be a floating point vector</span>
+<span class="sd">  Tensor whose length matches the number of subprocessors to select among. The</span>
+<span class="sd">  values in that Tensor are interpreted as relative weights.</span>
+
+<span class="sd">  For example, if p.subprocessors = [preprocessor1, preprocessor2] and the</span>
+<span class="sd">  weights are [1., 2.], then preprocessor1 will be applied with probability 1/3,</span>
+<span class="sd">  and preprocessor2 will be applied with probability 2/3.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RandomChoicePreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomChoicePreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_tensor_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Key in features that specifies the weighting tensor.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;subprocessors&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Params for preprocessors.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No subprocessors were specified.&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;subprocessors&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RandomChoicePreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomChoicePreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">weight_tensor</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_tensor_key</span><span class="p">)</span>
+    <span class="n">num_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">weight_tensor</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">num_weights</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">num_weights</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">)):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Choice tensor specified </span><span class="si">{</span><span class="n">num_weights</span><span class="si">}</span><span class="s1"> values &#39;</span>
+                       <span class="s1">&#39;but there are {len(p.subprocessors)} subprocessors.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Pass a unique copy of the input to each branch, in case the</span>
+    <span class="c1"># subprocessor destructively modifies the features in unexpected ways.</span>
+    <span class="n">choice_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="k">lambda</span> <span class="n">subp</span><span class="o">=</span><span class="n">subp</span><span class="p">:</span> <span class="n">subp</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">subp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessors</span>
+    <span class="p">]</span>
+
+    <span class="n">chosen_bin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">categorical</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">weight_tensor</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]),</span>
+        <span class="mi">1</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">switch_case</span><span class="p">(</span><span class="n">chosen_bin</span><span class="p">,</span> <span class="n">branch_fns</span><span class="o">=</span><span class="n">choice_list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">features</span></div>
+
+<div class="viewcode-block" id="RandomChoicePreprocessor.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomChoicePreprocessor.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
+    <span class="n">transformed_shapes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">subp</span><span class="o">.</span><span class="n">TransformShapes</span><span class="p">(</span><span class="n">shapes</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">())</span> <span class="k">for</span> <span class="n">subp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessors</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">transformed_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">curr</span> <span class="k">for</span> <span class="n">curr</span> <span class="ow">in</span> <span class="n">transformed_shapes</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Shapes after transformations were not identical: &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">transformed_shapes</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">transformed_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="RandomChoicePreprocessor.TransformDTypes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomChoicePreprocessor.TransformDTypes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformDTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
+    <span class="n">transformed_dtypes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">subp</span><span class="o">.</span><span class="n">TransformDTypes</span><span class="p">(</span><span class="n">dtypes</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">())</span> <span class="k">for</span> <span class="n">subp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessors</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">transformed_dtypes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">curr</span> <span class="k">for</span> <span class="n">curr</span> <span class="ow">in</span> <span class="n">transformed_dtypes</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;DTypes after transformations were not identical: &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">transformed_dtypes</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">transformed_dtypes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
+
+
 <div class="viewcode-block" id="SparseSampler"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseSampler">[docs]</a><span class="k">class</span> <span class="nc">SparseSampler</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Fused SparseCenterSelector and SparseCellGatherFeatures.</span>
 
