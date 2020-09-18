@@ -128,7 +128,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     Args:
       train_cfg: SingleTaskModelParams or MultiTaskModelParams
       ps_params_dict: A dict of top-level task name -> ProgramSchedule params,
-          if train_cfg is a SingleTaskModelParams, we expect only one entry.
+        if train_cfg is a SingleTaskModelParams, we expect only one entry.
       model_task_name: An override for multi-task models, currently unused.
       logdir:  String path to the log directory to output to.
       tf_master: String path to the master job, e.g. 'local'.
@@ -198,31 +198,37 @@ class ExecutorTpu(base_runner.BaseRunner):
     def _WaitTillInit():
       """Wait until the model is ready."""
       try:
-        with self._graph.as_default(), self._GetSession(
-            cluster_def=self._cluster_def,
-            disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
-        ) as sess:
-          topology = sess.run(
-              tf.tpu.initialize_system(embedding_config=None, job=None))
-          if train_cfg.train.tpu_device_order_mode is None:
-            device_assignment = device_assignment_lib.device_assignment(
-                topology,
-                computation_shape=py_utils.ComputationShape(
-                    num_devices_per_split, topology),
-                num_replicas=data_parallelism)
-          else:
-            device_assignment = device_assignment_lib.device_assignment(
-                topology,
-                computation_shape=py_utils.ComputationShape(
-                    num_devices_per_split, topology),
-                num_replicas=data_parallelism,
-                device_order_mode=train_cfg.train.tpu_device_order_mode)
-          py_utils.SetTpuDeviceAssignment(device_assignment)
-          tf.logging.info('device_assignment.core_assignment: %s',
-                          str(device_assignment.core_assignment))
-          tf.logging.info(
-              'device_assignment.topology.device_coordinates: %s',
-              str(device_assignment.topology.device_coordinates))
+        # tpu.initialize_system() is called with None as embedding_config, as
+        # embedding_config is not available yet. Later in _Loop, it is called
+        # with the correct embedding_config. Since it cannot be called twice in
+        # the same graph with different embedding_config, we use a dummy_graph
+        # here.
+        dummy_graph = tf.Graph()
+        with dummy_graph.as_default():
+          tpu_initialize_system_op = tf.tpu.initialize_system(
+              embedding_config=None, job=None)
+
+        with self._GetSession(graph=dummy_graph) as sess:
+          topology = sess.run(tpu_initialize_system_op)
+
+        if train_cfg.train.tpu_device_order_mode is None:
+          device_assignment = device_assignment_lib.device_assignment(
+              topology,
+              computation_shape=py_utils.ComputationShape(
+                  num_devices_per_split, topology),
+              num_replicas=data_parallelism)
+        else:
+          device_assignment = device_assignment_lib.device_assignment(
+              topology,
+              computation_shape=py_utils.ComputationShape(
+                  num_devices_per_split, topology),
+              num_replicas=data_parallelism,
+              device_order_mode=train_cfg.train.tpu_device_order_mode)
+        py_utils.SetTpuDeviceAssignment(device_assignment)
+        tf.logging.info('device_assignment.core_assignment: %s',
+                        str(device_assignment.core_assignment))
+        tf.logging.info('device_assignment.topology.device_coordinates: %s',
+                        str(device_assignment.topology.device_coordinates))
       except py_utils.transient_tf_errors as e:
         tf.logging.info('TPU initialization failed: %s', e)
         raise
@@ -315,12 +321,10 @@ class ExecutorTpu(base_runner.BaseRunner):
         cluster_def=self._cluster_def,
         disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
     ) as sess:
-
       config_proto = (
           self._tpu_embedding.config_proto
           if self._tpu_embedding is not None else None)
-      sess.run(
-          tf.tpu.initialize_system(embedding_config=config_proto, job=None))
+      sess.run(tf.tpu.initialize_system(embedding_config=config_proto))
 
       # Initialize the variables first, if needed.
       for program in self._programs:

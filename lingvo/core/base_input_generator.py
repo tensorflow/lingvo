@@ -370,11 +370,15 @@ class BaseInputGenerator(base_layer.BaseLayer):
       tensors = self._tpu_queues[0].generate_dequeue_op()
     return self._batch_nm_types.Pack(tensors)
 
-  def CreateTpuEmbeddingEnqueueOps(self):
+  def CreateTpuEmbeddingEnqueueOps(self, mode_override=None):
     """Creates the TpuEmbedding enqueue ops on the host.
 
     Note that this must be called after the instantiation of the
     monolithic TPUEmbeddingLayer.
+
+    Args:
+      mode_override: String to override TPU embedding mode. See
+        TPUEmbedding.generate_enqueue_ops()
     """
     p = self.params
     cluster = self.cluster
@@ -419,7 +423,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
             enqueue_data = tpu_embedding_lib.EnqueueData(
                 embedding_indices, sample_indices)
             enqueue_dict_per_core[core][key] = enqueue_data
-        enqueue_ops += tpu_embedding.generate_enqueue_ops(enqueue_dict_per_core)
+        enqueue_ops += tpu_embedding.generate_enqueue_ops(
+            enqueue_dict_per_core, mode_override=mode_override)
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
   @property

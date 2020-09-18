@@ -500,26 +500,32 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             self._sequence_features[feature] = True
           feature_to_config_dict[feature] = tpu_embedding_lib.FeatureConfig(
               table.table_name, max_sequence_length=table.max_sequence_length)
-      mode = tpu_embedding_lib.TRAINING
-      device_config = tpu_embedding_lib.DeviceConfig(
-          num_cores=num_cores,
-          num_hosts=self.params.tables[0].num_tpu_hosts,
-          job_name=self.cluster.params.worker.name)
-      self._tpu_embedding = tpu_embedding_lib.TPUEmbedding(
-          table_to_config_dict,
-          feature_to_config_dict,
-          global_batch_size,
-          mode,
-          master=None,
-          pipeline_execution_with_tensor_core=(
-              self.params.pipeline_execution_with_tensor_core),
-          device_config=device_config)
-      tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
-
       tf.logging.info('adding load and retrieve ops to collection.')
       tf.add_to_collection(py_utils.TPU_EMBEDDING_LOAD_OPS, load_op_list)
       tf.add_to_collection(py_utils.TPU_EMBEDDING_RETRIEVE_OPS,
                            retrieve_op_list)
+
+      tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
+      assert len(tpu_embedding_collection) <= 1
+      if len(tpu_embedding_collection) == 1:
+        tf.logging.info('TPUEmbedding API singleton already exists, reusing')
+        self._tpu_embedding = tpu_embedding_collection[0]
+      else:
+        mode = tpu_embedding_lib.TRAINING
+        device_config = tpu_embedding_lib.DeviceConfig(
+            num_cores=num_cores,
+            num_hosts=self.params.tables[0].num_tpu_hosts,
+            job_name=self.cluster.params.worker.name)
+        self._tpu_embedding = tpu_embedding_lib.TPUEmbedding(
+            table_to_config_dict,
+            feature_to_config_dict,
+            global_batch_size,
+            mode,
+            master=None,
+            pipeline_execution_with_tensor_core=(
+                self.params.pipeline_execution_with_tensor_core),
+            device_config=device_config)
+        tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
 
   def EmbLookup(self, ids_map):
     """Looks up embedding vectors for each entry in ids_map.
@@ -571,11 +577,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           rets[k] = v
       return rets
 
-    if self.do_eval:
-      return CpuEmbLookup(ids_map)
-    elif not py_utils.use_tpu():
-      # Contoller
+    if not py_utils.use_tpu():
       return CpuEmbLookup(ids_map)
     else:
-      # TPU Trainer
       return TpuEmbLookup(ids_map)
