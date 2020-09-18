@@ -518,11 +518,15 @@
       <span class="n">tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">generate_dequeue_op</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_nm_types</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.CreateTpuEmbeddingEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEmbeddingEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGenerator.CreateTpuEmbeddingEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEmbeddingEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates the TpuEmbedding enqueue ops on the host.</span>
 
 <span class="sd">    Note that this must be called after the instantiation of the</span>
 <span class="sd">    monolithic TPUEmbeddingLayer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      mode_override: String to override TPU embedding mode. See</span>
+<span class="sd">        TPUEmbedding.generate_enqueue_ops()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
@@ -567,7 +571,8 @@
             <span class="n">enqueue_data</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">EnqueueData</span><span class="p">(</span>
                 <span class="n">embedding_indices</span><span class="p">,</span> <span class="n">sample_indices</span><span class="p">)</span>
             <span class="n">enqueue_dict_per_core</span><span class="p">[</span><span class="n">core</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">enqueue_data</span>
-        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span><span class="n">enqueue_dict_per_core</span><span class="p">)</span>
+        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
+            <span class="n">enqueue_dict_per_core</span><span class="p">,</span> <span class="n">mode_override</span><span class="o">=</span><span class="n">mode_override</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">enqueue_ops</span><span class="p">))</span></div>
 
   <span class="nd">@property</span>
