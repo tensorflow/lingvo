@@ -2279,17 +2279,20 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
       batch, _, dim = py_utils.GetShape(aux_vec, 3)
       layer_in = tf.reshape(layer_in, [batch, target_time, dim])
       if p.packed_input:
-        segment_mask = batch_major_attention.SegmentMask(
-            target_segment_id, target_segment_id, dtype=layer_in.dtype)
+        segment_padding = batch_major_attention.SegmentMask(
+            target_segment_id,
+            target_segment_id,
+            dtype=layer_in.dtype,
+            apply_dtype_min=False)
         causal_padding = tf.expand_dims(
             tf.tile(
                 tf.expand_dims(
                     batch_major_attention.CausalPadding(
                         target_time, dtype=layer_in.dtype), 0), [batch, 1, 1]),
             1)
-        causal_mask = causal_padding * segment_mask.dtype.max * tf.constant(
-            -0.7, dtype=segment_mask.dtype)
-        segment_mask += causal_mask
+        segment_padding = tf.math.maximum(causal_padding, segment_padding)
+        segment_mask = segment_padding * batch_major_attention.GetDtypeMin(
+            dtype=layer_in.dtype)
         aux_segment_mask = batch_major_attention.SegmentMask(
             target_segment_id, aux_segment_id, dtype=layer_in.dtype)
       for layer, layer_theta in zip(self.decoder_trans, theta.decoder_trans):
