@@ -3309,6 +3309,76 @@ class RandomApplyPreprocessor(Preprocessor):
     return dtypes
 
 
+class RandomChoicePreprocessor(Preprocessor):
+  """Randomly applies a preprocessor with specified weights.
+
+  The input at features[p.weight_tensor_key] must be a floating point vector
+  Tensor whose length matches the number of subprocessors to select among. The
+  values in that Tensor are interpreted as relative weights.
+
+  For example, if p.subprocessors = [preprocessor1, preprocessor2] and the
+  weights are [1., 2.], then preprocessor1 will be applied with probability 1/3,
+  and preprocessor2 will be applied with probability 2/3.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('weight_tensor_key', None,
+             'Key in features that specifies the weighting tensor.')
+    p.Define('subprocessors', [], 'Params for preprocessors.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if not p.subprocessors:
+      raise ValueError('No subprocessors were specified.')
+    self.CreateChildren('subprocessors', p.subprocessors)
+
+  def TransformFeatures(self, features):
+    p = self.params
+
+    weight_tensor = features.get(p.weight_tensor_key)
+    num_weights = py_utils.GetShape(weight_tensor, 1)
+    if (isinstance(num_weights, int) and num_weights != len(p.subprocessors)):
+      raise ValueError(f'Choice tensor specified {num_weights} values '
+                       'but there are {len(p.subprocessors)} subprocessors.')
+
+    # Pass a unique copy of the input to each branch, in case the
+    # subprocessor destructively modifies the features in unexpected ways.
+    choice_list = [
+        lambda subp=subp: subp.TransformFeatures(features.DeepCopy())
+        for subp in self.subprocessors
+    ]
+
+    chosen_bin = tf.random.categorical(
+        tf.math.log(weight_tensor[tf.newaxis]),
+        1,
+        seed=p.random_seed,
+        dtype=tf.int32)[0, 0]
+    features = tf.switch_case(chosen_bin, branch_fns=choice_list)
+    return features
+
+  def TransformShapes(self, shapes):
+    transformed_shapes = [
+        subp.TransformShapes(shapes.DeepCopy()) for subp in self.subprocessors
+    ]
+    if not all(transformed_shapes[0] == curr for curr in transformed_shapes):
+      raise ValueError('Shapes after transformations were not identical: '
+                       f'{transformed_shapes}')
+    return transformed_shapes[0]
+
+  def TransformDTypes(self, dtypes):
+    transformed_dtypes = [
+        subp.TransformDTypes(dtypes.DeepCopy()) for subp in self.subprocessors
+    ]
+    if not all(transformed_dtypes[0] == curr for curr in transformed_dtypes):
+      raise ValueError('DTypes after transformations were not identical: '
+                       f'{transformed_dtypes}')
+    return transformed_dtypes[0]
+
+
 class SparseSampler(Preprocessor):
   """Fused SparseCenterSelector and SparseCellGatherFeatures.
 

@@ -542,6 +542,20 @@ py_library(
     ],
 )
 
+py_test(
+    name = "input_preprocessors_test",
+    srcs = ["input_preprocessors_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":input_preprocessors",
+        "//lingvo:compat",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+    ],
+)
+
 py_library(
     name = "kitti_input_generator",
     srcs = [
