@@ -291,15 +291,18 @@ class BaseTask(base_layer.BaseLayer):
         if p.input.num_samples == 0:
           # Dataset size is unknown. Computes eval summary based on num_samples.
           assert p.eval.samples_per_summary > 0
-        elif (p.eval.samples_per_summary == 0) or (p.input.num_samples <
+        else:
+          if (p.eval.samples_per_summary == 0) or (p.input.num_samples <
                                                    p.eval.samples_per_summary):
-          # If we know the dataset size and we want to evaluate the full
-          # set, we need to coordinate the input generator to flush out
-          # all samples so the evaler and decoder compute metrics on the
-          # whole set for each summary step.
-          if seq_inp:
-            p.input.flush_every_n = p.input.num_samples
-          p.eval.samples_per_summary = p.input.num_samples
+            p.eval.samples_per_summary = p.input.num_samples
+            # If we know the dataset size and we want to evaluate the full
+            # set, we need to coordinate the input generator to flush out
+            # all samples so the evaler and decoder compute metrics on the
+            # whole set for each summary step.
+            if seq_inp:
+              p.input.flush_every_n = p.input.num_samples
+          if p.eval.decoder_samples_per_summary > p.input.num_samples:
+            p.eval.decoder_samples_per_summary = p.input.num_samples
         if seq_inp and p.input.num_batcher_threads > 1:
           tf.logging.warning(
               'input.num_batcher_threads > 1 inside eval mode.  '
