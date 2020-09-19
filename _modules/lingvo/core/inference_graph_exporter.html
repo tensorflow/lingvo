@@ -565,6 +565,15 @@
           <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
 
+          <span class="k">if</span> <span class="n">freeze_checkpoint</span> <span class="ow">or</span> <span class="n">freeze_defaults</span><span class="p">:</span>
+            <span class="c1"># Replace variables with tensors using tf.identity in theta before</span>
+            <span class="c1"># freezing to avoid the graph referencing types of DT_RESOURCE.</span>
+            <span class="k">def</span> <span class="nf">AddIdentityToTheta</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
+              <span class="n">layer</span><span class="o">.</span><span class="n">_private_theta</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">_private_theta</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+              <span class="n">layer</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">AddIdentityToTheta</span><span class="p">)</span>
+
+            <span class="n">AddIdentityToTheta</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+
           <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
           <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
           <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
