@@ -417,6 +417,15 @@ class InferenceGraphExporter:
           if IsTpu(device_options) and device_options.gen_init_op:
             tf.group(tf.tpu.initialize_system(), name='tpu_init_op')
 
+          if freeze_checkpoint or freeze_defaults:
+            # Replace variables with tensors using tf.identity in theta before
+            # freezing to avoid the graph referencing types of DT_RESOURCE.
+            def AddIdentityToTheta(layer):
+              layer._private_theta = layer._private_theta.Transform(tf.identity)  # pylint: disable=protected-access
+              layer.children.Transform(AddIdentityToTheta)
+
+            AddIdentityToTheta(task)
+
           inference_graph_proto = inference_graph_pb2.InferenceGraph()
           subgraphs_proto = task.Inference()
           if isinstance(subgraphs_proto, dict):
