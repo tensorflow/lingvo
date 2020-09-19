@@ -88,6 +88,12 @@ tf.flags.DEFINE_bool(
     'inference on TPUs in which TPU core variables are managed via '
     'TPUPartitionedCallOp.')
 
+tf.flags.DEFINE_bool(
+    'no_identity_on_vars', False,
+    'Do not add tf.identity() on vars. This allows TPUPartitionedCallOp to use'
+    'variable handles directly for weight-sharing / multi-core '
+    'inference on TPUs.')
+
 tf.flags.DEFINE_bool('disable_py_utils_debug', False,
                      'If True disables all py_utils.Debug() logs.')
 
