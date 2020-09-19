@@ -232,7 +232,7 @@ To run the StarNet model using CloudTPUs on GCP, please refer to
 
 ## Models
 
-### Automatic Speech Recogition
+### Automatic Speech Recognition
 
 *   [asr.librispeech.Librispeech960Grapheme](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)<sup>1,2</sup>
 *   [asr.librispeech.Librispeech960Wpm](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)<sup>1,2</sup>
