@@ -1046,8 +1046,12 @@ When needed, use <code class="xref py py-obj docutils literal notranslate"><span
 <dt id="lingvo.core.ops.apply_packing">
 <code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">apply_packing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">segment_ids</span></em>, <em class="sig-param"><span class="n">indices_in_input</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.apply_packing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies a packing pattern on the input to obtain a packed output.</p>
-<p>A slightly different semantics when T is tf.string type: the output joins the
-strings that are packed on the same row, separated by <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code>.</p>
+<p>The input can be either a matrix, in which case the output is also a (shorter)
+matrix, where the elements are rearranged according to the packing pattern;
+or the input can be a vector, in which case the output is a shorter vector,
+where each position is the sum of the elements packed on that same row.</p>
+<p>When T is tf.string type, only the vector input is supported and the output
+joins the strings that are packed on the same row, separated by <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code>.</p>
 <p>The inputs <code class="xref py py-obj docutils literal notranslate"><span class="pre">segment_ids</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">indices_in_input</span></code> can be obtained from the outputs
 of an <code class="xref py py-obj docutils literal notranslate"><span class="pre">PackSequence</span></code> op (though only the src or the tgt tensors are needed).</p>
 <p>Note that ApplyPacking is done on a per column basis (either on the src or on
@@ -1057,8 +1061,8 @@ processed together within the same op.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>.
-A tensor of shape [N, seq_len]. The input to apply the packing to.
-For tf.string typed input, a vector of shape [N] is expected.</p></li>
+A tensor of shape [N, seq_len] or [N]. The input to apply the packing to.
+For tf.string typed input, only a vector of shape [N] is supported.</p></li>
 <li><p><strong>padding</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#input" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></a>.
 A scalar to indicate the padding value. This is typically the zero
 value of T, but may not always be the case, e.g. when the input is a paddings

@@ -1016,6 +1016,21 @@
         <span class="s1">&#39;packed_target_seq_lengths&#39;</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">tgt_actual_seq_len</span><span class="p">,</span> <span class="n">uniq_tgt_indices_in_input</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
 
+    <span class="c1"># Ratio of number of non-padded tokens. If &lt; 1.0, we are dropping</span>
+    <span class="c1"># input data due to p.packing_factor too high.</span>
+    <span class="n">src_orig_tokens_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">src_actual_seq_len</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">src_packed_tokens_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">src_segment_ids</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;examples/src_packed_token_ratio&#39;</span><span class="p">,</span>
+                         <span class="n">src_packed_tokens_count</span> <span class="o">/</span> <span class="n">src_orig_tokens_count</span><span class="p">)</span>
+    <span class="n">tgt_orig_tokens_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tgt_actual_seq_len</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">tgt_packed_tokens_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_segment_ids</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;examples/tgt_packed_token_ratio&#39;</span><span class="p">,</span>
+                         <span class="n">tgt_packed_tokens_count</span> <span class="o">/</span> <span class="n">tgt_orig_tokens_count</span><span class="p">)</span>
+
     <span class="c1"># We deferred adding .paddings and use its complement .ids_indicator</span>
     <span class="c1"># exclusively so that we can apply the packing with padding set to 0 for all</span>
     <span class="c1"># fields.</span>
