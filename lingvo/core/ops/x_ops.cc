@@ -911,10 +911,10 @@ REGISTER_OP("ApplyPacking")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       DataType dtype;
       TF_RETURN_IF_ERROR(c->GetAttr("T", &dtype));
-      if (dtype == DT_STRING) {
+      if (c->Rank(c->input(0)) == 1 || dtype == DT_STRING) {
         const auto batch_size = c->Dim(c->input(2), 0);
         c->set_output(0, c->Vector(batch_size));
-      } else {
+      } else if (c->Rank(c->input(0)) == 2) {
         c->set_output(0, c->input(2));
       }
       return Status::OK();
@@ -923,8 +923,13 @@ REGISTER_OP("ApplyPacking")
     .Doc(R"doc(
 Applies a packing pattern on the input to obtain a packed output.
 
-A slightly different semantics when T is tf.string type: the output joins the
-strings that are packed on the same row, separated by `padding`.
+The input can be either a matrix, in which case the output is also a (shorter)
+matrix, where the elements are rearranged according to the packing pattern;
+or the input can be a vector, in which case the output is a shorter vector,
+where each position is the sum of the elements packed on that same row.
+
+When T is tf.string type, only the vector input is supported and the output
+joins the strings that are packed on the same row, separated by `padding`.
 
 The inputs `segment_ids` and `indices_in_input` can be obtained from the outputs
 of an `PackSequence` op (though only the src or the tgt tensors are needed).
@@ -933,8 +938,8 @@ Note that ApplyPacking is done on a per column basis (either on the src or on
 the tgt), as opposed to in PackSequences, when both src and tgt columns must be
 processed together within the same op.
 
-input: A tensor of shape [N, seq_len]. The input to apply the packing to.
-  For tf.string typed input, a vector of shape [N] is expected.
+input: A tensor of shape [N, seq_len] or [N]. The input to apply the packing to.
+  For tf.string typed input, only a vector of shape [N] is supported.
 padding: A scalar to indicate the padding value. This is typically the zero
   value of T, but may not always be the case, e.g. when the input is a paddings
   tensor, in which case caller should set padding=1.

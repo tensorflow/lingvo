@@ -868,6 +868,21 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         'packed_target_seq_lengths',
         tf.gather(tgt_actual_seq_len, uniq_tgt_indices_in_input, axis=0))
 
+    # Ratio of number of non-padded tokens. If < 1.0, we are dropping
+    # input data due to p.packing_factor too high.
+    src_orig_tokens_count = tf.cast(
+        tf.reduce_sum(src_actual_seq_len), tf.float32)
+    src_packed_tokens_count = tf.reduce_sum(
+        tf.cast(src_segment_ids > 0, tf.float32))
+    summary_utils.scalar('examples/src_packed_token_ratio',
+                         src_packed_tokens_count / src_orig_tokens_count)
+    tgt_orig_tokens_count = tf.cast(
+        tf.reduce_sum(tgt_actual_seq_len), tf.float32)
+    tgt_packed_tokens_count = tf.reduce_sum(
+        tf.cast(tgt_segment_ids > 0, tf.float32))
+    summary_utils.scalar('examples/tgt_packed_token_ratio',
+                         tgt_packed_tokens_count / tgt_orig_tokens_count)
+
     # We deferred adding .paddings and use its complement .ids_indicator
     # exclusively so that we can apply the packing with padding set to 0 for all
     # fields.

@@ -348,6 +348,35 @@ class ApplyPackingOpTest(test_utils.TestCase):
             tf.constant(test.indices_in_input, tf.int32)).eval()
         self.assertAllEqual(output, test.output, name)
 
+  def testApplyPackingSum(self):
+    test_cases = {
+        'Basic':
+            ApplyPackingTestCase(
+                np.arange(10), 0, [[1, 1], [1, 1]], [[1, 1], [5, 5]], [1, 5]),
+        'Padding':
+            ApplyPackingTestCase(
+                np.arange(10), 0, [[1, 1, 0], [1, 1, 0]],
+                [[1, 1, 0], [3, 3, 0]], [1, 3]),
+        'Tiny':
+            ApplyPackingTestCase(
+                np.arange(10), 0, [[1], [1]], [[3], [1]], [3, 1]),
+        'Larger':
+            ApplyPackingTestCase(
+                np.arange(10), 0, [[1, 1, 2, 2], [0, 1, 2, 3], [0, 1, 1, 1]],
+                [[2, 2, 3, 3], [9, 4, 5, 6], [9, 8, 8, 8]], [5, 15, 8]),
+    }
+    for name, test in test_cases.items():
+      for dtype in [
+          tf.int32, tf.int64, tf.float32, tf.float64, tf.uint32, tf.uint64
+      ]:
+        with self.session():
+          output = ops.apply_packing(
+              tf.constant(test.input, dtype), tf.constant(test.padding, dtype),
+              tf.constant(test.segment_ids, tf.int32),
+              tf.constant(test.indices_in_input, tf.int32)).eval()
+          expected = tf.constant(test.output, dtype).eval()
+          self.assertAllEqual(output, expected, f'{name} {dtype}')
+
   def testApplyPackingErrors(self):
     test_cases = {
         'out of bound':
@@ -363,8 +392,8 @@ class ApplyPackingOpTest(test_utils.TestCase):
         'segment_ids and indices_in_input must be matrices of the same shape':
             ApplyPackingTestCase([[0, 1], [2, 3]], 0, [[1, 1], [1, 0]],
                                  [[0, 0], [0, 0], [0, 0]]),
-        'input must be a matrix':
-            ApplyPackingTestCase([0, 1], 0, [[1]], [[0]]),
+        'input must be a matrix or vector':
+            ApplyPackingTestCase([[[0, 1]]], 0, [[1]], [[0]]),
         'padding must be a scalar':
             ApplyPackingTestCase([[0, 1], [2, 3]], [-1], [[1]], [[0]]),
     }

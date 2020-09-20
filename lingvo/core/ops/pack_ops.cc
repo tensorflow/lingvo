@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include <cstring>
+#include <numeric>
 #include <random>
 #include <vector>
 
@@ -311,23 +312,38 @@ class ApplyPackingOp : public OpKernel {
     if (!ctx->status().ok()) {
       return;
     }
+    const Tensor& input = ctx->input(0);
+    if (TensorShapeUtils::IsMatrix(input.shape())) {
+      // Input is a matrix. We apply the packing pattern by returning a denser,
+      // shorter matrix where the elements are re-arranged.
+      Tensor* output = nullptr;
+      // Allocates output and initializes with padding.
+      const Tensor& segment_ids = ctx->input(2);
+      OP_REQUIRES_OK(ctx,
+                     ctx->allocate_output(0, segment_ids.shape(), &output));
+      const T padding = ctx->input(1).scalar<T>()();
+      output->matrix<T>().setConstant(padding);
+      ApplyMatrix(ctx, output);
+      return;
+    }
+    // Input is a vector. We apply the packing patterning by returning a shorter
+    // vector where the elements are summed.
     Tensor* output = nullptr;
-    // Allocates output and initializes with padding.
-    const Tensor& segment_ids = ctx->input(2);
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, segment_ids.shape(), &output));
-    const T padding = ctx->input(1).scalar<T>()();
-    output->matrix<T>().setConstant(padding);
-    Apply(ctx, output);
+    TensorShape output_shape({ctx->input(3).shape().dim_size(0)});
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output));
+    ApplyVector(ctx, output);
   }
 
  private:
   // Validates the shapes and types of inputs.
   void ValidateInputs(OpKernelContext* ctx) {
     const Tensor& input = ctx->input(0);
-    OP_REQUIRES(
-        ctx, TensorShapeUtils::IsMatrix(input.shape()),
-        errors::InvalidArgument("input must be a matrix, got input shape: ",
-                                input.shape().DebugString()));
+    OP_REQUIRES(ctx,
+                TensorShapeUtils::IsMatrix(input.shape()) ||
+                    TensorShapeUtils::IsVector(input.shape()),
+                errors::InvalidArgument(
+                    "input must be a matrix or vector, got input shape: ",
+                    input.shape().DebugString()));
 
     const Tensor& padding = ctx->input(1);
     OP_REQUIRES(
@@ -347,7 +363,7 @@ class ApplyPackingOp : public OpKernel {
                                 indices_in_input.shape().DebugString()));
   }
 
-  void Apply(OpKernelContext* ctx, Tensor* output) {
+  void ApplyMatrix(OpKernelContext* ctx, Tensor* output) {
     const auto& input = ctx->input(0).matrix<T>();
     const auto input_rows = ctx->input(0).dim_size(0);
     const auto input_columns = ctx->input(0).dim_size(1);
@@ -396,6 +412,39 @@ class ApplyPackingOp : public OpKernel {
             }
           }
         });
+  }
+
+  void ApplyVector(OpKernelContext* ctx, Tensor* output) {
+    const auto& input = ctx->input(0).vec<T>();
+    const auto num_input_rows = ctx->input(0).dim_size(0);
+    const auto& segment_ids = ctx->input(2).matrix<int32>();
+    const auto& indices_in_input = ctx->input(3).matrix<int32>();
+    auto output_vec = output->vec<T>();
+    for (int i = 0; i < output->dim_size(0); ++i) {
+      // input_rows condenses row i of indices_in_input, e.g. from
+      // [0, 0, 0, 3, 3, 4, 4, 4, 4, 0, 0] to [0, 3, 4].
+      std::vector<int64> input_rows;
+      for (int j = 0; j < ctx->input(3).dim_size(1); ++j) {
+        auto row = indices_in_input(i, j);
+        if (segment_ids(i, j) &&
+            (input_rows.empty() || input_rows.back() != row)) {
+          OP_REQUIRES(ctx, tensorflow::FastBoundsCheck(row, num_input_rows),
+                      errors::InvalidArgument(
+                          "out of bound found packing at (", i, ", ", j,
+                          ") for input index ", row, " where input shape is ",
+                          ctx->input(0).shape().DebugString()));
+          input_rows.push_back(row);
+        }
+      }
+      std::vector<T> elements;
+      elements.reserve(input_rows.size());
+      for (auto row : input_rows) {
+        elements.push_back(input(row));
+      }
+      // Output on row i is the reduce_sum of the elements on that row.
+      output_vec(i) =
+          std::accumulate(elements.begin(), elements.end(), static_cast<T>(0));
+    }
   }
 
   TF_DISALLOW_COPY_AND_ASSIGN(ApplyPackingOp);
