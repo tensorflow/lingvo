@@ -545,17 +545,17 @@ class DecodeProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model.InstantiateVariables()
         input_batch = self._task.input.TpuDequeueBatch()
-        metrics_dict = self._task.Decode(input_batch)
-      self.metrics_nm = py_utils.NestedMap(metrics_dict)
-      return self.metrics_nm.Flatten()
+        decode_dict = self._task.Decode(input_batch)
+      self.decode_nm = py_utils.NestedMap(decode_dict)
+      return self.decode_nm.Flatten()
 
     self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
         _DecodeFn,
         num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
 
-    self.metrics = py_utils.NestedMap(self.metrics_nm)
-    self.metrics = self.metrics.Pack(batch_parallel_res)
+    self.decode_tensors = py_utils.NestedMap(self.decode_nm)
+    self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
 
   def BuildTpuSubgraph(self):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
@@ -573,8 +573,8 @@ class DecodeProgram(BaseProgram):
     start_time = time.time()
     buffered_decode_out = []
     for i in range(self._steps_per_loop):
-      metrics_values = sess.run(self.metrics)
-      decode_out = self._task.PostProcessDecodeOut(metrics_values, dec_metrics)
+      decode_out_dict = sess.run(self.decode_tensors)
+      decode_out = self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
       tf.logging.info('step: %d %f' %
                       (i, dec_metrics['num_samples_in_batch'].total_value))
       if decode_out:
@@ -600,6 +600,10 @@ class DecodeProgram(BaseProgram):
 class ExperimentalDecodeProgram(DecodeProgram):
   """DecodeProgram in a tpu loop.
 
+  Note that decoder outputs across cores are concatenated along the first
+  dimension. The first dimension usually corresponds to batch size and as long
+  as post process decode outputs have the same expectations, this will work.
+
   TODO(huangyp) test this for beam search decoders and replace the
   default DecodeProgram.
   """
@@ -624,12 +628,12 @@ class ExperimentalDecodeProgram(DecodeProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model.InstantiateVariables()
         input_batch = self._task.input.TpuDequeueBatch()
-        metrics_dict = self._task.Decode(input_batch)
-      self.metrics_nm = py_utils.NestedMap(metrics_dict)
+        decode_dict = self._task.Decode(input_batch)
+      self.decode_nm = py_utils.NestedMap(decode_dict)
       device = tpu.core(0) if self.spmd else ''
       with tf.device(device):
         outfeed_enqueue = tpu_ops.outfeed_enqueue_tuple(
-            self.metrics_nm.Flatten())
+            self.decode_nm.Flatten())
         return [outfeed_enqueue]
 
     @tpu_function.on_device_training_loop
@@ -643,9 +647,10 @@ class ExperimentalDecodeProgram(DecodeProgram):
         device_assignment=device_assignment)
 
     # Get a list of outfeed ops.
-    self.metrics = self._OutfeedDequeue()
-    # Pack the list of outfeed ops with structure in self.metrics_nm.
-    self.metrics = tf.nest.pack_sequence_as(self.metrics_nm, self.metrics)
+    self.decode_tensors = self._OutfeedDequeue()
+    # Pack the list of outfeed ops with structure in self.decode_nm.
+    self.decode_tensors = tf.nest.pack_sequence_as(self.decode_nm,
+                                                   self.decode_tensors)
 
   def BuildTpuSubgraph(self):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
@@ -658,23 +663,29 @@ class ExperimentalDecodeProgram(DecodeProgram):
     return
 
   def _OutfeedDequeue(self):
-    """Collect outfeed dequeue from all devices."""
-    num_outfeeds = len(self.metrics_nm.Flatten())
-    outfeed_ops = [[]] * num_outfeeds
+    """Collect outfeed dequeue from all devices.
+
+    Returns:
+      A list of tensors corresponding to stacked decoded outputs. The decoder
+      outputs are stacked on the first dimension (usually corresponds to
+      batch size).
+    """
+    num_decode_tensors = len(self.decode_nm.Flatten())
+    outfeed_ops = [[]] * num_decode_tensors
     device_assignment = py_utils.GetTpuDeviceAssignment()
     assert device_assignment
+    num_cores_per_replica = (1 if self.spmd else
+                             (device_assignment.num_cores_per_replica))
     for replica in range(device_assignment.num_replicas):
-      num_cores_per_replica = 1 if self.spmd else (
-          device_assignment.num_cores_per_replica)
       for core in range(num_cores_per_replica):
         with tf.device(device_assignment.host_device(replica, core)):
           outfeeds_per_core = tpu_ops.outfeed_dequeue_tuple(
-              dtypes=[x.dtype for x in self.metrics_nm.Flatten()],
-              shapes=[x.shape for x in self.metrics_nm.Flatten()],
+              dtypes=[x.dtype for x in self.decode_nm.Flatten()],
+              shapes=[x.shape for x in self.decode_nm.Flatten()],
               device_ordinal=device_assignment.tpu_ordinal(replica, core))
           for idx_outfeed, out_feed in enumerate(outfeeds_per_core):
             outfeed_ops[idx_outfeed] = outfeed_ops[idx_outfeed] + [out_feed]
-    return [tf.concat(per_outfeed, 0) for per_outfeed in outfeed_ops]
+    return [tf.concat(per_outfeed, axis=0) for per_outfeed in outfeed_ops]
 
   def _DecodeLoop(self, sess):
     sess.run(self.decode_loop)
@@ -690,8 +701,8 @@ class ExperimentalDecodeProgram(DecodeProgram):
     dec_metrics = self._task.CreateDecoderMetrics()
     start_time = time.time()
     for _ in range(self._steps_per_loop):
-      metrics_values = sess.run(self.metrics)
-      self._task.PostProcessDecodeOut(metrics_values, dec_metrics)
+      decode_out_dict = sess.run(self.decode_tensors)
+      self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
     decode_future.wait()
     infeed_future.wait()
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
@@ -798,9 +809,9 @@ class MLPerfTrainDecodeProgram(BaseProgram):
         with cluster_factory.SetEval(True):
           self._decode_model.InstantiateVariables()
           input_batch = self._decode_task.input.TpuDequeueBatch()
-          metrics_dict = self._decode_task.Decode(input_batch)
-      self.metrics_nm = py_utils.NestedMap(metrics_dict)
-      return self.metrics_nm.Flatten()
+          decode_dict = self._decode_task.Decode(input_batch)
+      self.decode_nm = py_utils.NestedMap(decode_dict)
+      return self.decode_nm.Flatten()
 
     @tpu_function.on_device_training_loop
     def TrainAndDecode():
@@ -812,8 +823,8 @@ class MLPerfTrainDecodeProgram(BaseProgram):
         num_shards=data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
 
-    self.metrics = py_utils.NestedMap(self.metrics_nm)
-    self.metrics = self.metrics.Pack(batch_parallel_res)
+    self.decode_tensors = py_utils.NestedMap(self.decode_nm)
+    self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
     return None
 
   def _InfeedLoop(self, sess):
@@ -839,8 +850,8 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       raise
 
   def _TrainAndDecode(self, sess):
-    metrics_values = sess.run(self.metrics)
-    self._decode_task.PostProcessDecodeOut(metrics_values, self.dec_metrics)
+    decode_out_dict = sess.run(self.decode_tensors)
+    self._decode_task.PostProcessDecodeOut(decode_out_dict, self.dec_metrics)
 
   def Run(self, sess):
     global_step = sess.run(self._model.global_step)
