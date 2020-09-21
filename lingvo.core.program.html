@@ -434,6 +434,9 @@ decoder run.</p>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">ExperimentalDecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">shared_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.DecodeProgram" title="lingvo.core.program.DecodeProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.DecodeProgram</span></code></a></p>
 <p>DecodeProgram in a tpu loop.</p>
+<p>Note that decoder outputs across cores are concatenated along the first
+dimension. The first dimension usually corresponds to batch size and as long
+as post process decode outputs have the same expectations, this will work.</p>
 <p>TODO(huangyp) test this for beam search decoders and replace the
 default DecodeProgram.</p>
 <dl class="py method">
@@ -460,6 +463,13 @@ default DecodeProgram.</p>
 <dt id="lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue">
 <code class="sig-name descname">_OutfeedDequeue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._OutfeedDequeue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue" title="Permalink to this definition">¶</a></dt>
 <dd><p>Collect outfeed dequeue from all devices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of tensors corresponding to stacked decoded outputs. The decoder
+outputs are stacked on the first dimension (usually corresponds to
+batch size).</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
