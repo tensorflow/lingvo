@@ -649,7 +649,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
 
   def _InputOpBucketingArgs(self):
     return {
-        'bucket_upper_bound': [1000000000],
+        'bucket_upper_bound': [1000000],
         'bucket_batch_limit': [self.InfeedBatchSize()],
     }
 
