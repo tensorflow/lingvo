@@ -19,34 +19,8 @@ from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import input_preprocessors
-import numpy as np
 
 FLAGS = tf.flags.FLAGS
-
-
-class ConstantPreprocessor(input_preprocessors.Preprocessor):
-  """Preprocessor that produces a specified constant value under p.key_name."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('constant_value', 0, 'Value to output')
-    p.Define('key_name', 'value', 'Key under which value is output.')
-    return p
-
-  def TransformFeatures(self, features):
-    features[self.params.key_name] = tf.constant(self.params.constant_value)
-    return features
-
-  def TransformShapes(self, shapes):
-    shapes[self.params.key_name] = tf.TensorShape(
-        np.array(self.params.constant_value).shape)
-    return shapes
-
-  def TransformDTypes(self, dtypes):
-    dtypes[self.params.key_name] = tf.as_dtype(
-        np.array(self.params.constant_value).dtype)
-    return dtypes
 
 
 class InputPreprocessorsTest(test_utils.TestCase):
@@ -56,10 +30,14 @@ class InputPreprocessorsTest(test_utils.TestCase):
     p.weight_tensor_key = 'weights'
     # Construct 4 preprocessors each producing a different value.
     p.subprocessors = [
-        ConstantPreprocessor.Params().Set(constant_value=1),
-        ConstantPreprocessor.Params().Set(constant_value=2),
-        ConstantPreprocessor.Params().Set(constant_value=3),
-        ConstantPreprocessor.Params().Set(constant_value=4)
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 1}),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 2}),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 3}),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 4}),
     ]
 
     preprocessor = p.Instantiate()
@@ -98,8 +76,10 @@ class InputPreprocessorsTest(test_utils.TestCase):
     p.weight_tensor_key = 'weights'
     # Subprocessors produce different shapes
     p.subprocessors = [
-        ConstantPreprocessor.Params().Set(constant_value=1),
-        ConstantPreprocessor.Params().Set(constant_value=[2, 3]),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 1}),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': [2, 3]}),
     ]
     preprocessor = p.Instantiate()
     # Construct test data.
@@ -110,8 +90,10 @@ class InputPreprocessorsTest(test_utils.TestCase):
 
     # Subprocessors produce different keys
     p.subprocessors = [
-        ConstantPreprocessor.Params().Set(constant_value=1, key_name='foo'),
-        ConstantPreprocessor.Params().Set(constant_value=2),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 1}),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'foo': 2}),
     ]
     preprocessor = p.Instantiate()
     # Construct test data.
@@ -122,8 +104,10 @@ class InputPreprocessorsTest(test_utils.TestCase):
 
     # Subprocessors produce different dtypes
     p.subprocessors = [
-        ConstantPreprocessor.Params().Set(constant_value=1),
-        ConstantPreprocessor.Params().Set(constant_value=2.),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 1}),
+        input_preprocessors.ConstantPreprocessor.Params().Set(
+            constants={'value': 2.}),
     ]
     preprocessor = p.Instantiate()
     # Construct test data.

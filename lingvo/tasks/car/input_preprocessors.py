@@ -3309,6 +3309,35 @@ class RandomApplyPreprocessor(Preprocessor):
     return dtypes
 
 
+class ConstantPreprocessor(Preprocessor):
+  """Preprocessor that produces specified constant values in a nested output."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'constants', py_utils.NestedMap(),
+        'Map of key names to numpy arrays of constant values to use. '
+        'Must be a NestedMap or dict convertible to NestedMap.')
+    return p
+
+  def TransformFeatures(self, features):
+    constants = py_utils.NestedMap(self.params.constants)
+    features.update(constants.Transform(tf.constant))
+    return features
+
+  def TransformShapes(self, shapes):
+    constants = py_utils.NestedMap(self.params.constants)
+    shapes.update(
+        constants.Transform(lambda x: tf.TensorShape(np.array(x).shape)))
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    constants = py_utils.NestedMap(self.params.constants)
+    dtypes.update(constants.Transform(lambda x: tf.as_dtype(np.array(x).dtype)))
+    return dtypes
+
+
 class RandomChoicePreprocessor(Preprocessor):
   """Randomly applies a preprocessor with specified weights.
 
@@ -3339,7 +3368,7 @@ class RandomChoicePreprocessor(Preprocessor):
   def TransformFeatures(self, features):
     p = self.params
 
-    weight_tensor = features.get(p.weight_tensor_key)
+    weight_tensor = features.GetItem(p.weight_tensor_key)
     num_weights = py_utils.GetShape(weight_tensor, 1)
     if (isinstance(num_weights, int) and num_weights != len(p.subprocessors)):
       raise ValueError(f'Choice tensor specified {num_weights} values '
