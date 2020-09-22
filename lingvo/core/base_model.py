@@ -210,10 +210,10 @@ class BaseTask(base_layer.BaseLayer):
         'If > 0, generates one summary after this many samples, at most. '
         'If == 0 or the dataset has fewer examples, evaluate the whole set.')
     ep.Define(
-        'decoder_samples_per_summary', 0,
+        'decoder_samples_per_summary', None,
         'If > 0, each decoder summary will contain at most this many samples. '
-        'If == 0, defaults to `samples_per_summary` for '
-        'backwards compatibility.')
+        'If None, defaults to the actual value of `p.eval.samples_per_summary` '
+        'for backwards compatibility.')
     ep.Define(
         'load_checkpoint_from', None,
         'If not None, specifies a location for the checkpoint that '
@@ -301,7 +301,8 @@ class BaseTask(base_layer.BaseLayer):
             # whole set for each summary step.
             if seq_inp:
               p.input.flush_every_n = p.input.num_samples
-          if p.eval.decoder_samples_per_summary > p.input.num_samples:
+          if p.eval.decoder_samples_per_summary is not None and (
+              p.eval.decoder_samples_per_summary > p.input.num_samples):
             p.eval.decoder_samples_per_summary = p.input.num_samples
         if seq_inp and p.input.num_batcher_threads > 1:
           tf.logging.warning(

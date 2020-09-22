@@ -135,7 +135,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
     # each of these sets is less than 5000), while train summaries will be
     # computed on 5000 examples.
     p.eval.samples_per_summary = 5000
-    p.eval.decoder_samples_per_summary = 0
+    p.eval.decoder_samples_per_summary = None
 
     # Use variational weight noise to prevent overfitting.
     p.vn.global_vn = True
