@@ -140,7 +140,15 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     return feature_map
 
   def ContextMap(self):
-    """Get a mapping from context names to context tensors."""
+    """Get a mapping from context names to context tensors.
+
+    ContextMap() is used for tf.SequenceExample datasets to extract
+    context_features.  In that scenario, FeatureMap() is used to extract
+    the sequence_features.
+
+    Returns:
+      A map from context keys to context features.
+    """
     context_map = {}
     self._extractors.Transform(lambda e: context_map.update(e.ContextMap()))
     return context_map
@@ -189,7 +197,18 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     def ExtractAndFilter(e):
       with tf.name_scope(e.params.name):
         with tf.name_scope('extract'):
-          extracted = e.Extract(features)
+          # Filter out extracted features from other extractors.
+          filtered_features = {}
+          if self.params.record_type == 'TEXT':
+            # Text extractors only produce {'line': record} and their
+            # FeatureMap() is empty, so don't do any filtering.
+            filtered_features = features
+          else:
+            filtered_keys = e.FeatureMap().keys() | e.ContextMap().keys()
+            filtered_features = {
+                k: v for k, v in features.items() if k in filtered_keys
+            }
+          extracted = e.Extract(filtered_features)
         with tf.name_scope('filter'):
           bucket = e.Filter(extracted)
       return bucket, extracted

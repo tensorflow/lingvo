@@ -266,10 +266,12 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":base_extractor",
         ":input_extractor",
         ":input_preprocessors",
         "//lingvo:compat",
         "//lingvo/core:hyperparams",
+        "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
     ],
 )
