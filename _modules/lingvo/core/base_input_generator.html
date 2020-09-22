@@ -254,6 +254,17 @@
         <span class="s1">&#39;this param is optional.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;resettable&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, the input generator must implement Reset().&#39;</span><span class="p">)</span>
+    <span class="c1"># For an input generator to support samples_per_summary == 0 to indicate</span>
+    <span class="c1"># using the entire dataset, it must (1) be resettable, and (2) throws</span>
+    <span class="c1"># tf.errors.OutOfRangeError when reading a batch beyong an epoch.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;eval_samples_per_summary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If not None, overrides &#39;</span>
+        <span class="s1">&#39;task_p.eval.samples_per_summary directly. Allowed to be 0, which &#39;</span>
+        <span class="s1">&#39;means to use the entire dataset.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;decoder_samples_per_summary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If not None, overrides &#39;</span>
+        <span class="s1">&#39;task_p.eval.decoder_samples_per_summary directly. Allowed to be 0, &#39;</span>
+        <span class="s1">&#39;which means to use the entire dataset.&#39;</span><span class="p">)</span>
     <span class="bp">cls</span><span class="o">.</span><span class="n">DefineInfeedParams</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;remote&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
