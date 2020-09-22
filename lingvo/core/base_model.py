@@ -288,10 +288,7 @@ class BaseTask(base_layer.BaseLayer):
       if self.do_eval and p.eval:
         seq_inp = issubclass(p.input.cls,
                              base_input_generator.BaseInputGeneratorFromFiles)
-        if p.input.num_samples == 0:
-          # Dataset size is unknown. Computes eval summary based on num_samples.
-          assert p.eval.samples_per_summary > 0
-        else:
+        if p.input.num_samples > 0:
           if (p.eval.samples_per_summary == 0) or (p.input.num_samples <
                                                    p.eval.samples_per_summary):
             p.eval.samples_per_summary = p.input.num_samples
@@ -304,6 +301,15 @@ class BaseTask(base_layer.BaseLayer):
           if p.eval.decoder_samples_per_summary is not None and (
               p.eval.decoder_samples_per_summary > p.input.num_samples):
             p.eval.decoder_samples_per_summary = p.input.num_samples
+        if p.input.eval_samples_per_summary is not None:
+          p.eval.samples_per_summary = p.input.eval_samples_per_summary
+        if p.input.decoder_samples_per_summary is not None:
+          p.eval.decoder_samples_per_summary = (
+              p.input.decoder_samples_per_summary)
+        if p.input.num_samples == 0 and not p.input.resettable:
+          # Dataset size is unknown. Computes eval summary based on num_samples.
+          # We require static dataset size for non-resettable inputs.
+          assert p.eval.samples_per_summary > 0
         if seq_inp and p.input.num_batcher_threads > 1:
           tf.logging.warning(
               'input.num_batcher_threads > 1 inside eval mode.  '

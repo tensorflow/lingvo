@@ -106,6 +106,17 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'this param is optional.')
     p.Define('resettable', False,
              'If True, the input generator must implement Reset().')
+    # For an input generator to support samples_per_summary == 0 to indicate
+    # using the entire dataset, it must (1) be resettable, and (2) throws
+    # tf.errors.OutOfRangeError when reading a batch beyong an epoch.
+    p.Define(
+        'eval_samples_per_summary', None, 'If not None, overrides '
+        'task_p.eval.samples_per_summary directly. Allowed to be 0, which '
+        'means to use the entire dataset.')
+    p.Define(
+        'decoder_samples_per_summary', None, 'If not None, overrides '
+        'task_p.eval.decoder_samples_per_summary directly. Allowed to be 0, '
+        'which means to use the entire dataset.')
     cls.DefineInfeedParams(p)
 
     p.Define('remote', hyperparams.Params(),
