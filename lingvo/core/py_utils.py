@@ -4939,6 +4939,11 @@ def _WrapFunction(func=None, input_signature=None):
       # avoid it being used as an implicit capture. This is not a desired
       # behavir, it should take the step seed from parent graph instead.
       ResetStepSeed()
+
+      # Mimic Defun and disable collection sharing.
+      graph = tf.get_default_graph()
+      # Don't share summaries collection with parent graph (b/168745134).
+      graph.clear_collection(tf.GraphKeys.SUMMARIES)
       return fn(*args)
 
     _ApplySharedRendezvous(Fn)
