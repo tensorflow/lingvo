@@ -288,7 +288,15 @@
     <span class="k">return</span> <span class="n">feature_map</span></div>
 
 <div class="viewcode-block" id="_BaseExtractor.ContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.ContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">ContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Get a mapping from context names to context tensors.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Get a mapping from context names to context tensors.</span>
+
+<span class="sd">    ContextMap() is used for tf.SequenceExample datasets to extract</span>
+<span class="sd">    context_features.  In that scenario, FeatureMap() is used to extract</span>
+<span class="sd">    the sequence_features.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A map from context keys to context features.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">context_map</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">context_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">ContextMap</span><span class="p">()))</span>
     <span class="k">return</span> <span class="n">context_map</span></div>
@@ -337,7 +345,18 @@
     <span class="k">def</span> <span class="nf">ExtractAndFilter</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">):</span>
-          <span class="n">extracted</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Extract</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+          <span class="c1"># Filter out extracted features from other extractors.</span>
+          <span class="n">filtered_features</span> <span class="o">=</span> <span class="p">{}</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">record_type</span> <span class="o">==</span> <span class="s1">&#39;TEXT&#39;</span><span class="p">:</span>
+            <span class="c1"># Text extractors only produce {&#39;line&#39;: record} and their</span>
+            <span class="c1"># FeatureMap() is empty, so don&#39;t do any filtering.</span>
+            <span class="n">filtered_features</span> <span class="o">=</span> <span class="n">features</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">filtered_keys</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">|</span> <span class="n">e</span><span class="o">.</span><span class="n">ContextMap</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="n">filtered_features</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">filtered_keys</span>
+            <span class="p">}</span>
+          <span class="n">extracted</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Extract</span><span class="p">(</span><span class="n">filtered_features</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;filter&#39;</span><span class="p">):</span>
           <span class="n">bucket</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">extracted</span>
