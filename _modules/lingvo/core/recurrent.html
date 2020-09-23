@@ -803,10 +803,6 @@
       <span class="n">fwd_sig</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">keep_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
       <span class="n">use_tf_function</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">Fwd</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="c1"># tf.function inherits the step seed collection from parent graph, we need</span>
-    <span class="c1"># to reset it to mimic Defun&#39;s behavior.</span>
-    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
-
     <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">SetShapes</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
