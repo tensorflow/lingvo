@@ -178,6 +178,7 @@ def _CreateAsrFeatures():
       if n % FLAGS.num_shards != FLAGS.shard_id:
         continue
       uttid = re.sub('.*/(.+)\\.flac', '\\1', tarinfo.name)
+      uttid = uttid.encode('utf-8')
       f = tar.extractfile(tarinfo)
       wav_bytes = audio_lib.DecodeFlacToWav(f.read())
       f.close()
