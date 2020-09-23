@@ -5087,6 +5087,11 @@
       <span class="c1"># avoid it being used as an implicit capture. This is not a desired</span>
       <span class="c1"># behavir, it should take the step seed from parent graph instead.</span>
       <span class="n">ResetStepSeed</span><span class="p">()</span>
+
+      <span class="c1"># Mimic Defun and disable collection sharing.</span>
+      <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+      <span class="c1"># Don&#39;t share summaries collection with parent graph (b/168745134).</span>
+      <span class="n">graph</span><span class="o">.</span><span class="n">clear_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">SUMMARIES</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
     <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">Fn</span><span class="p">)</span>
