@@ -655,10 +655,6 @@ def _ReflectOnCellFn(cell_fn,
       fwd_sig=py_utils.TensorSpecs(fwd_sig, keep_shape=False),
       use_tf_function=True)
   def Fwd(args):
-    # tf.function inherits the step seed collection from parent graph, we need
-    # to reset it to mimic Defun's behavior.
-    py_utils.ResetStepSeed()
-
     theta, state0, inputs = args
     py_utils.SetShapes(theta, fwd_sig[0])
     state1, extras = cell_fn(theta, state0, inputs)
