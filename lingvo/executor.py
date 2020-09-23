@@ -317,7 +317,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     self._RunLoop('executor_tpu', self._Loop)
 
   def _Loop(self):
-    with tf.container(self._container_id), self._GetSession(
+    with self._cluster, tf.container(self._container_id), self._GetSession(
         cluster_def=self._cluster_def,
         disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
     ) as sess:
