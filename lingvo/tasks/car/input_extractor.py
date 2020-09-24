@@ -115,7 +115,8 @@ class FieldsExtractor(base_layer.BaseLayer):
     """Return the bucket based on the result of Extract().
 
     This function should return 1 if the example should pass through without
-    being dropped, and BUCKET_UPPER_BOUND if the example should be dropped.
+    being dropped, and a value in [BUCKET_UPPER_BOUND, inf) if the example
+    should be dropped.  Currently no other bucketing strategies are supported.
 
     Args:
       outputs: The NestedMap returned by this extractor's _Extract() function.

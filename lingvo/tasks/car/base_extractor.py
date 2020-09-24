@@ -22,7 +22,8 @@ from lingvo.core import generic_input
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
-# Items exceeding this value will be dropped and not sent to the trainer.
+# Samples whose buckets are greater or equal to this value will
+# be dropped and not sent to the trainer.
 BUCKET_UPPER_BOUND = 9999
 
 
@@ -176,7 +177,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       bucket, outputs = self.ExtractUsingExtractors(record)
       return outputs.Flatten(), bucket
 
-    # Ensure buckets above BUCKET_UPPER_BOUND are dropped.
+    # Ensure buckets [BUCKET_UPPER_BOUND, inf) are dropped.
     args = self.CommonInputOpArgs()
     args['bucket_upper_bound'] = [BUCKET_UPPER_BOUND - 1]
     return generic_input.GenericInput(

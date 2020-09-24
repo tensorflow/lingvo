@@ -226,7 +226,7 @@ class _ProcessShard(beam.DoFn):
 
     b, bucket = self._sess.run([self._filtered_data, self._bucket],
                                feed_dict={self._elem: elem_str})
-    if bucket > input_extractor.BUCKET_UPPER_BOUND:
+    if bucket >= input_extractor.BUCKET_UPPER_BOUND:
       return
     b = py_utils.NestedMap(b)
 
