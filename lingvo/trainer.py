@@ -1815,6 +1815,7 @@ class RunnerManager:
   def Start(self):
     """Start the process."""
     tf.logging.set_verbosity(tf.logging.INFO)
+    tf.logging.info('tf_api_version: %s', tf.summarize_tf2_status())
 
     if FLAGS.mode == 'inspect_model':
       self.InspectModel()
