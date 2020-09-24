@@ -61,7 +61,8 @@ class LabelToTokenIdOp : public OpKernel {
       VLOG(1) << i << " " << Tlabels(i);
       std::vector<int32> ids = TokenizerClass::StringToIds(Tlabels(i));
       if (ids.size() + 1 > maxlen_) {
-        LOG(WARNING) << "Too long target " << ids.size() << " " << Tlabels(i);
+        LOG(WARNING) << "Truncating target sequence (" << ids.size()
+                     << ") to maximum allowed length (" << maxlen_ << ")";
         ids.resize(maxlen_ - 1);
       }
       const int id_size = ids.size();
