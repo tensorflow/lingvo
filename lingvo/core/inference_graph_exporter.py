@@ -309,6 +309,9 @@ class InferenceGraphExporter:
 
     Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.
 
+    Note: Enable FLAGS.pin_vars_to_cpu (default false) to make weight-sharing
+    and multi-core inference on TPUs work properly.
+
     Args:
       model_cfg: a Params instance as returned by
         model_registry.GetParams(modelname, 'Test') or model_params.Model().
