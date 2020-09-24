@@ -374,7 +374,7 @@
 
     <span class="n">b</span><span class="p">,</span> <span class="n">bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_filtered_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket</span><span class="p">],</span>
                                <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_elem</span><span class="p">:</span> <span class="n">elem_str</span><span class="p">})</span>
-    <span class="k">if</span> <span class="n">bucket</span> <span class="o">&gt;</span> <span class="n">input_extractor</span><span class="o">.</span><span class="n">BUCKET_UPPER_BOUND</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">bucket</span> <span class="o">&gt;=</span> <span class="n">input_extractor</span><span class="o">.</span><span class="n">BUCKET_UPPER_BOUND</span><span class="p">:</span>
       <span class="k">return</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
 

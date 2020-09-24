@@ -250,7 +250,8 @@ extractors.</p>
 <code class="sig-name descname">Filter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_extractor.html#FieldsExtractor.Filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_extractor.FieldsExtractor.Filter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the bucket based on the result of Extract().</p>
 <p>This function should return 1 if the example should pass through without
-being dropped, and BUCKET_UPPER_BOUND if the example should be dropped.</p>
+being dropped, and a value in [BUCKET_UPPER_BOUND, inf) if the example
+should be dropped.  Currently no other bucketing strategies are supported.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>outputs</strong> – The NestedMap returned by this extractor’s _Extract() function.

@@ -170,7 +170,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
-<span class="c1"># Items exceeding this value will be dropped and not sent to the trainer.</span>
+<span class="c1"># Samples whose buckets are greater or equal to this value will</span>
+<span class="c1"># be dropped and not sent to the trainer.</span>
 <span class="n">BUCKET_UPPER_BOUND</span> <span class="o">=</span> <span class="mi">9999</span>
 
 
@@ -324,7 +325,7 @@
       <span class="n">bucket</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExtractUsingExtractors</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">outputs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">bucket</span>
 
-    <span class="c1"># Ensure buckets above BUCKET_UPPER_BOUND are dropped.</span>
+    <span class="c1"># Ensure buckets [BUCKET_UPPER_BOUND, inf) are dropped.</span>
     <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
     <span class="n">args</span><span class="p">[</span><span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">BUCKET_UPPER_BOUND</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
