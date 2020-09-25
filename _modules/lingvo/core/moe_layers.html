@@ -336,18 +336,17 @@
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: the length of shape is not 2 or 3.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
       <span class="c1"># For use with beam_search_tpu_helper batch_major_compute=1</span>
-      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
       <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
       <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">state</span>
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
       <span class="c1"># For use with flat_beam_search</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">True</span>
-      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
       <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">=</span> <span class="n">shape</span>
       <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span>
           <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
