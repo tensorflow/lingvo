@@ -188,18 +188,17 @@ class StateLayer(base_layer.BaseLayer):
     Raises:
       ValueError: the length of shape is not 2 or 3.
     """
-    fprop_dtype = py_utils.FPropDtype(self.params)
+    p = self.params
+    fprop_dtype = p.dtype or py_utils.FPropDtype(p)
 
     if len(shape) == 2:
       # For use with beam_search_tpu_helper batch_major_compute=1
-      p = self.params
       shape = tuple(shape) + tuple(p.shape[2:])
       state = tf.zeros(shape, fprop_dtype)
       return state
     elif len(shape) == 3:
       # For use with flat_beam_search
       self._use_flat_beam_search = True
-      p = self.params
       batch, beam, max_steps = shape
       state = tf.Empty(
           [max_steps, batch, beam] + p.shape[2:], fprop_dtype, init=True)
