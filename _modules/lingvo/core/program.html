@@ -598,6 +598,36 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;EvalProgram&#39;</span>
 
+<div class="viewcode-block" id="EvalProgram.TpuEvalStep"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.TpuEvalStep">[docs]</a>  <span class="k">def</span> <span class="nf">TpuEvalStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Eval a shard of a batch on a single TPU core.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      *args: metrics values from previous steps.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Summed eval metrics.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tpu_eval&#39;</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
+      <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">summed_metrics</span></div>
+
+<div class="viewcode-block" id="EvalProgram.TpuEvalLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.TpuEvalLoop">[docs]</a>  <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
+  <span class="k">def</span> <span class="nf">TpuEvalLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TpuEvalStep</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;eval_loop&#39;</span><span class="p">)</span>
+    <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="EvalProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EvalProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
@@ -609,46 +639,19 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
-      <span class="k">def</span> <span class="nf">TpuEvalStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Eval a shard of a batch on a single TPU core.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">          *args: metrics values from previous steps.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">          Summed eval metrics.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tpu_eval&#39;</span><span class="p">):</span>
-          <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
-          <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-          <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
-          <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-            <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
-          <span class="k">return</span> <span class="n">summed_metrics</span>
-
-      <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
-      <span class="k">def</span> <span class="nf">TpuEval</span><span class="p">():</span>
-        <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
-            <span class="n">TpuEvalStep</span><span class="p">,</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;eval_loop&#39;</span><span class="p">)</span>
-        <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
+      <span class="c1"># XLA thinks self.TpuEvalLoop() requires 1 argument due to self</span>
+      <span class="c1"># Trick it with wrapper function</span>
+      <span class="k">def</span> <span class="nf">TpuEvalLoopWrapper</span><span class="p">():</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">TpuEvalLoop</span><span class="p">()</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
-          <span class="n">TpuEval</span><span class="p">,</span>
+          <span class="n">TpuEvalLoopWrapper</span><span class="p">,</span>
           <span class="n">num_shards</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
           <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
-
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">(</span><span class="n">mode_override</span><span class="o">=</span><span class="s1">&#39;inference&#39;</span><span class="p">)</span>
 
       <span class="c1"># Get metric result from a single replica; they are all same here.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span> <span class="o">=</span> <span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">]]</span>
-
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span></div>
 
 <div class="viewcode-block" id="EvalProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
