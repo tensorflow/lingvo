@@ -320,6 +320,29 @@ and denotes the batch dimension.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.tasks.car.base_extractor._BaseExtractor.GetCpuPassthroughKeys">
+<code class="sig-name descname">GetCpuPassthroughKeys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor.GetCpuPassthroughKeys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor.GetCpuPassthroughKeys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of keys from the input to skip sending to the device.</p>
+<p>When running on TPU, a user may want to avoid sending some inputs to the
+device; either the type is not supported (e.g., string), or the input will
+not be processed on the device at all.  However, these items may be still
+useful to passthrough to the “output”, e.g., for decoding purposes.</p>
+<p>This function should return a list of keys from InputBatch() that should not
+be sent to the TPU, but can be combined with the outputs of Decode() before
+passing to PostProcessDecodeOut().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A list of keys from the input to filter from being sent to the device,</dt><dd><p>which may be combined with the output of Decode() prior to
+PostProcessDecodeOut().</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.tasks.car.base_extractor._BaseExtractor._NestedMapFromBatchedOutputs">
 <code class="sig-name descname">_NestedMapFromBatchedOutputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor._NestedMapFromBatchedOutputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor._NestedMapFromBatchedOutputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a NestedMap from a tuple of outputs from generic_input_op.</p>

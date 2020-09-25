@@ -380,6 +380,7 @@
                                   <span class="s1">&#39;once.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_passthrough_batches</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
@@ -417,6 +418,8 @@
             <span class="s1">&#39;TPU Embedding must be used with per_host_infeed with multiple &#39;</span>
             <span class="s1">&#39;TPU host topologies.&#39;</span><span class="p">)</span>
 
+    <span class="n">cpu_passthrough_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">()</span>
+
     <span class="n">tpu_emb_input_keys</span> <span class="o">=</span> <span class="p">(</span>
         <span class="nb">list</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">feature_to_config_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
@@ -433,6 +436,13 @@
           <span class="c1"># Note that when MultiTaskData is used, bucket_keys will be at the</span>
           <span class="c1"># second level of the dictionary.</span>
           <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;bucket_keys&#39;</span><span class="p">))</span>
+
+          <span class="c1"># Split out any keys that are meant for CPU passthrough only.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_passthrough_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="n">batch</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cpu_passthrough_keys</span><span class="p">))</span>
+          <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cpu_passthrough_keys</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU passthrough keys: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cpu_passthrough_keys</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_batch_nm_types</span> <span class="o">=</span> <span class="n">batch</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
@@ -585,6 +595,101 @@
         <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
             <span class="n">enqueue_dict_per_core</span><span class="p">,</span> <span class="n">mode_override</span><span class="o">=</span><span class="n">mode_override</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">enqueue_ops</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.GetCpuPassthroughKeys"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GetCpuPassthroughKeys">[docs]</a>  <span class="k">def</span> <span class="nf">GetCpuPassthroughKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a list of keys from the input to skip sending to the device.</span>
+
+<span class="sd">    When running on TPU, a user may want to avoid sending some inputs to the</span>
+<span class="sd">    device; either the type is not supported (e.g., string), or the input will</span>
+<span class="sd">    not be processed on the device at all.  However, these items may be still</span>
+<span class="sd">    useful to passthrough to the &quot;output&quot;, e.g., for decoding purposes.</span>
+
+<span class="sd">    This function should return a list of keys from InputBatch() that should not</span>
+<span class="sd">    be sent to the TPU, but can be combined with the outputs of Decode() before</span>
+<span class="sd">    passing to PostProcessDecodeOut().</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list of keys from the input to filter from being sent to the device,</span>
+<span class="sd">        which may be combined with the output of Decode() prior to</span>
+<span class="sd">        PostProcessDecodeOut().</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.CreateCpuPassthroughEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateCpuPassthroughEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates enqueue ops to pass through CPU inputs to the output.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+    <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
+
+    <span class="n">cpu_passthrough_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cpu_passthrough_keys</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="c1"># There is one enqueue op per host.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_host_queues</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">enqueue_ops</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
+            <span class="s1">&#39;CPU passthrough must be used with per_host_infeed with multiple &#39;</span>
+            <span class="s1">&#39;TPU host topologies.&#39;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_infeed_hosts</span>
+    <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
+      <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_passthrough_batches</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_nm_types</span> <span class="o">=</span> <span class="n">batch</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device CPU passthrough types: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="n">host_device</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+        <span class="n">cpu_dtypes</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+        <span class="c1"># NOTE: we use a large capacity queue under the assumption that the size</span>
+        <span class="c1"># of these tensors will be generally smaller than that sent to the TPU,</span>
+        <span class="c1"># and that the TPU queue will likely fill up before the host queue,</span>
+        <span class="c1"># blocking further enqueues.</span>
+        <span class="n">host_queue</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">FIFOQueue</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">dtypes</span><span class="o">=</span><span class="n">cpu_dtypes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_host_queues</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">host_queue</span>
+        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="p">[</span><span class="n">host_queue</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">enqueue_ops</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.DequeueCpuPassthrough"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough">[docs]</a>  <span class="k">def</span> <span class="nf">DequeueCpuPassthrough</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create CPU dequeue ops.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap of the CPU passthrough input batch, or None if there are no</span>
+<span class="sd">        cpu passthrough values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cpu_passthrough_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cpu_passthrough_keys</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+    <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
+    <span class="n">tensor_list</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
+      <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
+        <span class="n">tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_host_queues</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span><span class="o">.</span><span class="n">dequeue</span><span class="p">()</span>
+        <span class="c1"># Make list if only one host.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+          <span class="n">tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">tensors</span><span class="p">]</span>
+        <span class="n">num_saved_tensors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tensor_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">tensor_list</span> <span class="o">=</span> <span class="p">[[]]</span> <span class="o">*</span> <span class="n">num_saved_tensors</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_saved_tensors</span><span class="p">):</span>
+          <span class="n">tensor_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tensors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/task:0/device:CPU:0&#39;</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">)):</span>
+        <span class="n">tensor_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">packed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_nm_types</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">packed</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tpu_infeed_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

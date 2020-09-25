@@ -667,6 +667,22 @@
     <span class="k">return</span> <span class="kc">False</span></div></div>
 
 
+<div class="viewcode-block" id="_FetchDecodeOut"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program._FetchDecodeOut">[docs]</a><span class="k">def</span> <span class="nf">_FetchDecodeOut</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">decode_tensors</span><span class="p">,</span> <span class="n">cpu_passthrough_tensors</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Fetch decoder outputs, combining with CPU passthrough tensors if needed.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">cpu_passthrough_tensors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">cpu_pt</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">decode_tensors</span><span class="p">,</span> <span class="n">cpu_passthrough_tensors</span><span class="p">])</span>
+    <span class="c1"># Combine cpu_pt into decode_out_dict</span>
+    <span class="n">common_keys</span> <span class="o">=</span> <span class="n">decode_out_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">cpu_pt</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">common_keys</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;CPU passthrough keys already present in &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;decode_out_dict keys: </span><span class="si">{</span><span class="n">common_keys</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">decode_out_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cpu_pt</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">decode_tensors</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">decode_out_dict</span></div>
+
+
 <div class="viewcode-block" id="DecodeProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram">[docs]</a><span class="k">class</span> <span class="nc">DecodeProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;DecodeProgram.</span>
 
@@ -687,6 +703,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
@@ -702,6 +719,7 @@
         <span class="n">num_shards</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span><span class="p">,</span>
         <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">batch_parallel_res</span><span class="p">)</span></div>
 
@@ -721,7 +739,7 @@
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">buffered_decode_out</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
-      <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">)</span>
+      <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpu_pt</span><span class="p">)</span>
       <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;step: </span><span class="si">%d</span><span class="s1"> </span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span>
                       <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">total_value</span><span class="p">))</span>
@@ -770,6 +788,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
@@ -798,7 +817,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedDequeue</span><span class="p">()</span>
     <span class="c1"># Pack the list of outfeed ops with structure in self.decode_nm.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="p">,</span>
-                                                   <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">)</span></div>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ExperimentalDecodeProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.ExperimentalDecodeProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
@@ -849,7 +869,7 @@
     <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span>
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
-      <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">)</span>
+      <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpu_pt</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
     <span class="n">decode_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
@@ -950,6 +970,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
@@ -973,6 +994,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">batch_parallel_res</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="MLPerfTrainDecodeProgram._InfeedLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfTrainDecodeProgram._InfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_InfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
@@ -998,7 +1020,7 @@
       <span class="k">raise</span></div>
 
 <div class="viewcode-block" id="MLPerfTrainDecodeProgram._TrainAndDecode"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfTrainDecodeProgram._TrainAndDecode">[docs]</a>  <span class="k">def</span> <span class="nf">_TrainAndDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">)</span>
+    <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpu_pt</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_metrics</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MLPerfTrainDecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfTrainDecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>

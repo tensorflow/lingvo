@@ -300,6 +300,50 @@ TPUEmbedding.generate_enqueue_ops()</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.GetCpuPassthroughKeys">
+<code class="sig-name descname">GetCpuPassthroughKeys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GetCpuPassthroughKeys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetCpuPassthroughKeys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of keys from the input to skip sending to the device.</p>
+<p>When running on TPU, a user may want to avoid sending some inputs to the
+device; either the type is not supported (e.g., string), or the input will
+not be processed on the device at all.  However, these items may be still
+useful to passthrough to the “output”, e.g., for decoding purposes.</p>
+<p>This function should return a list of keys from InputBatch() that should not
+be sent to the TPU, but can be combined with the outputs of Decode() before
+passing to PostProcessDecodeOut().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A list of keys from the input to filter from being sent to the device,</dt><dd><p>which may be combined with the output of Decode() prior to
+PostProcessDecodeOut().</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps">
+<code class="sig-name descname">CreateCpuPassthroughEnqueueOps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateCpuPassthroughEnqueueOps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates enqueue ops to pass through CPU inputs to the output.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough">
+<code class="sig-name descname">DequeueCpuPassthrough</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.DequeueCpuPassthrough"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create CPU dequeue ops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>A NestedMap of the CPU passthrough input batch, or None if there are no</dt><dd><p>cpu passthrough values.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.tpu_infeed_op">
 <em class="property">property </em><code class="sig-name descname">tpu_infeed_op</code><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.tpu_infeed_op" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
