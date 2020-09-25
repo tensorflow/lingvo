@@ -450,6 +450,36 @@ class EvalProgram(BaseProgram):
     super().__init__(params, shared_model=shared_model)
     self._program_name = 'EvalProgram'
 
+  def TpuEvalStep(self, *args):
+    """Eval a shard of a batch on a single TPU core.
+
+    Args:
+      *args: metrics values from previous steps.
+
+    Returns:
+      Summed eval metrics.
+    """
+    with tf.name_scope('tpu_eval'):
+      with py_utils.OpportunisticVariableReuseScope(True):
+        self._model.InstantiateVariables()
+        self._model.ConstructFPropGraph()
+      per_step_eval_metrics = self._eval_metrics.SetMetrics(
+          self._task.eval_metrics, args)
+      summed_metrics = []
+      for x, y in zip(per_step_eval_metrics, args):
+        summed_metrics.append(x + y)
+      return summed_metrics
+
+  @tpu_function.on_device_training_loop
+  def TpuEvalLoop(self):
+    loop_result = tpu_training_loop.repeat(
+        self._steps_per_loop,
+        self.TpuEvalStep,
+        inputs=self._eval_metrics.initial_values,
+        name='eval_loop')
+    # Final metrics are the avg across self._steps_per_loop steps.
+    return self._eval_metrics.FinalizeMetrics(loop_result)
+
   def BuildTpuSubgraph(self):
     tf.logging.info('EvalProgram BuildTpuSubGraph')
     with cluster_factory.SetEval(True):
@@ -461,46 +491,19 @@ class EvalProgram(BaseProgram):
       self._task.input.InstantiateVariables()
       self._task.input.CreateTpuEnqueueOps()
 
-      def TpuEvalStep(*args):
-        """Eval a shard of a batch on a single TPU core.
-
-        Args:
-          *args: metrics values from previous steps.
-
-        Returns:
-          Summed eval metrics.
-        """
-        with tf.name_scope('tpu_eval'):
-          with py_utils.OpportunisticVariableReuseScope(True):
-            self._model.InstantiateVariables()
-            self._model.ConstructFPropGraph()
-          per_step_eval_metrics = self._eval_metrics.SetMetrics(
-              self._task.eval_metrics, args)
-          summed_metrics = []
-          for x, y in zip(per_step_eval_metrics, args):
-            summed_metrics.append(x + y)
-          return summed_metrics
-
-      @tpu_function.on_device_training_loop
-      def TpuEval():
-        loop_result = tpu_training_loop.repeat(
-            self._steps_per_loop,
-            TpuEvalStep,
-            inputs=self._eval_metrics.initial_values,
-            name='eval_loop')
-        # Final metrics are the avg across self._steps_per_loop steps.
-        return self._eval_metrics.FinalizeMetrics(loop_result)
+      # XLA thinks self.TpuEvalLoop() requires 1 argument due to self
+      # Trick it with wrapper function
+      def TpuEvalLoopWrapper():
+        return self.TpuEvalLoop()
 
       self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
-          TpuEval,
+          TpuEvalLoopWrapper,
           num_shards=data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
-
       self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
 
       # Get metric result from a single replica; they are all same here.
       self.tpu_ops = [[t[0] for t in batch_parallel_res]]
-
       return self.tpu_ops
 
   def Run(self, sess):
