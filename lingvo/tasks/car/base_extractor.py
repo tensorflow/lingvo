@@ -293,6 +293,12 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     ret.bucket_keys = bucket_keys
     return ret
 
+  def GetCpuPassthroughKeys(self):
+    dtypes = self.DType()
+    # By default, string types in the input are passthrough types.
+    string_dtypes = dtypes.Filter(lambda x: x == tf.string)
+    return [v[0] for v in string_dtypes.FlattenItems()]
+
   def _NestedMapFromBatchedOutputs(self, outputs):
     """Create a NestedMap from a tuple of outputs from generic_input_op."""
     batch_size = self.InfeedBatchSize()
@@ -322,7 +328,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       rets += [padded]
 
     rets = shapes.Pack(rets)
-    if py_utils.use_tpu():
-      # Drops tf.string tensors, which is not supported on TPUs.
-      rets = rets.Filter(lambda x: x.dtype != tf.string)
+
+    # String tensors in rets will be filtered out from being sent to the
+    # device automatically, and instead will be present in CPU passthrough.
     return rets

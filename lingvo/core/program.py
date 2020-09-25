@@ -519,6 +519,22 @@ class EvalProgram(BaseProgram):
     return False
 
 
+def _FetchDecodeOut(sess, decode_tensors, cpu_passthrough_tensors):
+  """Fetch decoder outputs, combining with CPU passthrough tensors if needed."""
+  if cpu_passthrough_tensors is not None:
+    decode_out_dict, cpu_pt = sess.run(
+        [decode_tensors, cpu_passthrough_tensors])
+    # Combine cpu_pt into decode_out_dict
+    common_keys = decode_out_dict.keys() & cpu_pt.keys()
+    if common_keys:
+      raise ValueError('CPU passthrough keys already present in '
+                       f'decode_out_dict keys: {common_keys}')
+    decode_out_dict.update(cpu_pt)
+  else:
+    decode_out_dict = sess.run(decode_tensors)
+  return decode_out_dict
+
+
 class DecodeProgram(BaseProgram):
   """DecodeProgram.
 
@@ -539,6 +555,7 @@ class DecodeProgram(BaseProgram):
     self._task = self._model.GetTask()
     self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
+    self._task.input.CreateCpuPassthroughEnqueueOps()
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
@@ -554,6 +571,7 @@ class DecodeProgram(BaseProgram):
         num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
 
+    self.cpu_pt = self._task.input.DequeueCpuPassthrough()
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
     self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
 
@@ -573,7 +591,7 @@ class DecodeProgram(BaseProgram):
     start_time = time.time()
     buffered_decode_out = []
     for i in range(self._steps_per_loop):
-      decode_out_dict = sess.run(self.decode_tensors)
+      decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
       decode_out = self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
       tf.logging.info('step: %d %f' %
                       (i, dec_metrics['num_samples_in_batch'].total_value))
@@ -622,6 +640,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     self._task = self._model.GetTask()
     self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
+    self._task.input.CreateCpuPassthroughEnqueueOps()
 
     def _DecodeStep():
       """Decode call to be compiled for TPU."""
@@ -651,6 +670,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     # Pack the list of outfeed ops with structure in self.decode_nm.
     self.decode_tensors = tf.nest.pack_sequence_as(self.decode_nm,
                                                    self.decode_tensors)
+    self.cpu_pt = self._task.input.DequeueCpuPassthrough()
 
   def BuildTpuSubgraph(self):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
@@ -701,7 +721,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     dec_metrics = self._task.CreateDecoderMetrics()
     start_time = time.time()
     for _ in range(self._steps_per_loop):
-      decode_out_dict = sess.run(self.decode_tensors)
+      decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
       self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
     decode_future.wait()
     infeed_future.wait()
@@ -802,6 +822,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     self._decode_task = self._decode_model.GetTask()
     self._decode_task.input.InstantiateVariables()
     self._decode_task.input.CreateTpuEnqueueOps()
+    self._decode_task.input.CreateCpuPassthroughEnqueueOps()
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
@@ -825,6 +846,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
     self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
+    self.cpu_pt = self._decode_task.input.DequeueCpuPassthrough()
     return None
 
   def _InfeedLoop(self, sess):
@@ -850,7 +872,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       raise
 
   def _TrainAndDecode(self, sess):
-    decode_out_dict = sess.run(self.decode_tensors)
+    decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
     self._decode_task.PostProcessDecodeOut(decode_out_dict, self.dec_metrics)
 
   def Run(self, sess):
