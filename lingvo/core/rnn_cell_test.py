@@ -971,24 +971,98 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
   # pyformat: disable
   @parameterized.named_parameters(
-      ('WithoutProj', rnn_cell.LayerNormMaskedLSTMCellSimple, 2, 5, None,
-       [[0.0065042, 0.15772603, 0.3693921, 0.15781447, 0.12396155],
-        [0.08000945, 0.00209706, 0.36252916, 0.07412559, -0.01524802],
-        [0.01209623, 0.20519827, 0.49992552, 0.17341803, 0.34704077]],
-       [[0.04659522, 0.32658854, 1.5585221, 0.32678494, 0.13846233],
-        [1.5193346, 0.00419415, 0.5612371, 0.14935185, -0.01889721],
-        [0.14045686, 0.43608797, 0.80760527, 0.36184266, 0.47827372]]),
-      ('WithProj', rnn_cell.LayerNormMaskedLSTMCellSimple, 2, 2, 5,
-       [[0.32549405, -0.01501668], [0.20374557, 0.07251732],
-        [0.26784134, 0.27937523]],
-       [[-0.1942511, 0.32658854, 1.537509, 0.32678494, 0.07504145],
-        [0.8267509, 0.00419415, 0.45417657, 0.14935185, 0.45168093],
-        [0.59822744, 0.43608797, 0.57707494, 0.36184266, 0.4334712]]))
+      ('LayerNormWithoutProj', rnn_cell.LayerNormMaskedLSTMCellSimple, 2, 5, None,
+       [[0.03192903, 0, 0.6300426, 0, 0.2901549],
+        [0.27490658, 0, 0.35421762, 0, -0.03947842],
+        [0.08438382, 0, 0.70627016, 0, 0.36428702]],
+       [[0.12720942, 0, 2.1291978, 0, 0.37340835],
+        [2.0102603, 0, 0.5823712, 0, -0.05623333],
+        [0.4410232, 0, 1.2758337, 0, 0.5542539]]),
+      ('LayerNormWithProj', rnn_cell.LayerNormMaskedLSTMCellSimple, 2, 2, 5,
+       [[0.49955967, -0.3684276], [0.19634232, 0.09832437],
+        [0.31837055, -0.03794493]],
+       [[0.0577944, 0, 2.1235745, 0, 0.16059814],
+        [1.1173191, 0, 0.6812045, 0, 0.49069384],
+        [0.8592785, 0, 1.0264758, 0, 0.46820292]]))
   # pyformat: enable
-  # TODO(yohu): update the above parameters after fixing the sigmoid function.
   def testLNMasked(self, cell_cls, num_input_nodes, num_output_nodes,
                    num_hidden_nodes, m_expected, c_expected):
-    params = cell_cls.Params().Copy().Set(layernorm_mask=[1.0, 0, 1, 0, 1])
+    params = cell_cls.Params().Copy().Set(gate_mask=[1.0, 0, 1, 0, 1])
+    m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
+                                    num_hidden_nodes)
+    self.assertAllClose(m_expected, m_v)
+    self.assertAllClose(c_expected, c_v)
+
+  # pyformat: disable
+  @parameterized.named_parameters(
+      ('MaskedWithoutProj', rnn_cell.LSTMCellSimpleGateDropout, 2, 5, None,
+       [[0.02895213, 0, 0.2836459, 0, 0.5191888],
+        [0.03582589, 0, -0.07291593, 0, 0.13605322],
+        [0.00873346, 0, 0.58488315, 0, -0.07172862]],
+       [[0.40617767, 0, 1.8272911, 0, 0.7710362],
+        [0.75850946, 0, -0.12321851, 0, 0.19166063],
+        [0.1485924, 0, 1.404647, 0, -0.13145189]]),
+      ('MaskedWithProj', rnn_cell.LSTMCellSimpleGateDropout, 2, 2, 5,
+       [[0.31314906, -0.14464213], [-0.06685967, 0.15379998],
+        [0.3459898, -0.24722244]],
+       [[0.43092823, 0, 1.4234167, 0, 0.27544203],
+        [0.57490975, 0, 0.12137488, 0, 0.14200538],
+        [0.00608544, 0, 0.93329924, 0, 0.20973186]]))
+  # pyformat: enable
+  def testLSTMCellDropoutScale(self, cell_cls, num_input_nodes,
+                               num_output_nodes, num_hidden_nodes, m_expected,
+                               c_expected):
+    params = cell_cls.Params().Copy().Set(gate_mask=[1.0, 0, 1, 0, 1])
+    m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
+                                    num_hidden_nodes)
+    self.assertAllClose(m_expected, m_v)
+    self.assertAllClose(c_expected, c_v)
+
+  # pyformat: disable
+  @parameterized.named_parameters(
+      ('MaskedWithoutProj', rnn_cell.LSTMCellSimpleGateDropout, 2, 5, None,
+       [[0.01737128, 0, 0.17018753, 0, 0.3115133],
+        [0.02149553, 0, -0.04374956, 0, 0.081632],
+        [0.00524007, 0, 0.3509299, 0, -0.04303718]],
+       [[0.24370661, 0, 1.0963748, 0, 0.46262175],
+        [0.45510566, 0, -0.07393111, 0, 0.11499637],
+        [0.08915544, 0, 0.8427882, 0, -0.07887113]]),
+      ('MaskedWithProj', rnn_cell.LSTMCellSimpleGateDropout, 2, 2, 5,
+       [[0.18788944, -0.08678528], [-0.0401158, 0.09227999],
+        [0.20759387, -0.14833347]],
+       [[0.25855693, 0, 0.85405004, 0, 0.16526523],
+        [0.34494585, 0, 0.07282493, 0, 0.08520323],
+        [0.00365126, 0, 0.55997956, 0, 0.12583911]]))
+  # pyformat: enable
+  def testLSTMCellDropoutNoScale(self, cell_cls, num_input_nodes,
+                                 num_output_nodes, num_hidden_nodes, m_expected,
+                                 c_expected):
+    params = cell_cls.Params().Copy().Set(
+        gate_mask=[1.0, 0, 1, 0, 1], use_dropout_scale=False)
+    m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
+                                    num_hidden_nodes)
+    self.assertAllClose(m_expected, m_v)
+    self.assertAllClose(c_expected, c_v)
+
+  # pyformat: disable
+  @parameterized.named_parameters(
+      ('WithoutProj', rnn_cell.LSTMCellSimple, 2, 5, None,
+       [[0.01737128, 0.19599544, 0.17018753, 0.1767421, 0.3115133],
+        [0.02149553, 0.13240226, -0.04374956, 0.1305859, 0.081632],
+        [0.00524007, 0.28841242, 0.3509299, 0.1629353, -0.04303718]],
+       [[0.24370661, 0.522195, 1.0963748, 1.1247414, 0.46262175],
+        [0.45510566, 0.20793101, -0.07393111, 0.74867463, 0.11499637],
+        [0.08915544, 0.64467084, 0.8427882, 0.9257332, -0.07887113]]),
+      ('WithProj', rnn_cell.LSTMCellSimple, 2, 2, 5,
+       [[0.12637874, 0.18615241], [-0.09705047, 0.26344097],
+        [0.22582228, 0.16268292]],
+       [[0.25855693, 0.41018295, 0.85405004, 1.0882103, 0.16526523],
+        [0.34494585, 0.13268812, 0.07282493, 0.34063944, 0.08520323],
+        [0.00365126, 0.4749492, 0.55997956, 0.95868456, 0.12583911]]))
+  # pyformat: enable
+  def testLSTMCell(self, cell_cls, num_input_nodes, num_output_nodes,
+                   num_hidden_nodes, m_expected, c_expected):
+    params = cell_cls.Params()
     m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
                                     num_hidden_nodes)
     self.assertAllClose(m_expected, m_v)

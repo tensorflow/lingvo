@@ -978,6 +978,104 @@ class QuantizedLSTMCell(RNNCell):
     return py_utils.NestedMap(m=new_m, c=new_c)
 
 
+class LSTMCellSimpleGateDropout(LSTMCellSimple):
+  """An LSTM cell that supports federated dropout.
+
+  The main function is to make the LSTM cell aware of the mask such that the
+  activations of the 4 gates will be masked.
+
+  theta:
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
+
+  state:
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
+
+  inputs:
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'use_dropout_scale', True,
+        'Whether to use the dropout_scale on the masked activations. If true,'
+        'the activations will be multipled by 1/keep_rate, similar to the '
+        'scale operation of dropout layers.')
+    p.Define('gate_mask', None, 'The mask used on the 4 gates of an LSTM cell.')
+    return p
+
+  def _GatesInternal(self, theta, state0, inputs, i_i, i_g, f_g, o_g):
+    """Overriding this function to use the dropout mask."""
+    p = self.params
+    fns = self.fns
+
+    # Apply the mask on the gate activations.
+    masked_tanh_i_i = tf.tanh(i_i) * p.gate_mask
+    masked_sigmoid_f_g = tf.sigmoid(f_g) * p.gate_mask
+    masked_sigmoid_o_g = tf.sigmoid(o_g) * p.gate_mask
+    if not p.couple_input_forget_gates:
+      assert i_g is not None
+      masked_sigmoid_i_g = tf.sigmoid(i_g) * p.gate_mask
+      forget_gate = fns.qmultiply(
+          masked_sigmoid_f_g, state0.c, qt='c_input_gate')
+      # Sigmoid / tanh calls are not quantized under the assumption they share
+      # the range with c_input_gate and c_forget_gate.
+      input_gate = fns.qmultiply(
+          masked_sigmoid_i_g, masked_tanh_i_i, qt='c_forget_gate')
+      new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+    else:
+      assert i_g is None
+      # Sigmoid / tanh calls are not quantized under the assumption they share
+      # the range with c_input_gate and c_forget_gate.
+      forget_gate = fns.qmultiply(
+          masked_sigmoid_f_g, state0.c, qt='c_input_gate')
+
+      # input_gate = tanh(i_i) - tanh(i_i) * tf.sigmoid(f_g)
+      # equivalent to (but more stable in fixed point):
+      # (1.0 - sigmoid(f_g)) * tanh(i_i)
+      input_gate = fns.qsubtract(
+          masked_tanh_i_i,
+          fns.qmultiply(
+              masked_tanh_i_i, masked_sigmoid_f_g, qt='c_couple_invert'),
+          qt='c_forget_gate')
+
+      new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+
+    new_c = self._ProcessNewC(theta, new_c)
+
+    # Clip the cell states to reasonable value.
+    if p.cell_value_cap is not None:
+      new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
+    if p.output_nonlinearity:
+      new_m = fns.qmultiply(masked_sigmoid_o_g, tf.tanh(new_c), qt='m_output')
+    else:
+      new_m = fns.qmultiply(masked_sigmoid_o_g, new_c, qt='m_output')
+
+    # Multiply 1/keep_rate to new_c and new_m.
+    if p.use_dropout_scale:
+      new_c = new_c * self.hidden_size / tf.reduce_sum(p.gate_mask)
+      new_m = new_m * self.hidden_size / tf.reduce_sum(p.gate_mask)
+    if p.num_hidden_nodes:
+      if p.apply_pruning_to_projection:
+        w_proj = self.QWeight(
+            tf.multiply(theta.w_proj, theta.proj_mask, 'masked_projection'),
+            domain='m_state')
+      else:
+        w_proj = self.QWeight(theta.w_proj, domain='m_state')
+
+      new_m = fns.qmatmul(new_m, w_proj, qt='m_output_projection')
+
+    # Apply Zoneout.
+    return self._ApplyZoneOut(state0, inputs, new_c, new_m)
+
+
 class LayerNormalizedLSTMCell(RNNCell):
   """DEPRECATED: use LayerNormalizedLSTMCellSimple instead.
 
@@ -1258,11 +1356,12 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
 
 
-class LayerNormMaskedLSTMCellSimple(LayerNormalizedLSTMCellSimple):
+class LayerNormMaskedLSTMCellSimple(LSTMCellSimpleGateDropout):
   """An implementation of layer normalized LSTM for federated dropout.
 
-  The main function is to make the normalization aware of the mask, which
-  requires to be updated externally for it to take effect.
+  This is an experimental class. The main function is to make the normalization
+  aware of the mask, which requires to be updated externally for it to
+  take effect.
 
   theta:
 
@@ -1283,11 +1382,22 @@ class LayerNormMaskedLSTMCellSimple(LayerNormalizedLSTMCellSimple):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define(
-        'layernorm_mask', None,
-        'The mask for layer normalization. This mask would drop the same nodes '
-        'of gates as the mask of weight matrix, but has the shape of a vector.')
+    p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
     return p
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+
+    add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
+    self.TrackQTensor(*add_biases, domain='fullyconnected')
+
+    ln_scale_pc = py_utils.WeightParams(
+        shape=[self.num_gates * self.hidden_size],
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('ln_scale', ln_scale_pc, self.AddGlobalVN)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Overriding the _Gates function with the masked layer normalization."""
@@ -1319,16 +1429,14 @@ class LayerNormMaskedLSTMCellSimple(LayerNormalizedLSTMCellSimple):
         theta.ln_scale, num_or_size_splits=self.num_gates, axis=0)
     gates = tf.split(xmw, num_or_size_splits=self.num_gates, axis=1)
 
-    assert p.layernorm_mask is not None
-    assert py_utils.GetShape(p.layernorm_mask)[0] == self.hidden_size
-    ln_masks = tf.tile([p.layernorm_mask], [py_utils.GetShape(gates[0])[0], 1])
+    if p.gate_mask is not None:
+      assert py_utils.GetShape(p.gate_mask)[0] == self.hidden_size
+    ln_masks = tf.tile([p.gate_mask], [py_utils.GetShape(gates[0])[0], 1])
 
     for i in range(self.num_gates):
       # i_g is None when p.couple_input_forget_gates is True.
       if gates[i] is not None:
-        gates[i] = tf.multiply(
-            _MaskedLayerNorm(gates[i], ln_masks),
-            self.hidden_size / tf.reduce_sum(ln_masks[0]))
+        gates[i] = _MaskedLayerNorm(gates[i], ln_masks)
         gates[i] = gates[i] * tf.expand_dims(ln_scales[i], 0)
         gates[i] = self.fns.qadd(gates[i], bs[i], qt='add_bias_{}'.format(i))
 
