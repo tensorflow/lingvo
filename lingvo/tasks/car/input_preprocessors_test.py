@@ -19,11 +19,37 @@ from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import input_preprocessors
+import numpy as np
 
 FLAGS = tf.flags.FLAGS
 
 
 class InputPreprocessorsTest(test_utils.TestCase):
+
+  def testIdentityPreprocessor(self):
+    input_p = input_preprocessors.ConstantPreprocessor.Params().Set(constants={
+        'value1': 1,
+        'value2': np.array([2])
+    })
+    identity_p = input_preprocessors.IdentityPreprocessor.Params()
+    features = py_utils.NestedMap()
+    shapes = py_utils.NestedMap()
+    dtypes = py_utils.NestedMap()
+
+    preprocessors = [input_p.Instantiate(), identity_p.Instantiate()]
+    for preprocessor in preprocessors:
+      # Verify shape / dtypes.
+      shapes = preprocessor.TransformShapes(shapes)
+      dtypes = preprocessor.TransformDTypes(dtypes)
+      features = preprocessor.TransformFeatures(features)
+
+    self.assertEqual(self.evaluate(features.value1), 1)
+    self.assertEqual(shapes.value1, tf.TensorShape([]))
+    self.assertEqual(dtypes.value1, tf.int64)
+
+    self.assertEqual(self.evaluate(features.value2), [2])
+    self.assertEqual(shapes.value2, tf.TensorShape([1]))
+    self.assertEqual(dtypes.value2, tf.int64)
 
   def testRandomChoicePreprocessor(self):
     p = input_preprocessors.RandomChoicePreprocessor.Params()

@@ -3338,6 +3338,24 @@ class ConstantPreprocessor(Preprocessor):
     return dtypes
 
 
+class IdentityPreprocessor(Preprocessor):
+  """Preprocessor that passes all inputs through.
+
+  This may be useful for situations where one wants a 'no-op' preprocessor, such
+  as being able to randomly choose to do nothing among a set of preprocessor
+  choices.
+  """
+
+  def TransformFeatures(self, features):
+    return features
+
+  def TransformShapes(self, shapes):
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    return dtypes
+
+
 class RandomChoicePreprocessor(Preprocessor):
   """Randomly applies a preprocessor with specified weights.
 
