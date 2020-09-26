@@ -1126,6 +1126,104 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="LSTMCellSimpleGateDropout"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimpleGateDropout">[docs]</a><span class="k">class</span> <span class="nc">LSTMCellSimpleGateDropout</span><span class="p">(</span><span class="n">LSTMCellSimple</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;An LSTM cell that supports federated dropout.</span>
+
+<span class="sd">  The main function is to make the LSTM cell aware of the mask such that the</span>
+<span class="sd">  activations of the 4 gates will be masked.</span>
+
+<span class="sd">  theta:</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
+
+<span class="sd">  state:</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  inputs:</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LSTMCellSimpleGateDropout.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimpleGateDropout.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_dropout_scale&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to use the dropout_scale on the masked activations. If true,&#39;</span>
+        <span class="s1">&#39;the activations will be multipled by 1/keep_rate, similar to the &#39;</span>
+        <span class="s1">&#39;scale operation of dropout layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gate_mask&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The mask used on the 4 gates of an LSTM cell.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="LSTMCellSimpleGateDropout._GatesInternal"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimpleGateDropout._GatesInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_GatesInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Overriding this function to use the dropout mask.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
+
+    <span class="c1"># Apply the mask on the gate activations.</span>
+    <span class="n">masked_tanh_i_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">i_i</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span>
+    <span class="n">masked_sigmoid_f_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span>
+    <span class="n">masked_sigmoid_o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">o_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">i_g</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">masked_sigmoid_i_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">i_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span>
+      <span class="n">forget_gate</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span>
+          <span class="n">masked_sigmoid_f_g</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_input_gate&#39;</span><span class="p">)</span>
+      <span class="c1"># Sigmoid / tanh calls are not quantized under the assumption they share</span>
+      <span class="c1"># the range with c_input_gate and c_forget_gate.</span>
+      <span class="n">input_gate</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span>
+          <span class="n">masked_sigmoid_i_g</span><span class="p">,</span> <span class="n">masked_tanh_i_i</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_forget_gate&#39;</span><span class="p">)</span>
+      <span class="n">new_c</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="n">forget_gate</span><span class="p">,</span> <span class="n">input_gate</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_output_gate&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">i_g</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="c1"># Sigmoid / tanh calls are not quantized under the assumption they share</span>
+      <span class="c1"># the range with c_input_gate and c_forget_gate.</span>
+      <span class="n">forget_gate</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span>
+          <span class="n">masked_sigmoid_f_g</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_input_gate&#39;</span><span class="p">)</span>
+
+      <span class="c1"># input_gate = tanh(i_i) - tanh(i_i) * tf.sigmoid(f_g)</span>
+      <span class="c1"># equivalent to (but more stable in fixed point):</span>
+      <span class="c1"># (1.0 - sigmoid(f_g)) * tanh(i_i)</span>
+      <span class="n">input_gate</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qsubtract</span><span class="p">(</span>
+          <span class="n">masked_tanh_i_i</span><span class="p">,</span>
+          <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span>
+              <span class="n">masked_tanh_i_i</span><span class="p">,</span> <span class="n">masked_sigmoid_f_g</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_couple_invert&#39;</span><span class="p">),</span>
+          <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_forget_gate&#39;</span><span class="p">)</span>
+
+      <span class="n">new_c</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="n">forget_gate</span><span class="p">,</span> <span class="n">input_gate</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_output_gate&#39;</span><span class="p">)</span>
+
+    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessNewC</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span>
+
+    <span class="c1"># Clip the cell states to reasonable value.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">new_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">new_c</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_nonlinearity</span><span class="p">:</span>
+      <span class="n">new_m</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span><span class="n">masked_sigmoid_o_g</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">new_c</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;m_output&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">new_m</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span><span class="n">masked_sigmoid_o_g</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;m_output&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Multiply 1/keep_rate to new_c and new_m.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_dropout_scale</span><span class="p">:</span>
+      <span class="n">new_c</span> <span class="o">=</span> <span class="n">new_c</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span><span class="p">)</span>
+      <span class="n">new_m</span> <span class="o">=</span> <span class="n">new_m</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning_to_projection</span><span class="p">:</span>
+        <span class="n">w_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w_proj</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">proj_mask</span><span class="p">,</span> <span class="s1">&#39;masked_projection&#39;</span><span class="p">),</span>
+            <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;m_state&#39;</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">w_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w_proj</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;m_state&#39;</span><span class="p">)</span>
+
+      <span class="n">new_m</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span><span class="n">new_m</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;m_output_projection&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Apply Zoneout.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="LayerNormalizedLSTMCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell">[docs]</a><span class="k">class</span> <span class="nc">LayerNormalizedLSTMCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;DEPRECATED: use LayerNormalizedLSTMCellSimple instead.</span>
 
@@ -1406,11 +1504,12 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GatesInternal</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="LayerNormMaskedLSTMCellSimple"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple">[docs]</a><span class="k">class</span> <span class="nc">LayerNormMaskedLSTMCellSimple</span><span class="p">(</span><span class="n">LayerNormalizedLSTMCellSimple</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerNormMaskedLSTMCellSimple"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple">[docs]</a><span class="k">class</span> <span class="nc">LayerNormMaskedLSTMCellSimple</span><span class="p">(</span><span class="n">LSTMCellSimpleGateDropout</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;An implementation of layer normalized LSTM for federated dropout.</span>
 
-<span class="sd">  The main function is to make the normalization aware of the mask, which</span>
-<span class="sd">  requires to be updated externally for it to take effect.</span>
+<span class="sd">  This is an experimental class. The main function is to make the normalization</span>
+<span class="sd">  aware of the mask, which requires to be updated externally for it to</span>
+<span class="sd">  take effect.</span>
 
 <span class="sd">  theta:</span>
 
@@ -1431,11 +1530,22 @@
 <div class="viewcode-block" id="LayerNormMaskedLSTMCellSimple.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;layernorm_mask&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;The mask for layer normalization. This mask would drop the same nodes &#39;</span>
-        <span class="s1">&#39;of gates as the mask of weight matrix, but has the shape of a vector.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layer_norm_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqr against.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="LayerNormMaskedLSTMCellSimple._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">add_biases</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;add_bias_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">)]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="o">*</span><span class="n">add_biases</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
+
+    <span class="n">ln_scale_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale&#39;</span><span class="p">,</span> <span class="n">ln_scale_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerNormMaskedLSTMCellSimple._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormMaskedLSTMCellSimple._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Overriding the _Gates function with the masked layer normalization.&quot;&quot;&quot;</span>
@@ -1467,16 +1577,14 @@
         <span class="n">theta</span><span class="o">.</span><span class="n">ln_scale</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">gates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">xmw</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">layernorm_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">layernorm_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span>
-    <span class="n">ln_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">layernorm_mask</span><span class="p">],</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gates</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span>
+    <span class="n">ln_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">gate_mask</span><span class="p">],</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gates</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">])</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">):</span>
       <span class="c1"># i_g is None when p.couple_input_forget_gates is True.</span>
       <span class="k">if</span> <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
-            <span class="n">_MaskedLayerNorm</span><span class="p">(</span><span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ln_masks</span><span class="p">),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">ln_masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_MaskedLayerNorm</span><span class="p">(</span><span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ln_masks</span><span class="p">)</span>
         <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ln_scales</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;add_bias_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
 
