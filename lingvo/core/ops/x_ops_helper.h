@@ -32,6 +32,7 @@ limitations under the License.
       .Attr("require_sequential_order: bool = False") \
       .Attr("repeat_count: int = -1")                 \
       .Attr("use_chaining: bool = False")             \
+      .Attr("fatal_errors: list(int) = []")           \
       .SetIsStateful()
 
 #define INPUT_DOCS \
@@ -70,6 +71,7 @@ use_chaining: If true, the input op is outputing records from file patterns in \
   order. That is, first all records from first file pattern will be yielded, \
   then all records from the second file pattern and so on. If false, the \
   records from different file patterns will be mixed.\
+fatal_errors: A list of tf.error codes to treat as fatal.\
 )"
 
 #endif  // LINGVO_CORE_OPS_X_OPS_HELPER_H_

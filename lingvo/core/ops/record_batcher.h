@@ -93,6 +93,9 @@ class RecordBatcher {
     // Number of threads to use for record batcher, each thread
     // fills separate batches based on bucket limits.
     int64 num_threads = 1;
+
+    // Errors to treat as fatal.
+    std::vector<int64> fatal_errors;
   };
   RecordBatcher(const Options& opts, RecordYielder* yielder,
                 RecordProcessor* processor);

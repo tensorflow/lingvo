@@ -864,7 +864,7 @@ tgt_actual_seq_len: A tensor of shape [N], where N is the input batch size.
   This tensor contains the actual lengths for the tgt sequence.
 packed_batch_size: A scalar. The output batch size. The packed output will
   be of shape [packed_batch_size, packed_{src,tgt}_seq_len] for src and tgt,
-  respectively. if this value is set to 0, output will be of variable batch 
+  respectively. if this value is set to 0, output will be of variable batch
   size, determined by the number of row needed to pack all given inputs.
 packed_src_seq_len: A scalar. The output sequence length for src. A src input
   with shape [N, src_input_seq_len] will be packed into an output with shape

@@ -18,6 +18,7 @@
 import collections
 import os
 import pickle
+import unittest
 from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import generic_input
@@ -286,6 +287,45 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       with self.assertRaises(tf.errors.NotFoundError):
         # Gives an error that the user-provided function is undefined.
         sess.run(it.initializer)
+
+  @unittest.skip('This test is expected to crash.')
+  def testFatalErrors(self):
+    tmp = os.path.join(tf.test.get_temp_dir(), 'fatal')
+    with tf.python_io.TFRecordWriter(tmp) as w:
+      for i in range(50):
+        w.write(str((i % 2) * 2**33))
+
+    def _parse_record(record):
+      # tf.strings.to_number raises error on overflow.
+      i = tf.strings.to_number(record, tf.int32)
+      example = py_utils.NestedMap(record=i)
+      bucketing_key = 1
+      return example, bucketing_key
+
+    with self.session():
+      # Without specifying fatal_errors all records not 0 are skipped.
+      input_batch, _ = generic_input.GenericInput(
+          _parse_record,
+          file_pattern=f'tfrecord:{tmp}',
+          bucket_upper_bound=[1],
+          bucket_batch_limit=[1])
+
+      for i in range(25):
+        ans_input_batch = self.evaluate(input_batch)
+        self.assertEqual(ans_input_batch.record[0], 0)
+
+      # With fatal_errors it dies instead.
+      input_batch, _ = generic_input.GenericInput(
+          _parse_record,
+          file_pattern=f'tfrecord:{tmp}',
+          bucket_upper_bound=[1],
+          bucket_batch_limit=[1],
+          fatal_errors=[tf.errors.INVALID_ARGUMENT])
+
+      # NOTE: There is no way to catch LOG(FATAL) from python side, so running
+      # this test will cause a crash.
+      for i in range(10):
+        self.evaluate(input_batch)
 
 
 class GenericInputOpBenchmark(tf.test.Benchmark):

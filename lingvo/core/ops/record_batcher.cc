@@ -338,6 +338,11 @@ void RecordBatcher::ProcessorLoop() {
             LOG(WARNING) << s;
           }
         }
+      } else if (std::count(opts_.fatal_errors.begin(),
+                            opts_.fatal_errors.end(),
+                            static_cast<int64>(s.code()))) {
+        // The error is in the list of fatal errors.
+        LOG(FATAL) << s;
       } else if (errors::IsNotFound(s) || errors::IsPermissionDenied(s)) {
         // Terminates program if an unregistered custom op is used by
         // the processor, or any access permission denied error.

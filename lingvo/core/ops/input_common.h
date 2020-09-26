@@ -63,6 +63,7 @@ class InputOp : public OpKernel {
     GETATTR(bool, require_sequential_order);
     GETATTR(int64, repeat_count);
     GETATTR(bool, use_chaining);
+    GETATTR(Int64Vec, fatal_errors);
 #undef GETATTR
     OP_REQUIRES(
         ctx,
@@ -84,6 +85,7 @@ class InputOp : public OpKernel {
     bopts.bucket_adjust_every_n = bucket_adjust_every_n;
     bopts.flush_every_n = flush_every_n;
     bopts.num_threads = num_threads;
+    bopts.fatal_errors = fatal_errors;
     batcher_ = new RecordBatcher(bopts, yielder, processor_);
   }
 
