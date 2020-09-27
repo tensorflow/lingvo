@@ -1049,18 +1049,25 @@ class Evaler(base_runner.BaseRunner):
         name: metrics.AverageMetric() for name in self._task.eval_metrics
     }
     num_samples_metric = metrics_dict['num_samples_in_batch']
-    while (num_samples_metric.total_value <
-           self._task.params.eval.samples_per_summary):
-      # NOTE: We intentionally do not let FProp generate summaries by default,
-      # because evaler calls FProp multiple times for each checkpoint. Multiple
-      # summaries at the same step is often confusing. Instead, models should
-      # update eval_metrics and generate aggregate summaries.
-      ans = sess.run(self._task.eval_metrics)
-      for name, (value, weight) in ans.items():
-        metrics_dict[name].Update(value, weight)
-      tf.logging.info('Total examples done: %d/%d',
-                      num_samples_metric.total_value,
-                      self._task.params.eval.samples_per_summary)
+    samples_per_summary = self._task.params.eval.samples_per_summary
+    if samples_per_summary == 0:
+      assert self._task.params.input.resettable
+    while samples_per_summary == 0 or (num_samples_metric.total_value <
+                                       samples_per_summary):
+      try:
+        # NOTE: We intentionally do not let FProp generate summaries by default,
+        # because evaler calls FProp multiple times for each checkpoint.
+        # Multiple summaries at the same step is often confusing. Instead,
+        # models should update eval_metrics and generate aggregate summaries.
+        ans = sess.run(self._task.eval_metrics)
+        for name, (value, weight) in ans.items():
+          metrics_dict[name].Update(value, weight)
+        tf.logging.info('Total examples done: %d/%d',
+                        num_samples_metric.total_value, samples_per_summary)
+      except tf.errors.OutOfRangeError:
+        if not self._task.params.input.resettable:
+          raise
+        break
 
     # Replace average values with total values for certain metrics.
     if 'num_predictions' in metrics_dict:
@@ -1068,11 +1075,16 @@ class Evaler(base_runner.BaseRunner):
     if 'num_words' in metrics_dict:
       metrics_dict['num_words'].total_weight = 1.0
 
+    summaries = {k: v.Summary(k) for k, v in metrics_dict.items()}
+    summaries['total_samples'] = metrics.CreateScalarSummary(
+        'total_samples', num_samples_metric.total_value)
+
     # When we have evaluated so many samples, generate a summary.
     self._WriteSummaries(
         self._summary_writer,
         os.path.basename(self._eval_dir),
-        global_step, {k: v.Summary(k) for k, v in metrics_dict.items()},
+        global_step,
+        summaries,
         text_filename=os.path.join(self._eval_dir,
                                    'score-{:08d}.txt'.format(global_step)))
 
@@ -1218,8 +1230,10 @@ class Decoder(base_runner.BaseRunner):
     if ckpt_id_from_file < p.eval.start_decoder_after:
       return False
     samples_per_summary = p.eval.decoder_samples_per_summary
-    if not samples_per_summary:
+    if samples_per_summary is None:
       samples_per_summary = p.eval.samples_per_summary
+    if samples_per_summary == 0:
+      assert self._task.params.input.resettable
     self.checkpointer.RestoreFromPath(sess, checkpoint_path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
@@ -1235,28 +1249,34 @@ class Decoder(base_runner.BaseRunner):
     buffered_decode_out = []
     num_examples_metric = dec_metrics['num_samples_in_batch']
     start_time = time.time()
-    while num_examples_metric.total_value < samples_per_summary:
-      tf.logging.info('Fetching dec_output.')
-      fetch_start = time.time()
-      run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
-      if self._summary_op is None:
-        # No summaries were collected.
-        dec_out = sess.run(self._dec_output, options=run_options)
-      else:
-        dec_out, summary = sess.run([self._dec_output, self._summary_op],
-                                    options=run_options)
-        self._summary_writer.add_summary(summary, global_step)
-      post_process_start = time.time()
-      tf.logging.info('Done fetching (%f seconds)' %
-                      (post_process_start - fetch_start))
-      decode_out = self._task.PostProcessDecodeOut(dec_out, dec_metrics)
-      if decode_out:
-        buffered_decode_out.extend(decode_out)
-      tf.logging.info(
-          'Total examples done: %d/%d '
-          '(%f seconds decode postprocess)', num_examples_metric.total_value,
-          samples_per_summary,
-          time.time() - post_process_start)
+    while samples_per_summary == 0 or (num_examples_metric.total_value <
+                                       samples_per_summary):
+      try:
+        tf.logging.info('Fetching dec_output.')
+        fetch_start = time.time()
+        run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
+        if self._summary_op is None:
+          # No summaries were collected.
+          dec_out = sess.run(self._dec_output, options=run_options)
+        else:
+          dec_out, summary = sess.run([self._dec_output, self._summary_op],
+                                      options=run_options)
+          self._summary_writer.add_summary(summary, global_step)
+        post_process_start = time.time()
+        tf.logging.info('Done fetching (%f seconds)' %
+                        (post_process_start - fetch_start))
+        decode_out = self._task.PostProcessDecodeOut(dec_out, dec_metrics)
+        if decode_out:
+          buffered_decode_out.extend(decode_out)
+        tf.logging.info(
+            'Total examples done: %d/%d '
+            '(%f seconds decode postprocess)', num_examples_metric.total_value,
+            samples_per_summary,
+            time.time() - post_process_start)
+      except tf.errors.OutOfRangeError:
+        if not self._task.params.input.resettable:
+          raise
+        break
     tf.logging.info('Done decoding ckpt: %s', checkpoint_path)
 
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
@@ -1264,6 +1284,8 @@ class Decoder(base_runner.BaseRunner):
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = metrics.CreateScalarSummary(
         'examples/sec', example_rate)
+    summaries['total_samples'] = metrics.CreateScalarSummary(
+        'total_samples', num_examples_metric.total_value)
     self._WriteSummaries(
         self._summary_writer,
         os.path.basename(self._decoder_dir),
