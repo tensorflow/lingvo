@@ -188,6 +188,33 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
+<div class="viewcode-block" id="CausalSegmentMask"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.CausalSegmentMask">[docs]</a><span class="k">def</span> <span class="nf">CausalSegmentMask</span><span class="p">(</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes the masks which combines causal masking and segment masks.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    segment_ids: a tensor of shape [b, slen], the segment that each token</span>
+<span class="sd">      belongs to.</span>
+<span class="sd">    dtype: tf dtype.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor of shape [b, 1, slen, slen].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">assert</span> <span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span>
+  <span class="c1"># of shape [b, t, t].</span>
+  <span class="n">segment_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">slen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">segment_ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">causal_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">band_part</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">slen</span><span class="p">,</span> <span class="n">slen</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">causal_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">causal_mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">combined_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">causal_mask</span> <span class="o">+</span> <span class="n">segment_mask</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">dtype</span><span class="p">)</span>
+  <span class="n">min_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">combined_mask</span> <span class="o">*</span> <span class="n">min_value</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="CausalPadding"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.CausalPadding">[docs]</a><span class="k">def</span> <span class="nf">CausalPadding</span><span class="p">(</span><span class="n">slen</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
   <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">band_part</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">slen</span><span class="p">,</span> <span class="n">slen</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
@@ -207,7 +234,7 @@
 <span class="sd">    source_segment_id: [B, S]</span>
 <span class="sd">    dtype: data type of generated mask.</span>
 <span class="sd">    apply_dtype_min: Outputs a 0/1 padding mask if set to False. This is needed</span>
-<span class="sd">    for GPipe layers to avoid nan issues.</span>
+<span class="sd">      for GPipe layers to avoid nan issues.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    segment_mask: [B, 1, T, S]: A mask that is ready to</span>
@@ -857,9 +884,9 @@
 <span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
 <span class="sd">        information flow from future (causal padding). It has shape [B, 1, T] if</span>
 <span class="sd">        not None.</span>
-<span class="sd">      time_step: A scalar or tensor with [B], current decode step, 0-based.</span>
-<span class="sd">        if it&#39;s a scalar, all the time step are the same decode step.</span>
-<span class="sd">        if it&#39;s a tensor, it represents current decode step for each sample.</span>
+<span class="sd">      time_step: A scalar or tensor with [B], current decode step, 0-based. if</span>
+<span class="sd">        it&#39;s a scalar, all the time step are the same decode step. if it&#39;s a</span>
+<span class="sd">        tensor, it represents current decode step for each sample.</span>
 <span class="sd">      use_short_seq_opt: A bool, whether using short sequence optimization.</span>
 
 <span class="sd">    Returns:</span>
@@ -1026,9 +1053,9 @@
 <span class="sd">        its children layers.</span>
 <span class="sd">      query:    [B, N, H].</span>
 <span class="sd">      key:      [S, B, N, H] or [S, B, N*H/128, 128].</span>
-<span class="sd">      time_step: Current time step.</span>
-<span class="sd">        if it&#39;s a scalar, all the time step are the same decode step.</span>
-<span class="sd">        if it&#39;s a tensor, it represents current decode step for each sample.</span>
+<span class="sd">      time_step: Current time step. if it&#39;s a scalar, all the time step are the</span>
+<span class="sd">        same decode step. if it&#39;s a tensor, it represents current decode step</span>
+<span class="sd">        for each sample.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A Tensor of shape [S, B, N]</span>
@@ -2176,8 +2203,8 @@
 <span class="sd">      query_paddings: [B, T].</span>
 <span class="sd">      key_paddings:   [B, S].</span>
 <span class="sd">      query_relative_position_shift: scalar. The position (relative to key[0])</span>
-<span class="sd">         of query[0]. This impacts relative position encoding (not yet</span>
-<span class="sd">         implemented) and causal masking.</span>
+<span class="sd">        of query[0]. This impacts relative position encoding (not yet</span>
+<span class="sd">        implemented) and causal masking.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      encoded: [B, T, N, H].</span>
@@ -2751,9 +2778,9 @@
 <span class="sd">      cached_states: A `.NestedMap` object containing tensors which are the</span>
 <span class="sd">        results of previous attentions, used for fast decoding. key   - [T, B,</span>
 <span class="sd">        N, H]. value - [T, B, N, H].</span>
-<span class="sd">      time_step: A scalar or tensor with [B], current decode step, 0-based.</span>
-<span class="sd">        if it&#39;s a scalar, all the time step are the same decode step.</span>
-<span class="sd">        if it&#39;s a tensor, it represents current decode step for each sample.</span>
+<span class="sd">      time_step: A scalar or tensor with [B], current decode step, 0-based. if</span>
+<span class="sd">        it&#39;s a scalar, all the time step are the same decode step. if it&#39;s a</span>
+<span class="sd">        tensor, it represents current decode step for each sample.</span>
 <span class="sd">      use_short_seq_opt: A bool, whether using short sequence optimization.</span>
 
 <span class="sd">    Returns:</span>
@@ -3072,8 +3099,12 @@
               <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">TENSOR_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)))</span>
     <span class="c1"># First the self-attention layer.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">aux_segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Need to specify aux_segment_mask &#39;</span>
-                                            <span class="s1">&#39;for packed input.&#39;</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Need to specify segment_mask &#39;</span>
+                                        <span class="s1">&#39;for packed input.&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">aux_segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Need to specify aux_segment_mask&#39;</span>
+                                              <span class="s1">&#39;for packed input.&#39;</span><span class="p">)</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">):</span>
       <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
@@ -3480,9 +3511,14 @@
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
             <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">GetSplitForLayer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">splits</span><span class="p">,</span> <span class="n">i</span><span class="p">))):</span>
-          <span class="n">x_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x_in</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span>
-                                            <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">,</span>
-                                            <span class="n">aux_segment_mask</span><span class="p">)</span>
+          <span class="n">x_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+              <span class="n">theta</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+              <span class="n">x_in</span><span class="p">,</span>
+              <span class="n">paddings</span><span class="p">,</span>
+              <span class="n">aux_vec</span><span class="p">,</span>
+              <span class="n">aux_paddings</span><span class="p">,</span>
+              <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
+              <span class="n">aux_segment_mask</span><span class="o">=</span><span class="n">aux_segment_mask</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">:</span>
       <span class="c1"># Place on the last device.</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>

@@ -356,6 +356,41 @@ index.</p></li>
 
 </dd></dl>
 
+<dl class="py class">
+<dt id="lingvo.tasks.lm.model.PackedBatchMajorLanguageModel">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.lm.model.</code><code class="sig-name descname">PackedBatchMajorLanguageModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#PackedBatchMajorLanguageModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.model.LanguageModel" title="lingvo.tasks.lm.model.LanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.model.LanguageModel</span></code></a></p>
+<p>Packed batch major implementation of the language model.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.lm.model.PackedBatchMajorLanguageModel.FPropTower">
+<code class="sig-name descname">FPropTower</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#PackedBatchMajorLanguageModel.FPropTower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel.FPropTower" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation through one tower of the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task
+copied to this tower’s devices.</p></li>
+<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.</p></li>
+<li><p>A dict containing arbitrary tensors describing something about each
+training example, where the first dimension of each tensor is the batch
+index.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>, <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
