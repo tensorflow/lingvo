@@ -3262,7 +3262,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     def _LayerParams(ii):
       """Construct ii-th layer params."""
       if isinstance(p.transformer_layer_params_tpl, list):
-        i = ii // len(p.transformer_layer_params_tpl)
+        factor = p.num_layers // len(p.transformer_layer_params_tpl)
+        i = ii // factor
         p_ii = p.transformer_layer_params_tpl[i].Copy()
       else:
         p_ii = p.transformer_layer_params_tpl.Copy()
