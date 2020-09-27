@@ -28,7 +28,7 @@ cleanup() {
 }
 trap cleanup ERR INT TERM
 
-echo "Paste the docstring to check (end with ctrl+D)."
+echo 'Paste the docstring to check including the """ (end with ctrl+D).'
 cat > single.py
 
 sphinx-build -b singlehtml -q -T . _build
