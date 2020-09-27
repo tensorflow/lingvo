@@ -286,3 +286,52 @@ class BatchMajorLanguageModel(LanguageModel):
         'num_predictions': (num_preds, 1),
         'num_words': (num_words, 1)
     }, {}
+
+
+class PackedBatchMajorLanguageModel(LanguageModel):
+  """Packed batch major implementation of the language model."""
+
+  def FPropTower(self, theta, input_batch):
+    p = self.params
+    fprop_dtype = py_utils.FPropDtype(p)
+    tf.logging.info('input_batch=%r', input_batch)
+    ids = input_batch.ids
+    labels_ids = input_batch.labels
+    paddings = tf.cast(input_batch.paddings, fprop_dtype)
+    weights = tf.cast(input_batch.weights, fprop_dtype)
+    tf.logging.info('inputs={}'.format((ids, paddings, labels_ids, weights)))
+
+    batch_size = tf.shape(ids)[0]
+    state0 = self.lm.zero_state(theta.lm, batch_size)
+    labels = py_utils.NestedMap(class_ids=labels_ids, class_weights=weights)
+    xent_output, _ = self.lm.FProp(
+        theta.lm,
+        ids,
+        paddings,
+        state0,
+        labels,
+        segment_ids=input_batch.segment_ids,
+        segment_pos=input_batch.segment_pos)
+
+    # +input_batch.num_sentences to account for the end of sequence symbol.
+    num_words = tf.cast(
+        tf.reduce_sum(input_batch.word_count +
+                      tf.cast(input_batch.num_sentences, dtype=tf.int32)),
+        fprop_dtype)
+    predicted_labels = tf.cast(xent_output.per_example_argmax, labels_ids.dtype)
+    num_sentences = tf.reduce_sum(input_batch.num_sentences)
+
+    num_preds = xent_output.total_weight
+    mean_acc = tf.reduce_sum(
+        tf.cast(tf.equal(labels_ids, predicted_labels), fprop_dtype) *
+        weights) / tf.math.maximum(num_preds, 1)
+    loss = xent_output.avg_xent
+    return {
+        'loss': (loss, num_preds),
+        'fraction_of_correct_next_step_preds': (mean_acc, num_preds),
+        'log_pplx': (xent_output.avg_xent, num_preds),
+        'log_pplx_per_word': (xent_output.total_xent / num_words, num_words),
+        'num_predictions': (num_preds, 1),
+        'num_words': (num_words, 1),
+        'num_sentences': (num_sentences, 1)
+    }, {}

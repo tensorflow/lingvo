@@ -106,6 +106,16 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [27.417763, 31.783672, 19.99568, 23.907103, 21.078259, 28.429199],
           np.sum(context_vec_out, axis=1))
 
+  def testCausalSegmentMask(self):
+    # input_batch:6, seq_len:6. Test n = 2 case.
+    with self.session(use_gpu=False) as sess:
+      segment_ids = tf.constant([[1, 1, 1, 0]])
+      mask = attention.CausalSegmentMask(segment_ids, tf.float32)
+      mask_val = sess.run(mask)
+      print(mask_val)
+      atten_allowed = np.sum((mask_val >= 0.0).astype(np.float32))
+      self.assertEqual(7.0, atten_allowed)
+
   def testMultiHeadedAttentionDotProductSegmentMask(self):
     # input_batch:6, seq_len:6. Test n = 2 case.
     with self.session(use_gpu=True) as sess:

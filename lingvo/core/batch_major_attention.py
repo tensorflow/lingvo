@@ -40,6 +40,33 @@ from tensorflow.python.ops import inplace_ops
 # pylint: enable=g-direct-tensorflow-import
 
 
+def CausalSegmentMask(segment_ids, dtype):
+  """Computes the masks which combines causal masking and segment masks.
+
+  Args:
+    segment_ids: a tensor of shape [b, slen], the segment that each token
+      belongs to.
+    dtype: tf dtype.
+
+  Returns:
+    A tensor of shape [b, 1, slen, slen].
+  """
+
+  assert dtype.is_floating
+  # of shape [b, t, t].
+  segment_mask = tf.cast(
+      tf.not_equal(
+          tf.expand_dims(segment_ids, 2), tf.expand_dims(segment_ids, 1)),
+      dtype=dtype)
+  slen = tf.shape(segment_ids)[1]
+  causal_mask = 1 - tf.linalg.band_part(
+      tf.ones([slen, slen], dtype=dtype), -1, 0)
+  causal_mask = tf.expand_dims(causal_mask, 0)
+  combined_mask = tf.cast(tf.greater(causal_mask + segment_mask, 0.5), dtype)
+  min_value = tf.constant(-0.7, dtype=dtype) * dtype.max
+  return tf.expand_dims(combined_mask * min_value, 1)
+
+
 def CausalPadding(slen, dtype=tf.float32):
   return 1 - tf.linalg.band_part(tf.ones([slen, slen], dtype=dtype), -1, 0)
 
@@ -59,7 +86,7 @@ def SegmentMask(segment_id,
     source_segment_id: [B, S]
     dtype: data type of generated mask.
     apply_dtype_min: Outputs a 0/1 padding mask if set to False. This is needed
-    for GPipe layers to avoid nan issues.
+      for GPipe layers to avoid nan issues.
 
   Returns:
     segment_mask: [B, 1, T, S]: A mask that is ready to
@@ -709,9 +736,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       per_step_padding: A mask used by decoder self-attention to prevent
         information flow from future (causal padding). It has shape [B, 1, T] if
         not None.
-      time_step: A scalar or tensor with [B], current decode step, 0-based.
-        if it's a scalar, all the time step are the same decode step.
-        if it's a tensor, it represents current decode step for each sample.
+      time_step: A scalar or tensor with [B], current decode step, 0-based. if
+        it's a scalar, all the time step are the same decode step. if it's a
+        tensor, it represents current decode step for each sample.
       use_short_seq_opt: A bool, whether using short sequence optimization.
 
     Returns:
@@ -878,9 +905,9 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
         its children layers.
       query:    [B, N, H].
       key:      [S, B, N, H] or [S, B, N*H/128, 128].
-      time_step: Current time step.
-        if it's a scalar, all the time step are the same decode step.
-        if it's a tensor, it represents current decode step for each sample.
+      time_step: Current time step. if it's a scalar, all the time step are the
+        same decode step. if it's a tensor, it represents current decode step
+        for each sample.
 
     Returns:
       A Tensor of shape [S, B, N]
@@ -2028,8 +2055,8 @@ class RoutingAttention(MultiHeadedAttention):
       query_paddings: [B, T].
       key_paddings:   [B, S].
       query_relative_position_shift: scalar. The position (relative to key[0])
-         of query[0]. This impacts relative position encoding (not yet
-         implemented) and causal masking.
+        of query[0]. This impacts relative position encoding (not yet
+        implemented) and causal masking.
 
     Returns:
       encoded: [B, T, N, H].
@@ -2603,9 +2630,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for fast decoding. key   - [T, B,
         N, H]. value - [T, B, N, H].
-      time_step: A scalar or tensor with [B], current decode step, 0-based.
-        if it's a scalar, all the time step are the same decode step.
-        if it's a tensor, it represents current decode step for each sample.
+      time_step: A scalar or tensor with [B], current decode step, 0-based. if
+        it's a scalar, all the time step are the same decode step. if it's a
+        tensor, it represents current decode step for each sample.
       use_short_seq_opt: A bool, whether using short sequence optimization.
 
     Returns:
@@ -2924,8 +2951,12 @@ class TransformerLayer(base_layer.BaseLayer):
               symbolic.EvalExpr(symbolic.TENSOR_VALUES, p.input_dim)))
     # First the self-attention layer.
     if p.packed_input:
-      assert aux_segment_mask is not None, ('Need to specify aux_segment_mask '
-                                            'for packed input.')
+      assert segment_mask is not None, ('Need to specify segment_mask '
+                                        'for packed input.')
+      if p.has_aux_atten:
+        assert aux_segment_mask is not None, ('Need to specify aux_segment_mask'
+                                              'for packed input.')
+
     with tf.name_scope('self_atten'):
       atten_vec, atten_probs = self.self_atten.FProp(
           theta.self_atten,
@@ -3332,9 +3363,14 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         with tf.device(
             cluster.WorkerDeviceInModelSplit(
                 self.GetSplitForLayer(self.params.splits, i))):
-          x_out, _ = self.x_layers[i].FProp(theta.x_layers[i], x_in, paddings,
-                                            aux_vec, aux_paddings, segment_mask,
-                                            aux_segment_mask)
+          x_out, _ = self.x_layers[i].FProp(
+              theta.x_layers[i],
+              x_in,
+              paddings,
+              aux_vec,
+              aux_paddings,
+              segment_mask=segment_mask,
+              aux_segment_mask=aux_segment_mask)
     if p.final_layer_norm:
       # Place on the last device.
       with tf.device(
