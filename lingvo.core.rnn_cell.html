@@ -668,6 +668,14 @@ activations of the 4 gates will be masked.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimpleGateDropout._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleGateDropout._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleGateDropout._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.rnn_cell.LSTMCellSimpleGateDropout._GatesInternal">
 <code class="sig-name descname">_GatesInternal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">i_i</span></em>, <em class="sig-param"><span class="n">i_g</span></em>, <em class="sig-param"><span class="n">f_g</span></em>, <em class="sig-param"><span class="n">o_g</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleGateDropout._GatesInternal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleGateDropout._GatesInternal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overriding this function to use the dropout mask.</p>
@@ -800,6 +808,48 @@ Shape [batch, 1]</p></li>
 <dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple._Gates">
 <code class="sig-name descname">_Gates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xmw</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellSimple._Gates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple._Gates" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the new state.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.rnn_cell.</code><code class="sig-name descname">WeightNormalizedLSTMCellSimple</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#WeightNormalizedLSTMCellSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
+<p>An implementation of weight normalized LSTM based on LSTMCellSimple.</p>
+<p>Implements normalization scheme as described in
+<a class="reference external" href="https://arxiv.org/pdf/1602.07868.pdf">https://arxiv.org/pdf/1602.07868.pdf</a></p>
+<p>theta:</p>
+<ul class="simple">
+<li><p>wm: the parameter weight matrix. All gates combined.</p></li>
+<li><p>b: the combined bias vector.</p></li>
+</ul>
+<p>state:</p>
+<ul class="simple">
+<li><p>m: the lstm output. [batch, cell_nodes]</p></li>
+<li><p>c: the lstm cell state. [batch, cell_nodes]</p></li>
+</ul>
+<p>inputs:</p>
+<ul class="simple">
+<li><p>act: a list of input activations. [batch, input_nodes]</p></li>
+<li><p>padding: the padding. [batch, 1].</p></li>
+</ul>
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#WeightNormalizedLSTMCellSimple.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#WeightNormalizedLSTMCellSimple._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes LayerNormalizedLSTMCellSimple.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple._Gates">
+<code class="sig-name descname">_Gates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xmw</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#WeightNormalizedLSTMCellSimple._Gates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple._Gates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the new state.</p>
 </dd></dl>
 
 </dd></dl>
