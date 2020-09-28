@@ -66,6 +66,50 @@ class DatasetsTest(test_utils.TestCase):
     self.assertIn('WARNING:absl:Found a public function BadDataset',
                   assert_log.output[0])
 
+  def testGetDatasetsFindsAllPublicMethodsOnInstanceVar(self):
+
+    class DummyDatasetHolder:
+
+      def Train(self):
+        pass
+
+      def UnexpectedDatasetName(self):
+        pass
+
+    found_datasets = datasets.GetDatasets(DummyDatasetHolder())
+
+    self.assertAllEqual(['Train', 'UnexpectedDatasetName'], found_datasets)
+
+  def testGetDatasetsRaisesErrorOnInvalidDatasetsOnInstanceVar(self):
+
+    class DummyDatasetHolder:
+
+      def Train(self):
+        pass
+
+      def BadDataset(self, any_argument):
+        pass
+
+    with self.assertRaises(datasets.DatasetFunctionError):
+      datasets.GetDatasets(DummyDatasetHolder(), warn_on_error=False)
+
+  def testGetDatasetsWarnsOnErrorOnInstanceVar(self):
+
+    class DummyDatasetHolder:
+
+      def Train(self):
+        pass
+
+      def BadDataset(self, any_argument):
+        pass
+
+    with self.assertLogs() as assert_log:
+      found_datasets = datasets.GetDatasets(
+          DummyDatasetHolder(), warn_on_error=True)
+      self.assertAllEqual(['Train'], found_datasets)
+    self.assertIn('WARNING:absl:Found a public function BadDataset',
+                  assert_log.output[0])
+
 
 if __name__ == '__main__':
   tf.test.main()
