@@ -172,19 +172,45 @@
 
 
 <div class="viewcode-block" id="GetDatasets"><a class="viewcode-back" href="../../lingvo.datasets.html#lingvo.datasets.GetDatasets">[docs]</a><span class="k">def</span> <span class="nf">GetDatasets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">warn_on_error</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns the list of dataset functions (e.g. Train, Dev, ...).&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Returns the list of dataset functions (e.g., Train, Dev, ...).</span>
+
+<span class="sd">  All public functions apart from &#39;GetDatasetParams&#39;, &#39;Model&#39;, &#39;Task&#39;,</span>
+<span class="sd">  &#39;ProgramSchedule&#39; are treated as datasets.  Dataset functions should not</span>
+<span class="sd">  have any required positional arguments.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    cls: A class variable or instance variable.  This function expects to be</span>
+<span class="sd">      called on classes that can be used as model tasks e.g. via</span>
+<span class="sd">      model_registry.RegisterSingleTaskModel.</span>
+<span class="sd">    warn_on_error: When a class contains public methods that cannot be used as a</span>
+<span class="sd">      dataset, if True, logs a warning, if False, raises a DatasetFunctionError.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of strings containing names of valid dataset functions for cls.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    DatasetFunctionError: if the cls contains public methods that cannot be used</span>
+<span class="sd">      as datasets, and warn_on_error is False.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span>
       <span class="bp">cls</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">or</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;GetDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Task&#39;</span><span class="p">,</span> <span class="s1">&#39;ProgramSchedule&#39;</span>
                    <span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
       <span class="c1"># Datasets are assumed to have no required positional arguments.</span>
-      <span class="c1"># Check this assumption for all arguments beyond the first (which will be</span>
-      <span class="c1"># &#39;self&#39; or &#39;cls&#39;).</span>
-      <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">1</span><span class="p">:]</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+      <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="c1"># Class method inspection includes a &#39;self&#39; or &#39;cls&#39; first argument</span>
+        <span class="c1"># that should be ignored. Instances do not have this argument in the</span>
+        <span class="c1"># signature.</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
       <span class="n">positional_arguments</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">default</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">empty</span><span class="p">]</span>
       <span class="k">if</span> <span class="n">positional_arguments</span><span class="p">:</span>
-        <span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Found a public function </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1"> with &#39;</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+          <span class="n">class_name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">class_name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Found a public function </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> in </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s1"> with &#39;</span>
                    <span class="sa">f</span><span class="s1">&#39;required positional arguments: </span><span class="si">{</span><span class="n">positional_arguments</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">warn_on_error</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
