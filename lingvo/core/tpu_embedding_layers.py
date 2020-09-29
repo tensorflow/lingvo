@@ -19,6 +19,7 @@ import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
+from lingvo.core import schedule
 
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
@@ -30,13 +31,13 @@ def _AddTpuEmbeddingSummaryTensor(name, value, weight=1.0):
                        (name, value, tf.convert_to_tensor(weight)))
 
 
+# TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.
 class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
   """Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers."""
 
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('learning_rate', None, 'Used for updating embedding table.')
     p.Define('clip_weight_min', None,
              'The minimum value to clip by; None means -infinity.')
     p.Define('clip_weight_max', None,
@@ -56,9 +57,9 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
     p = self.params
     assert p.name
 
-  @property
-  def tpu_embedding_optimizer_parameters(self):
-    return self._tpu_embedding_optimizer_parameters
+  def CreateOptimizerParameters(self, learning_rate):
+    """Create TPUEmbedding API optimzier parameters."""
+    return NotImplementedError()
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
     """Create slot variables and infeed/retrieval ops.
@@ -77,17 +78,15 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
 class TPUEmbeddingSGDOptimizer(_TPUEmbeddingOptimizer):
   """SGD optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
 
-  def __init__(self, params):
-    super().__init__(params)
+  def CreateOptimizerParameters(self, learning_rate):
     p = self.params
-    self._tpu_embedding_optimizer_parameters = (
-        tpu_embedding_lib.StochasticGradientDescentParameters(
-            learning_rate=p.learning_rate,
-            clip_weight_min=p.clip_weight_min,
-            clip_weight_max=p.clip_weight_max,
-            weight_decay_factor=p.weight_decay_factor,
-            multiply_weight_decay_factor_by_learning_rate=p
-            .multiply_weight_decay_factor_by_learning_rate))
+    return tpu_embedding_lib.StochasticGradientDescentParameters(
+        learning_rate=learning_rate,
+        clip_weight_min=p.clip_weight_min,
+        clip_weight_max=p.clip_weight_max,
+        weight_decay_factor=p.weight_decay_factor,
+        multiply_weight_decay_factor_by_learning_rate=p
+        .multiply_weight_decay_factor_by_learning_rate)
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
     load_op_list = []
@@ -141,18 +140,16 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
         'accurate but faster. See tpu_embedding_lib for more details.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def CreateOptimizerParameters(self, learning_rate):
     p = self.params
-    self._tpu_embedding_optimizer_parameters = (
-        tpu_embedding_lib.AdagradParameters(
-            learning_rate=p.learning_rate,
-            initial_accumulator=p.initial_accumulator,
-            clip_weight_min=p.clip_weight_min,
-            clip_weight_max=p.clip_weight_max,
-            weight_decay_factor=p.weight_decay_factor,
-            multiply_weight_decay_factor_by_learning_rate=p
-            .multiply_weight_decay_factor_by_learning_rate))
+    return tpu_embedding_lib.AdagradParameters(
+        learning_rate=learning_rate,
+        initial_accumulator=p.initial_accumulator,
+        clip_weight_min=p.clip_weight_min,
+        clip_weight_max=p.clip_weight_max,
+        weight_decay_factor=p.weight_decay_factor,
+        multiply_weight_decay_factor_by_learning_rate=p
+        .multiply_weight_decay_factor_by_learning_rate)
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
     p = self.params
@@ -233,19 +230,9 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         'optimizer', None,
         'Table optimizer parameters. Will override the optimizer parameters '
         'defined in this table\'s TPUEmbeddingLayer.')
-    p.Define(
-        'learning_rate', None, 'Static learning rate for this table. If '
-        'learning_rate and lr_schedule are both `None`, static learning '
-        'rate as specified in local optimization_parameters will be used. '
-        'In case local optimization_parameters is None, TPUEmbeddingLayer '
-        'optimization_parameters will be used. lr_schedule must be None '
-        'if learning_rate is not None.')
-    p.Define(
-        'lr_schedule', None, 'Use dynamic learning rate given by a Lingvo '
-        'lr schedule. If learning_rate and lr_schedule are both '
-        'None, static learning rate as specified in '
-        'optimization_parameters is used. learning_rate must be None if '
-        'lr_schedule is not None.')
+    p.Define('learning_rate', None,
+             'Overrides TPUEmbeddingLayer\'s learning_rate.')
+    p.Define('lr_schedule', None, 'Overrides TPUEmbeddingLayer\'s lr_schedule.')
     return p
 
   def __init__(self, params):
@@ -260,6 +247,9 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       assert p.max_sequence_length
     if p.max_sequence_length is not None and p.max_sequence_length > 0:
       assert p.combiner is None
+    assert p.optimizer
+    assert p.learning_rate
+    assert p.lr_schedule
 
     self._ids_per_shard = int(math.ceil(float(p.vocab_size) / p.num_tpu_hosts))
     self._padded_vocab_size = self._ids_per_shard * p.num_tpu_hosts
@@ -270,30 +260,24 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       self._max_sequence_length = p.max_sequence_length
 
     self.CreateChild('optimizer', p.optimizer)
+    self.CreateChild('schedule', p.lr_schedule)
 
-    def GetLearningRateFn():
-      if p.lr_schedule is None:
-        return None
-      else:
-        self.CreateChild('schedule', p.lr_schedule)
-
-        def LearningRateFn(step):
-          lr = self.schedule.Value(step)
-          _AddTpuEmbeddingSummaryTensor('tpu_embedding_lr/{}'.format(p.name),
-                                        lr)
-          return lr
-
-        return LearningRateFn
+    def LearningRateFn(step):
+      lr = self.schedule.Value(step) * p.learning_rate
+      _AddTpuEmbeddingSummaryTensor('tpu_embedding_lr/{}'.format(p.name), lr)
+      return lr
 
     self._table_name = '{}_table'.format(p.name)
     self._table_config = tpu_embedding_lib.TableConfig(
         self._padded_vocab_size,
         p.embedding_dim,
         combiner=p.combiner,
-        learning_rate=p.learning_rate,
-        learning_rate_fn=GetLearningRateFn(),
-        optimization_parameters=self.optimizer
-        .tpu_embedding_optimizer_parameters)
+        learning_rate=None,
+        learning_rate_fn=LearningRateFn,
+        # All TableConfigs passed to API will have a learning rate function,
+        # so the learning_rate in the optimization_parameters is not used.
+        optimization_parameters=self.optimizer.CreateOptimizerParameters(
+            p.learning_rate))
 
     self._load_op_list = []
     self._retrieve_op_list = []
@@ -440,6 +424,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         'optimizer', TPUEmbeddingAdagradOptimizer.Params(),
         'Layer optimizer parameters. Will be used for any TPUEmbeddingTables '
         'with None optimizer parameters.')
+    p.Define('learning_rate', 0.0, 'Learning rate.')
+    p.Define(
+        'lr_schedule', schedule.ContinuousSchedule.Params(),
+        'Lingvo learning rate schedule. Will be multiplied to learning rate.')
     return p
 
   def __init__(self, params):
@@ -449,6 +437,9 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.tables
     assert p.batch_size > 0
     assert p.name
+    assert p.optimizer
+    assert p.learning_rate
+    assert p.lr_schedule
 
     num_tpu_hosts = p.tables[0].num_tpu_hosts
     assert all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
@@ -465,6 +456,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       for table_params in p.tables:
         if table_params.optimizer is None:
           table_params.optimizer = p.optimizer.Copy()
+        if table_params.learning_rate is None:
+          table_params.learning_rate = p.learning_rate
+        if table_params.lr_schedule is None:
+          table_params.lr_schedule = p.lr_schedule.Copy()
 
     self.CreateChildren('tables', p.tables)
 
