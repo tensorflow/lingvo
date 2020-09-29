@@ -167,6 +167,7 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">schedule</span>
 
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
@@ -178,13 +179,13 @@
                        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">)))</span></div>
 
 
+<span class="c1"># TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.</span>
 <div class="viewcode-block" id="_TPUEmbeddingOptimizer"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer">[docs]</a><span class="k">class</span> <span class="nc">_TPUEmbeddingOptimizer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="_TPUEmbeddingOptimizer.Params"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Used for updating embedding table.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_weight_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The minimum value to clip by; None means -infinity.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_weight_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -204,9 +205,9 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">tpu_embedding_optimizer_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_optimizer_parameters</span>
+<div class="viewcode-block" id="_TPUEmbeddingOptimizer.CreateOptimizerParameters"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer.CreateOptimizerParameters">[docs]</a>  <span class="k">def</span> <span class="nf">CreateOptimizerParameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create TPUEmbedding API optimzier parameters.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="_TPUEmbeddingOptimizer.CreateSlotVariablesAndOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer.CreateSlotVariablesAndOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_vars</span><span class="p">,</span> <span class="n">tpu_embedding_table</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create slot variables and infeed/retrieval ops.</span>
@@ -225,17 +226,15 @@
 <div class="viewcode-block" id="TPUEmbeddingSGDOptimizer"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingSGDOptimizer</span><span class="p">(</span><span class="n">_TPUEmbeddingOptimizer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;SGD optimizer for TPUEmbeddingLayer, TPUEmbeddingTable.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<div class="viewcode-block" id="TPUEmbeddingSGDOptimizer.CreateOptimizerParameters"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer.CreateOptimizerParameters">[docs]</a>  <span class="k">def</span> <span class="nf">CreateOptimizerParameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_optimizer_parameters</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">StochasticGradientDescentParameters</span><span class="p">(</span>
-            <span class="n">learning_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span>
-            <span class="n">clip_weight_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_min</span><span class="p">,</span>
-            <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
-            <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
-            <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
-            <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">StochasticGradientDescentParameters</span><span class="p">(</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+        <span class="n">clip_weight_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_min</span><span class="p">,</span>
+        <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
+        <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
+        <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
+        <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_vars</span><span class="p">,</span> <span class="n">tpu_embedding_table</span><span class="p">):</span>
     <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -289,18 +288,16 @@
         <span class="s1">&#39;accurate but faster. See tpu_embedding_lib for more details.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<div class="viewcode-block" id="TPUEmbeddingAdagradOptimizer.CreateOptimizerParameters"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdagradOptimizer.CreateOptimizerParameters">[docs]</a>  <span class="k">def</span> <span class="nf">CreateOptimizerParameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_optimizer_parameters</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
-            <span class="n">learning_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span>
-            <span class="n">initial_accumulator</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">,</span>
-            <span class="n">clip_weight_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_min</span><span class="p">,</span>
-            <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
-            <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
-            <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
-            <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+        <span class="n">initial_accumulator</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">,</span>
+        <span class="n">clip_weight_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_min</span><span class="p">,</span>
+        <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
+        <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
+        <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
+        <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_vars</span><span class="p">,</span> <span class="n">tpu_embedding_table</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -381,19 +378,9 @@
         <span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Table optimizer parameters. Will override the optimizer parameters &#39;</span>
         <span class="s1">&#39;defined in this table</span><span class="se">\&#39;</span><span class="s1">s TPUEmbeddingLayer.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Static learning rate for this table. If &#39;</span>
-        <span class="s1">&#39;learning_rate and lr_schedule are both `None`, static learning &#39;</span>
-        <span class="s1">&#39;rate as specified in local optimization_parameters will be used. &#39;</span>
-        <span class="s1">&#39;In case local optimization_parameters is None, TPUEmbeddingLayer &#39;</span>
-        <span class="s1">&#39;optimization_parameters will be used. lr_schedule must be None &#39;</span>
-        <span class="s1">&#39;if learning_rate is not None.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Use dynamic learning rate given by a Lingvo &#39;</span>
-        <span class="s1">&#39;lr schedule. If learning_rate and lr_schedule are both &#39;</span>
-        <span class="s1">&#39;None, static learning rate as specified in &#39;</span>
-        <span class="s1">&#39;optimization_parameters is used. learning_rate must be None if &#39;</span>
-        <span class="s1">&#39;lr_schedule is not None.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Overrides TPUEmbeddingLayer</span><span class="se">\&#39;</span><span class="s1">s learning_rate.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Overrides TPUEmbeddingLayer</span><span class="se">\&#39;</span><span class="s1">s lr_schedule.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -408,6 +395,9 @@
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">combiner</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">)</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
@@ -418,30 +408,24 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_max_sequence_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">GetLearningRateFn</span><span class="p">():</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">LearningRateFn</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-          <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
-          <span class="n">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="s1">&#39;tpu_embedding_lr/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
-                                        <span class="n">lr</span><span class="p">)</span>
-          <span class="k">return</span> <span class="n">lr</span>
-
-        <span class="k">return</span> <span class="n">LearningRateFn</span>
+    <span class="k">def</span> <span class="nf">LearningRateFn</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+      <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
+      <span class="n">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="s1">&#39;tpu_embedding_lr/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">lr</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">lr</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_table&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TableConfig</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>
         <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span>
-        <span class="n">learning_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span>
-        <span class="n">learning_rate_fn</span><span class="o">=</span><span class="n">GetLearningRateFn</span><span class="p">(),</span>
-        <span class="n">optimization_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span>
-        <span class="o">.</span><span class="n">tpu_embedding_optimizer_parameters</span><span class="p">)</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">learning_rate_fn</span><span class="o">=</span><span class="n">LearningRateFn</span><span class="p">,</span>
+        <span class="c1"># All TableConfigs passed to API will have a learning rate function,</span>
+        <span class="c1"># so the learning_rate in the optimization_parameters is not used.</span>
+        <span class="n">optimization_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">CreateOptimizerParameters</span><span class="p">(</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">))</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -588,6 +572,10 @@
         <span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">TPUEmbeddingAdagradOptimizer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;Layer optimizer parameters. Will be used for any TPUEmbeddingTables &#39;</span>
         <span class="s1">&#39;with None optimizer parameters.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Learning rate.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">schedule</span><span class="o">.</span><span class="n">ContinuousSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Lingvo learning rate schedule. Will be multiplied to learning rate.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -597,6 +585,9 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span>
 
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">==</span> <span class="n">num_tpu_hosts</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">])</span>
@@ -613,6 +604,10 @@
       <span class="k">for</span> <span class="n">table_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">table_params</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">table_params</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">table_params</span><span class="o">.</span><span class="n">learning_rate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">table_params</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
+        <span class="k">if</span> <span class="n">table_params</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">table_params</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
 
