@@ -341,7 +341,10 @@ custom_kernel_library(
     name = "generic_input_op_kernels",
     srcs = ["generic_input_op_kernels.cc"],
     op_def_lib = [":x_ops"],
-    deps = [":input_common"],
+    deps = [
+        ":input_common",
+        # Implicit absl.memory dependency.
+    ],
 )
 
 custom_kernel_library(

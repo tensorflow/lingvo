@@ -270,10 +270,7 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
           bucket_batch_limit=[1])
 
   def testTfData(self):
-    """Checks that GenericInput can be invoked from a tf.data.Dataset.
-
-    TODO(b/162015923): Fix generic_input op to work with tf.data.
-    """
+    """Checks that GenericInput can be invoked from a tf.data.Dataset."""
 
     def _input_batch():
       return run_basic_graph(use_nested_map=True)
@@ -284,9 +281,10 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session(use_gpu=False) as sess:
       it = tf.compat.v1.data.make_initializable_iterator(dataset)
-      with self.assertRaises(tf.errors.NotFoundError):
-        # Gives an error that the user-provided function is undefined.
-        sess.run(it.initializer)
+      sess.run(it.initializer)
+      batch = it.get_next()
+      for _ in range(10):  # Read 10 batches.
+        print(sess.run(batch))
 
   @unittest.skip('This test is expected to crash.')
   def testFatalErrors(self):
