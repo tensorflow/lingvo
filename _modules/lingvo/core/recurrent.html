@@ -771,7 +771,8 @@
                      <span class="n">inputs</span><span class="p">,</span>
                      <span class="n">accumulator_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">check_stateful_ops</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                     <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                     <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">allowed_tensor_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Reflects on the cell_fn, applying asserts and returning needed info.</span>
 
 <span class="sd">  Args:</span>
@@ -785,6 +786,8 @@
 <span class="sd">    check_stateful_ops: if True, raise a `ValueError` if cell_fn is stateful.</span>
 <span class="sd">    allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture</span>
 <span class="sd">      tensors.</span>
+<span class="sd">    allowed_tensor_captures: A list of tensors that may be captured. If</span>
+<span class="sd">      specified, overrides allow_implicit_capture.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    `.NestedMap` of implicit captures that the cell_fn takes.</span>
@@ -825,7 +828,13 @@
   <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
   <span class="n">captured_inputs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Fwd</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">captured_inputs</span><span class="p">:</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">allow_implicit_capture</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">allowed_tensor_captures</span><span class="p">:</span>
+      <span class="n">allowed_tensor_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">allowed_tensor_captures</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">captured_inputs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_tensor_names</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Recurrent cell_fn implicitly captured tensor: </span><span class="si">%r</span><span class="s1"> &#39;</span>
+                           <span class="s1">&#39;but it is not an allowed captured tensor.&#39;</span> <span class="o">%</span> <span class="n">c</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">allow_implicit_capture</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Recurrent cell_fn implicitly captures tensors but &#39;</span>
                        <span class="s1">&#39;implicit capture is disabled or a custom cell_grad fn &#39;</span>
                        <span class="s1">&#39;is in use. Captured tensors: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">captured_inputs</span><span class="p">)</span>
@@ -840,7 +849,8 @@
                  <span class="n">inputs</span><span class="p">,</span>
                  <span class="n">accumulator_layer</span><span class="p">,</span>
                  <span class="n">check_stateful_ops</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                 <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                 <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">allowed_tensor_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns the gradient function for cell_fn.</span>
 
 <span class="sd">  Args:</span>
@@ -854,6 +864,8 @@
 <span class="sd">    check_stateful_ops: if True, raise a `ValueError` if cell_fn is stateful.</span>
 <span class="sd">    allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture</span>
 <span class="sd">      tensors.</span>
+<span class="sd">    allowed_tensor_captures: A list of tensors that may be captured. If</span>
+<span class="sd">      specified, overrides allow_implicit_capture.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Returns (cell_grad, implicit_captures). The passed in cell_grad is returned</span>
@@ -869,7 +881,8 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">_ReflectOnCellFn</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
                                        <span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">check_stateful_ops</span><span class="p">,</span>
-                                       <span class="n">allow_implicit_capture</span><span class="p">)</span>
+                                       <span class="n">allow_implicit_capture</span><span class="p">,</span>
+                                       <span class="n">allowed_tensor_captures</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="ow">not</span> <span class="n">cell_grad</span><span class="p">:</span>
 
@@ -1088,7 +1101,8 @@
               <span class="n">extras</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">check_stateful_ops</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
               <span class="n">accumulator_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-              <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+              <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">allowed_tensor_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Compute a recurrent neural net.</span>
 
 <span class="sd">  Roughly, `Recurrent()` computes the following::</span>
@@ -1142,6 +1156,8 @@
 <span class="sd">      disabled for gradients. Uses the state key `accumulators`.</span>
 <span class="sd">    allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture</span>
 <span class="sd">      tensors. Only allowed if an explicit `cell_grad` is not given.</span>
+<span class="sd">    allowed_tensor_captures: A list of tensors that may be captured. If</span>
+<span class="sd">      specified, overrides allow_implicit_capture.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    `accumulate_state` and the final state.</span>
@@ -1159,6 +1175,7 @@
   <span class="n">inputs</span> <span class="o">=</span> <span class="n">_TransformDType</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">cell_grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">allow_implicit_capture</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">allowed_tensor_captures</span> <span class="o">=</span> <span class="kc">None</span>
 
   <span class="c1"># Short-cut for the single timestep with default grad function case.</span>
   <span class="k">if</span> <span class="n">cell_grad</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_IsSingleTimeStep</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
@@ -1173,7 +1190,8 @@
   <span class="n">cell_grad</span><span class="p">,</span> <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">_GetCellGrad</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span>
                                               <span class="n">inputs</span><span class="p">,</span> <span class="n">accumulator_layer</span><span class="p">,</span>
                                               <span class="n">check_stateful_ops</span><span class="p">,</span>
-                                              <span class="n">allow_implicit_capture</span><span class="p">)</span>
+                                              <span class="n">allow_implicit_capture</span><span class="p">,</span>
+                                              <span class="n">allowed_tensor_captures</span><span class="p">)</span>
 
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;recurrent_cellfn_extras&#39;</span><span class="p">):</span>
     <span class="c1"># Derives &#39;extras&#39; so that we can allocate extras&#39; accumulator.</span>
