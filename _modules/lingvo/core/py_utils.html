@@ -3424,12 +3424,18 @@
 
 
 <div class="viewcode-block" id="_AddVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._AddVN">[docs]</a><span class="k">def</span> <span class="nf">_AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper method to add variational noise to weights by params.&quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="n">seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span>
   <span class="k">if</span> <span class="n">seed</span> <span class="ow">and</span> <span class="n">step</span><span class="p">:</span>
     <span class="n">seed</span> <span class="o">+=</span> <span class="n">step</span> <span class="o">*</span> <span class="mi">203984</span>
-  <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">deterministic</span><span class="p">:</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">GetGlobalStep</span><span class="p">()</span> <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">step</span>
+    <span class="n">noises</span> <span class="o">=</span> <span class="n">DeterministicVN</span><span class="p">(</span>
+        <span class="n">p</span><span class="p">,</span> <span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">step</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">noises</span>
   <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noises</span></div>
 
 
@@ -3442,7 +3448,7 @@
 
 
 <div class="viewcode-block" id="AddPerStepVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddPerStepVN">[docs]</a><span class="k">def</span> <span class="nf">AddPerStepVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Adds per-setp variational noise to weights if specified by params.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Adds per-step variational noise to weights if specified by params.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
     <span class="n">weights</span> <span class="o">=</span> <span class="n">_AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
@@ -3452,7 +3458,8 @@
 <div class="viewcode-block" id="VariationalNoiseParams"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VariationalNoiseParams">[docs]</a><span class="k">def</span> <span class="nf">VariationalNoiseParams</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span>
                            <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                           <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                           <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">deterministic</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a hyperparams for variational noise.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -3464,11 +3471,19 @@
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;per_step_vn&#39;</span><span class="p">,</span> <span class="n">per_step_vn</span><span class="p">,</span>
            <span class="s1">&#39;Adds per-timesetp variational noise iff True.&#39;</span><span class="p">)</span>
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="s1">&#39;Random seed used to generate noise.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;deterministic&#39;</span><span class="p">,</span> <span class="n">deterministic</span><span class="p">,</span> <span class="s1">&#39;If true, generate noise using&#39;</span>
+      <span class="s1">&#39;stateless random ops that are compatible with TF functional ops.&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="DefaultVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.DefaultVN">[docs]</a><span class="k">def</span> <span class="nf">DefaultVN</span><span class="p">():</span>
-  <span class="k">return</span> <span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">VariationalNoiseParams</span><span class="p">(</span>
+      <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">deterministic</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 
 <span class="c1"># To disable VN of a layer, we use 1.0 in the first input parameter</span>
