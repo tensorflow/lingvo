@@ -623,7 +623,8 @@ def _ReflectOnCellFn(cell_fn,
                      inputs,
                      accumulator_layer=None,
                      check_stateful_ops=False,
-                     allow_implicit_capture=False):
+                     allow_implicit_capture=False,
+                     allowed_tensor_captures=None):
   """Reflects on the cell_fn, applying asserts and returning needed info.
 
   Args:
@@ -637,6 +638,8 @@ def _ReflectOnCellFn(cell_fn,
     check_stateful_ops: if True, raise a `ValueError` if cell_fn is stateful.
     allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture
       tensors.
+    allowed_tensor_captures: A list of tensors that may be captured. If
+      specified, overrides allow_implicit_capture.
 
   Returns:
     `.NestedMap` of implicit captures that the cell_fn takes.
@@ -677,7 +680,13 @@ def _ReflectOnCellFn(cell_fn,
   ret = py_utils.NestedMap()
   captured_inputs = list(Fwd.captured_inputs)
   if captured_inputs:
-    if not allow_implicit_capture:
+    if allowed_tensor_captures:
+      allowed_tensor_names = [x.name for x in allowed_tensor_captures]
+      for c in captured_inputs:
+        if c.name not in allowed_tensor_names:
+          raise ValueError('Recurrent cell_fn implicitly captured tensor: %r '
+                           'but it is not an allowed captured tensor.' % c)
+    elif not allow_implicit_capture:
       raise ValueError('Recurrent cell_fn implicitly captures tensors but '
                        'implicit capture is disabled or a custom cell_grad fn '
                        'is in use. Captured tensors: %r' % captured_inputs)
@@ -692,7 +701,8 @@ def _GetCellGrad(cell_fn,
                  inputs,
                  accumulator_layer,
                  check_stateful_ops=False,
-                 allow_implicit_capture=False):
+                 allow_implicit_capture=False,
+                 allowed_tensor_captures=None):
   """Returns the gradient function for cell_fn.
 
   Args:
@@ -706,6 +716,8 @@ def _GetCellGrad(cell_fn,
     check_stateful_ops: if True, raise a `ValueError` if cell_fn is stateful.
     allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture
       tensors.
+    allowed_tensor_captures: A list of tensors that may be captured. If
+      specified, overrides allow_implicit_capture.
 
   Returns:
     Returns (cell_grad, implicit_captures). The passed in cell_grad is returned
@@ -721,7 +733,8 @@ def _GetCellGrad(cell_fn,
   """
   implicit_captures = _ReflectOnCellFn(cell_fn, theta, state0, inputs,
                                        accumulator_layer, check_stateful_ops,
-                                       allow_implicit_capture)
+                                       allow_implicit_capture,
+                                       allowed_tensor_captures)
 
   if not cell_grad:
 
@@ -940,7 +953,8 @@ def Recurrent(theta,
               extras=None,
               check_stateful_ops=False,
               accumulator_layer=None,
-              allow_implicit_capture=False):
+              allow_implicit_capture=False,
+              allowed_tensor_captures=None):
   """Compute a recurrent neural net.
 
   Roughly, `Recurrent()` computes the following::
@@ -994,6 +1008,8 @@ def Recurrent(theta,
       disabled for gradients. Uses the state key `accumulators`.
     allow_implicit_capture: Whether to allow the `cell_fn` to implicitly capture
       tensors. Only allowed if an explicit `cell_grad` is not given.
+    allowed_tensor_captures: A list of tensors that may be captured. If
+      specified, overrides allow_implicit_capture.
 
   Returns:
     `accumulate_state` and the final state.
@@ -1011,6 +1027,7 @@ def Recurrent(theta,
   inputs = _TransformDType(inputs)
   if cell_grad is not None:
     allow_implicit_capture = False
+    allowed_tensor_captures = None
 
   # Short-cut for the single timestep with default grad function case.
   if cell_grad is None and _IsSingleTimeStep(inputs):
@@ -1025,7 +1042,8 @@ def Recurrent(theta,
   cell_grad, implicit_captures = _GetCellGrad(cell_fn, cell_grad, theta, state0,
                                               inputs, accumulator_layer,
                                               check_stateful_ops,
-                                              allow_implicit_capture)
+                                              allow_implicit_capture,
+                                              allowed_tensor_captures)
 
   with tf.name_scope('recurrent_cellfn_extras'):
     # Derives 'extras' so that we can allocate extras' accumulator.
