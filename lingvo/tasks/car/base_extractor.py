@@ -170,7 +170,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
   def class_names(self):
     raise NotImplementedError('Return a list of class names strings.')
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
 
     def Proc(record):
       """Parses a serialized tf.Example record."""
@@ -181,7 +181,10 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     args = self.CommonInputOpArgs()
     args['bucket_upper_bound'] = [BUCKET_UPPER_BOUND - 1]
     return generic_input.GenericInput(
-        processor=Proc, file_pattern=file_pattern, **args)
+        processor=Proc,
+        file_pattern=file_pattern,
+        input_source_weights=input_source_weights,
+        **args)
 
   def ProcessFeatures(self, features):
     """Process extracted features.
