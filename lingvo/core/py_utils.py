@@ -1354,11 +1354,6 @@ class WeightInit:
     return WeightInit._Params('xavier', scale, seed)
 
   @staticmethod
-  def XavierGaussian(scale=1.0, seed=None):
-    """tf.random.normal(0, sqrt(2.0 / (in + out)))."""
-    return WeightInit._Params('xavier_gaussian', scale, seed)
-
-  @staticmethod
   def XavierWithFixupParams(scale=1.0,
                             depth=1.0,
                             layers_per_residual_block=1.0,
@@ -1396,6 +1391,11 @@ class WeightInit:
   def GaussianSqrtFanOut(scale=1.0, seed=None):
     """scale * tf.random.normal(0, 1 / sqrt(fan_out))."""
     return WeightInit._Params('gaussian_sqrt_fanout', scale, seed)
+
+  @staticmethod
+  def GaussianSqrtFanAvg(scale=1.0, seed=None):
+    """tf.random.normal(0, sqrt(2.0 / (in + out)))."""
+    return WeightInit._Params('gaussian_sqrt_fanavg', scale, seed)
 
   @staticmethod
   def UniformSqrtDim(scale=1.0, seed=None):
@@ -2043,14 +2043,14 @@ def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
     _, fan_out = GetFanInFanOut(shape)
     if fan_out is not None:
       scale *= 1.0 / math.sqrt(fan_out)
-  if method == 'xavier_gaussian':
+  if method in ['gaussian_sqrt_fanavg']:
     fan_in, fan_out = GetFanInFanOut(shape)
     if fan_in is not None and fan_out is not None:
       scale *= math.sqrt(2.0 / (fan_in + fan_out))
 
   if method in [
       'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
-      'gaussian_sqrt_fanout', 'xavier_gaussian'
+      'gaussian_sqrt_fanout', 'gaussian_sqrt_fanavg'
   ]:
     v_init = init_ops.random_normal_initializer(
         mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
@@ -2282,14 +2282,14 @@ def _CreateVarInitStateless(name, method, shape, dim0, seed, scale, init_dtype):
     _, fan_out = GetFanInFanOut(shape)
     if fan_out is not None:
       scale *= 1.0 / math.sqrt(fan_out)
-  if method == 'xavier_gaussian':
+  if method in ['gaussian_sqrt_fanavg']:
     fan_in, fan_out = GetFanInFanOut(shape)
     if fan_in is not None and fan_out is not None:
       scale *= math.sqrt(2.0 / (fan_in + fan_out))
 
   if method in [
       'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
-      'gaussian_sqrt_fanout', 'xavier_gaussian'
+      'gaussian_sqrt_fanout', 'gaussian_sqrt_fanavg'
   ]:
     v_init = _DeterministicRandomNormalInitializer(
         seed=seed, mean=0., stddev=scale)

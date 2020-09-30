@@ -127,7 +127,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
             py_utils.WeightInit.TruncatedGaussianSqrtDim,
             py_utils.WeightInit.TruncatedGaussianSqrtFanIn,
             py_utils.WeightInit.TruncatedGaussianSqrtFanOut,
-            py_utils.WeightInit.XavierGaussian,
+            py_utils.WeightInit.GaussianSqrtFanAvg,
         ]
         shapes = [[], [3], [2, 4], [3, 3, 2, 4]]
         col = ['col1', 'col2']
@@ -253,7 +253,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
           py_utils.WeightInit.TruncatedGaussianSqrtFanIn,
           py_utils.WeightInit.GaussianSqrtFanOut,
           py_utils.WeightInit.TruncatedGaussianSqrtFanOut,
-          py_utils.WeightInit.XavierGaussian,
+          py_utils.WeightInit.GaussianSqrtFanAvg,
       ]
       dtypes = [tf.float32]
       shapes = [[1, 1, 2, 3]]
@@ -280,7 +280,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
               # TruncatedGaussianSqrtFanOut.
               [[[[-0.049076, -0.25183302, -1.79192507],
                  [0.93166995, -0.83121753, -1.40264213]]]],
-              # XavierGaussian.
+              # GaussianSqrtFanAvg.
               [[[[-0.59545106, 1.232773, -0.2630677],
                  [0.11635535, 0.9317614, 0.16670291]]]],
           ],
