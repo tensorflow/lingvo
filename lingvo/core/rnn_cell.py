@@ -1008,14 +1008,24 @@ class LSTMCellSimpleGateDropout(LSTMCellSimple):
         'Whether to use the dropout_scale on the masked activations. If true,'
         'the activations will be multipled by 1/keep_rate, similar to the '
         'scale operation of dropout layers.')
+    p.Define(
+        'activation_mask_init_params', None,
+        'Parameters that define how the initial activation mask values are set '
+        'for each cell. Must be one of the static functions defined in '
+        'py_utils.WeightInit.')
+
     return p
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    if p.activation_mask_init_params is None:
+      p.activation_mask_init_params = py_utils.WeightInit.UniformPositive(
+          2.0, seed=p.random_seed)
+
     activation_mask_pc = py_utils.WeightParams(
         shape=[self.hidden_size],
-        init=py_utils.WeightInit.UniformPositive(2.0, seed=p.random_seed),
+        init=p.activation_mask_init_params,
         dtype=p.dtype)
     self.CreateVariable(
         'activation_mask', activation_mask_pc, theta_fn=None, trainable=False)
