@@ -2295,12 +2295,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     flat_ids = tf.reshape(ids, [-1])
     embs_result = self._FpropImpl(self.QWeight(theta.wm), flat_ids)
     if p.vn.global_vn or p.vn.per_step_vn:
-      emb_noise = p.vn.scale * tf.random.normal(
-          tf.shape(embs_result),
-          stddev=1.0,
-          dtype=embs_result.dtype,
-          seed=p.random_seed)
-      embs_result += emb_noise
+      p.vn.seed = p.random_seed
+      embs_result = py_utils.AddGlobalVN(p, embs_result)
 
     if p.scale_sqrt_depth:
       embs_result *= p.embedding_dim**0.5
