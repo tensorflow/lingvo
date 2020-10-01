@@ -31,6 +31,8 @@ There are three types of batch sizes:
 TODO(rpang): Deal with on packed_inputs.
 """
 
+import collections as py_collections
+import contextlib
 import inspect
 
 import lingvo.compat as tf
@@ -53,6 +55,25 @@ from tensorflow.python.tpu import tpu_feed
 # pylint: enable=g-direct-tensorflow-import
 
 DEFAULT_TOKENIZER_KEY = 'default'
+
+# Helper class to record the current infeed host we are working on.
+InfeedContext = py_collections.namedtuple(
+    'InfeedContext', ['infeed_host_index', 'num_infeed_hosts'])
+_INFEED_CONTEXT = py_utils.ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def InfeedContextScope(infeed_host_index, num_infeed_hosts):
+  _INFEED_CONTEXT.stack.append(
+      InfeedContext(infeed_host_index, num_infeed_hosts))
+  try:
+    yield
+  finally:
+    _INFEED_CONTEXT.stack.pop()
+
+
+def GetInfeedContext():
+  return _INFEED_CONTEXT.stack[-1] if _INFEED_CONTEXT.stack else None
 
 
 class BaseInputGenerator(base_layer.BaseLayer):
@@ -281,7 +302,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('num_infeed_hosts: %d', num_infeed_hosts)
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
-      with tf.device(host_device):
+      with tf.device(host_device), InfeedContextScope(
+          infeed_host_index=task_id, num_infeed_hosts=num_infeed_hosts):
         batch = self.GetPreprocessedInputBatch()
         if isinstance(batch, py_utils.NestedMap):
           # Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.
