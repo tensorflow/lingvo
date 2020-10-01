@@ -2188,7 +2188,13 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
 
     def EmbGather(xs):
       """Lookups embedding vectors."""
-      return tf.nn.embedding_lookup(xs.embs, xs.ids_vec)
+      # If tf.gather is used, the gradient for the wm will be represented as
+      # IndexedSlices which is sparse. tf.tpu.cross_replica_sum turns
+      # IndexedSlices into a dense tensor with undefined first dimension.
+      # This may cause issues on TPU so instead we just wrap this with
+      # tf.identity which allows tf.tpu.cross_replica_sum to properly compute
+      # the first dim.
+      return tf.nn.embedding_lookup(tf.identity(xs.embs), xs.ids_vec)
 
     xs = py_utils.NestedMap(embs=embs, ids_vec=ids_vec)
     if self._fprop_mode == 'matmul':
@@ -2243,15 +2249,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
                                             self.vars.threshold)
     else:
-      # If tf.gather is used, the gradient for the wm will be represented as
-      # IndexedSlices which is sparse. tf.tpu.cross_replica_sum turns
-      # IndexedSlices into a dense tensor with undefined first dimension.
-      # This may cause issues on TPU so instead we just wrap this with
-      # tf.identity which allows tf.tpu.cross_replica_sum to properly compute
-      # the first dim.
-      # NOTE: This may potentially lead to unintended copies on CPU/GPU.
-      theta_fn = tf.identity if self._fprop_mode == 'gather' else None
-      self.CreateVariable('wm', pc, theta_fn=theta_fn)
+      self.CreateVariable('wm', pc, theta_fn=None)
 
   def EmbLookupDefaultTheta(self, ids):
     """Lookups embedding vectors for ids."""
