@@ -179,6 +179,8 @@
 <span class="sd">TODO(rpang): Deal with on packed_inputs.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">collections</span> <span class="k">as</span> <span class="nn">py_collections</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -201,6 +203,25 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 <span class="n">DEFAULT_TOKENIZER_KEY</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+
+<span class="c1"># Helper class to record the current infeed host we are working on.</span>
+<span class="n">InfeedContext</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;InfeedContext&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;infeed_host_index&#39;</span><span class="p">,</span> <span class="s1">&#39;num_infeed_hosts&#39;</span><span class="p">])</span>
+<span class="n">_INFEED_CONTEXT</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="InfeedContextScope"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.InfeedContextScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">InfeedContextScope</span><span class="p">(</span><span class="n">infeed_host_index</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="p">):</span>
+  <span class="n">_INFEED_CONTEXT</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+      <span class="n">InfeedContext</span><span class="p">(</span><span class="n">infeed_host_index</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="p">))</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_INFEED_CONTEXT</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GetInfeedContext"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.GetInfeedContext">[docs]</a><span class="k">def</span> <span class="nf">GetInfeedContext</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">_INFEED_CONTEXT</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_INFEED_CONTEXT</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -429,7 +450,8 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_infeed_hosts: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
       <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">),</span> <span class="n">InfeedContextScope</span><span class="p">(</span>
+          <span class="n">infeed_host_index</span><span class="o">=</span><span class="n">task_id</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="o">=</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
         <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
           <span class="c1"># Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.</span>
