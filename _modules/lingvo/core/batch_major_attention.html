@@ -317,6 +317,12 @@
         <span class="s1">&#39;Whether it is out projection or not. If False, we use &#39;</span>
         <span class="s1">&#39;&quot;BTD,DNH-&gt;BTNH&quot; for query,key,value projection. Otherwise we use &#39;</span>
         <span class="s1">&#39;&quot;BTNH,DNH-&gt;BTD&quot; for output projection.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;make_output_proj_no_op&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True no output projection is &#39;</span>
+        <span class="s1">&#39;applied. This should be set with is_output_projection True and will &#39;</span>
+        <span class="s1">&#39;raise an error otherwise. This does not effect input projections. &#39;</span>
+        <span class="s1">&#39;This is useful in combining different types of attention heads where&#39;</span>
+        <span class="s1">&#39;mixing is done after getting all the different attention outputs.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If to add bias in projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of SPMD partitions.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -324,6 +330,11 @@
 <div class="viewcode-block" id="MultiHeadedProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">make_output_proj_no_op</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;make_output_proj_no_op must be used with output &#39;</span>
+                       <span class="s1">&#39;projection set to True.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">make_output_proj_no_op</span><span class="p">:</span>
+      <span class="k">return</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
@@ -359,6 +370,8 @@
 <span class="sd">      [batch_size, time_steps, num_heads, dim_per_head].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">make_output_proj_no_op</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">inputs</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
       <span class="n">theta</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -448,26 +461,27 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="s1">&#39;input_dim is </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="s1">&#39;hidden_dim is </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">IsExpr</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s1">&#39;hidden_dim: </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="si">}</span><span class="s1"> is not a multiple of num_heads: &#39;</span>
-        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-    <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="c1"># if proj_tpl does not have dim_per_head set, set it</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">dim_per_head</span>
 
     <span class="k">def</span> <span class="nf">ProjectInput</span><span class="p">():</span>
       <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
-          <span class="n">dim_per_head</span><span class="o">=</span><span class="n">dim_per_head</span><span class="p">,</span>
           <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
-          <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">)</span>
+          <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span>
+          <span class="n">make_output_proj_no_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;query&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;per_dim_scale&#39;</span><span class="p">,</span>
-                       <span class="n">PerDimScaleLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim_per_head</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
+          <span class="s1">&#39;per_dim_scale&#39;</span><span class="p">,</span>
+          <span class="n">PerDimScaleLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_dropout&#39;</span><span class="p">,</span>
                      <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">))</span>
     <span class="c1"># Setting is_output_projection=True to set the projection direction</span>
@@ -477,7 +491,6 @@
         <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
-            <span class="n">dim_per_head</span><span class="o">=</span><span class="n">dim_per_head</span><span class="p">,</span>
             <span class="n">is_output_projection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
             <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">))</span>
@@ -509,11 +522,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A Tensor of shape [S, B, N]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">n</span>
-
+    <span class="n">_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
     <span class="c1"># [s, b, n]</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNH,SBNH-&gt;SBN&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span></div>
 
@@ -596,10 +606,9 @@
 <div class="viewcode-block" id="MultiHeadedAttention._AttenContext"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenContext">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">AttenContext</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MultiHeadedAttention._AttenContextOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenContextOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenContextOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiHeadedAttention._AttenContextOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenContextOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenContextOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
     <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">n</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;SBN,SBNH-&gt;BNH&#39;</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span></div>
 
@@ -719,7 +728,7 @@
           <span class="n">padded_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
       <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
 
-      <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenContextOneStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">)</span>
+      <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenContextOneStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_ShortSeq</span><span class="p">():</span>
@@ -1255,10 +1264,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A Tensor of shape [S, B, N]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">n</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
     <span class="c1"># Transformer_XL relative attention.</span>
     <span class="k">if</span> <span class="n">time_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1288,10 +1295,9 @@
                            <span class="bp">self</span><span class="o">.</span><span class="n">_RelativePositionValueEmb</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">encoded</span></div>
 
-<div class="viewcode-block" id="MultiHeadedAttentionRPE._AttenContextOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenContextOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenContextOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiHeadedAttentionRPE._AttenContextOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenContextOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenContextOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
     <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">n</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
     <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;SBN,SBNH-&gt;BNH&#39;</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
 
@@ -2475,12 +2481,23 @@
         <span class="n">x</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span>
     <span class="p">],</span> <span class="p">(</span><span class="s1">&#39;Source attention must have the primary source key.&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">atten_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
-      <span class="n">child_p</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
-      <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atten_p</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">child_p_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">atten</span> <span class="ow">in</span> <span class="n">atten_p</span><span class="p">:</span>
+          <span class="n">child_p</span> <span class="o">=</span> <span class="n">atten</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+          <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+          <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+          <span class="n">child_p_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child_p</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">child_p_list</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">child_p</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
 
     <span class="c1"># Initialize source context vector merging layer.</span>
     <span class="n">merger_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -2540,6 +2557,9 @@
 <span class="sd">  Input is first normalized using Layer Normalization. Output of layer</span>
 <span class="sd">  normalization is processed using multi-headed attention. And finally, the</span>
 <span class="sd">  output of the attention layer is combined with the residual connection.</span>
+<span class="sd">  This module also allows mixing different attention heads by making num_heads</span>
+<span class="sd">  and atten_tpl into lists of the same size, specifying the distribution of</span>
+<span class="sd">  heads for each attention type.</span>
 
 <span class="sd">  This layer will be used in the following two scenarios:</span>
 
@@ -2553,6 +2573,9 @@
 <span class="sd">  3. Multi-Headed Cross-Attention, where attention keys and values</span>
 <span class="sd">     (source_vecs) are coming from a different source (output of the encoder),</span>
 <span class="sd">     and queries coming from the previous layer outputs (decoder).</span>
+<span class="sd">  4. Mixture of different heads, for example 2 LocalSelfAttention heads</span>
+<span class="sd">     and 3 RoutingAttention heads can be specified by setting num_heads = [2, 3]</span>
+<span class="sd">     and atten_tpl = [LocalSelfAttention, RoutingAttention].</span>
 
 <span class="sd">  We use the same capital letters to denote certain tensor parameters as</span>
 <span class="sd">  MultiHeadedAttention class.</span>
@@ -2570,7 +2593,9 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention hidden dim.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of attention heads.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of attention heads. This can be a list in&#39;</span>
+        <span class="s1">&#39;case of mixture of attention types&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;is_masked&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If set, uses causal non local multiheaded attention.&#39;</span>
@@ -2590,9 +2615,12 @@
              <span class="s1">&#39;If True, add input (or normalized input) to the output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Layer norm default params. No layernorm if set to None.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_tpl&#39;</span><span class="p">,</span>
-             <span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(),</span>
-             <span class="s1">&#39;Multi-Headed Dot-Product Attention default params&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;atten_tpl&#39;</span><span class="p">,</span>
+        <span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(),</span>
+        <span class="s1">&#39;Multi-Headed Dot-Product Attention default params. This can be&#39;</span>
+        <span class="s1">&#39;a list in the case of mixture of attentions, must be of same size&#39;</span>
+        <span class="s1">&#39;as num_heads&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;dropout_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;Residual dropout params template. keep_prop will be reset to &#39;</span>
@@ -2656,12 +2684,42 @@
 <div class="viewcode-block" id="TransformerAttentionLayer._InitAttentionParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer._InitAttentionParams">[docs]</a>  <span class="k">def</span> <span class="nf">_InitAttentionParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns an initialized transformer attention parameters.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten&#39;</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
+    <span class="c1"># Make sure atten_tpl and num_heads are scalars or lists of same size</span>
+    <span class="k">def</span> <span class="nf">_RaiseTypeError</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_heads and atten_tpl should both be lists &#39;</span>
+                       <span class="s1">&#39;of the same size or both scalars.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">):</span>
+          <span class="n">_RaiseTypeError</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">_RaiseTypeError</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_SetCommonParams</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">):</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">make_output_proj_no_op</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Each dim per head is now divided among all heads</span>
+        <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">dim_per_head</span>
+      <span class="k">return</span> <span class="n">params</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="n">params_list</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">)):</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">atten_tpl</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">_SetCommonParams</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;mixed_atten_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span>
+                                  <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">params_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">params_list</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">_SetCommonParams</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;multihead_atten&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">params</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2672,11 +2730,32 @@
       <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
 
     <span class="c1"># Initialize attention.</span>
+    <span class="k">def</span> <span class="nf">_LocalAttentionError</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">LocalSelfAttention</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">is_masked</span><span class="se">\&#39;</span><span class="s1"> is not effective when used with &#39;</span>
+                        <span class="s1">&#39;LocalSelfAttention and its subclass(es).&#39;</span><span class="p">)</span>
+
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitAttentionParams</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">LocalSelfAttention</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">is_masked</span><span class="se">\&#39;</span><span class="s1"> is not effective when used with &#39;</span>
-                      <span class="s1">&#39;LocalSelfAttention and its subclass(es).&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)):</span>
+        <span class="n">_LocalAttentionError</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+      <span class="c1"># Create head mixing variable</span>
+      <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span>
+      <span class="c1"># For the projection merging layer, parameter settings from the first</span>
+      <span class="c1"># attention template in the list is used.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
+          <span class="s1">&#39;w_mix_heads&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+              <span class="n">num_heads</span><span class="o">=</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">),</span>
+              <span class="n">dim_per_head</span><span class="o">=</span><span class="n">dim_per_head</span><span class="p">,</span>
+              <span class="n">is_output_projection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">make_output_proj_no_op</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
+              <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">_LocalAttentionError</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
     <span class="c1"># Initialize attention layer normalization.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
@@ -2738,15 +2817,31 @@
       <span class="n">per_step_padding</span> <span class="o">=</span> <span class="n">per_step_padding_override</span>
 
     <span class="c1"># Multiheaded attention.</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">):</span>
-      <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_AttenFProp</span><span class="p">(</span><span class="n">atten</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span>
           <span class="n">query_vec</span><span class="p">,</span>  <span class="c1"># query</span>
           <span class="n">source_vecs</span><span class="p">,</span>  <span class="c1"># key</span>
           <span class="n">source_vecs</span><span class="p">,</span>  <span class="c1"># value</span>
           <span class="n">paddings</span><span class="p">,</span>
           <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
           <span class="n">per_step_padding</span><span class="o">=</span><span class="n">per_step_padding</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">ctx_vec_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">atten_probs_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">)):</span>
+          <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">_AttenFProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+          <span class="n">ctx_vec_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">)</span>
+          <span class="n">atten_probs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span>
+        <span class="c1"># Concat all the outputs together</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">ctx_vec_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># ctx_vec has shape [B, T, N, H] due to identity projection</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_mix_heads</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w_mix_heads</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+        <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">atten_probs_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">_AttenFProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
 
     <span class="c1"># Residual connection.</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
@@ -2757,6 +2852,11 @@
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="TransformerAttentionLayer.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">atten</span><span class="o">=</span><span class="p">[</span>
+          <span class="n">a</span><span class="o">.</span><span class="n">InitStates</span><span class="p">(</span><span class="n">a_theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">a_theta</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+      <span class="p">])</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">InitStates</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span>
                                  <span class="n">target_max_length</span><span class="p">)</span></div>
 
@@ -2796,8 +2896,10 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;ExtendStep should be used only by masked/causal self-attention.&#39;</span><span class="p">)</span>
-
-    <span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">atten</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
     <span class="n">time_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">time_step</span><span class="p">)</span>
 
@@ -2822,10 +2924,25 @@
       <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
 
     <span class="c1"># Multiheaded masked/causal self-attention.</span>
-    <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
-                                                    <span class="n">cached_states</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-                                                    <span class="n">per_step_padding</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span>
-                                                    <span class="n">use_short_seq_opt</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_AttenExtendStep</span><span class="p">(</span><span class="n">atten</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">cached_states</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">cached_states</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                              <span class="n">per_step_padding</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">use_short_seq_opt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="n">updated_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">atten</span><span class="o">=</span><span class="p">[])</span>
+      <span class="n">ctx_vec_list</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">)):</span>
+        <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">updated_atten_states</span> <span class="o">=</span> <span class="n">_AttenExtendStep</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">cached_states</span><span class="o">.</span><span class="n">atten</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">ctx_vec_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">)</span>
+        <span class="n">updated_states</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">updated_atten_states</span><span class="p">)</span>
+      <span class="c1"># Concat all attention heads together</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">ctx_vec_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+      <span class="c1"># ctx_vec has shape [B, T, N, H] due to identity projection</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_mix_heads</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w_mix_heads</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="n">_AttenExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+                                                 <span class="n">cached_states</span><span class="p">)</span>
 
     <span class="c1"># Residual connection.</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
@@ -3028,7 +3145,11 @@
     <span class="n">params</span><span class="o">.</span><span class="n">is_masked</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">:</span>
       <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">atten</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">:</span>
+        <span class="n">atten</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
@@ -3038,7 +3159,11 @@
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">:</span>
         <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">atten</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">:</span>
+          <span class="n">atten</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cross_atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
     <span class="c1"># Initialize feed-forward layer</span>

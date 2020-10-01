@@ -459,7 +459,7 @@ probs_sum: [B, N, T, 1].</p>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttention._AttenContextOneStep">
-<code class="sig-name descname">_AttenContextOneStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">probs</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">time_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention._AttenContextOneStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenContextOneStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AttenContextOneStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">probs</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">h</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention._AttenContextOneStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenContextOneStep" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -835,7 +835,7 @@ its children layers.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenContextOneStep">
-<code class="sig-name descname">_AttenContextOneStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">probs</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">time_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionRPE._AttenContextOneStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenContextOneStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AttenContextOneStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">probs</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">h</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionRPE._AttenContextOneStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenContextOneStep" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -1531,7 +1531,10 @@ layer and its children layers.</p></li>
 <p>Multiheaded attention sub-layer in Transformer layer.</p>
 <p>Input is first normalized using Layer Normalization. Output of layer
 normalization is processed using multi-headed attention. And finally, the
-output of the attention layer is combined with the residual connection.</p>
+output of the attention layer is combined with the residual connection.
+This module also allows mixing different attention heads by making num_heads
+and atten_tpl into lists of the same size, specifying the distribution of
+heads for each attention type.</p>
 <p>This layer will be used in the following two scenarios:</p>
 <ol class="arabic simple">
 <li><p>Multi-Headed Self-Attention, where attention keys, values (source_vecs) and
@@ -1544,6 +1547,9 @@ setting is_masked flag of this layer.</p></li>
 <li><p>Multi-Headed Cross-Attention, where attention keys and values
 (source_vecs) are coming from a different source (output of the encoder),
 and queries coming from the previous layer outputs (decoder).</p></li>
+<li><p>Mixture of different heads, for example 2 LocalSelfAttention heads
+and 3 RoutingAttention heads can be specified by setting num_heads = [2, 3]
+and atten_tpl = [LocalSelfAttention, RoutingAttention].</p></li>
 </ol>
 <p>We use the same capital letters to denote certain tensor parameters as
 MultiHeadedAttention class.</p>
