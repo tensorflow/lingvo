@@ -1142,7 +1142,8 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
       # [S, B, N]
       local_prob = tf.transpose(local_prob, [2, 0, 1])
       # [B, N, H]
-      local_ctx = l._AttenContextOneStep(l.theta, local_prob, value, i)
+      local_ctx = l._AttenContextOneStep(l.theta, local_prob, value, i,
+                                         atten_dim)
       one_step_ctx.append(local_ctx)
     # [T, B, N, H]
     stacked_ctx = tf.stack(one_step_ctx)
@@ -1845,6 +1846,76 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       expected_ctx = [7.777687, 5.219166, 6.305151, 4.817311]
       self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=0))
 
+  def testTransformerAttentionLayerMaskedSelfAttentionMixHeads(self):
+    p = attention.TransformerAttentionLayer.Params().Set(
+        name='transformer_masked_self_atten',
+        input_dim=16,
+        is_masked=True,
+        num_heads=[4, 4])
+    p.atten_tpl = [
+        attention.LocalSelfAttention.Params().Set(
+            left_context=2, right_context=2, block_size=4),
+        attention.RoutingAttention.Params().Set(
+            num_clusters=1, attention_window=2)
+    ]
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+    l = p.Instantiate()
+    self.assertIsInstance(l.atten[0], attention.LocalSelfAttention)
+    self.assertIsInstance(l.atten[1], attention.RoutingAttention)
+
+  def testTransformerAttentionLayerFPropMultiHeadedAttentionMixHeads(self):
+    with self.session(use_gpu=True) as sess:
+      query_vec, paddings, _, _ = self._TransformerAttentionLayerInputs()
+
+      p = attention.TransformerAttentionLayer.Params().Set(
+          name='transformer_masked_self_atten_mix',
+          input_dim=4,
+          is_masked=True,
+          num_heads=[2])
+      p.atten_tpl = [attention.MultiHeadedAttention.Params().Set()]
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(l.theta, query_vec, None, paddings)
+
+      p2 = attention.TransformerAttentionLayer.Params().Set(
+          name='transformer_masked_self_atten',
+          input_dim=4,
+          is_masked=True,
+          num_heads=2)
+      p2.atten_tpl = attention.MultiHeadedAttention.Params().Set()
+      p2.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l2 = p2.Instantiate()
+      ctx_vec2, _ = l2.FProp(l2.theta, query_vec, None, paddings)
+
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx_vec)
+      actual_ctx2 = sess.run(ctx_vec2)
+      self.assertAllClose(actual_ctx, actual_ctx2)
+
+  def testTransformerAttentionLayerFPropMaskedSelfAttentionMixHeads(self):
+    with self.session(use_gpu=True) as sess:
+      query_vec, paddings, _, _ = self._TransformerAttentionLayerInputs()
+
+      p = attention.TransformerAttentionLayer.Params().Set(
+          name='transformer_masked_self_atten',
+          input_dim=4,
+          is_masked=True,
+          num_heads=[2, 2])
+      p.atten_tpl = [
+          attention.MultiHeadedAttention.Params().Set(),
+          attention.MultiHeadedAttention.Params().Set()
+      ]
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(l.theta, query_vec, None, paddings)
+
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx_vec)
+      actual_ctx = np.reshape(actual_ctx, (10, 4))
+      tf.logging.info(np.array_repr(actual_ctx))
+      expected_ctx = [6.8377337, 7.65435, 1.4364471, 2.5929067]
+      self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=0))
+
   def testAttentionLayerFPropMaskedSelfAttentionPaddingOverride(self):
     with self.session(use_gpu=True) as sess:
       query_vec, paddings, _, _ = self._TransformerAttentionLayerInputs()
@@ -1967,6 +2038,49 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ctx1, ctx2 = sess.run([ctx_vec1, ctx_vec2])
       self.assertAllClose(ctx1, ctx2)
 
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_short_seq',
+          'use_short_seq_opt': True,
+      }, {
+          'testcase_name': '_long_seq',
+          'use_short_seq_opt': False,
+      })
+  def testTransformerAttentionLayerExtendStepMixHeads(self, use_short_seq_opt):
+    with self.session(use_gpu=True) as sess:
+      query_vec, _, _, _ = self._TransformerAttentionLayerInputs()
+      paddings = tf.zeros([2, 5])
+      cached_key = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 1, 2]), dtype=tf.float32)
+      cached_value = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 1, 2]), dtype=tf.float32)
+      prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
+      prefix_states = py_utils.NestedMap(atten=[prefix_states, prefix_states])
+
+      p = attention.TransformerAttentionLayer.Params().Set(
+          name='transformer_atten', input_dim=4, is_masked=True)
+      p.atten_tpl = [
+          attention.MultiHeadedAttention.Params().Set(),
+          attention.MultiHeadedAttention.Params().Set()
+      ]
+      p.num_heads = [1, 1]
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      ctx_vec1, _ = l.FProp(l.theta, query_vec, None, paddings)
+
+      ctx_vec2 = []
+      for i in range(5):
+        ctx_vec, prefix_states = l.ExtendStep(
+            l.theta, tf.expand_dims(query_vec[:, i, :], 1), prefix_states, i,
+            use_short_seq_opt)
+        ctx_vec2.append(tf.squeeze(ctx_vec, 1))
+      ctx_vec2 = tf.transpose(tf.stack(ctx_vec2), [1, 0, 2])
+
+      tf.global_variables_initializer().run()
+      ctx1, ctx2 = sess.run([ctx_vec1, ctx_vec2])
+      self.assertAllClose(ctx1, ctx2)
+
   def testTransformerAttentionLayerNoLayernorm(self):
     """Verify if Transformer attention allows no layernorm in FProp and Extend."""
     with self.session(use_gpu=True) as sess:
@@ -2007,6 +2121,21 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     p.input_dim = 4
     p.tr_fflayer_tpl.hidden_dim = 7
     p.tr_atten_tpl.num_heads = 2
+    if use_relative_atten:
+      p = attention.UseRelativeAttentionInTransformerLayer(p, 4)
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+    return attention.TransformerDecoderLayer(p)
+
+  def _ConstructTransformerDecoderLayerMixHeads(self, use_relative_atten=False):
+    p = attention.TransformerDecoderLayer.Params()
+    p.name = 'transformer_decoder_layer'
+    p.input_dim = 4
+    p.tr_fflayer_tpl.hidden_dim = 7
+    p.tr_atten_tpl.num_heads = [1, 1]
+    p.tr_atten_tpl.atten_tpl = [
+        attention.MultiHeadedAttention.Params().Set(),
+        attention.MultiHeadedAttention.Params().Set()
+    ]
     if use_relative_atten:
       p = attention.UseRelativeAttentionInTransformerLayer(p, 4)
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
@@ -2126,6 +2255,23 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_layer_output,
                           np.sum(actual_layer_output, axis=0))
 
+  def testTransformerDecoderLayerFPropMixHeads(self):
+    with self.session(use_gpu=True) as sess:
+      (query_vec, paddings, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs()
+      l = self._ConstructTransformerDecoderLayerMixHeads()
+
+      layer_output, _ = l.FProp(l.theta, query_vec, paddings, aux_vec,
+                                aux_paddings)
+
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(layer_output)
+      actual_layer_output = np.reshape(actual_layer_output, (10, 4))
+      tf.logging.info(np.array_repr(actual_layer_output))
+      expected_layer_output = [6.2344074, 15.817548, 6.8874574, 4.879834]
+      self.assertAllClose(expected_layer_output,
+                          np.sum(actual_layer_output, axis=0))
+
   def _ConstructTransformerEncoderLayerStack(self):
     p = attention.StackedTransformerLayers.Params()
     p.name = 'encoder_layers'
@@ -2154,12 +2300,12 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     p.random_seed = 12345
     return p.Instantiate()
 
-  def _ConstructTransformerParamsTplListStack(self):
+  def _ConstructTransformerParamsTplListMixHeadsStack(self):
     p = attention.StackedTransformerLayers.Params()
     p.name = 'encoder_layers'
     p.has_aux_atten = False
     p.mask_self_atten = False
-    p.num_layers = 4
+    p.num_layers = 6
     params1 = attention.TransformerLayer.Params()
     params1.tr_atten_tpl.atten_tpl = (
         attention.LocalSelfAttention.Params().Set(
@@ -2168,7 +2314,15 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     params2.tr_atten_tpl.atten_tpl = (
         attention.RoutingAttention.Params().Set(
             num_clusters=1, attention_window=2))
-    p.transformer_layer_params_tpl = [params1, params2]
+    params3 = attention.TransformerLayer.Params()
+    params3.tr_atten_tpl.atten_tpl = [
+        attention.LocalSelfAttention.Params().Set(
+            left_context=2, right_context=2, block_size=4),
+        attention.RoutingAttention.Params().Set(
+            num_clusters=1, attention_window=2)
+    ]
+    params3.num_heads = [1, 1]
+    p.transformer_layer_params_tpl = [params1, params2, params3]
     p.mdl_dim = 4
     p.hidden_dim = 8
     p.num_atten_heads = 2
@@ -2178,7 +2332,7 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     return p.Instantiate()
 
   def testTransformerStackTplList(self):
-    l = self._ConstructTransformerParamsTplListStack()
+    l = self._ConstructTransformerParamsTplListMixHeadsStack()
     self.assertIsInstance(l.x_layers[0].self_atten.atten,
                           attention.LocalSelfAttention)
     self.assertIsInstance(l.x_layers[1].self_atten.atten,
@@ -2186,6 +2340,14 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     self.assertIsInstance(l.x_layers[2].self_atten.atten,
                           attention.RoutingAttention)
     self.assertIsInstance(l.x_layers[3].self_atten.atten,
+                          attention.RoutingAttention)
+    self.assertIsInstance(l.x_layers[4].self_atten.atten[0],
+                          attention.LocalSelfAttention)
+    self.assertIsInstance(l.x_layers[4].self_atten.atten[1],
+                          attention.RoutingAttention)
+    self.assertIsInstance(l.x_layers[5].self_atten.atten[0],
+                          attention.LocalSelfAttention)
+    self.assertIsInstance(l.x_layers[5].self_atten.atten[1],
                           attention.RoutingAttention)
 
   def testStackedTransformerGetSplitForLayer(self):

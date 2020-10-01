@@ -169,6 +169,12 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         'Whether it is out projection or not. If False, we use '
         '"BTD,DNH->BTNH" for query,key,value projection. Otherwise we use '
         '"BTNH,DNH->BTD" for output projection.')
+    p.Define(
+        'make_output_proj_no_op', False, 'If True no output projection is '
+        'applied. This should be set with is_output_projection True and will '
+        'raise an error otherwise. This does not effect input projections. '
+        'This is useful in combining different types of attention heads where'
+        'mixing is done after getting all the different attention outputs.')
     p.Define('use_bias', True, 'If to add bias in projection.')
     p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
     return p
@@ -176,6 +182,11 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    if p.make_output_proj_no_op and not p.is_output_projection:
+      raise ValueError('make_output_proj_no_op must be used with output '
+                       'projection set to True.')
+    if p.make_output_proj_no_op:
+      return
     pc = py_utils.WeightParams(
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
         init=p.params_init,
@@ -211,6 +222,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
       [batch_size, time_steps, num_heads, dim_per_head].
     """
     p = self.params
+    if p.make_output_proj_no_op:
+      return inputs
     if p.xla_num_partitions:
       theta.w = moe_layers.Split(
           theta.w, 1, p.xla_num_partitions, use_sharding_op=True)
@@ -300,26 +313,27 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p = self.params
     assert p.input_dim, 'input_dim is {}'.format(p.input_dim)
     assert p.hidden_dim, 'hidden_dim is {}'.format(p.hidden_dim)
-    assert (symbolic.IsExpr(p.hidden_dim) or p.hidden_dim % p.num_heads == 0), (
-        f'hidden_dim: {p.hidden_dim} is not a multiple of num_heads: '
-        f'{p.num_heads}.')
-    dim_per_head = p.hidden_dim // p.num_heads
+    # if proj_tpl does not have dim_per_head set, set it
+    if p.proj_tpl.dim_per_head == 0:
+      dim_per_head = p.hidden_dim // p.num_heads
+      p.proj_tpl.dim_per_head = dim_per_head
 
     def ProjectInput():
       return p.proj_tpl.Copy().Set(
           input_dim=p.input_dim,
           num_heads=p.num_heads,
-          dim_per_head=dim_per_head,
           use_bias=p.use_bias,
-          xla_num_partitions=p.xla_num_partitions)
+          xla_num_partitions=p.xla_num_partitions,
+          make_output_proj_no_op=False)
 
     self.CreateChild('key', ProjectInput())
     self.CreateChild('query', ProjectInput())
     if p.enable_value_proj:
       self.CreateChild('value', ProjectInput())
     if p.enable_per_dim_scale:
-      self.CreateChild('per_dim_scale',
-                       PerDimScaleLayer.Params().Set(dim=dim_per_head))
+      self.CreateChild(
+          'per_dim_scale',
+          PerDimScaleLayer.Params().Set(dim=p.proj_tpl.dim_per_head))
     self.CreateChild('atten_dropout',
                      p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
     # Setting is_output_projection=True to set the projection direction
@@ -329,7 +343,6 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         p.proj_tpl.Copy().Set(
             input_dim=p.input_dim,
             num_heads=p.num_heads,
-            dim_per_head=dim_per_head,
             is_output_projection=True,
             use_bias=p.use_bias,
             xla_num_partitions=p.xla_num_partitions))
@@ -361,11 +374,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     Returns:
       A Tensor of shape [S, B, N]
     """
-    p = self.params
     s, b, _, _ = py_utils.GetShape(key, 4)
-    n = p.num_heads
-    h = p.hidden_dim // n
-
+    _, n, h = py_utils.GetShape(query, 3)
     # [s, b, n]
     return tf.einsum('BNH,SBNH->SBN', query, tf.reshape(key, [s, b, n, h]))
 
@@ -448,10 +458,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
   def _AttenContext(self, theta, probs, value):
     return attention_util.AttenContext(probs, value)
 
-  def _AttenContextOneStep(self, theta, probs, value, time_step):
+  def _AttenContextOneStep(self, theta, probs, value, time_step, h):
     s, b, _, _ = py_utils.GetShape(value, 4)
-    n = self.params.num_heads
-    h = self.params.hidden_dim // n
+    _, _, n = py_utils.GetShape(probs, 3)
 
     return tf.einsum('SBN,SBNH->BNH', probs, tf.reshape(value, [s, b, n, h]))
 
@@ -571,7 +580,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
           padded_logits, axis=0, extra_logit=p.atten_extra_logit)
       probs = tf.reshape(probs, [s, b, n])
 
-      encoded = self._AttenContextOneStep(theta, probs, value, time_step)
+      encoded = self._AttenContextOneStep(theta, probs, value, time_step, h)
       return tf.expand_dims(encoded, 1)
 
     def _ShortSeq():
@@ -1107,10 +1116,8 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     Returns:
       A Tensor of shape [S, B, N]
     """
-    p = self.params
     s, b, _, _ = py_utils.GetShape(key, 4)
-    n = p.num_heads
-    h = p.hidden_dim // n
+    _, n, h = py_utils.GetShape(query, 3)
 
     # Transformer_XL relative attention.
     if time_step is None:
@@ -1140,10 +1147,9 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
                            self._RelativePositionValueEmb(theta, value))
     return encoded
 
-  def _AttenContextOneStep(self, theta, probs, value, time_step):
+  def _AttenContextOneStep(self, theta, probs, value, time_step, h):
     s, b, _, _ = py_utils.GetShape(value, 4)
-    n = self.params.num_heads
-    h = self.params.hidden_dim // n
+    _, _, n = py_utils.GetShape(probs, 3)
 
     logits = tf.einsum('SBN,SBNH->BNH', probs, tf.reshape(value, [s, b, n, h]))
 
@@ -2327,12 +2333,23 @@ class MultiSourceAttention(base_layer.BaseLayer):
         x for x, _ in p.source_atten_tpls
     ], ('Source attention must have the primary source key.')
     for source_key, atten_p in p.source_atten_tpls:
-      child_p = atten_p.Copy()
-      if child_p.hidden_dim <= 0:
-        child_p.hidden_dim = p.hidden_dim
-      if child_p.input_dim <= 0:
-        child_p.input_dim = p.input_dim
-      self.CreateChild('atten_%s' % source_key, child_p)
+      if isinstance(atten_p, list):
+        child_p_list = []
+        for atten in atten_p:
+          child_p = atten.Copy()
+          if child_p.hidden_dim <= 0:
+            child_p.hidden_dim = p.hidden_dim
+          if child_p.input_dim <= 0:
+            child_p.input_dim = p.input_dim
+          child_p_list.append(child_p)
+          self.CreateChildren('atten_%s' % source_key, child_p_list)
+      else:
+        child_p = atten_p.Copy()
+        if child_p.hidden_dim <= 0:
+          child_p.hidden_dim = p.hidden_dim
+        if child_p.input_dim <= 0:
+          child_p.input_dim = p.input_dim
+        self.CreateChild('atten_%s' % source_key, child_p)
 
     # Initialize source context vector merging layer.
     merger_p = p.atten_merger_tpl.Copy()
@@ -2392,6 +2409,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   Input is first normalized using Layer Normalization. Output of layer
   normalization is processed using multi-headed attention. And finally, the
   output of the attention layer is combined with the residual connection.
+  This module also allows mixing different attention heads by making num_heads
+  and atten_tpl into lists of the same size, specifying the distribution of
+  heads for each attention type.
 
   This layer will be used in the following two scenarios:
 
@@ -2405,6 +2425,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   3. Multi-Headed Cross-Attention, where attention keys and values
      (source_vecs) are coming from a different source (output of the encoder),
      and queries coming from the previous layer outputs (decoder).
+  4. Mixture of different heads, for example 2 LocalSelfAttention heads
+     and 3 RoutingAttention heads can be specified by setting num_heads = [2, 3]
+     and atten_tpl = [LocalSelfAttention, RoutingAttention].
 
   We use the same capital letters to denote certain tensor parameters as
   MultiHeadedAttention class.
@@ -2422,7 +2445,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the transformer block input.')
     p.Define('hidden_dim', 0, 'Dimension of the attention hidden dim.')
-    p.Define('num_heads', 8, 'Number of attention heads.')
+    p.Define(
+        'num_heads', 8, 'Number of attention heads. This can be a list in'
+        'case of mixture of attention types')
     p.Define(
         'is_masked', False,
         'If set, uses causal non local multiheaded attention.'
@@ -2442,9 +2467,12 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
              'If True, add input (or normalized input) to the output.')
     p.Define('ln_tpl', layers.LayerNorm.Params(),
              'Layer norm default params. No layernorm if set to None.')
-    p.Define('atten_tpl',
-             MultiHeadedAttention.Params().Set(),
-             'Multi-Headed Dot-Product Attention default params')
+    p.Define(
+        'atten_tpl',
+        MultiHeadedAttention.Params().Set(),
+        'Multi-Headed Dot-Product Attention default params. This can be'
+        'a list in the case of mixture of attentions, must be of same size'
+        'as num_heads')
     p.Define(
         'dropout_tpl', layers.DropoutLayer.Params(),
         'Residual dropout params template. keep_prop will be reset to '
@@ -2508,12 +2536,42 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   def _InitAttentionParams(self, atten_tpl):
     """Returns an initialized transformer attention parameters."""
     p = self.params
-    params = atten_tpl.Copy()
-    params.name = 'multihead_atten'
-    params.input_dim = p.input_dim
-    params.hidden_dim = p.hidden_dim
-    params.num_heads = p.num_heads
-    params.atten_dropout_prob = p.atten_dropout_prob
+    # Make sure atten_tpl and num_heads are scalars or lists of same size
+    def _RaiseTypeError():
+      raise ValueError('num_heads and atten_tpl should both be lists '
+                       'of the same size or both scalars.')
+
+    if isinstance(p.num_heads, list) == isinstance(atten_tpl, list):
+      if isinstance(p.num_heads, list):
+        if len(p.num_heads) != len(atten_tpl):
+          _RaiseTypeError()
+    else:
+      _RaiseTypeError()
+
+    def _SetCommonParams(params, name, num_heads):
+      params.name = name
+      params.input_dim = p.input_dim
+      params.hidden_dim = p.hidden_dim
+      params.num_heads = num_heads
+      params.atten_dropout_prob = p.atten_dropout_prob
+      if isinstance(p.num_heads, list):
+        params.proj_tpl.make_output_proj_no_op = True
+        # Each dim per head is now divided among all heads
+        dim_per_head = p.hidden_dim // sum(p.num_heads)
+        params.proj_tpl.dim_per_head = dim_per_head
+      return params
+
+    if isinstance(p.num_heads, list):
+      params_list = []
+      for i in range(len(atten_tpl)):
+        params = atten_tpl[i].Copy()
+        params = _SetCommonParams(params, 'mixed_atten_{}'.format(i),
+                                  p.num_heads[i])
+        params_list.append(params)
+      params = params_list
+    else:
+      params = atten_tpl.Copy()
+      params = _SetCommonParams(params, 'multihead_atten', p.num_heads)
     return params
 
   def __init__(self, params):
@@ -2524,11 +2582,32 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       p.hidden_dim = p.input_dim
 
     # Initialize attention.
+    def _LocalAttentionError(params):
+      if p.is_masked and issubclass(params.cls, LocalSelfAttention):
+        tf.logging.warn('\'is_masked\' is not effective when used with '
+                        'LocalSelfAttention and its subclass(es).')
+
     params = self._InitAttentionParams(p.atten_tpl)
-    if p.is_masked and issubclass(params.cls, LocalSelfAttention):
-      tf.logging.warn('\'is_masked\' is not effective when used with '
-                      'LocalSelfAttention and its subclass(es).')
-    self.CreateChild('atten', params)
+    if isinstance(params, list):
+      for i in range(len(params)):
+        _LocalAttentionError(params[i])
+      self.CreateChildren('atten', params)
+      # Create head mixing variable
+      dim_per_head = p.hidden_dim // sum(p.num_heads)
+      # For the projection merging layer, parameter settings from the first
+      # attention template in the list is used.
+      self.CreateChild(
+          'w_mix_heads', p.atten_tpl[0].proj_tpl.Copy().Set(
+              input_dim=p.input_dim,
+              num_heads=sum(p.num_heads),
+              dim_per_head=dim_per_head,
+              is_output_projection=True,
+              make_output_proj_no_op=False,
+              use_bias=p.atten_tpl[0].use_bias,
+              xla_num_partitions=p.atten_tpl[0].xla_num_partitions))
+    else:
+      _LocalAttentionError(params)
+      self.CreateChild('atten', params)
 
     # Initialize attention layer normalization.
     if p.ln_tpl:
@@ -2590,15 +2669,31 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       per_step_padding = per_step_padding_override
 
     # Multiheaded attention.
-    with tf.name_scope('atten'):
-      ctx_vec, atten_probs = self.atten.FProp(
-          theta.atten,
+    def _AttenFProp(atten, theta):
+      return atten.FProp(
+          theta,
           query_vec,  # query
           source_vecs,  # key
           source_vecs,  # value
           paddings,
           segment_mask=segment_mask,
           per_step_padding=per_step_padding)
+
+    with tf.name_scope('atten'):
+      if isinstance(self.atten, list):
+        ctx_vec_list = []
+        atten_probs_list = []
+        for i in range(len(self.atten)):
+          ctx_vec, atten_probs = _AttenFProp(self.atten[i], theta.atten[i])
+          ctx_vec_list.append(ctx_vec)
+          atten_probs_list.append(atten_probs)
+        # Concat all the outputs together
+        ctx_vec = tf.concat(ctx_vec_list, axis=2)
+        # ctx_vec has shape [B, T, N, H] due to identity projection
+        ctx_vec = self.w_mix_heads.FProp(theta.w_mix_heads, ctx_vec)
+        atten_probs = tf.concat(atten_probs_list, axis=1)
+      else:
+        ctx_vec, atten_probs = _AttenFProp(self.atten, theta.atten)
 
     # Residual connection.
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
@@ -2609,6 +2704,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     return ctx_vec, atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
+    if isinstance(self.atten, list):
+      return py_utils.NestedMap(atten=[
+          a.InitStates(a_theta, target_batch_size, target_max_length)
+          for a, a_theta in zip(self.atten, theta)
+      ])
     return self.atten.InitStates(theta.atten, target_batch_size,
                                  target_max_length)
 
@@ -2648,8 +2748,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if not p.is_masked:
       raise ValueError(
           'ExtendStep should be used only by masked/causal self-attention.')
-
-    t, b, _, _ = py_utils.GetShape(cached_states.key, 4)
+    if isinstance(self.atten, list):
+      t, b, _, _ = py_utils.GetShape(cached_states.atten[0].key, 4)
+    else:
+      t, b, _, _ = py_utils.GetShape(cached_states.key, 4)
     unnormalized_query_vec = query_vec
     time_step = tf.convert_to_tensor(time_step)
 
@@ -2674,10 +2776,25 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     # Multiheaded masked/causal self-attention.
-    ctx_vec, updated_states = self.atten.ExtendStep(theta.atten, query_vec,
-                                                    cached_states, None, None,
-                                                    per_step_padding, time_step,
-                                                    use_short_seq_opt)
+    def _AttenExtendStep(atten, theta, cached_states):
+      return atten.ExtendStep(theta, query_vec, cached_states, None, None,
+                              per_step_padding, time_step, use_short_seq_opt)
+
+    if isinstance(self.atten, list):
+      updated_states = py_utils.NestedMap(atten=[])
+      ctx_vec_list = []
+      for i in range(len(self.atten)):
+        ctx_vec, updated_atten_states = _AttenExtendStep(
+            self.atten[i], theta.atten[i], cached_states.atten[i])
+        ctx_vec_list.append(ctx_vec)
+        updated_states.atten.append(updated_atten_states)
+      # Concat all attention heads together
+      ctx_vec = tf.concat(ctx_vec_list, axis=2)
+      # ctx_vec has shape [B, T, N, H] due to identity projection
+      ctx_vec = self.w_mix_heads.FProp(theta.w_mix_heads, ctx_vec)
+    else:
+      ctx_vec, updated_states = _AttenExtendStep(self.atten, theta.atten,
+                                                 cached_states)
 
     # Residual connection.
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
@@ -2880,7 +2997,11 @@ class TransformerLayer(base_layer.BaseLayer):
     params.is_masked = p.mask_self_atten
     if p.num_heads:
       params.num_heads = p.num_heads
-    params.atten_tpl.packed_input = p.packed_input
+    if isinstance(params.atten_tpl, list):
+      for atten in params.atten_tpl:
+        atten.packed_input = p.packed_input
+    else:
+      params.atten_tpl.packed_input = p.packed_input
     self.CreateChild('self_atten', params)
 
     if p.has_aux_atten:
@@ -2890,7 +3011,11 @@ class TransformerLayer(base_layer.BaseLayer):
       params.input_dim = p.input_dim
       if p.num_heads:
         params.num_heads = p.num_heads
-      params.atten_tpl.packed_input = p.packed_input
+      if isinstance(params.atten_tpl, list):
+        for atten in params.atten_tpl:
+          atten.packed_input = p.packed_input
+      else:
+        params.atten_tpl.packed_input = p.packed_input
       self.CreateChild('cross_atten', params)
 
     # Initialize feed-forward layer
