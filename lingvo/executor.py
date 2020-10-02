@@ -285,6 +285,8 @@ class ExecutorTpu(base_runner.BaseRunner):
       tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
       self._tpu_embedding = (
           tpu_embedding_collection[0] if tpu_embedding_collection else None)
+      tf.io.write_graph(self._graph.as_graph_def(), self._checkpoint_dir,
+                        'train.pbtxt')
 
   def _MaybeConstructSharedModel(self, train_cfg):
     """Construct a single shared copy of the model if this is a MultiTaskModel.
