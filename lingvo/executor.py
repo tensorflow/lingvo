@@ -48,7 +48,7 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
   """Get the params needed to instantiate the Executor.
 
   Args:
-    model_name: A model name regsitered in the ModelRegistry.
+    model_name: A model name registered in the ModelRegistry.
     cluster_params: A cluster hyperparams object.
     model_registry: A ModelRegistry object.
 
