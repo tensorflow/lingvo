@@ -433,6 +433,8 @@
       <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+                        <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">_MaybeConstructSharedModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_cfg</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct a single shared copy of the model if this is a MultiTaskModel.</span>
