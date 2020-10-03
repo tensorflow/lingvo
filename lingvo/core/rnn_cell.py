@@ -1424,35 +1424,21 @@ class WeightNormalizedLSTMCellSimple(LSTMCellSimple):
         shape=[self.num_gates * self.hidden_size],
         init=py_utils.WeightInit.Constant(1.0),
         dtype=p.dtype,
-        collections=self._VariableCollections())
+        collections=self._VariableCollections() +
+        [py_utils.SKIP_LP_REGULARIZATION])
     self.CreateVariable('wn_scale', wn_scale_pc, self.AddGlobalVN)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Computes the new state."""
 
     p = self.params
-    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
 
     # Divide wm by it's L2 norm.
     wm_sq_sum = tf.reduce_sum(tf.square(theta.wm), axis=0, keepdims=True)
     normed_gates = xmw * tf.math.rsqrt(wm_sq_sum + p.weight_norm_epsilon)
+    normed_gates = normed_gates * tf.expand_dims(theta.wn_scale, 0)
 
-    gates = tf.split(normed_gates, num_or_size_splits=self.num_gates, axis=1)
-    bs = tf.split(b, num_or_size_splits=self.num_gates, axis=1)
-    wn_scales = tf.split(
-        theta.wn_scale, num_or_size_splits=self.num_gates, axis=0)
-
-    for i in range(self.num_gates):
-      # i_g is None when p.couple_input_forget_gates is True.
-      if gates[i] is not None:
-        gates[i] = gates[i] * tf.expand_dims(wn_scales[i], 0)
-        gates[i] = self.fns.qadd(gates[i], bs[i], qt='add_bias_{}'.format(i))
-
-    if not p.couple_input_forget_gates:
-      i_i, i_g, f_g, o_g = gates
-    else:
-      i_i, i_g, f_g, o_g = gates[0], None, gates[1], gates[2]
-    return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
+    return super()._Gates(normed_gates, theta, state0, inputs)
 
 
 class LayerNormMaskedLSTMCellSimple(LSTMCellSimpleGateDropout):
@@ -1543,6 +1529,63 @@ class LayerNormMaskedLSTMCellSimple(LSTMCellSimpleGateDropout):
     else:
       i_i, i_g, f_g, o_g = gates[0], None, gates[1], gates[2]
     return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
+
+
+class WeightNormMaskedLSTMCellSimple(LSTMCellSimpleGateDropout):
+  """An implementation of weight normalized LSTM for federated dropout.
+
+  Implements normalization scheme as described in
+  https://arxiv.org/pdf/1602.07868.pdf
+
+  theta:
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
+
+  state:
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
+
+  inputs:
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('weight_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
+    return p
+
+  def _CreateLayerVariables(self):
+    """Initializes LayerNormalizedLSTMCellSimple."""
+    super()._CreateLayerVariables()
+    p = self.params
+
+    add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
+    self.TrackQTensor(*add_biases, domain='fullyconnected')
+
+    wn_scale_pc = py_utils.WeightParams(
+        shape=[self.num_gates * self.hidden_size],
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=p.dtype,
+        collections=self._VariableCollections() +
+        [py_utils.SKIP_LP_REGULARIZATION])
+    self.CreateVariable('wn_scale', wn_scale_pc, self.AddGlobalVN)
+
+  def _Gates(self, xmw, theta, state0, inputs):
+    """Computes the new state."""
+
+    p = self.params
+
+    # Divide wm by it's L2 norm.
+    wm_sq_sum = tf.reduce_sum(tf.square(theta.wm), axis=0, keepdims=True)
+    normed_gates = xmw * tf.math.rsqrt(wm_sq_sum + p.weight_norm_epsilon)
+    normed_gates = normed_gates * tf.expand_dims(theta.wn_scale, 0)
+
+    return super()._Gates(normed_gates, theta, state0, inputs)
 
 
 class NormalizedLSTMCellSimple(LSTMCellSimple):
