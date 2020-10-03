@@ -139,7 +139,9 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     p = self.params
     dim = symbolic.ToStatic(p.dim)
     inputs = py_utils.HasShape(inputs, [-1, -1, -1, dim])
-    scale = tf.math.rsqrt(tf.cast(dim, inputs.dtype))
+    # tf.rsqrt is not implemented for bfloat16, hence we always cast it into
+    # float32.
+    scale = tf.cast(tf.math.rsqrt(tf.cast(dim, tf.float32)), inputs.dtype)
     scale *= tf.nn.softplus(theta.per_dim_scale) / tf.nn.softplus(
         tf.constant(0.0, dtype=inputs.dtype))
     return inputs * scale

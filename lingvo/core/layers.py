@@ -3154,8 +3154,17 @@ class SingleShardFullSoftmax(SoftmaxLayer):
       per_example_argmax = tf.stop_gradient(py_utils.ArgMax(logits))
     else:
       assert class_ids is not None
+      fpdtype = logits.dtype
+      if fpdtype == tf.bfloat16:
+        # This is needed in order to workaround the limitation that
+        # tf.nn.sparse_softmax_cross_entropy_with_logits is not implemented for
+        # bf16 on cpu.
+        logits = tf.cast(logits, tf.float32)
       per_example_xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
           labels=class_ids, logits=logits)
+      if fpdtype == tf.bfloat16:
+        per_example_xent = tf.cast(per_example_xent, fpdtype)
+
       per_example_argmax = tf.stop_gradient(py_utils.ArgMax(logits))
     return per_example_xent, per_example_argmax
 
@@ -3582,7 +3591,16 @@ class LayerNorm(base_layer.BaseLayer):
       mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
       variance = tf.reduce_mean(
           tf.square(x_reshaped - mean), axis=[1], keepdims=True)
-      x_norm = (x_reshaped - mean) * tf.math.rsqrt(variance + p.epsilon)
+      if variance.dtype == tf.bfloat16:
+        # tf.rsqrt is not implemented for bfloat16, hence we always cast into
+        # tf.float32.
+        x_norm_den_inv = tf.cast(
+            tf.math.rsqrt(tf.cast(variance + p.epsilon, tf.float32)),
+            x_reshaped.dtype)
+      else:
+        x_norm_den_inv = tf.cast(
+            tf.math.rsqrt(variance + p.epsilon), x_reshaped.dtype)
+      x_norm = (x_reshaped - mean) * x_norm_den_inv
       x_norm = tf.reshape(x_norm, x_shape)
       return x_norm * xs.scale + xs.bias
 

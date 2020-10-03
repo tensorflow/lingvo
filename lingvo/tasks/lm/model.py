@@ -123,12 +123,12 @@ class LanguageModel(base_model.BaseTask):
     """Clip LSTM gradients.
 
     Args:
-      var_grad: a `.NestedMap` of (variable, gradient). You can view
-        `var_grad` as an ordered list of (key, (var, grad)) tuples. Every
-        key of `var_grad` exists in `vmap`. Every variable in `vmap` that
-        contributes to loss must exist in `var_grad`. Every var of `var_grad`
-        must exist in `vmap`. `grad` is the corresponding gradient computed
-        for `var`. `grad` is guaranteed to be not None.
+      var_grad: a `.NestedMap` of (variable, gradient). You can view `var_grad`
+        as an ordered list of (key, (var, grad)) tuples. Every key of `var_grad`
+        exists in `vmap`. Every variable in `vmap` that contributes to loss must
+        exist in `var_grad`. Every var of `var_grad` must exist in `vmap`.
+        `grad` is the corresponding gradient computed for `var`. `grad` is
+        guaranteed to be not None.
 
     Returns:
       adjusted version of `var_grad` that has clipped the LSTM gradients
@@ -288,8 +288,20 @@ class BatchMajorLanguageModel(LanguageModel):
     }, {}
 
 
-class PackedBatchMajorLanguageModel(LanguageModel):
+class PackedBatchMajorLanguageModel(base_model.BaseTask):
   """Packed batch major implementation of the language model."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('lm', layers.RnnLm.Params(), 'LM layer.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    # Construct the model.
+    self.CreateChild('lm', p.lm)
 
   def FPropTower(self, theta, input_batch):
     p = self.params
@@ -321,7 +333,7 @@ class PackedBatchMajorLanguageModel(LanguageModel):
     predicted_labels = tf.cast(xent_output.per_example_argmax, labels_ids.dtype)
     num_sentences = tf.reduce_sum(input_batch.num_sentences)
 
-    num_preds = xent_output.total_weight
+    num_preds = tf.cast(xent_output.total_weight, fprop_dtype)
     mean_acc = tf.reduce_sum(
         tf.cast(tf.equal(labels_ids, predicted_labels), fprop_dtype) *
         weights) / tf.math.maximum(num_preds, 1)
@@ -335,3 +347,43 @@ class PackedBatchMajorLanguageModel(LanguageModel):
         'num_words': (num_words, 1),
         'num_sentences': (num_sentences, 1)
     }, {}
+
+  def Inference(self):
+    """Constructs the inference subgraphs.
+
+    Returns:
+      dict: ``{'subgraph_name': (fetches, feeds)}``
+    """
+    subgraphs = {}
+    with tf.name_scope('inference'):
+      subgraphs['default'] = self._InferenceSubgraph_Default()
+    return subgraphs
+
+  def _InferenceSubgraph_Default(self):
+    """Default inference subgraph."""
+    batch_size = None
+    seq_length = None
+    fp_dtype = py_utils.FPropDtype(self.params)
+    tshape = (batch_size, seq_length)
+    input_ids = tf.placeholder(dtype=tf.int32, shape=tshape)
+    targets = tf.placeholder(dtype=tf.int32, shape=tshape)
+    paddings = tf.placeholder(dtype=fp_dtype, shape=tshape)
+    weights = tf.placeholder(dtype=fp_dtype, shape=tshape)
+    segment_ids = tf.placeholder(dtype=tf.int32, shape=tshape)
+    segment_pos = tf.placeholder(dtype=tf.int32, shape=tshape)
+    word_count = tf.placeholder(dtype=tf.int32, shape=(batch_size))
+    num_sentences = tf.placeholder(dtype=tf.int32, shape=(batch_size))
+    feeds = {
+        'ids': input_ids,
+        'labels': targets,
+        'paddings': paddings,
+        'weights': weights,
+        'segment_ids': segment_ids,
+        'segment_pos': segment_pos,
+        'word_count': word_count,
+        'num_sentences': num_sentences
+    }
+    input_batch = py_utils.NestedMap(feeds)
+    loss, _ = self.FPropTower(self.theta, input_batch)
+    fetches = {'loss': loss['loss'][0]}
+    return fetches, feeds

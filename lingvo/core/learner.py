@@ -327,12 +327,13 @@ class Learner(base_layer.BaseLayer):
     """
     p = self.params
     # Computes gradient's scale.
-    grad_scale = tf.constant(1.0)
+    grad_scale = tf.constant(1.0, all_grad_norm.dtype)
     if p.clip_gradient_norm_to_value:
       # If all_grad_norm > p.clip_gradient_norm_to_value, scales
       # all_grads so that the norm is 1.0.
-      grad_scale = tf.minimum(1.0,
-                              p.clip_gradient_norm_to_value / all_grad_norm)
+      grad_scale = tf.minimum(
+          tf.constant(1.0, all_grad_norm.dtype),
+          p.clip_gradient_norm_to_value / all_grad_norm)
 
     if p.grad_norm_to_clip_to_zero:
       # If all_grad_norm > p.grad_norm_to_clip_to_zero, treats
@@ -345,7 +346,8 @@ class Learner(base_layer.BaseLayer):
           all_grad_norm, has_nan_or_inf)
 
     # Force grad_scale to be 0 if there is any NaN or Inf in gradients.
-    grad_scale = tf.where(has_nan_or_inf, 0.0, grad_scale)
+    grad_scale = tf.where(has_nan_or_inf, tf.constant(0.0, grad_scale.dtype),
+                          grad_scale)
 
     return grad_scale
 
