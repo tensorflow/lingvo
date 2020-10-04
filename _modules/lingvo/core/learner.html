@@ -475,12 +475,13 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Computes gradient&#39;s scale.</span>
-    <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">all_grad_norm</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span><span class="p">:</span>
       <span class="c1"># If all_grad_norm &gt; p.clip_gradient_norm_to_value, scales</span>
       <span class="c1"># all_grads so that the norm is 1.0.</span>
-      <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span>
-                              <span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span> <span class="o">/</span> <span class="n">all_grad_norm</span><span class="p">)</span>
+      <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">all_grad_norm</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span> <span class="o">/</span> <span class="n">all_grad_norm</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad_norm_to_clip_to_zero</span><span class="p">:</span>
       <span class="c1"># If all_grad_norm &gt; p.grad_norm_to_clip_to_zero, treats</span>
@@ -493,7 +494,8 @@
           <span class="n">all_grad_norm</span><span class="p">,</span> <span class="n">has_nan_or_inf</span><span class="p">)</span>
 
     <span class="c1"># Force grad_scale to be 0 if there is any NaN or Inf in gradients.</span>
-    <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">)</span>
+    <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                          <span class="n">grad_scale</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">grad_scale</span></div>
 

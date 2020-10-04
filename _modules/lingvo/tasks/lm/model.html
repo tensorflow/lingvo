@@ -271,12 +271,12 @@
     <span class="sd">&quot;&quot;&quot;Clip LSTM gradients.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      var_grad: a `.NestedMap` of (variable, gradient). You can view</span>
-<span class="sd">        `var_grad` as an ordered list of (key, (var, grad)) tuples. Every</span>
-<span class="sd">        key of `var_grad` exists in `vmap`. Every variable in `vmap` that</span>
-<span class="sd">        contributes to loss must exist in `var_grad`. Every var of `var_grad`</span>
-<span class="sd">        must exist in `vmap`. `grad` is the corresponding gradient computed</span>
-<span class="sd">        for `var`. `grad` is guaranteed to be not None.</span>
+<span class="sd">      var_grad: a `.NestedMap` of (variable, gradient). You can view `var_grad`</span>
+<span class="sd">        as an ordered list of (key, (var, grad)) tuples. Every key of `var_grad`</span>
+<span class="sd">        exists in `vmap`. Every variable in `vmap` that contributes to loss must</span>
+<span class="sd">        exist in `var_grad`. Every var of `var_grad` must exist in `vmap`.</span>
+<span class="sd">        `grad` is the corresponding gradient computed for `var`. `grad` is</span>
+<span class="sd">        guaranteed to be not None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      adjusted version of `var_grad` that has clipped the LSTM gradients</span>
@@ -436,8 +436,20 @@
     <span class="p">},</span> <span class="p">{}</span></div></div>
 
 
-<div class="viewcode-block" id="PackedBatchMajorLanguageModel"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel">[docs]</a><span class="k">class</span> <span class="nc">PackedBatchMajorLanguageModel</span><span class="p">(</span><span class="n">LanguageModel</span><span class="p">):</span>
+<div class="viewcode-block" id="PackedBatchMajorLanguageModel"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel">[docs]</a><span class="k">class</span> <span class="nc">PackedBatchMajorLanguageModel</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Packed batch major implementation of the language model.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PackedBatchMajorLanguageModel.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lm&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">RnnLm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;LM layer.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Construct the model.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lm&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PackedBatchMajorLanguageModel.FPropTower"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel.FPropTower">[docs]</a>  <span class="k">def</span> <span class="nf">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -469,7 +481,7 @@
     <span class="n">predicted_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="p">,</span> <span class="n">labels_ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">num_sentences</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">num_sentences</span><span class="p">)</span>
 
-    <span class="n">num_preds</span> <span class="o">=</span> <span class="n">xent_output</span><span class="o">.</span><span class="n">total_weight</span>
+    <span class="n">num_preds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">total_weight</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="n">mean_acc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">labels_ids</span><span class="p">,</span> <span class="n">predicted_labels</span><span class="p">),</span> <span class="n">fprop_dtype</span><span class="p">)</span> <span class="o">*</span>
         <span class="n">weights</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">num_preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -482,7 +494,47 @@
         <span class="s1">&#39;num_predictions&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
         <span class="s1">&#39;num_words&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
         <span class="s1">&#39;num_sentences&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_sentences</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="p">},</span> <span class="p">{}</span></div></div>
+    <span class="p">},</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="PackedBatchMajorLanguageModel.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the inference subgraphs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      dict: ``{&#39;subgraph_name&#39;: (fetches, feeds)}``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">subgraphs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;inference&#39;</span><span class="p">):</span>
+      <span class="n">subgraphs</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InferenceSubgraph_Default</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">subgraphs</span></div>
+
+<div class="viewcode-block" id="PackedBatchMajorLanguageModel._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default inference subgraph.&quot;&quot;&quot;</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">seq_length</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">fp_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">tshape</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">)</span>
+    <span class="n">input_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tshape</span><span class="p">)</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tshape</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">fp_dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tshape</span><span class="p">)</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">fp_dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tshape</span><span class="p">)</span>
+    <span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tshape</span><span class="p">)</span>
+    <span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">tshape</span><span class="p">)</span>
+    <span class="n">word_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span>
+    <span class="n">num_sentences</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;ids&#39;</span><span class="p">:</span> <span class="n">input_ids</span><span class="p">,</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">targets</span><span class="p">,</span>
+        <span class="s1">&#39;paddings&#39;</span><span class="p">:</span> <span class="n">paddings</span><span class="p">,</span>
+        <span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="n">weights</span><span class="p">,</span>
+        <span class="s1">&#39;segment_ids&#39;</span><span class="p">:</span> <span class="n">segment_ids</span><span class="p">,</span>
+        <span class="s1">&#39;segment_pos&#39;</span><span class="p">:</span> <span class="n">segment_pos</span><span class="p">,</span>
+        <span class="s1">&#39;word_count&#39;</span><span class="p">:</span> <span class="n">word_count</span><span class="p">,</span>
+        <span class="s1">&#39;num_sentences&#39;</span><span class="p">:</span> <span class="n">num_sentences</span>
+    <span class="p">}</span>
+    <span class="n">input_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">feeds</span><span class="p">)</span>
+    <span class="n">loss</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+    <span class="n">fetches</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]}</span>
+    <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
 </pre></div>
 
            </div>
