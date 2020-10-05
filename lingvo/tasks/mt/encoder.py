@@ -457,6 +457,12 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
     else:
       return x
 
+  def _ComputeInputs(self, theta, xs, input_batch):
+    xs = self.emb.EmbLookup(theta.emb, xs)
+    xs = self.ApplyClipping(theta, xs)
+    xs = self.dropout.FProp(theta.dropout, xs)
+    return xs
+
   def FProp(self, theta, input_batch):
     p = self.params
     with tf.name_scope(p.name):
@@ -471,10 +477,8 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
             tf.transpose(input_batch.segment_ids), 2)
       else:
         src_segment_id = None
-      xs = self.emb.EmbLookup(theta.emb, inputs)
-      xs = self.ApplyClipping(theta, xs)
+      xs = self._ComputeInputs(theta, inputs, input_batch)
       summary_utils.histogram('input_emb', xs)
-      xs = self.dropout.FProp(theta.dropout, xs)
       ps = paddings
       # Now the rnn layers.
       outputs_list = []
@@ -504,6 +508,16 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
 
       return py_utils.NestedMap(
           encoded=xs, padding=tf.squeeze(ps, [2]), segment_id=src_segment_id)
+
+
+class MTEncoderBiRNNPrecomputedEmbedding(MTEncoderBiRNN):
+  """A variant of MTEncoderBiRNN where the RNN input is consumed directly...
+
+  instead of looked up in an embedding layer from one-hot vectors.
+  """
+
+  def _ComputeInputs(self, theta, xs, input_batch):
+    return input_batch.embeddings
 
 
 class TransformerEncoder(base_layer.BaseLayer):

@@ -83,7 +83,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
 
   def _InputBatch(self):
     ret = py_utils.NestedMap()
-    ret.bucket_key = self._bucket_keys
+    ret.bucket_keys = self._bucket_keys
     ret.ids = self._ids
     ret.labels = self._labels
     ret.paddings = self._paddings
