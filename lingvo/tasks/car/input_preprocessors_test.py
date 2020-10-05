@@ -17,6 +17,7 @@
 
 from lingvo import compat as tf
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.core import test_utils
 from lingvo.tasks.car import input_preprocessors
 import numpy as np
@@ -50,6 +51,49 @@ class InputPreprocessorsTest(test_utils.TestCase):
     self.assertEqual(self.evaluate(features.value2), [2])
     self.assertEqual(shapes.value2, tf.TensorShape([1]))
     self.assertEqual(dtypes.value2, tf.int64)
+
+  def testSchedulePreprocessor(self):
+    input_p = input_preprocessors.SchedulePreprocessor.Params().Set(
+        schedules=py_utils.NestedMap(
+            value1=schedule.ConstantOne.Params(),
+            value2=schedule.PiecewiseConstantSchedule.Params().Set(
+                boundaries=[10], values=[1, 2], dtype=tf.int64),
+        ))
+    features = py_utils.NestedMap()
+    shapes = py_utils.NestedMap()
+    dtypes = py_utils.NestedMap()
+    # Create global step because schedules depend on it.
+    global_step = py_utils.GetOrCreateGlobalStepVar()
+    preprocessor = input_p.Instantiate()
+
+    # Verify shape / dtypes.
+    shapes = preprocessor.TransformShapes(shapes)
+    dtypes = preprocessor.TransformDTypes(dtypes)
+    self.assertEqual(shapes.value1, tf.TensorShape([]))
+    self.assertEqual(shapes.value2, tf.TensorShape([]))
+    self.assertEqual(dtypes.value1, tf.float32)
+    self.assertEqual(dtypes.value2, tf.int64)
+
+    features = preprocessor.TransformFeatures(features)
+
+    # Init global step
+    self.evaluate(tf.global_variables_initializer())
+
+    features_np = self.evaluate(features)
+    self.assertEqual(features_np.value1, 1.)
+    self.assertEqual(features_np.value2, 1)  # Global step is 0
+
+    # Set global step to 11.
+    self.evaluate(tf.assign(global_step, 11))
+    features_np = self.evaluate(features)
+    self.assertEqual(features_np.value1, 1.)
+    self.assertEqual(features_np.value2, 2)  # Global step is 11
+
+    # Validate all values are schedules.
+    input_p = input_preprocessors.SchedulePreprocessor.Params().Set(
+        schedules=py_utils.NestedMap(value1=tf.constant(1.),))
+    with self.assertRaises(TypeError):
+      input_p.Instantiate()
 
   def testRandomChoicePreprocessor(self):
     p = input_preprocessors.RandomChoicePreprocessor.Params()

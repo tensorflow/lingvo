@@ -539,6 +539,7 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
+        "//lingvo/core:schedule",
         "//lingvo/tasks/car/ops",
         # Implicit numpy dependency.
     ],
@@ -553,6 +554,7 @@ py_test(
         ":input_preprocessors",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
+        "//lingvo/core:schedule",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
     ],

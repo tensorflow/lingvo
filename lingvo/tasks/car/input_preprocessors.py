@@ -18,6 +18,7 @@
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.tasks.car import car_lib
 from lingvo.tasks.car import detection_3d_lib
 from lingvo.tasks.car import geometry
@@ -3335,6 +3336,48 @@ class ConstantPreprocessor(Preprocessor):
   def TransformDTypes(self, dtypes):
     constants = py_utils.NestedMap(self.params.constants)
     dtypes.update(constants.Transform(lambda x: tf.as_dtype(np.array(x).dtype)))
+    return dtypes
+
+
+class SchedulePreprocessor(Preprocessor):
+  """Preprocessor that produces specified schedules in a nested output.
+
+  Schedules assume that the Value is based on global_step, which must be created
+  prior to SchedulePreprocessor's creation and initialized before use.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('schedules', py_utils.NestedMap(),
+             'Map of key name to BaseSchedule.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+
+    def _FilterFn(v):
+      if not getattr(v, 'cls', False):
+        return True
+      return not issubclass(v.cls, schedule.BaseSchedule)
+
+    invalid_values = p.schedules.Filter(_FilterFn)
+    if invalid_values:
+      raise TypeError('Not all schedule values were schedules: '
+                      f'{invalid_values}')
+
+  def TransformFeatures(self, features):
+    features.update(
+        self.params.schedules.Transform(lambda v: v.Instantiate().Value()))
+    return features
+
+  def TransformShapes(self, shapes):
+    shapes.update(self.params.schedules.Transform(lambda x: tf.TensorShape([])))
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    dtypes.update(self.params.schedules.Transform(lambda v: v.dtype))
     return dtypes
 
 
