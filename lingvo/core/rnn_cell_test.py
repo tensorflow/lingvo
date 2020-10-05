@@ -861,37 +861,34 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
         [-0.15832338, 1.22740746, 0.19910295, -0.14970522],
         [-0.57552516, 0.9139322, 0.41805002, 0.58792269]]),
       ('LayerNormDropoutWithoutProj', rnn_cell.LayerNormMaskedLSTMCellSimple,
-       2, 5, None, True,
-       [[0, 0, 0.34639645, 0.36072063, 0.05766151],
-        [0, 0, -0.10093943, 0.21932118, 0.06627917],
-        [0, 0, 0.6682078, 0.23830564, 0.07110848]],
-       [[0, 0, 1.2519075, 1.288402, 0.07172579],
-        [0, 0, -0.1683764, 1.3020003, 0.09160352],
-        [0, 0, 1.216201, 1.5392815, 0.10265177]]),
+       2, 2, None, True,
+       [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
+        [-0.00272907, 0.31641623]],
+       [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
+        [-0.01014781, 0.46336061]]),
       ('LayerNormDropoutWithProj', rnn_cell.LayerNormMaskedLSTMCellSimple,
-       2, 2, 5, True,
-       [[0.05171299, 0.03812631],
-        [0.07599054, 0.06454647],
-        [0.09834798, 0.06387785]],
-       [[0, 0, 0.8289356, 1.6535832, 0.02928851],
-        [0, 0, 0.5784316, 1.0442127, 0.15764444],
-        [0, 0, 0.8738816, 1.6674773, 0.15459065]]),
+       2, 2, 4, True,
+       [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
+        [0.47132283, 0.03284446]],
+       [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
+        [-0.15832338, 1.22740746, 0.19910297, -0.14970526],
+        [-0.57552528, 0.9139322, 0.41805002, 0.58792269]]),
       ('WeightNormDropoutWithoutProj', rnn_cell.WeightNormMaskedLSTMCellSimple,
        2, 5, None, True,
-       [[0, 0, 0.42894554, 0.36702552, 0.419203],
-        [0, 0, -0.03027876, 0.27110243, 0.15523283],
-        [0, 0, 0.53651273, 0.33100834, 0.06433555]],
-       [[0, 0, 1.4363146, 1.3139383, 0.70022106],
-        [0, 0, -0.0562571, 0.9132297, 0.24887629],
-        [0, 0, 1.2587361, 1.1207389, 0.12228345]]),
+       [[0.06124492, 0.22344324, 0.2573673, 0.22021532, 0.2515218],
+        [0.0851617, 0.10842345, -0.01816726, 0.16266146, 0.0931397],
+        [0.03512726, 0.28154814, 0.32190764, 0.198605, 0.03860133]],
+       [[0.27504668, 0.5392196, 0.86178875, 0.788363, 0.42013264],
+        [0.46231857, 0.19085361, -0.03375426, 0.5479378, 0.14932577],
+        [0.16894935, 0.6310395, 0.7552417, 0.6724433, 0.07337007]]),
       ('WeightNormDropoutWithProj', rnn_cell.WeightNormMaskedLSTMCellSimple,
        2, 2, 5, True,
-       [[0.16045049, 0.12988594],
-        [-0.00477136, 0.19046499],
-        [0.14223383, 0.03902699]],
-       [[0, 0, 1.3856815, 1.5678431, 0.3796885],
-        [0, 0, 0.13438965, 0.46849215, 0.28234842],
-        [0, 0, 0.9483289, 1.3425888, 0.2541739]]))
+       [[0.09886204, 0.2904314],
+        [-0.10203021, 0.28588364],
+        [0.18647942, 0.22519541]],
+       [[0.31294018, 0.4247678, 0.83140886, 0.9407059, 0.2278131],
+        [0.37135836, 0.09326377, 0.08063379, 0.2810953, 0.16940905],
+        [0.07096109, 0.49200282, 0.5689973, 0.80555326, 0.15250434]]))
   # pyformat: enable
   def testNormalization(self, cell_cls, num_input_nodes, num_output_nodes,
                         num_hidden_nodes, enable_lstm_bias, m_expected,
@@ -1050,7 +1047,11 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
   # pyformat: enable
   def testLSTMMaskedNoScale(self, cell_cls, num_input_nodes, num_output_nodes,
                             num_hidden_nodes, m_expected, c_expected):
-    params = cell_cls.Params().Copy().Set(use_dropout_scale=False)
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    params = cell_cls.Params().Copy().Set(
+        use_dropout_scale=False,
+        activation_mask_init_params=py_utils.WeightInit.UniformPositive(
+            2.0, seed=_RANDOM_SEED))
     m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
                                     num_hidden_nodes)
     self.assertAllClose(m_expected, m_v)
@@ -1076,7 +1077,11 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
   def testLSTMCellDropoutScale(self, cell_cls, num_input_nodes,
                                num_output_nodes, num_hidden_nodes, m_expected,
                                c_expected):
-    params = cell_cls.Params()
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    params = cell_cls.Params().Copy().Set(
+        use_dropout_scale=True,
+        activation_mask_init_params=py_utils.WeightInit.UniformPositive(
+            2.0, seed=_RANDOM_SEED))
     m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
                                     num_hidden_nodes)
     self.assertAllClose(m_expected, m_v)
@@ -1102,7 +1107,11 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
   def testLSTMCellDropoutNoScale(self, cell_cls, num_input_nodes,
                                  num_output_nodes, num_hidden_nodes, m_expected,
                                  c_expected):
-    params = cell_cls.Params().Copy().Set(use_dropout_scale=False)
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    params = cell_cls.Params().Copy().Set(
+        use_dropout_scale=False,
+        activation_mask_init_params=py_utils.WeightInit.UniformPositive(
+            2.0, seed=_RANDOM_SEED))
     m_v, c_v = self._testLNLSTMCell(params, num_input_nodes, num_output_nodes,
                                     num_hidden_nodes)
     self.assertAllClose(m_expected, m_v)
