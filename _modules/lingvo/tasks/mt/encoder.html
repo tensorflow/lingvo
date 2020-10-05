@@ -605,6 +605,12 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">x</span></div>
 
+<div class="viewcode-block" id="MTEncoderBiRNN._ComputeInputs"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN._ComputeInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xs</span></div>
+
 <div class="viewcode-block" id="MTEncoderBiRNN.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -619,10 +625,8 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">src_segment_id</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeInputs</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
       <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;input_emb&#39;</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
       <span class="n">ps</span> <span class="o">=</span> <span class="n">paddings</span>
       <span class="c1"># Now the rnn layers.</span>
       <span class="n">outputs_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -652,6 +656,16 @@
 
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">encoded</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MTEncoderBiRNNPrecomputedEmbedding"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNNPrecomputedEmbedding">[docs]</a><span class="k">class</span> <span class="nc">MTEncoderBiRNNPrecomputedEmbedding</span><span class="p">(</span><span class="n">MTEncoderBiRNN</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A variant of MTEncoderBiRNN where the RNN input is consumed directly...</span>
+
+<span class="sd">  instead of looked up in an embedding layer from one-hot vectors.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MTEncoderBiRNNPrecomputedEmbedding._ComputeInputs"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNNPrecomputedEmbedding._ComputeInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">embeddings</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerEncoder"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerEncoder">[docs]</a><span class="k">class</span> <span class="nc">TransformerEncoder</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
