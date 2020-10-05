@@ -2884,6 +2884,65 @@ features.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.tasks.car.input_preprocessors.SchedulePreprocessor">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.input_preprocessors.</code><code class="sig-name descname">SchedulePreprocessor</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SchedulePreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.input_preprocessors.Preprocessor" title="lingvo.tasks.car.input_preprocessors.Preprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.Preprocessor</span></code></a></p>
+<p>Preprocessor that produces specified schedules in a nested output.</p>
+<p>Schedules assume that the Value is based on global_step, which must be created
+prior to SchedulePreprocessor’s creation and initialized before use.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SchedulePreprocessor.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformFeatures">
+<code class="sig-name descname">TransformFeatures</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">features</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SchedulePreprocessor.TransformFeatures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformFeatures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms the features for one example.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors corresponding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformShapes">
+<code class="sig-name descname">TransformShapes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shapes</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SchedulePreprocessor.TransformShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformShapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets correct shapes corresponding to TransformFeatures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shapes</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of TensorShapes, corresponding to the
+pre-transformed features.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of TensorShapes corresponding to the transformed features.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformDTypes">
+<code class="sig-name descname">TransformDTypes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dtypes</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#SchedulePreprocessor.TransformDTypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformDTypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets correct dtypes corresponding to TransformFeatures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dtypes</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of DTypes, corresponding to the pre-transformed
+features.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of DTypes corresponding to the transformed features.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.tasks.car.input_preprocessors.IdentityPreprocessor">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.input_preprocessors.</code><code class="sig-name descname">IdentityPreprocessor</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#IdentityPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.IdentityPreprocessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.input_preprocessors.Preprocessor" title="lingvo.tasks.car.input_preprocessors.Preprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.Preprocessor</span></code></a></p>
