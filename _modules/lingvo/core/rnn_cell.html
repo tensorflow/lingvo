@@ -1152,24 +1152,21 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_dropout_scale&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;use_dropout_scale&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether to use the dropout_scale on the masked activations. If true,&#39;</span>
         <span class="s1">&#39;the activations will be multipled by 1/keep_rate, similar to the &#39;</span>
         <span class="s1">&#39;scale operation of dropout layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;activation_mask_init_params&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;activation_mask_init_params&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
         <span class="s1">&#39;Parameters that define how the initial activation mask values are set &#39;</span>
         <span class="s1">&#39;for each cell. Must be one of the static functions defined in &#39;</span>
-        <span class="s1">&#39;py_utils.WeightInit.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;py_utils.WeightInit. The default values are one.&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="LSTMCellSimpleGateDropout._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimpleGateDropout._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_mask_init_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">activation_mask_init_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformPositive</span><span class="p">(</span>
-          <span class="mf">2.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
 
     <span class="n">activation_mask_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
