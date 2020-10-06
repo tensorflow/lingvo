@@ -3580,6 +3580,8 @@ class LayerNorm(base_layer.BaseLayer):
           inputs, axes=[-1], keepdims=True)
       mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
                                                None)
+      # Adding a cast here. Sometimes, inputs/mean/variance/p.epsilon are in
+      # float32 while scale and cur_bias are in bf16.
       inputs_norm = tf.cast(
           (inputs - mean) * tf.math.rsqrt(variance + p.epsilon),
           dtype=scale.dtype)
