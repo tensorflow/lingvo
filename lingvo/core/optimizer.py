@@ -36,6 +36,7 @@ class Base(base_layer.BaseLayer):
         'use_bf16_gradients_ar', False,
         'Whether to use bfloat16 dtype for gradients all-reduce. '
         'This applies to TPU only.')
+    p.Define('add_summary_in_apply', True, 'Whether to add summary in Apply.')
     return p
 
   def GetOptimizer(self, lr):
@@ -90,7 +91,8 @@ class Base(base_layer.BaseLayer):
             tf.VariableScope(
                 use_resource=True, reuse=self.VarReuseForSlotVars())):
           var_update_op = _Apply()
-    self.AddSummary(lr, optimizer, var_grad)
+    if self.params.add_summary_in_apply:
+      self.AddSummary(lr, optimizer, var_grad)
     return var_update_op
 
   def ApplyPostTrainingLoop(self, global_step):
@@ -392,6 +394,8 @@ class Accumulator(Base):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
+    # Disable tf.summary in control flow ops.
+    p.optimizer_tpl.add_summary_in_apply = False
     self.CreateChild('_opt', p.optimizer_tpl)
 
   def Apply(self, lr, var_grad):
@@ -422,6 +426,8 @@ class Accumulator(Base):
         return tf.group(
             *[tf.assign(a, tf.zeros_like(a)) for _, a in var_grad.Flatten()])
 
+    if self.params.add_summary_in_apply:
+      self.AddSummary(lr, self.GetOptimizer(lr), var_grad)
     return tf.cond(
         tf.equal(
             tf.math.floormod(self.global_step, p.accum_steps),
@@ -515,7 +521,9 @@ class DistributedShampoo(Base):
             tf.VariableScope(
                 use_resource=True, reuse=self.VarReuseForSlotVars())):
           var_update_op = _Apply()
-    self.AddSummary(lr, self._optimizer, var_grad)
+
+    if self.params.add_summary_in_apply:
+      self.AddSummary(lr, self._optimizer, var_grad)
     return var_update_op
 
   def ApplyPostTrainingLoop(self, global_step):

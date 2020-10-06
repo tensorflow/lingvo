@@ -16,6 +16,7 @@
 """Tests for optimizer."""
 
 import lingvo.compat as tf
+from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import optimizer
 from lingvo.core import py_utils
@@ -155,7 +156,8 @@ class OptimizerTest(test_utils.TestCase):
           accum_steps=2, dtype=tf.float64, optimizer_tpl=optimizer.SGD.Params())
       opt = op.Instantiate()
       lr = 1e-1
-      var_update_op = opt.Apply(lr, var_grads)
+      with cluster_factory.ForTestingWorker(add_summary=True):
+        var_update_op = opt.Apply(lr, var_grads)
       increment_global_step_op = tf.assign_add(
           py_utils.GetOrCreateGlobalStepVar(), 1)
 
@@ -184,6 +186,10 @@ class OptimizerTest(test_utils.TestCase):
       acc_2 = self.evaluate(
           [v for v in tf.global_variables() if 'grad_accumulator' in v.name])[0]
       vars2_1 = self.evaluate(proj_layer.vars.Flatten())
+
+      summary = tf.Summary.FromString(self.evaluate(tf.summary.merge_all()))
+      tf.logging.info(f'summary: {summary}')
+      self.assertEqual(summary.value[0].tag, 'sgd_lr')
 
     self.assertAllClose(vars1, vars2)
 
