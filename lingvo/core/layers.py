@@ -3580,7 +3580,9 @@ class LayerNorm(base_layer.BaseLayer):
           inputs, axes=[-1], keepdims=True)
       mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
                                                None)
-      inputs_norm = (inputs - mean) * tf.math.rsqrt(variance + p.epsilon)
+      inputs_norm = tf.cast(
+          (inputs - mean) * tf.math.rsqrt(variance + p.epsilon),
+          dtype=scale.dtype)
       return inputs_norm * scale + cur_bias
 
     def Normalize(xs):
