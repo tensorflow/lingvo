@@ -215,14 +215,20 @@
 
     <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
       <span class="n">multi_task_train_cfg</span> <span class="o">=</span> <span class="n">train_cfg</span>
-      <span class="c1"># Create MultiTaskSubModel params from a MultiTaskModelParams.</span>
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-        <span class="n">train_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">share_model_object</span><span class="p">:</span>
+          <span class="c1"># Create MultiTaskSubModel params from a MultiTaskModelParams.</span>
+          <span class="n">train_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+          <span class="n">train_task_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">k</span>
+          <span class="n">train_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">train_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+          <span class="n">train_task_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+          <span class="n">train_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
         <span class="n">train_task_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;_executor_train_task&#39;</span>
-        <span class="n">train_task_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">k</span>
         <span class="n">train_task_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">cluster</span>
-        <span class="n">train_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
         <span class="n">train_task_params</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">train</span>
+
         <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ps_cfg</span><span class="o">.</span><span class="n">program_schedule_dict</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
               <span class="s1">&#39;Could not find </span><span class="si">%s</span><span class="s1"> in ps_cfg.program_schedule_dict: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span>
@@ -234,12 +240,17 @@
         <span class="k">for</span> <span class="n">eval_dataset_name</span> <span class="ow">in</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
           <span class="n">multi_task_eval_cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span>
               <span class="n">model_name</span><span class="p">,</span> <span class="n">eval_dataset_name</span><span class="p">)</span>
-          <span class="n">eval_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+          <span class="k">if</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">share_model_object</span><span class="p">:</span>
+            <span class="n">eval_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+            <span class="n">eval_task_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">k</span>
+            <span class="n">eval_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">eval_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+            <span class="n">eval_task_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="n">eval_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
               <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">eval_dataset_name</span> <span class="o">+</span> <span class="s1">&#39;_executor_eval_task&#39;</span><span class="p">)</span>
-          <span class="n">eval_task_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">k</span>
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">cluster</span>
-          <span class="n">eval_task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
           <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span>
               <span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_task_params</span>
         <span class="n">ps_params_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">program_schedule_params</span>
@@ -439,8 +450,9 @@
   <span class="k">def</span> <span class="nf">_MaybeConstructSharedModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_cfg</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct a single shared copy of the model if this is a MultiTaskModel.</span>
 
-<span class="sd">    For MultiTaskModels, we create a MultiTaskSubModel for each task, but</span>
-<span class="sd">    construct the model only once.</span>
+<span class="sd">    If the share_model_object parameter is set, for MultiTaskModels,</span>
+<span class="sd">    we create a MultiTaskSubModel for each task, but construct the model only</span>
+<span class="sd">    once.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      train_cfg: The params for a SingleTaskModel or MultiTaskModel.</span>
@@ -449,6 +461,9 @@
 <span class="sd">      A MultiTaskModel, if train_cfg is a MultiTaskModel params object.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
+      <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">share_model_object</span><span class="p">:</span>
       <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>

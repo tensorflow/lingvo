@@ -730,8 +730,9 @@ share the TPU.</p></li>
 <dt id="lingvo.trainer.RunnerManager.ExecutorTpu._MaybeConstructSharedModel">
 <code class="sig-name descname">_MaybeConstructSharedModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_cfg</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu._MaybeConstructSharedModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a single shared copy of the model if this is a MultiTaskModel.</p>
-<p>For MultiTaskModels, we create a MultiTaskSubModel for each task, but
-construct the model only once.</p>
+<p>If the share_model_object parameter is set, for MultiTaskModels,
+we create a MultiTaskSubModel for each task, but construct the model only
+once.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>train_cfg</strong> – The params for a SingleTaskModel or MultiTaskModel.</p>
