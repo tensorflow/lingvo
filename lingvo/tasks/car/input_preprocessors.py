@@ -3339,48 +3339,6 @@ class ConstantPreprocessor(Preprocessor):
     return dtypes
 
 
-class SchedulePreprocessor(Preprocessor):
-  """Preprocessor that produces specified schedules in a nested output.
-
-  Schedules assume that the Value is based on global_step, which must be created
-  prior to SchedulePreprocessor's creation and initialized before use.
-  """
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('schedules', py_utils.NestedMap(),
-             'Map of key name to BaseSchedule.')
-    return p
-
-  def __init__(self, params):
-    super().__init__(params)
-    p = self.params
-
-    def _FilterFn(v):
-      if not getattr(v, 'cls', False):
-        return True
-      return not issubclass(v.cls, schedule.BaseSchedule)
-
-    invalid_values = p.schedules.Filter(_FilterFn)
-    if invalid_values:
-      raise TypeError('Not all schedule values were schedules: '
-                      f'{invalid_values}')
-
-  def TransformFeatures(self, features):
-    features.update(
-        self.params.schedules.Transform(lambda v: v.Instantiate().Value()))
-    return features
-
-  def TransformShapes(self, shapes):
-    shapes.update(self.params.schedules.Transform(lambda x: tf.TensorShape([])))
-    return shapes
-
-  def TransformDTypes(self, dtypes):
-    dtypes.update(self.params.schedules.Transform(lambda v: v.dtype))
-    return dtypes
-
-
 class IdentityPreprocessor(Preprocessor):
   """Preprocessor that passes all inputs through.
 
@@ -3414,9 +3372,11 @@ class RandomChoicePreprocessor(Preprocessor):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('weight_tensor_key', None,
-             'Key in features that specifies the weighting tensor.')
-    p.Define('subprocessors', [], 'Params for preprocessors.')
+    p.Define(
+        'subprocessors', [],
+        'Params for preprocessors. Each value should be a tuple of '
+        '(Preprocessor.Params(), BaseSchedule.Params()), where the schedule '
+        'defines the weights to use over time.')
     return p
 
   def __init__(self, params):
@@ -3424,24 +3384,34 @@ class RandomChoicePreprocessor(Preprocessor):
     p = self.params
     if not p.subprocessors:
       raise ValueError('No subprocessors were specified.')
-    self.CreateChildren('subprocessors', p.subprocessors)
+
+    subprocessors, schedules = zip(*p.subprocessors)
+
+    def _FilterNonSchedules(v):
+      return not issubclass(getattr(v, 'cls', False), schedule.BaseSchedule)
+
+    invalid_values = [_FilterNonSchedules(s) for s in schedules]
+    if any(invalid_values):
+      raise TypeError('Not all schedule values were schedules: '
+                      f'{invalid_values}')
+
+    self.CreateChildren('subprocessors', list(subprocessors))
+    self.CreateChildren('schedules', list(schedules))
 
   def TransformFeatures(self, features):
     p = self.params
 
-    weight_tensor = features.GetItem(p.weight_tensor_key)
-    num_weights = py_utils.GetShape(weight_tensor, 1)
-    if (isinstance(num_weights, int) and num_weights != len(p.subprocessors)):
-      raise ValueError(f'Choice tensor specified {num_weights} values '
-                       'but there are {len(p.subprocessors)} subprocessors.')
+    choice_list = []
+    weight_list = []
 
     # Pass a unique copy of the input to each branch, in case the
     # subprocessor destructively modifies the features in unexpected ways.
-    choice_list = [
-        lambda subp=subp: subp.TransformFeatures(features.DeepCopy())
-        for subp in self.subprocessors
-    ]
+    for subp, sched in zip(self.subprocessors, self.schedules):
+      choice_list.append(
+          lambda subp=subp: subp.TransformFeatures(features.DeepCopy()))
+      weight_list.append(sched.Value())
 
+    weight_tensor = tf.stack(weight_list)
     chosen_bin = tf.random.categorical(
         tf.math.log(weight_tensor[tf.newaxis]),
         1,

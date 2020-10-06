@@ -52,73 +52,28 @@ class InputPreprocessorsTest(test_utils.TestCase):
     self.assertEqual(shapes.value2, tf.TensorShape([1]))
     self.assertEqual(dtypes.value2, tf.int64)
 
-  def testSchedulePreprocessor(self):
-    input_p = input_preprocessors.SchedulePreprocessor.Params().Set(
-        schedules=py_utils.NestedMap(
-            value1=schedule.ConstantOne.Params(),
-            value2=schedule.PiecewiseConstantSchedule.Params().Set(
-                boundaries=[10], values=[1, 2], dtype=tf.int64),
-        ))
-    features = py_utils.NestedMap()
-    shapes = py_utils.NestedMap()
-    dtypes = py_utils.NestedMap()
-    # Create global step because schedules depend on it.
-    global_step = py_utils.GetOrCreateGlobalStepVar()
-    preprocessor = input_p.Instantiate()
-
-    # Verify shape / dtypes.
-    shapes = preprocessor.TransformShapes(shapes)
-    dtypes = preprocessor.TransformDTypes(dtypes)
-    self.assertEqual(shapes.value1, tf.TensorShape([]))
-    self.assertEqual(shapes.value2, tf.TensorShape([]))
-    self.assertEqual(dtypes.value1, tf.float32)
-    self.assertEqual(dtypes.value2, tf.int64)
-
-    features = preprocessor.TransformFeatures(features)
-
-    # Init global step
-    self.evaluate(tf.global_variables_initializer())
-
-    features_np = self.evaluate(features)
-    self.assertEqual(features_np.value1, 1.)
-    self.assertEqual(features_np.value2, 1)  # Global step is 0
-
-    # Set global step to 11.
-    self.evaluate(tf.assign(global_step, 11))
-    features_np = self.evaluate(features)
-    self.assertEqual(features_np.value1, 1.)
-    self.assertEqual(features_np.value2, 2)  # Global step is 11
-
-    # Validate all values are schedules.
-    input_p = input_preprocessors.SchedulePreprocessor.Params().Set(
-        schedules=py_utils.NestedMap(value1=tf.constant(1.),))
-    with self.assertRaises(TypeError):
-      input_p.Instantiate()
-
   def testRandomChoicePreprocessor(self):
     p = input_preprocessors.RandomChoicePreprocessor.Params()
-    p.weight_tensor_key = 'weights'
     # Construct 4 preprocessors each producing a different value.
-    p.subprocessors = [
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 1}),
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 2}),
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 3}),
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 4}),
-    ]
+    base = input_preprocessors.ConstantPreprocessor.Params()
+    c1 = (base.Copy().Set(constants={'value': 1}),
+          schedule.Constant.Params().Set(value=1))
+    c2 = (base.Copy().Set(constants={'value': 2}),
+          schedule.Constant.Params().Set(value=2))
+    c3 = (base.Copy().Set(constants={'value': 3}),
+          schedule.Constant.Params().Set(value=3))
+    c4 = (base.Copy().Set(constants={'value': 4}),
+          schedule.Constant.Params().Set(value=4))
 
+    p.subprocessors = [c1, c2, c3, c4]
+
+    # Create global step because schedules depend on it.
+    _ = py_utils.GetOrCreateGlobalStepVar()
     preprocessor = p.Instantiate()
 
-    # Construct test data.
     features = py_utils.NestedMap()
-    features.weights = tf.constant([1., 2., 3., 4.])
     shapes = py_utils.NestedMap()
-    shapes.weights = tf.TensorShape([4])
     dtypes = py_utils.NestedMap()
-    dtypes.weights = tf.float32
 
     # Verify shape / dtypes.
     new_shapes = preprocessor.TransformShapes(shapes)
@@ -126,6 +81,7 @@ class InputPreprocessorsTest(test_utils.TestCase):
     self.assertEqual(new_shapes.value, tf.TensorShape([]))
     self.assertEqual(new_dtypes.value, tf.int64)
 
+    self.evaluate(tf.global_variables_initializer())
     new_features = preprocessor.TransformFeatures(features)
 
     counts = [0, 0, 0, 0]
@@ -143,48 +99,37 @@ class InputPreprocessorsTest(test_utils.TestCase):
 
   def testRandomChoicePreprocessorErrors(self):
     p = input_preprocessors.RandomChoicePreprocessor.Params()
-    p.weight_tensor_key = 'weights'
+    base = input_preprocessors.ConstantPreprocessor.Params()
     # Subprocessors produce different shapes
-    p.subprocessors = [
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 1}),
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': [2, 3]}),
-    ]
+    c1 = (base.Copy().Set(constants={'value': 1}),
+          schedule.Constant.Params().Set(value=1))
+    c2 = (base.Copy().Set(constants={'value': [2, 3]}),
+          schedule.Constant.Params().Set(value=2))
+
+    p.subprocessors = [c1, c2]
     preprocessor = p.Instantiate()
-    # Construct test data.
     shapes = py_utils.NestedMap()
-    shapes.weights = tf.TensorShape([2])
     with self.assertRaises(ValueError):
       preprocessor.TransformShapes(shapes)
 
     # Subprocessors produce different keys
-    p.subprocessors = [
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 1}),
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'foo': 2}),
-    ]
+    p.subprocessors[1][0].Set(constants={'foo': 2})
     preprocessor = p.Instantiate()
-    # Construct test data.
     shapes = py_utils.NestedMap()
-    shapes.weights = tf.TensorShape([2])
     with self.assertRaises(ValueError):
       preprocessor.TransformShapes(shapes)
 
     # Subprocessors produce different dtypes
-    p.subprocessors = [
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 1}),
-        input_preprocessors.ConstantPreprocessor.Params().Set(
-            constants={'value': 2.}),
-    ]
+    p.subprocessors[1][0].Set(constants={'value': 2.})
     preprocessor = p.Instantiate()
-    # Construct test data.
     dtypes = py_utils.NestedMap()
-    dtypes.weights = tf.float32
     with self.assertRaises(ValueError):
       preprocessor.TransformDTypes(dtypes)
+
+    # Not a schedule
+    p.subprocessors[1] = (p.subprocessors[1][0], tf.constant(1.))
+    with self.assertRaises(TypeError):
+      preprocessor = p.Instantiate()
 
 
 if __name__ == '__main__':
