@@ -3487,48 +3487,6 @@
     <span class="k">return</span> <span class="n">dtypes</span></div></div>
 
 
-<div class="viewcode-block" id="SchedulePreprocessor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor">[docs]</a><span class="k">class</span> <span class="nc">SchedulePreprocessor</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Preprocessor that produces specified schedules in a nested output.</span>
-
-<span class="sd">  Schedules assume that the Value is based on global_step, which must be created</span>
-<span class="sd">  prior to SchedulePreprocessor&#39;s creation and initialized before use.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="SchedulePreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
-             <span class="s1">&#39;Map of key name to BaseSchedule.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-
-    <span class="k">def</span> <span class="nf">_FilterFn</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">True</span>
-      <span class="k">return</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">schedule</span><span class="o">.</span><span class="n">BaseSchedule</span><span class="p">)</span>
-
-    <span class="n">invalid_values</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">schedules</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">_FilterFn</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">invalid_values</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Not all schedule values were schedules: &#39;</span>
-                      <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">invalid_values</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-
-<div class="viewcode-block" id="SchedulePreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
-    <span class="n">features</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">schedules</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">Value</span><span class="p">()))</span>
-    <span class="k">return</span> <span class="n">features</span></div>
-
-<div class="viewcode-block" id="SchedulePreprocessor.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
-    <span class="n">shapes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">schedules</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([])))</span>
-    <span class="k">return</span> <span class="n">shapes</span></div>
-
-<div class="viewcode-block" id="SchedulePreprocessor.TransformDTypes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SchedulePreprocessor.TransformDTypes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformDTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
-    <span class="n">dtypes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">schedules</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">dtypes</span></div></div>
-
-
 <div class="viewcode-block" id="IdentityPreprocessor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.IdentityPreprocessor">[docs]</a><span class="k">class</span> <span class="nc">IdentityPreprocessor</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Preprocessor that passes all inputs through.</span>
 
@@ -3562,9 +3520,11 @@
 <div class="viewcode-block" id="RandomChoicePreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomChoicePreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_tensor_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;Key in features that specifies the weighting tensor.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;subprocessors&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Params for preprocessors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;subprocessors&#39;</span><span class="p">,</span> <span class="p">[],</span>
+        <span class="s1">&#39;Params for preprocessors. Each value should be a tuple of &#39;</span>
+        <span class="s1">&#39;(Preprocessor.Params(), BaseSchedule.Params()), where the schedule &#39;</span>
+        <span class="s1">&#39;defines the weights to use over time.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3572,24 +3532,34 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No subprocessors were specified.&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;subprocessors&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">)</span>
+
+    <span class="n">subprocessors</span><span class="p">,</span> <span class="n">schedules</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_FilterNonSchedules</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="k">return</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="n">schedule</span><span class="o">.</span><span class="n">BaseSchedule</span><span class="p">)</span>
+
+    <span class="n">invalid_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">_FilterNonSchedules</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">schedules</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">invalid_values</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Not all schedule values were schedules: &#39;</span>
+                      <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">invalid_values</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;subprocessors&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">subprocessors</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">schedules</span><span class="p">))</span>
 
 <div class="viewcode-block" id="RandomChoicePreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomChoicePreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">weight_tensor</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_tensor_key</span><span class="p">)</span>
-    <span class="n">num_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">weight_tensor</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">num_weights</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">num_weights</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">)):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Choice tensor specified </span><span class="si">{</span><span class="n">num_weights</span><span class="si">}</span><span class="s1"> values &#39;</span>
-                       <span class="s1">&#39;but there are {len(p.subprocessors)} subprocessors.&#39;</span><span class="p">)</span>
+    <span class="n">choice_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">weight_list</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="c1"># Pass a unique copy of the input to each branch, in case the</span>
     <span class="c1"># subprocessor destructively modifies the features in unexpected ways.</span>
-    <span class="n">choice_list</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="k">lambda</span> <span class="n">subp</span><span class="o">=</span><span class="n">subp</span><span class="p">:</span> <span class="n">subp</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">())</span>
-        <span class="k">for</span> <span class="n">subp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocessors</span>
-    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">subp</span><span class="p">,</span> <span class="n">sched</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subprocessors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedules</span><span class="p">):</span>
+      <span class="n">choice_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="k">lambda</span> <span class="n">subp</span><span class="o">=</span><span class="n">subp</span><span class="p">:</span> <span class="n">subp</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()))</span>
+      <span class="n">weight_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sched</span><span class="o">.</span><span class="n">Value</span><span class="p">())</span>
 
+    <span class="n">weight_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">weight_list</span><span class="p">)</span>
     <span class="n">chosen_bin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">categorical</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">weight_tensor</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]),</span>
         <span class="mi">1</span><span class="p">,</span>
