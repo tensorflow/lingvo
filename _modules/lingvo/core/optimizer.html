@@ -184,6 +184,7 @@
         <span class="s1">&#39;use_bf16_gradients_ar&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether to use bfloat16 dtype for gradients all-reduce. &#39;</span>
         <span class="s1">&#39;This applies to TPU only.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_summary_in_apply&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add summary in Apply.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Base.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
@@ -238,7 +239,8 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
                 <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VarReuseForSlotVars</span><span class="p">())):</span>
           <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_summary_in_apply</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
 
 <div class="viewcode-block" id="Base.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
@@ -540,6 +542,8 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Disable tf.summary in control flow ops.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="o">.</span><span class="n">add_summary_in_apply</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_opt&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Accumulator.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
@@ -570,6 +574,8 @@
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
             <span class="o">*</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
 
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_summary_in_apply</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">),</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">),</span>
@@ -663,7 +669,9 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
                 <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VarReuseForSlotVars</span><span class="p">())):</span>
           <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_summary_in_apply</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
 
 <div class="viewcode-block" id="DistributedShampoo.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
