@@ -1150,6 +1150,10 @@ class MultiTaskModel(BaseModel):
         'Whether or not to use the task name as a variable scope. Note that '
         'this has been the default behavior for some time, but seems to be '
         'redundant since the individual tasks scope by their `name`.')
+    p.Define(
+        'share_model_object', False,
+        'If true, during training we create the model object once and share '
+        'it between all tasks.')
     return p
 
   @staticmethod

@@ -67,14 +67,20 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
 
     if issubclass(train_cfg.cls, base_model.MultiTaskModel):
       multi_task_train_cfg = train_cfg
-      # Create MultiTaskSubModel params from a MultiTaskModelParams.
       for k, _ in multi_task_train_cfg.task_params.IterParams():
-        train_task_params = base_model.MultiTaskSubModel.Params()
+        if multi_task_train_cfg.share_model_object:
+          # Create MultiTaskSubModel params from a MultiTaskModelParams.
+          train_task_params = base_model.MultiTaskSubModel.Params()
+          train_task_params.task_name = k
+          train_task_params.input = multi_task_train_cfg.input.Get(k).Copy()
+        else:
+          train_task_params = base_model.SingleTaskModel.Params()
+          train_task_params.task = multi_task_train_cfg.task_params.Get(k)
+          train_task_params.input = multi_task_train_cfg.input.Get(k)
         train_task_params.name = k + '_executor_train_task'
-        train_task_params.task_name = k
         train_task_params.cluster = multi_task_train_cfg.cluster
-        train_task_params.input = multi_task_train_cfg.input.Get(k).Copy()
         train_task_params.train = multi_task_train_cfg.task_params.Get(k).train
+
         if k not in ps_cfg.program_schedule_dict:
           tf.logging.fatal(
               'Could not find %s in ps_cfg.program_schedule_dict: %s', k,
@@ -86,12 +92,17 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
         for eval_dataset_name in program_schedule_params.dataset_names:
           multi_task_eval_cfg = model_registry.GetParams(
               model_name, eval_dataset_name)
-          eval_task_params = base_model.MultiTaskSubModel.Params()
+          if multi_task_train_cfg.share_model_object:
+            eval_task_params = base_model.MultiTaskSubModel.Params()
+            eval_task_params.task_name = k
+            eval_task_params.input = multi_task_eval_cfg.input.Get(k).Copy()
+          else:
+            eval_task_params = base_model.SingleTaskModel.Params()
+            eval_task_params.task = multi_task_eval_cfg.task_params.Get(k)
+            eval_task_params.input = multi_task_eval_cfg.input.Get(k)
           eval_task_params.name = (
               k + '_' + eval_dataset_name + '_executor_eval_task')
-          eval_task_params.task_name = k
           eval_task_params.cluster = multi_task_eval_cfg.cluster
-          eval_task_params.input = multi_task_eval_cfg.input.Get(k).Copy()
           program_schedule_params.task_dict[
               eval_dataset_name] = eval_task_params
         ps_params_dict[k] = program_schedule_params
@@ -291,8 +302,9 @@ class ExecutorTpu(base_runner.BaseRunner):
   def _MaybeConstructSharedModel(self, train_cfg):
     """Construct a single shared copy of the model if this is a MultiTaskModel.
 
-    For MultiTaskModels, we create a MultiTaskSubModel for each task, but
-    construct the model only once.
+    If the share_model_object parameter is set, for MultiTaskModels,
+    we create a MultiTaskSubModel for each task, but construct the model only
+    once.
 
     Args:
       train_cfg: The params for a SingleTaskModel or MultiTaskModel.
@@ -301,6 +313,9 @@ class ExecutorTpu(base_runner.BaseRunner):
       A MultiTaskModel, if train_cfg is a MultiTaskModel params object.
     """
     if not issubclass(train_cfg.cls, base_model.MultiTaskModel):
+      return None
+
+    if not train_cfg.share_model_object:
       return None
 
     with self._graph.as_default(), tf.container(self._container_id):
