@@ -111,6 +111,9 @@ class ModelBuilderBase:
   def _Relu(self, name):
     return self._Activation(name, activation_fn=tf.nn.relu)
 
+  def _Swish(self, name):
+    return self._Activation(name, activation_fn=tf.nn.swish)
+
   def _Sigmoid(self, name):
     return self._Activation(name, activation_fn=tf.nn.sigmoid)
 
