@@ -10,10 +10,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Docker cache
-        uses: satackey/action-docker-layer-caching@v0.0.8
-        continue-on-error: true
-
       - name: Build dev Docker
         run: docker build -f docker/dev.dockerfile -t lingvo-dev .
 
