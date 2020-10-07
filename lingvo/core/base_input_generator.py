@@ -33,6 +33,7 @@ TODO(rpang): Deal with on packed_inputs.
 
 import collections as py_collections
 import contextlib
+import copy
 import inspect
 
 import lingvo.compat as tf
@@ -169,6 +170,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # Set to true in GetProcessedInputBatch() (and thus _InputBatch())
     self._in_get_processed_input_batch = False
 
+    self._init_ops = []
+
   def CommonInputOpArgs(self):
     """Common input params."""
     return {}
@@ -195,6 +198,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
         self.params.batch_size, self.params.use_per_host_infeed)
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
+
+  def InitOps(self):
+    """Returns a list of ops to initialize the input generator."""
+    return copy.copy(self._init_ops)
 
   def _InputBatch(self):
     """The current input batch, not preprocessed.
@@ -1495,7 +1502,8 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
         'DefineTFDataInput must take a callable which returns a '
         '`tf.data.Dataset`. The given callable `%s` returned `%s`' %
         (func, dataset))
-    self.iterator = tf1.data.make_one_shot_iterator(dataset)
+    self.iterator = tf1.data.make_initializable_iterator(dataset)
+    self._init_ops.append(self.iterator.initializer)  # pylint: disable=protected-access
 
   def _InputBatch(self):
     """Generates data tensors by invoking the pipeline."""

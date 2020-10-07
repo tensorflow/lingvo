@@ -104,6 +104,7 @@ class BaseProgram:
     # Thread Pool for infeed.
     self._infeed_pool = multiprocessing.dummy.Pool(p.num_threads)
 
+    self._init_input_ops = []
     self._compile_op = None
     self._status_msg_fn = None
 
@@ -170,6 +171,11 @@ class BaseProgram:
 
   def Compile(self, sess):
     """Compile the program using the given session handle."""
+    if self._init_input_ops:
+      self.SetStatusMessage('Init inputs %s' % self._program_name)
+      sess.run(self._init_input_ops)
+      self.SetStatusMessage('Init inputs %s done.' % self._program_name)
+
     if self._compile_op is not None:
       self.SetStatusMessage('Compiling %s' % self._program_name)
       result = sess.run(self._compile_op)
@@ -323,6 +329,7 @@ class TrainProgram(BaseProgram):
     self._task = self._model.GetTask()
     self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
+    self._init_input_ops = self._task.input.InitOps()
 
     def TpuTrainStep(*args):
       """Train a shard of a batch on a single TPU core.
@@ -490,6 +497,7 @@ class EvalProgram(BaseProgram):
       self._task = self._model.GetTask()
       self._task.input.InstantiateVariables()
       self._task.input.CreateTpuEnqueueOps()
+      self._init_input_ops = self._task.input.InitOps()
 
       # XLA thinks self.TpuEvalLoop() requires 1 argument due to self
       # Trick it with wrapper function
@@ -644,6 +652,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
     self._task.input.CreateCpuPassthroughEnqueueOps()
+    self._init_input_ops = self._task.input.InitOps()
 
     def _DecodeStep():
       """Decode call to be compiled for TPU."""

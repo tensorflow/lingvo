@@ -249,6 +249,7 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInput)
 
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -276,6 +277,7 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInput)
 
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -301,6 +303,7 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithIgnoreArgs)
 
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -329,6 +332,7 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithMapArgs)
 
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -356,6 +360,7 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithoutDefault)
 
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -382,6 +387,7 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithRepeat)
 
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -402,9 +408,10 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertEqual(p.args.end, 10)
 
     ig = p.Instantiate()
-    self.assertIsInstance(ig, _TestTFDataInputWithBoundMethod)
 
+    self.assertIsInstance(ig, _TestTFDataInputWithBoundMethod)
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -431,6 +438,7 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputV1)
 
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
@@ -459,6 +467,7 @@ class TFDataInputTest(test_utils.TestCase):
     # We keep the TFv1's Session here since v1/v2 behaviors would not coexist.
     # TODO(oday): write TFv2-specific tests.
     with self.session(graph=tf.get_default_graph()) as sess:
+      sess.run(ig.InitOps())
       data = ig.GetPreprocessedInputBatch()
       self.assertIsInstance(data, py_utils.NestedMap)
       self.assertIsInstance(data.value, tf.Tensor)
