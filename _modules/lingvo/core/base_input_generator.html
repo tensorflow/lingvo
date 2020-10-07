@@ -181,6 +181,7 @@
 
 <span class="kn">import</span> <span class="nn">collections</span> <span class="k">as</span> <span class="nn">py_collections</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -317,6 +318,8 @@
     <span class="c1"># Set to true in GetProcessedInputBatch() (and thus _InputBatch())</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">False</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_init_ops</span> <span class="o">=</span> <span class="p">[]</span>
+
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
@@ -343,6 +346,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_per_input: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">batch_per_input</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.InitOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InitOps">[docs]</a>  <span class="k">def</span> <span class="nf">InitOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of ops to initialize the input generator.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_ops</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The current input batch, not preprocessed.</span>
@@ -1643,7 +1650,8 @@
         <span class="s1">&#39;DefineTFDataInput must take a callable which returns a &#39;</span>
         <span class="s1">&#39;`tf.data.Dataset`. The given callable `</span><span class="si">%s</span><span class="s1">` returned `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span>
         <span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">dataset</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_init_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
 
   <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generates data tensors by invoking the pipeline.&quot;&quot;&quot;</span>
