@@ -15,7 +15,7 @@ jobs:
         continue-on-error: true
 
       - name: Build dev Docker
-        uses: docker build -f docker/dev.dockerfile -t lingvo-dev .
+        run: docker build -f docker/dev.dockerfile -t lingvo-dev .
 
       - name: Build lib Docker
-        uses: docker build -f docker/lib.dockerfile -t lingvo-lib .
+        run: docker build -f docker/lib.dockerfile -t lingvo-lib .
