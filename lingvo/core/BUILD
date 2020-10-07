@@ -1263,6 +1263,19 @@ py_library(
     ],
 )
 
+py_library(
+    name = "quant_test_lib",
+    srcs = ["quant_test_lib.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":py_utils",
+        ":quant_utils",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
 py_test(
     name = "quant_utils_test",
     size = "small",
@@ -1271,10 +1284,9 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":py_utils",
+        ":quant_test_lib",
         ":quant_utils",
-        ":test_utils",
         "//lingvo:compat",
-        # Implicit numpy dependency.
     ],
 )
 

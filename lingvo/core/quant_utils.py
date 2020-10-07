@@ -261,7 +261,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     Args:
       t_name: Preivously created QTensor t_name to fetch range from.
-      t: Tensor to retrieve range from.
+      ts: Tensor to retrieve range from.
 
     Returns:
       The (min, max) range of the quantized tensor.
@@ -280,6 +280,71 @@ class QuantizableLayer(base_layer.BaseLayer):
     """
     qd = self.GetQDomain(domain)
     return qd.QuantizeWeight(w) if qd else w
+
+  def AqtWeight(self,
+                w,
+                feature_axis,
+                expected_scale_shape=None,
+                domain='weight'):
+    """AQT Quantized weight FQ style.
+
+    This is analogous to QWeight; either AqtWeight or QWeight should be identity
+    for alll domains. AqtQDomain additionally supports per channel quantization.
+
+    Args:
+      w: The weight tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
+      expected_scale_shape: Optional shape to verify if scale shape is as
+        expected. Defaults to None.
+      domain: Custom domain to match (defaults to 'weight').
+
+    Returns:
+      Quantized weights.
+    """
+    qd = self.GetQDomain(domain)
+    return qd.AqtWeight(
+        w, feature_axis=feature_axis,
+        expected_scale_shape=expected_scale_shape) if qd else w
+
+  def ToAqtWeight(self,
+                  w,
+                  feature_axis,
+                  expected_scale_shape=None,
+                  domain='weight'):
+    """Quantized integer weight AQT style.
+
+    This only scales, rounds and clips; resulting quantized weight would be
+    either integer ot integer emulated in float.
+
+    Args:
+      w: The weight tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
+      expected_scale_shape: Optional shape to verify if scale shape is expected.
+        Defaults to None.
+      domain: Custom domain to match (defaults to 'weight' or 'default').
+
+    Returns:
+      Quantized weights.
+    """
+    qd = self.GetQDomain(domain)
+    return qd.ToAqtWeight(
+        w, feature_axis=feature_axis,
+        expected_scale_shape=expected_scale_shape) if qd else w
+
+  def FromAqtWeight(self, w, domain='weight'):
+    """Rescales a AQT style quantized weight.
+
+    Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.
+
+    Args:
+      w: The weight tensor.
+      domain: Custom domain to match (defaults to 'weight' or 'default').
+
+    Returns:
+      Rescaled weights.
+    """
+    qd = self.GetQDomain(domain)
+    return qd.FromAqtWeight(w) if qd else w
 
   def GetQDomain(self, domain):
     """Gets the QDomain matching a given domain name.
@@ -795,6 +860,62 @@ class QDomain(base_layer.BaseLayer):
     """
     return w
 
+  def AqtWeight(self,
+                w,
+                *,
+                feature_axis,
+                expected_scale_shape,
+                domain='weight'):
+    """AQT Quantized weight FQ style .
+
+    Args:
+      w: The weight tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
+      expected_scale_shape: Optional shape to verify if scale shape is expected.
+      domain: Custom domain to match (defaults to 'weight' or 'default').
+
+    Returns:
+      Quantized weights.
+    """
+    del feature_axis, expected_scale_shape
+    return w
+
+  def ToAqtWeight(self,
+                  w,
+                  *,
+                  feature_axis,
+                  expected_scale_shape,
+                  domain='weight'):
+    """Quantized weight AQT style.
+
+    Refer to quantizable_layer.ToAqtWeight.
+
+    Args:
+      w: The weight tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
+      expected_scale_shape: Optional shape to verify if scale shape is expected.
+      domain: Custom domain to match (defaults to 'weight' or 'default').
+
+    Returns:
+      Quantized weights.
+    """
+    del feature_axis, expected_scale_shape
+    return w
+
+  def FromAqtWeight(self, w, domain='weight'):
+    """Rescales a AQT quantized weight.
+
+    Refer to quantizable_layer.FromAqtWeight.
+
+    Args:
+      w: The weight tensor.
+      domain: Custom domain to match (defaults to 'weight' or 'default').
+
+    Returns:
+      Rescaled weights.
+    """
+    return w
+
   def QuantizeConstantRange(self, t, min_value, max_value):
     """Quantizes a true-constant range that is not used for arithmetic.
 
@@ -805,6 +926,7 @@ class QDomain(base_layer.BaseLayer):
       t: Tensor to quantize.
       min_value: Min of the range.
       max_value: Max of the range.
+
     Returns:
       Quantized tensor.
     """

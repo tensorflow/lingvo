@@ -21,76 +21,11 @@
 
 import lingvo.compat as tf
 from lingvo.core import py_utils
+from lingvo.core import quant_test_lib
 from lingvo.core import quant_utils
-from lingvo.core import test_utils
-import numpy as np
 
 
-class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
-  """Simple projection layer to demonstrate quantization."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('input_dim', 2, 'Depth of the input.')
-    p.Define('output_dim', 3, 'Depth of the output.')
-    return p
-
-  def _CreateLayerVariables(self):
-    super()._CreateLayerVariables()
-    p = self.params
-
-    w_pc = py_utils.WeightParams(
-        shape=[p.input_dim, p.output_dim],
-        init=p.params_init,
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
-    self.CreateVariable('w', w_pc)
-
-    self.TrackQTensor('inputs', 'transformed')
-
-  def FProp(self, theta, inputs, paddings):
-    p = self.params
-    fns = self.fns
-
-    # It is the most important that weights and top-level activations
-    # be tagged for quantization:
-    #   - Weights use the self.QWeight() decorator
-    #   - Inputs/activations are decorated with self.QTensor(). In general,
-    #     the provided name should match a call to self.TrackQTensor in the
-    #     constructor. This creates an tensor that is individually accounted
-    #     for.
-    w = fns.qweight(theta.w)
-    inputs = self.QTensor('inputs', inputs)
-
-    # Note the use of the qmatmul from the function library. This will
-    # automatically track the output against the qtensor 'transformed'.
-    out = fns.qmatmul(
-        tf.reshape(inputs, [-1, p.input_dim]), w, qt='transformed')
-    out = tf.reshape(out, tf.concat([tf.shape(inputs)[:-1], [p.output_dim]], 0))
-
-    # Decorate outputs of simple activation functions with their corresponding
-    # range decorator. This will ensure that the result does not exceed the
-    # precision of the underlying representation.
-    out = fns.qtanh(out)
-
-    # Perform padding manipulation via booleans instead of:
-    #   out *= 1.0 - paddings
-    # Because the paddings can exist in entirely different numeric ranges than
-    # the tensor they are being applied to, it is best to not perform
-    # arithmetic directly between them. Instead, broadcast them to the needed
-    # size (if different) and perform an exact mask with tf.where.
-    # For added numeric range protection, the QRPadding decorator ensures
-    # the correct range. This is mostly needed for cases where padding is
-    # dynamic at inference time.
-    paddings = self.QRPadding(paddings)
-    paddings *= tf.ones_like(out)  # Broadcast to 'out' size.
-    out = tf.where(paddings > 0.0, tf.zeros_like(out), out)
-
-    return out
-
-
-class QuantizableLayerTest(test_utils.TestCase):
+class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
   # pyformat: disable
   NO_QDOMAIN_EXPECTED = [
    [[ 0.00071405, -0.03868543, -0.01999986, -0.00994987],
@@ -105,7 +40,7 @@ class QuantizableLayerTest(test_utils.TestCase):
 
   def testOpWrapperArgChecking(self):
     with self.session():
-      p = SampleQuantizedProjectionLayer.Params()
+      p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
       p.name = 'test'
       l = p.Instantiate()
       l.TrackQTensor('test')
@@ -133,13 +68,13 @@ class QuantizableLayerTest(test_utils.TestCase):
 
   def testLayerWithNoQDomain(self):
     with self.session():
-      p = SampleQuantizedProjectionLayer.Params()
+      p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
       self._testLayerHelper('testLayerWithNoQDomain', p,
                             self.NO_QDOMAIN_EXPECTED)
 
   def testLayerWithIdentityQDomain(self):
     with self.session():
-      p = SampleQuantizedProjectionLayer.Params()
+      p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.QDomain.Params()
       self._testLayerHelper('testLayerWithIdentityQDomain', p,
                             self.NO_QDOMAIN_EXPECTED)
@@ -158,7 +93,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     # pyformat: enable
 
     with self.session():
-      p = SampleQuantizedProjectionLayer.Params()
+      p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
       l = self._testLayerHelper(
           'testLayerWithPassiveAsymQDomain', p, expected=expected)
@@ -174,7 +109,7 @@ class QuantizableLayerTest(test_utils.TestCase):
         self.assertNotEqual(init_minmax_vars[k], minmax_vars[k])
 
   def testLayerWithPassiveAsymQDomainTrainQuantDisabledInital(self):
-    p = SampleQuantizedProjectionLayer.Params()
+    p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = -1
     with self.session():
@@ -184,7 +119,7 @@ class QuantizableLayerTest(test_utils.TestCase):
           expected=self.NO_QDOMAIN_EXPECTED)
 
   def testLayerWithPassiveAsymQDomainTrainQuantDisabledStep16(self):
-    p = SampleQuantizedProjectionLayer.Params()
+    p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = -1
     with self.session():
@@ -196,7 +131,7 @@ class QuantizableLayerTest(test_utils.TestCase):
 
   def testLayerWithPassiveAsymQDomainEvalQuantDisabled(self):
     with self.session(), self.SetEval(True):
-      p = SampleQuantizedProjectionLayer.Params()
+      p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
       p.qdomain.default.delay_start_steps = -1
       self._testLayerHelper(
@@ -205,7 +140,7 @@ class QuantizableLayerTest(test_utils.TestCase):
           not_expected=self.NO_QDOMAIN_EXPECTED)
 
   def testLayerWithPassiveAsymQDomainTrainQuantDelayNotSatisfied(self):
-    p = SampleQuantizedProjectionLayer.Params()
+    p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = 8
     with self.session():
@@ -216,7 +151,7 @@ class QuantizableLayerTest(test_utils.TestCase):
           global_step=3)
 
   def testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfied(self):
-    p = SampleQuantizedProjectionLayer.Params()
+    p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = 8
     with self.session():
@@ -227,7 +162,7 @@ class QuantizableLayerTest(test_utils.TestCase):
           global_step=8)
 
   def testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfiedPlusOne(self):
-    p = SampleQuantizedProjectionLayer.Params()
+    p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = 8
     with self.session():
@@ -251,7 +186,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     # pyformat: enable
 
     with self.session():
-      p = SampleQuantizedProjectionLayer.Params()
+      p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.SymmetricScheduledClipQDomain.Params()
       p.qdomain.default.cc_schedule.Set(
           clip_start_step=0,
@@ -263,39 +198,6 @@ class QuantizableLayerTest(test_utils.TestCase):
           p,
           expected=expected,
           global_step=16)
-
-  def _testLayerHelper(self,
-                       test_case,
-                       p,
-                       expected=None,
-                       not_expected=None,
-                       global_step=-1):
-    tf.random.set_seed(398847392)
-    np.random.seed(12345)
-    p.name = 'proj'
-    p.input_dim = 3
-    p.output_dim = 4
-    p.params_init = py_utils.WeightInit.Gaussian(0.1)
-    l = p.Instantiate()
-    in_padding = tf.zeros([2, 4, 1], dtype=tf.float32)
-    in_padding = tf.constant(
-        [[[0], [0], [1], [0]], [[1], [1], [0], [0]]], dtype=tf.float32)
-    inputs = tf.constant(
-        np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float32)
-    output = l.FPropDefaultTheta(inputs, in_padding)
-    self.evaluate(tf.global_variables_initializer())
-
-    if global_step >= 0:
-      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
-
-    output = output.eval()
-    print('QuantizableLayerTest output', test_case, ':\n',
-          np.array_repr(output))
-    if expected is not None:
-      self.assertAllClose(output, expected)
-    if not_expected is not None:
-      self.assertNotAllClose(output, not_expected)
-    return l
 
 
 class ClippingCapScheduleTest:
