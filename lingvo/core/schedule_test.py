@@ -567,6 +567,18 @@ class LearningRateScheduleTest(test_utils.TestCase):
           [1000, 1.0],
       ])
 
+  def testAnnealingSchedule(self):
+    p = schedule.AnnealingSchedule.Params().Set(
+        init=1, lower_bound=0.5, factor=0.8)
+    l = p.Instantiate()
+    step = tf.placeholder(tf.int32, shape=[])
+    y = l.Value(step)
+
+    with self.session() as sess:
+      xs = range(5)
+      ys = [sess.run(y, feed_dict={step: x}) for x in xs]
+      self.assertAllClose(ys, [1.0, 0.8, 0.640, 0.512, 0.5])
+
 
 if __name__ == '__main__':
   tf.test.main()

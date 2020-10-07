@@ -181,6 +181,37 @@ class LinearSchedule(PolynomialSchedule):
     return p
 
 
+class AnnealingSchedule(BaseSchedule):
+  """Annealing schedule.
+
+  y = max(pow(factor, step), lower_bound)
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('init', None, 'start value.')
+    p.Define('lower_bound', None, 'lower bound value.')
+    p.Define('factor', None, 'Anealing factor.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.init
+    assert p.lower_bound
+    assert p.factor and 0 < p.factor <= 1
+
+    def Fn(x):
+      return tf.math.maximum(tf.pow(p.factor, x), p.lower_bound)
+
+    self._aneal = Fn
+
+  def FProp(self, theta, current_step):
+    return py_utils.CallDefun(self._aneal,
+                              tf.cast(current_step, dtype=self.params.dtype))
+
+
 class ExponentialSchedule(BaseSchedule):
   """Linear learning rate schedule.
 
@@ -339,7 +370,7 @@ class TransformerScheduleNoWarmUp(BaseSchedule):
   def __init__(self, params):
     super().__init__(params)
     tf.logging.info('Peak lr: %f', (self.params.decay_start *
-                                         self.params.worker_replicas)**-0.5)
+                                    self.params.worker_replicas)**-0.5)
 
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""
