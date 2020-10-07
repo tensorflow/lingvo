@@ -1,0 +1,21 @@
+name: Docker
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker cache
+        uses: satackey/action-docker-layer-caching@v0.0.8
+        continue-on-error: true
+
+      - name: Build dev Docker
+        uses: docker build -f docker/dev.dockerfile -t lingvo-dev .
+
+      - name: Build lib Docker
+        uses: docker build -f docker/lib.dockerfile -t lingvo-lib .
