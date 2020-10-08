@@ -1911,6 +1911,33 @@ py_library(
 )
 
 py_library(
+    name = "gshard_builder",
+    srcs = ["gshard_builder.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":builder",
+        ":layers",
+        ":moe_layers",
+        ":py_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "gshard_builder_test",
+    srcs = ["gshard_builder_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":gshard_builder",
+        ":moe_layers",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_library(
     name = "moe_layers",
     srcs = ["moe_layers.py"],
     srcs_version = "PY3",

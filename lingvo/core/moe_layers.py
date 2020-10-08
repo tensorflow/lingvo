@@ -489,7 +489,7 @@ def Top2GatingOnLogits(inputs,
   1. used with xla_sharding. In this case, 'inputs' corresponds to a sharded
      tensor across multiple tpu cores. The operations within this function are
      automatically sharded/replicated across tpu cores.
-  2. used within ML-Pathways. In this case, 'inputs' is always local to one tpu
+  2. used within other projects where'inputs' is always local to one tpu
      core. All computations below are carried out on one tpu core only. This
      function tries to dispatch examples across tpu cores in such a way that
      each expert is assigned no more than 'expert_capacity_dim' number of
@@ -1213,8 +1213,6 @@ def SentenceTop2Gating(w,
   sentence-wise embedding to create dispatch and combine tensors that gate
   the entire sentence.
 
-  See SentenceTop2GatingOnLogits for more details.
-
   Note that for local_dispatch original batch BLM is reshaped into GSM, each
   group `g = 0...G-1` is being dispatched independently.
 
@@ -1303,8 +1301,6 @@ def TaskTop2Gating(w,
   Instead of using the each token, this function uses embedding_type to return a
   sentence-wise embedding to create dispatch and combine tensors that gate
   the entire sentence.
-
-  See SentenceTop2GatingOnLogits for more details.
 
   Note that for local_dispatch original batch BLM is reshaped into GSM, each
   group `g = 0...G-1` is being dispatched independently.
