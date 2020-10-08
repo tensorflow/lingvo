@@ -3405,9 +3405,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    if not params.splits:
-      params.splits = [params.num_layers - 1]
-    else:
+    if params.splits:
       assert all(x <= params.num_layers - 1 for x in params.splits)
       # Assert p.splits is strictly monotonically increasing.
       assert sorted(list(set(params.splits))) == params.splits
@@ -3464,6 +3462,13 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     #  Return index of the smallest element greater than or equal to layer_index
     return bisect.bisect_left(buckets, layer_index)
 
+  def _GetDeviceOfLayer(self, layer_idx):
+    """Get the device for a given layer index based on our params."""
+    if not self.params.splits:
+      return None
+    return self.cluster.WorkerDeviceInModelSplit(
+        self.GetSplitForLayer(self.params.splits, layer_idx))
+
   def FProp(self,
             theta,
             query_vec,
@@ -3490,14 +3495,11 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     """
     p = self.params
     x_out = query_vec
-    cluster = self.cluster
 
     with tf.name_scope(p.name):
       for i in range(p.num_layers):
         x_in = x_out
-        with tf.device(
-            cluster.WorkerDeviceInModelSplit(
-                self.GetSplitForLayer(self.params.splits, i))):
+        with tf.device(self._GetDeviceOfLayer(i)):
           x_out, _ = self.x_layers[i].FProp(
               theta.x_layers[i],
               x_in,
@@ -3508,9 +3510,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
               aux_segment_mask=aux_segment_mask)
     if p.final_layer_norm:
       # Place on the last device.
-      with tf.device(
-          cluster.WorkerDeviceInModelSplit(
-              self.GetSplitForLayer(self.params.splits, p.num_layers - 1))):
+      with tf.device(self._GetDeviceOfLayer(p.num_layers - 1)):
         x_out = self.final_ln.FProp(theta.final_ln, x_out)
     return x_out, paddings
 
