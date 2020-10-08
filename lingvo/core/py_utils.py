@@ -67,11 +67,6 @@ tf.flags.DEFINE_string(
     'xla_device', '', 'If non-empty, can be cpu, gpu, or tpu (case sensitive)')
 
 tf.flags.DEFINE_bool(
-    'use_resource_var', True,
-    'Use ResourceVariable instead of RefVariable; this option is '
-    'enabled by default and will be removed in the future.')
-
-tf.flags.DEFINE_bool(
     'tpu_compatible', False, 'Create variables in a way compatible with TPU. '
     'This should be true for any job that will interact '
     'with variables or a checkpoint that will be produced '
@@ -654,10 +649,6 @@ def use_tpu():  # pylint: disable=invalid-name
 
 def tpu_compat():  # pylint: disable=invalid-name
   return use_tpu() or _FromGlobal('tpu_compatible')
-
-
-def use_resource_variables():  # pylint: disable=invalid-name
-  return _FromGlobal('use_resource_var') or tpu_compat()
 
 
 def outside_all_rewrites():  # pylint: disable=invalid-name
@@ -1859,7 +1850,7 @@ def _CreateVariableStateful(name,
           scope.reuse,
           custom_getter=scope.custom_getter,
           caching_device=scope.caching_device,
-          use_resource=scope.use_resource or use_resource_variables())
+          use_resource=True)
     with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
       var = next_creator(**kwargs)
 
@@ -1968,7 +1959,7 @@ def _CreateVariableStateless(name,
           scope.reuse,
           custom_getter=scope.custom_getter,
           caching_device=scope.caching_device,
-          use_resource=scope.use_resource or use_resource_variables())
+          use_resource=True)
     with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
       var = next_creator(**kwargs)
 
@@ -2388,8 +2379,7 @@ def GetOrCreateGlobalStepVar():
   Returns:
     The global_step variable, or a new created one if it does not exist.
   """
-  with tf.variable_scope(
-      GetGlobalVariableScope(), use_resource=use_resource_variables()):
+  with tf.variable_scope(GetGlobalVariableScope(), use_resource=True):
     return tf.train.get_or_create_global_step()
 
 

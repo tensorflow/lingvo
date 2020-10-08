@@ -80,17 +80,14 @@ class Base(base_layer.BaseLayer):
         return optimizer.apply_gradients(
             [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
 
-    if not py_utils.use_resource_variables():
-      var_update_op = _Apply()
-    else:
-      # Many optimizers, e.g., Adam, Adagrad, etc., create
-      # variables. We need to ensure name scope and variable scope are
-      # cleared. Otherwise, tpu.batch_parallel does not work.
-      with tf.name_scope(None):
-        with tf.variable_scope(
-            tf.VariableScope(
-                use_resource=True, reuse=self.VarReuseForSlotVars())):
-          var_update_op = _Apply()
+    # Many optimizers, e.g., Adam, Adagrad, etc., create
+    # variables. We need to ensure name scope and variable scope are
+    # cleared. Otherwise, tpu.batch_parallel does not work.
+    with tf.name_scope(None):
+      with tf.variable_scope(
+          tf.VariableScope(use_resource=True,
+                           reuse=self.VarReuseForSlotVars())):
+        var_update_op = _Apply()
     if self.params.add_summary_in_apply:
       self.AddSummary(lr, optimizer, var_grad)
     return var_update_op
@@ -211,19 +208,16 @@ class CompositeOptimizer(Base):
                                                 filtered_var_grad)
       return tf.group(*train_ops, name='composite_optimizer_train_op')
 
-    if not py_utils.use_resource_variables():
-      var_update_op = _Apply()
-    else:
-      # Many optimizers, e.g., Adam, Adagrad, etc., create
-      # variables. We need to ensure name scope and variable scope are
-      # cleared. Otherwise, tpu.batch_parallel does not work.
-      var_reuse = False
-      if py_utils.GetOpportunisticVariableReuse():
-        var_reuse = tf.AUTO_REUSE
-      with tf.name_scope(None):
-        with tf.variable_scope(
-            tf.VariableScope(use_resource=True, reuse=var_reuse)):
-          var_update_op = _Apply()
+    # Many optimizers, e.g., Adam, Adagrad, etc., create
+    # variables. We need to ensure name scope and variable scope are
+    # cleared. Otherwise, tpu.batch_parallel does not work.
+    var_reuse = False
+    if py_utils.GetOpportunisticVariableReuse():
+      var_reuse = tf.AUTO_REUSE
+    with tf.name_scope(None):
+      with tf.variable_scope(
+          tf.VariableScope(use_resource=True, reuse=var_reuse)):
+        var_update_op = _Apply()
     return var_update_op
 
   def ApplyPostTrainingLoop(self, global_step):
@@ -510,17 +504,14 @@ class DistributedShampoo(Base):
       return self._optimizer.apply_gradients(
           [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
 
-    if not py_utils.use_resource_variables():
-      var_update_op = _Apply()
-    else:
-      # Many optimizers, e.g., Adam, Adagrad, etc., create
-      # variables. We need to ensure name scope and variable scope are
-      # cleared. Otherwise, tpu.batch_parallel does not work.
-      with tf.name_scope(None):
-        with tf.variable_scope(
-            tf.VariableScope(
-                use_resource=True, reuse=self.VarReuseForSlotVars())):
-          var_update_op = _Apply()
+    # Many optimizers, e.g., Adam, Adagrad, etc., create
+    # variables. We need to ensure name scope and variable scope are
+    # cleared. Otherwise, tpu.batch_parallel does not work.
+    with tf.name_scope(None):
+      with tf.variable_scope(
+          tf.VariableScope(use_resource=True,
+                           reuse=self.VarReuseForSlotVars())):
+        var_update_op = _Apply()
 
     if self.params.add_summary_in_apply:
       self.AddSummary(lr, self._optimizer, var_grad)
