@@ -34,6 +34,7 @@ from lingvo.core import moe_layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
+import numpy as np
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import inplace_ops
 
@@ -139,11 +140,18 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     p = self.params
     dim = symbolic.ToStatic(p.dim)
     inputs = py_utils.HasShape(inputs, [-1, -1, -1, dim])
-    # tf.rsqrt is not implemented for bfloat16, hence we always cast it into
-    # float32.
-    scale = tf.cast(tf.math.rsqrt(tf.cast(dim, tf.float32)), inputs.dtype)
-    scale *= tf.nn.softplus(theta.per_dim_scale) / tf.nn.softplus(
-        tf.constant(0.0, dtype=inputs.dtype))
+
+    # 1.0/tf.nn.softplus(0.0) = 1.442695041. Hard code this number so that we
+    # can avoid unnecessary XLA op fusion mess on TPU.
+    r_softplus_0 = 1.442695041
+    if isinstance(dim, int) or isinstance(dim, float):
+      scale = tf.constant(r_softplus_0 / np.sqrt(dim), dtype=inputs.dtype)
+    else:
+      scale = tf.cast(
+          tf.math.rsqrt(tf.cast(dim, tf.float32)) * r_softplus_0,
+          dtype=inputs.dtype)
+
+    scale *= tf.nn.softplus(theta.per_dim_scale)
     return inputs * scale
 
   @classmethod
