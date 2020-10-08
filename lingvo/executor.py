@@ -373,7 +373,9 @@ class ExecutorTpu(base_runner.BaseRunner):
 
         done = program_schedule.Run(sess)
         if done:
-          tf.logging.info('Program schedule told us to stop.')
+          tf.logging.info('Program schedule told us to stop.\n'
+                          'Shutting down programs.')
+          program_schedule.Shutdown()
           return
 
         # global_step local variable above is a result of sess.run, not a

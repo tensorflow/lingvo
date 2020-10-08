@@ -197,6 +197,10 @@ class BaseProgram:
     """
     raise NotImplementedError()
 
+  def Shutdown(self):
+    """Runs any necessary cleanup (potentially blocking)."""
+    pass
+
   def CreateCheckpointer(self):
     self._checkpointer = checkpointer.Checkpointer(self._checkpoint_dir,
                                                    self._model)
@@ -1026,6 +1030,11 @@ class SimpleProgramSchedule:
       eval_program.Run(sess)
     return False
 
+  def Shutdown(self):
+    self.train_program.Shutdown()
+    for eval_program in self.eval_programs:
+      eval_program.Shutdown()
+
 
 def SimpleProgramScheduleForTask(train_dataset_name,
                                  train_steps_per_loop,
@@ -1156,6 +1165,9 @@ class MLPerfProgramSchedule:
       if program_done:
         return True
     return False
+
+  def Shutdown(self):
+    self.train_program.Shutdown()
 
 
 def MLPerfProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
