@@ -241,7 +241,9 @@ class ModelV2(BaseClassifier):
     # Forward through layers.
     act = self.extract.FProp(theta.extract, input_batch.data)
     # Avg pool
-    act = tf.reduce_mean(act, axis=[1, 2])
+    if py_utils.GetRank(act) == 4:
+      act = tf.reduce_mean(act, axis=[1, 2])
+    act = py_utils.HasRank(act, 2)
     logits = self.softmax.Logits(theta.softmax, act)
     return py_utils.NestedMap(act=act, logits=logits)
 
