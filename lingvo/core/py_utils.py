@@ -5524,7 +5524,10 @@ def ComputationShape(split_size, topology=None):
   if topology:
     topology_info = tf_topology.Topology(serialized=topology)
   computation_shape = None
-  if split_size == 1:
+  if topology and functools.reduce(lambda a, b: a * b,
+                                   topology_info.mesh_shape) == split_size:
+    computation_shape = topology_info.mesh_shape
+  elif split_size == 1:
     computation_shape = [1, 1, 1, 1]
   elif split_size == 2:
     computation_shape = [1, 1, 1, 2]
