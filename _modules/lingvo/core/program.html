@@ -345,6 +345,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="BaseProgram.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs any necessary cleanup (potentially blocking).&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
 <div class="viewcode-block" id="BaseProgram.CreateCheckpointer"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.CreateCheckpointer">[docs]</a>  <span class="k">def</span> <span class="nf">CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
                                                    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span></div>
@@ -1172,7 +1176,12 @@
         <span class="k">break</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">False</span></div></div>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="SimpleProgramSchedule.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
+      <span class="n">eval_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="SimpleProgramScheduleForTask"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramScheduleForTask">[docs]</a><span class="k">def</span> <span class="nf">SimpleProgramScheduleForTask</span><span class="p">(</span><span class="n">train_dataset_name</span><span class="p">,</span>
@@ -1303,7 +1312,10 @@
       <span class="n">program_done</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">program_done</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="kc">False</span></div></div>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="MLPerfProgramSchedule.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfProgramSchedule.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="MLPerfProgramScheduleForTask"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfProgramScheduleForTask">[docs]</a><span class="k">def</span> <span class="nf">MLPerfProgramScheduleForTask</span><span class="p">(</span><span class="n">train_dataset_name</span><span class="p">,</span> <span class="n">train_steps_per_loop</span><span class="p">,</span>
