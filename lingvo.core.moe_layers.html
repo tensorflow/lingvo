@@ -545,7 +545,7 @@ layer and its children layers.</p></li>
 <li><p>used with xla_sharding. In this case, ‘inputs’ corresponds to a sharded
 tensor across multiple tpu cores. The operations within this function are
 automatically sharded/replicated across tpu cores.</p></li>
-<li><p>used within ML-Pathways. In this case, ‘inputs’ is always local to one tpu
+<li><p>used within other projects where’inputs’ is always local to one tpu
 core. All computations below are carried out on one tpu core only. This
 function tries to dispatch examples across tpu cores in such a way that
 each expert is assigned no more than ‘expert_capacity_dim’ number of
@@ -802,7 +802,6 @@ per segment.</p>
 <p>Instead of using the each token, this function uses embedding_type to return a
 sentence-wise embedding to create dispatch and combine tensors that gate
 the entire sentence.</p>
-<p>See SentenceTop2GatingOnLogits for more details.</p>
 <p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
 group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
 <dl class="field-list simple">
@@ -858,7 +857,6 @@ combining expert outputs.</p></li>
 <p>Instead of using the each token, this function uses embedding_type to return a
 sentence-wise embedding to create dispatch and combine tensors that gate
 the entire sentence.</p>
-<p>See SentenceTop2GatingOnLogits for more details.</p>
 <p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
 group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
 <dl class="field-list simple">

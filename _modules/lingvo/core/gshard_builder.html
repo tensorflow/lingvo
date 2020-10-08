@@ -1,0 +1,1337 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.gshard_builder &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.gshard_builder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.gshard_builder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;GShard Builder. To be used with xla_sharding + SPMD.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">moe_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+
+
+<div class="viewcode-block" id="MoEBuilder"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder">[docs]</a><span class="k">class</span> <span class="nc">MoEBuilder</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Mixture-of-Experts Builder.</span>
+
+<span class="sd">  To be used with xla_sharding + SPMD.</span>
+
+<span class="sd">  MoEBuilder can be used to construct MoE and non-MoE Transformer models.</span>
+
+<span class="sd">  Such models are typically defined by introducing encoder and decoder layer</span>
+<span class="sd">  stacks, for example::</span>
+
+<span class="sd">      enc = builder.EncoderLayerStack(&#39;encoder&#39;, [</span>
+<span class="sd">          builder.SelfAttention(&#39;self_attention&#39;),</span>
+<span class="sd">          builder.MoE(&#39;moe&#39;),</span>
+<span class="sd">          builder.SelfAttention(&#39;self_attention&#39;),</span>
+<span class="sd">          builder.DenseReluDense(&#39;dense_relu_dense&#39;), ], 3)</span>
+
+<span class="sd">      dec = builder.DecoderLayerStack(&#39;decoder&#39;, [</span>
+<span class="sd">          builder.DecSelfAttention(&#39;dec_self_attention&#39;),</span>
+<span class="sd">          builder.DecEncAttention(&#39;dec_enc_attention&#39;),</span>
+<span class="sd">          builder.MoE(&#39;moe&#39;, decoder=True),</span>
+<span class="sd">          builder.DecSelfAttention(&#39;dec_self_attention&#39;),</span>
+<span class="sd">          builder.DecEncAttention(&#39;dec_enc_attention&#39;),</span>
+<span class="sd">          builder.DenseReluDense(&#39;dense_relu_dense&#39;, decoder=True), ], 3)</span>
+
+<span class="sd">  Each layer (e.g. builder.SelfAttention) is ultimately wrapped with</span>
+<span class="sd">  builder.EncoderLayer or builder.DecoderLayer. These wrappers introduce</span>
+<span class="sd">  Transformer residual connections and layer norm as well.</span>
+
+<span class="sd">  Naturally supports input packing, where multiple segments are packed in a</span>
+<span class="sd">  single inputs row (e.g. packing 2 segments in a single row)::</span>
+
+<span class="sd">      inputs      [  4,   3,  24]</span>
+<span class="sd">      segment_id  [  1,   1,   2] (0 would indicate padding)</span>
+<span class="sd">      segment_pos [  0,   1,   0] (0 for first token in the segment etc)</span>
+
+<span class="sd">  by adding Attention bias to Attention logits before applying tf.nn.softmax,</span>
+<span class="sd">  bias calculated as follows::</span>
+
+<span class="sd">      SelfAttention</span>
+<span class="sd">        segment_id  [  1,   1,   2]</span>
+<span class="sd">      =&gt;</span>
+<span class="sd">        bias       [[  0,   0,  -X],</span>
+<span class="sd">                    [  0,   0,  -X],</span>
+<span class="sd">                    [ -X,  -X,   0]], where X is a large number.</span>
+
+<span class="sd">  Segments can only attend to itself::</span>
+
+<span class="sd">      DecSelfAttention</span>
+<span class="sd">        segment_id  [  1,   1,   2]</span>
+<span class="sd">        segment_pos [  0,   1,   0]</span>
+<span class="sd">      =&gt;</span>
+<span class="sd">        bias       [[  0,  -X,  -X],</span>
+<span class="sd">                    [  0,   0,  -X],</span>
+<span class="sd">                    [ -X,  -X,   0]], where X is a large number.</span>
+
+<span class="sd">  Segments can only attend to itself, and pos &#39;i&#39; can only attend to &lt;= &#39;i&#39;</span>
+<span class="sd">  subsegment::</span>
+
+<span class="sd">      DecEncAttention</span>
+<span class="sd">        segment_id  [  1,   1,   2]</span>
+<span class="sd">        encoder_segment_id  [  1,   2]</span>
+<span class="sd">      =&gt;</span>
+<span class="sd">        bias       [[  0,  -X],</span>
+<span class="sd">                    [  0,  -X],</span>
+<span class="sd">                    [ -X,   0]], where X is a large number.</span>
+
+<span class="sd">  Encoder layers must share same Graph input_endpoints, output_endpoints,</span>
+<span class="sd">  Builder.{MoE,DenseReluDense,SelfAttention},</span>
+<span class="sd">  so do Decoder layers (with decoder=true set where appropriate),</span>
+<span class="sd">  Builder.{MoE,DenseReluDense,DecSelfAttention,DecEncAttention},</span>
+<span class="sd">  so we can universally wrap them with Builder.{Encoder,Decoder}Layer and</span>
+<span class="sd">  further stack with Builder.{Encoder,Decoder}LayerStack. To be moved from</span>
+<span class="sd">  XlaShardingBuilder.</span>
+
+<span class="sd">  TODO(lepikhin): enable MoE-Attention.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MoEBuilder.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_devices&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+             <span class="s1">&#39;The number of cores to split weights and computation over.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_groups&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;The number of groups. Set to None to use num_devices.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layer_norm_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span>
+             <span class="s1">&#39;Epsilon for layer norm numerical stability.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dtype&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;Datatype to use.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;model_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Model dimension that applies to embedding &#39;</span>
+        <span class="s1">&#39;layers and all Transformer layers.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dropout_rate&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Universal dropout rate that applies to inputs, attention, &#39;</span>
+        <span class="s1">&#39;residual and other Transformer layers.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;noise_shape_broadcast_dims&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A list of dimension where the noise shape is broadcasted. For &#39;</span>
+        <span class="s1">&#39;example, noise_shape = [n, h, w, 1] when &#39;</span>
+        <span class="s1">&#39;noise_shape_broadcast_dims=[-1] &#39;</span><span class="p">)</span>
+
+    <span class="c1"># attention params</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_num_heads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Attention number of heads.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_key_value_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Shared dimensionality for Attention keys, values.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Attention dropout probability.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;moe_dropout_rate&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;MoE dropout probability.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;attention_combine_dims&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Attention optimization. &#39;</span>
+        <span class="s1">&#39;The heads and key/value dimensions are combined in the variables &#39;</span>
+        <span class="s1">&#39;and the computation.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DenseReluDense hidden dim.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># MoE params</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;e_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;E dimension. Number of experts.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;c_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;C dimension. Per-expert capacity.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;moe_hidden_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Mixture-of-Experts hidden dim.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;second_expert_policy&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Mixture-of-Experts dispatch policy.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;second_expert_threshold&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+             <span class="s1">&#39;Mixture-of-Experts second-best gate threshold.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;legacy_mtf_behavior&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Mixture-of-Experts legacy mtf behavior. No renormalization.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;Label smoothing.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;capacity_factor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Capacity factor. Overrides c_dim.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Used in DecSelfAttentionRelativeBias:</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;relative_attention_type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Attention type. None is default. Alternative is &quot;bias&quot;.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;relative_attention_num_buckets&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span>
+             <span class="s1">&#39;Relative attention num buckets.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;relative_attention_max_distance&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span>
+             <span class="s1">&#39;Max relative distance (outer bucket boundary).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;relative_attention_use_universal_1d_position&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Relative attention could rely on fake 1d position tensor, &#39;</span>
+        <span class="s1">&#39;since only the relative difference matters and extra large &#39;</span>
+        <span class="s1">&#39;negative logit bias term is added for attention across segments &#39;</span>
+        <span class="s1">&#39;anyway. Set to True to enable the hack.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Extra logit for attention softmax.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._Dropout"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Dropout">[docs]</a>  <span class="k">def</span> <span class="nf">_Dropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">noise_shape_broadcast_dims</span> <span class="ow">or</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">noise_shape_broadcast_dims</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._OneHotEncode"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._OneHotEncode">[docs]</a>  <span class="k">def</span> <span class="nf">_OneHotEncode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._Var"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Var">[docs]</a>  <span class="k">def</span> <span class="nf">_Var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">VarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._ShardedVar"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedVar">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">num_devices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._EmbeddingWeight"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_EmbeddingWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;embedding&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">vocab_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))])</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.SharedEmbSoftmax"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">SharedEmbSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">name</span><span class="p">,</span>
+                       <span class="n">vocab_size</span><span class="p">,</span>
+                       <span class="n">max_len</span><span class="p">,</span>
+                       <span class="n">logits_abs_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">z_loss_coef</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+                       <span class="n">use_tgt_labels_size_as_loss_denominator</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">SharedEmbeddingSoftmaxLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+        <span class="n">max_len</span><span class="o">=</span><span class="n">max_len</span><span class="p">,</span>
+        <span class="n">logits_abs_max</span><span class="o">=</span><span class="n">logits_abs_max</span><span class="p">,</span>
+        <span class="n">z_loss_coef</span><span class="o">=</span><span class="n">z_loss_coef</span><span class="p">,</span>
+        <span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+        <span class="n">label_smoothing</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">,</span>
+        <span class="n">use_tgt_labels_size_as_loss_denominator</span><span class="o">=</span><span class="n">use_tgt_labels_size_as_loss_denominator</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.Embedding"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Embedding">[docs]</a>  <span class="k">def</span> <span class="nf">Embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ids&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;emb&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EmbeddingWeight</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;ids-&gt;ids_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;ids_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;ids_split-&gt;one_hot_ids&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OneHotEncode</span><span class="p">(</span><span class="s1">&#39;one_hot_ids&#39;</span><span class="p">,</span>
+                                                      <span class="n">vocab_dim</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;one_hot_ids-&gt;one_hot_ids_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;one_hot_ids_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;emb,one_hot_ids_split-&gt;outputs&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;einsum&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;VH,BLV-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">))))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.Mask"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Mask">[docs]</a>  <span class="k">def</span> <span class="nf">Mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_apply_padding</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+      <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">mask</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_apply_padding</span><span class="p">,</span> <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.EncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.EncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">EncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns params for lambda x: x + DropOut(layer(LN(x))).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">],</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;x,segment_id,segment_pos-&gt;&#39;</span> <span class="o">+</span> <span class="s1">&#39;y,aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span>
+                                       <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
+  <span class="c1"># We avoid Builder._Seq and Builder._Rep to improve theta / checkpoint</span>
+  <span class="c1"># readability and reduce layer nesting.</span>
+<div class="viewcode-block" id="MoEBuilder.EncoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">EncoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Clean EncoderLayerStack with minimal layer nesting.</span>
+
+<span class="sd">    E.g::</span>
+
+<span class="sd">      encoder/</span>
+<span class="sd">        layer_000/</span>
+<span class="sd">          ln/w/</span>
+<span class="sd">            scale</span>
+<span class="sd">          self_attention/w/</span>
+<span class="sd">            wq</span>
+<span class="sd">            wk</span>
+<span class="sd">            wv</span>
+<span class="sd">            wo</span>
+<span class="sd">        layer_001/</span>
+<span class="sd">          ...</span>
+
+<span class="sd">    will be constructed with::</span>
+
+<span class="sd">      builder.EncoderLayerStack(&#39;encoder&#39;, [</span>
+<span class="sd">          builder.SelfAttention(&#39;self_attention&#39;),</span>
+<span class="sd">          ...], ...)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: Name of this layer</span>
+<span class="sd">      sub_layers: Sublayers of the encoder layer.</span>
+<span class="sd">      num: Number of encoder layers.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The layer params.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;inputs-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;inputs_split-&gt;x_000&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_loss-&gt;loss_000&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_000&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
+        <span class="c1"># x_i, loss_i =&gt; x_{i+1}, loss_{i+1}</span>
+        <span class="n">stack</span> <span class="o">+=</span> <span class="p">[(</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,segment_id_split,segment_pos_split-&gt;&#39;</span>
+                   <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">EncoderLayer</span><span class="p">(</span><span class="s1">&#39;layer_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+        <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;output_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
+        <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                       <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;input_loss&#39;</span><span class="p">],</span> <span class="p">[</span>
+                           <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;output_loss&#39;</span><span class="p">,</span>
+                       <span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.DecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;zero_loss&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;zero_loss&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;x,segment_id,segment_pos,&#39;</span> <span class="o">+</span>
+         <span class="s1">&#39;encoder_output,encoder_segment_id,encoder_segment_pos-&gt;&#39;</span> <span class="o">+</span>
+         <span class="s1">&#39;y,aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span>
+                                       <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack.&quot;&quot;&quot;</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;inputs-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_output-&gt;encoder_output_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_output_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_segment_id-&gt;encoder_segment_id_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_id_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_segment_pos-&gt;encoder_segment_pos_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_pos_split&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;inputs-&gt;x_000&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_loss-&gt;loss_000&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_000&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
+        <span class="c1"># x_i, loss_i =&gt; x_{i+1}, loss_{i+1}</span>
+        <span class="n">stack</span> <span class="o">+=</span> <span class="p">[(</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,segment_id_split,segment_pos_split,&#39;</span>
+                   <span class="s1">&#39;encoder_output,encoder_segment_id_split,&#39;</span>
+                   <span class="s1">&#39;encoder_segment_pos_split-&gt;&#39;</span>
+                   <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+        <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;output_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
+        <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span>
+        <span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;input_loss&#39;</span>
+    <span class="p">],</span> <span class="p">[</span>
+        <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;output_loss&#39;</span><span class="p">,</span>
+    <span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._DenseReluDenseWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_DenseReluDenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">])),</span>
+                 <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))])</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
+      <span class="p">]</span>
+    <span class="c1"># Note that dropout is used here, but not in the MoE layer by default.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">input_endpoints</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wi,inputs-&gt;h&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
+             <span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">wi</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">wi</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;h-&gt;h_relu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_relu-&gt;h_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wo,h_dropout-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
+             <span class="s1">&#39;wo&#39;</span><span class="p">,</span>
+             <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">wo</span><span class="p">,</span> <span class="n">h_dropout</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HM,BLH-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">h_dropout</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._DenseReluDenseWeightsGatedGELU"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU">[docs]</a>  <span class="k">def</span> <span class="nf">_DenseReluDenseWeightsGatedGELU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="c1"># Gated GELU.  There are two separate linear transformations applied in</span>
+    <span class="c1"># parallel to the inputs.  You take the gelu of one of them and then</span>
+    <span class="c1"># multiply the two componentwise.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi_0&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">])),</span>
+                 <span class="p">(</span><span class="s1">&#39;wi_1&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">])),</span>
+                 <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))])</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.DenseReluDenseGatedGELU"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedGELU">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDenseGatedGELU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="c1"># Need to unify.</span>
+    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
+      <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_Impl</span><span class="p">(</span><span class="n">wi_0</span><span class="p">,</span> <span class="n">wi_1</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">wi_0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">),</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+          <span class="c1"># linear / pass-through</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">wi_1</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">input_endpoints</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wi_0,wi_1,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeightsGatedGELU</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wi_0,wi_1,inputs-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_Impl</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h-&gt;h_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wo,h_dropout-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
+             <span class="s1">&#39;wo&#39;</span><span class="p">,</span>
+             <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">wo</span><span class="p">,</span> <span class="n">h_dropout</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HM,BLH-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">h_dropout</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.MoE"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.MoE">[docs]</a>  <span class="k">def</span> <span class="nf">MoE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
+      <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">input_endpoints</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;inputs-&gt;input_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;input_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedFeedForwardNetworksWeights</span><span class="p">(</span><span class="n">name</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_split,segment_id_split,wi,wo-&gt;outputs_pre_split,aux_loss&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedMoEPositionWiseFeedForwardNetworks</span><span class="p">(</span><span class="s1">&#39;ffw&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">)))</span></div>
+
+  <span class="c1"># Multi-headed attention Tensors:</span>
+  <span class="c1"># q: BLHD [batch, length,        heads, key_value]</span>
+  <span class="c1"># k: BMHD [batch, memory_length, heads, key_value]</span>
+  <span class="c1"># v: BMHD [batch, memory_length, heads, key_value]</span>
+  <span class="c1">#</span>
+  <span class="c1"># logits:  BLHM</span>
+  <span class="c1"># bias:    BLM</span>
+  <span class="c1">#</span>
+  <span class="c1"># weights: BLHM [batch, length, heads, memory_length]</span>
+  <span class="c1">#</span>
+  <span class="c1"># outputs: BLHD [batch, length, heads, key_value]</span>
+<div class="viewcode-block" id="MoEBuilder.Attention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Attention">[docs]</a>  <span class="k">def</span> <span class="nf">Attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Attention with multiple attention heads.</span>
+
+<span class="sd">    Keys, values share same dimensionality</span>
+<span class="sd">    params.self.params.attention_key_value_dim.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The Attention layer params.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">_AddBias</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+      <span class="c1"># logits: BLHM [batch, length, heads, memory_length]</span>
+      <span class="c1"># bias: BLHM [batch, length, heads, memory_length]</span>
+      <span class="c1">#       (in case of attention with relative bias) OR</span>
+      <span class="c1">#</span>
+      <span class="c1">#       BLM  [batch, length, memory_length]</span>
+      <span class="c1">#       (default masking bias with very negative logits).</span>
+
+      <span class="k">if</span> <span class="n">bias</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="c1"># Expanding the &#39;heads&#39; dimension</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">bias</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">4</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">+</span> <span class="n">bias</span>
+      <span class="k">return</span> <span class="n">retval</span>
+
+    <span class="k">def</span> <span class="nf">_ReduceLogsumexp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="n">max_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_extra_logit</span>
+      <span class="k">if</span> <span class="n">extra_logit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">extra_logit</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+        <span class="n">max_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_logit</span><span class="p">,</span> <span class="n">extra_logit</span><span class="p">)</span>
+      <span class="n">x</span> <span class="o">-=</span> <span class="n">max_logit</span>
+      <span class="n">exp_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+      <span class="n">sum_exp_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">exp_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">extra_logit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sum_exp_x</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">extra_logit</span> <span class="o">-</span> <span class="n">max_logit</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">sum_exp_x</span><span class="p">)</span> <span class="o">+</span> <span class="n">max_logit</span>
+
+    <span class="k">def</span> <span class="nf">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">x</span> <span class="o">-</span> <span class="n">_ReduceLogsumexp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Softmax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="c1"># if p.attention_extra_logit is None:</span>
+      <span class="c1">#   return tf.nn.softmax(x)</span>
+      <span class="c1"># import ipdb; ipdb.set_trace()  # pyformat: disable</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;_q&#39;</span><span class="p">,</span> <span class="s1">&#39;_k&#39;</span><span class="p">,</span> <span class="s1">&#39;_v&#39;</span><span class="p">,</span> <span class="s1">&#39;bias&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;_q-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;_q&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;_k-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;_k&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;_v-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;_v&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k-&gt;l&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span>
+                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLHD,BMHD-&gt;BLHM&#39;</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;l,bias-&gt;logits&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_AddBias</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;logits-&gt;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="n">_Softmax</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;w-&gt;weights&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;weights,v-&gt;outputs&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
+             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+             <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">weights</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLHM,BMHD-&gt;BLHD&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">v</span><span class="p">))),</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._ComputeAttenOutputs"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ComputeAttenOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeAttenOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">wo</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span><span class="p">:</span>
+      <span class="n">wo</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">wo</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HDM,BLHD-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.SelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TransformerEncoder SelfAttention.&quot;&quot;&quot;</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
+              <span class="c1"># also ignoring segment_id=0</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span>
+                                                                  <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)))),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_pos&#39;</span>
+        <span class="p">],</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;bias&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
+                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
+                  <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wk-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wv-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k,v,bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="MoEBuilder.DecEncAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecEncAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecEncAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transformer Decoder-Encoder Attention.&quot;&quot;&quot;</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;a, b are encoder_segment_id,(decoder_)segment_id Tensors.&quot;&quot;&quot;</span>
+      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span>
+                                                                  <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)))),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span>
+        <span class="p">],</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id,encoder_segment_id-&gt;bias&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="o">-</span><span class="mf">1e+09</span> <span class="o">*</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_output,wk-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_output,wv-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k,v,bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="MoEBuilder.DecSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TransformerDecoder SelfAttention.</span>
+
+<span class="sd">    Note that attention bias (see _Notvisible) ensures that current position</span>
+<span class="sd">    (~row) is less that memory position(~column).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      layer params for TransformerDecoder SelfAttention.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span>
+        <span class="n">segment_id</span><span class="p">,</span>
+        <span class="n">segment_pos</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>  <span class="c1"># position (~row) is less that memory position(~column)</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
+                  <span class="c1"># also ignoring segment_id=0</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
+                      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))))),</span>
+          <span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
+        <span class="p">],</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wk-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wv-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id,segment_pos-&gt;bias&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
+                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
+                  <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;bias-&gt;bias_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,bias_full-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="MoEBuilder.DecSelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;DecSelfAttention with relative Attention Bias.</span>
+
+<span class="sd">    Note that attention bias (see _Notvisible) ensures that current position</span>
+<span class="sd">    (~row) is less that memory position(~column).</span>
+
+<span class="sd">    In addition to masking bias we use per-head per-relative position bucket</span>
+<span class="sd">    relative_bias_weights tensor (see _RelativeAttentionBiasWeights) of shape</span>
+<span class="sd">    [num heads, num relative position buckets]</span>
+<span class="sd">    (e.g. [128, 32] for Meena 64B).</span>
+
+<span class="sd">    We compute relative position bucket for every position pair, relative_bucket</span>
+<span class="sd">    tensor of shape [batch, length, length] and do</span>
+<span class="sd">    tf.gather(relative_bias_weights, relative_bucket, axis=1)</span>
+<span class="sd">    to compute per position-pair bias.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The layer params.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span>
+        <span class="n">segment_id</span><span class="p">,</span>
+        <span class="n">segment_pos</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>  <span class="c1"># position (~row) is less that memory position(~column)</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
+                  <span class="c1"># also ignoring segment_id=0</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
+                      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))))),</span>
+          <span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ToInt32</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ToFloat</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_RelativePositionBucket</span><span class="p">(</span><span class="n">relative_position</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">num_buckets</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span>
+      <span class="n">max_distance</span> <span class="o">=</span> <span class="n">_ToFloat</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">relative_attention_max_distance</span><span class="p">)</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="o">-</span><span class="n">relative_position</span>
+      <span class="k">if</span> <span class="n">bidirectional</span><span class="p">:</span>
+        <span class="n">num_buckets</span> <span class="o">//=</span> <span class="mi">2</span>
+        <span class="n">ret</span> <span class="o">+=</span> <span class="n">_ToInt32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">*</span> <span class="n">num_buckets</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="c1"># now n is in the range [0, inf)</span>
+      <span class="n">max_exact</span> <span class="o">=</span> <span class="n">num_buckets</span> <span class="o">//</span> <span class="mi">2</span>
+      <span class="n">is_small</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">max_exact</span><span class="p">)</span>
+      <span class="c1"># should be component-wise tf.math.log</span>
+      <span class="n">val_if_large</span> <span class="o">=</span> <span class="n">max_exact</span> <span class="o">+</span> <span class="n">_ToInt32</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">_ToFloat</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="n">max_exact</span><span class="p">)</span> <span class="o">/</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">max_distance</span> <span class="o">/</span> <span class="n">max_exact</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_buckets</span> <span class="o">-</span> <span class="n">max_exact</span><span class="p">))</span>
+      <span class="n">val_if_large</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">val_if_large</span><span class="p">,</span> <span class="n">num_buckets</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">ret</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_small</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">val_if_large</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">_ComputeBias</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">)</span>
+
+    <span class="c1"># When training query_segment_pos = key_segment_pos, of shape [batch, time].</span>
+    <span class="c1"># When decoding query_segment_pos is [batch, beam_size]</span>
+    <span class="c1"># but key_segment_pos is [batch, memory_size] (because of k_pos StateLayer).</span>
+    <span class="k">def</span> <span class="nf">_AddRelativeBias</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">query_segment_pos</span><span class="p">,</span> <span class="n">key_segment_pos</span><span class="p">,</span>
+                         <span class="n">relative_bias_weights</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                            <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">len_dim</span> <span class="o">=</span> <span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">key_segment_pos</span> <span class="o">=</span> <span class="n">query_segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">len_dim</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+      <span class="c1"># Relative position is defined in such a way that when query is in the</span>
+      <span class="c1"># future relative to the key, the value of relative position is negative.</span>
+      <span class="n">relative_position</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">key_segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">query_segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+      <span class="n">relative_bucket</span> <span class="o">=</span> <span class="n">_RelativePositionBucket</span><span class="p">(</span><span class="n">relative_position</span><span class="p">)</span>
+
+      <span class="n">relative_bucket_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+          <span class="n">relative_bucket</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="c1"># relative_bucket_one_hot:</span>
+      <span class="c1"># ..LJX - [batch?, length, memory_length, num_buckets]</span>
+      <span class="c1">#</span>
+      <span class="c1"># relative_bias_weights:</span>
+      <span class="c1"># HX - [num_heads, num_buckets]</span>
+      <span class="c1">#</span>
+      <span class="c1"># relative_bias_inc:</span>
+      <span class="c1"># [batch?, length, heads, memory_length]</span>
+      <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HX,...LJX-&gt;...LHJ&#39;</span><span class="p">,</span> <span class="n">relative_bias_weights</span><span class="p">,</span>
+                                    <span class="n">relative_bucket_one_hot</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">relative_bias_inc</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span>
+        <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">relative_bias_inc</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="c1"># Eventually we add bias to BLHM [batch, length, heads, memory_length]</span>
+      <span class="c1"># logits tensor, so we make &#39;heads&#39; dim next to last.</span>
+
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">relative_bias_inc</span>
+
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
+        <span class="p">],</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wk-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wv-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id,segment_pos-&gt;qq_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ComputeBias</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;qk_bias,segment_pos,key_segment_pos,relative_bias_weights-&gt;qhk_bias&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_AddRelativeBias</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,qhk_bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="MoEBuilder._RelativeAttentionBiasWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._RelativeAttentionBiasWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper for &#39;-&gt;rb&#39; Graph edge.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">rb_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
+    <span class="n">rb_tpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span><span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">rb_stddev</span><span class="p">))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">rb_tpl</span><span class="p">)])</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._zero_aux_loss"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._zero_aux_loss">[docs]</a>  <span class="k">def</span> <span class="nf">_zero_aux_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                    <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Overriding with bias-less layer norm.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._LNInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LNInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_LNInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Internal implementation of _LN with optional reshape of the weight.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">LN</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+      <span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">layer_norm_epsilon</span>
+      <span class="c1"># BLm Tensor (m=1, reduced model_dim) or BLnm where model dim is split to</span>
+      <span class="c1"># two dims.</span>
+      <span class="n">axis</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="o">+</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)]</span>
+      <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">ln_weight_reshape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+
+    <span class="n">ln_weight_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x_norm&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;scale&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">ln_weight_params</span><span class="p">)])),</span>
+        <span class="p">(</span><span class="s1">&#39;x,scale-&gt;x_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">LN</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.Split"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Split">[docs]</a>  <span class="k">def</span> <span class="nf">Split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets sharding attribute for the Tensor. Split across dim=0.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_devices</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._Add"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Add">[docs]</a>  <span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._Identity"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Identity">[docs]</a>  <span class="k">def</span> <span class="nf">_Identity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply identity transformation.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">IdentityLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._AttentionWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._AttentionWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_AttentionWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper for &#39;-&gt;wq,wk,wv,wo&#39; Graph edge.&quot;&quot;&quot;</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">hd_dims</span> <span class="o">=</span> <span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">*</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span> <span class="k">else</span>
+               <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])</span>
+    <span class="n">q_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
+    <span class="n">wq_tpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span> <span class="o">+</span> <span class="n">hd_dims</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">q_stddev</span><span class="p">))</span>
+    <span class="n">kv_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
+    <span class="n">wkv_tpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span> <span class="o">+</span> <span class="n">hd_dims</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">kv_stddev</span><span class="p">))</span>
+    <span class="n">o_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
+    <span class="n">wo_tpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">hd_dims</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">o_stddev</span><span class="p">))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wq&#39;</span><span class="p">,</span> <span class="n">wq_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wk&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wv&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span>
+                 <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_tpl</span><span class="p">)])</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._ComputeQKV"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ComputeQKV">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeQKV</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">_Compute</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLM,MHD-&gt;BLHD&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_Compute</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._Top2GatingWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Top2GatingWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_Top2GatingWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">stddev</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="n">init_scale</span> <span class="o">=</span> <span class="n">stddev</span> <span class="o">*</span> <span class="mf">3.</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">],</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="n">init_scale</span><span class="p">),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))])</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._ComputeTopKGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ComputeTopKGating">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeTopKGating</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">_Compute</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Top2Gating</span><span class="p">(</span>
+          <span class="n">w</span><span class="o">=</span><span class="n">w</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+          <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">,</span>
+          <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+          <span class="n">experts_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">,</span>
+          <span class="n">expert_capacity_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">c_dim</span><span class="p">,</span>
+          <span class="n">local_dispatch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+          <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">second_expert_policy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">second_expert_policy</span><span class="p">,</span>
+          <span class="n">second_expert_threshold</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">second_expert_threshold</span><span class="p">,</span>
+          <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">legacy_mtf_behavior</span><span class="p">,</span>
+          <span class="n">capacity_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">capacity_factor</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_Compute</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._ShardedFeedForwardNetworksWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedFeedForwardNetworksWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedFeedForwardNetworksWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the sharded weights for the two layer feedforward nets.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">emh_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_hidden_dim</span><span class="p">]</span>
+    <span class="c1"># See VarianceScalingInitializer in py_utils</span>
+    <span class="c1">#   scale        ~ 1.0</span>
+    <span class="c1">#   reduced_dims ~ params.input_dim</span>
+    <span class="c1">#   mode         ~ &#39;fan_in&#39;</span>
+    <span class="c1">#</span>
+    <span class="n">stddev</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="n">wi_kernel_param_init_scale</span> <span class="o">=</span> <span class="n">stddev</span> <span class="o">*</span> <span class="mf">3.</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="n">wi_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">emh_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="n">wi_kernel_param_init_scale</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># EHM Tensor (output transformation after RELU)</span>
+    <span class="n">ehm_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span>
+    <span class="c1"># See VarianceScalingInitializer in py_utils</span>
+    <span class="c1">#   scale        ~ 1.0</span>
+    <span class="c1">#   reduced_dims ~ params.moe_hidden_dim</span>
+    <span class="c1">#   mode         ~ &#39;fan_in&#39;</span>
+    <span class="c1">#</span>
+    <span class="n">stddev</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_hidden_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="n">wo_kernel_param_init_scale</span> <span class="o">=</span> <span class="n">stddev</span> <span class="o">*</span> <span class="mf">3.</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="n">wo_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">ehm_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="n">wo_kernel_param_init_scale</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">wi_pc</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_pc</span><span class="p">)])</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._FeedForwardNetworksApplyGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._FeedForwardNetworksApplyGating">[docs]</a>  <span class="k">def</span> <span class="nf">_FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">_Compute</span><span class="p">(</span><span class="n">gating</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">wi</span><span class="p">,</span> <span class="n">wo</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">FeedForwardNetworksApplyGating</span><span class="p">(</span>
+          <span class="n">gating</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="n">reshaped_inputs</span><span class="p">,</span>
+          <span class="n">wi</span><span class="p">,</span>
+          <span class="n">wo</span><span class="p">,</span>
+          <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+          <span class="n">num_groups</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+          <span class="n">dropout_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">moe_dropout_rate</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_Compute</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedMoEPositionWiseFeedForwardNetworks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simple MoE FFN with xla_sharding.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span>
+
+    <span class="k">def</span> <span class="nf">_ReshapeInputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Prepare inputs and paddings for the gating layer.&quot;&quot;&quot;</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span>
+          <span class="n">num_groups</span><span class="p">,</span>
+          <span class="p">(</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">//</span> <span class="n">num_groups</span><span class="p">,</span>
+          <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+      <span class="p">])</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;wo&#39;</span><span class="p">],</span>
+                       <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+                       <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;reshaped_inputs, paddings&#39;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_inputs&#39;</span><span class="p">,</span> <span class="n">_ReshapeInputs</span><span class="p">)),</span>
+                       <span class="p">(</span><span class="s1">&#39;-&gt;gw&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Top2GatingWeights</span><span class="p">(</span><span class="s1">&#39;top_2_gating&#39;</span><span class="p">)),</span>
+                       <span class="p">(</span><span class="s1">&#39;gw,reshaped_inputs,paddings-&gt;gating&#39;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeTopKGating</span><span class="p">(</span><span class="s1">&#39;compute_gating&#39;</span><span class="p">)),</span>
+                       <span class="p">(</span><span class="s1">&#39;gating,inputs,reshaped_inputs,wi,wo-&gt;outputs,aux_loss&#39;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="s1">&#39;process_gating&#39;</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._State"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._State">[docs]</a>  <span class="k">def</span> <span class="nf">_State</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">StateLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._Override"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Override">[docs]</a>  <span class="k">def</span> <span class="nf">_Override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span> <span class="ow">or</span> <span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._Softmax"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Softmax">[docs]</a>  <span class="k">def</span> <span class="nf">_Softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_outs</span><span class="p">,</span> <span class="n">tgt</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">_MaybeSplit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span>
+
+    <span class="n">dec_outs</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLM,VM-&gt;BLV&#39;</span><span class="p">,</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">dec_outs</span><span class="p">),</span> <span class="n">w</span><span class="p">))</span>
+    <span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span>
+    <span class="n">off_value</span> <span class="o">=</span> <span class="n">label_smoothing</span> <span class="o">/</span> <span class="n">vocab_dim</span>
+    <span class="n">on_value</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">label_smoothing</span> <span class="o">+</span> <span class="n">off_value</span>
+    <span class="n">soft_targets</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">,</span> <span class="n">on_value</span><span class="o">=</span><span class="n">on_value</span><span class="p">,</span> <span class="n">off_value</span><span class="o">=</span><span class="n">off_value</span><span class="p">))</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">soft_targets</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">))</span>
+    <span class="n">non_padding</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)))</span>
+    <span class="n">per_token_loss</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">loss</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span>
+    <span class="n">loss_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">per_example_loss</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_token_loss</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">loss_denom</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.SmoothedSoftmax"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SmoothedSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">SmoothedSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the Softmax layer with optional label smoothing.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span> <span class="p">(</span><span class="s1">&#39;-&gt;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EmbeddingWeight</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.dec_outs,i.tgt,w-&gt;o&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span>
+                  <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">w</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Softmax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">))))</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
