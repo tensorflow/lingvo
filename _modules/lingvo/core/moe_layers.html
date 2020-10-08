@@ -186,7 +186,6 @@
 <span class="sd">    num_devices: xla_sharding.split arg.</span>
 <span class="sd">    use_sharding_op: If true, adds a sharding op to set the sharding:</span>
 <span class="sd">      tensor = gen_xla_ops.xla_sharding(tensor)</span>
-<span class="sd">      See http://cs/search/?q=XlaSharding+file:xla_ops.cc</span>
 
 <span class="sd">      hyouklee@: use_sharding_op=False</span>
 <span class="sd">        &quot;It adds the sharding attribute to the op itself. The outcome is that,</span>
@@ -311,8 +310,6 @@
 <span class="sd">    # FProp will  modify theta0 in-place</span>
 <span class="sd">    state1 = state0.copy()</span>
 <span class="sd">    state1 = StateLayer.UpdateState(dec, theta0, state1)</span>
-
-<span class="sd">  (see `moe_builder_test.py` for a more complete example.)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">False</span>
 
@@ -371,7 +368,6 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span><span class="p">:</span>
-        <span class="c1"># For tpu_beam_search_helper</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">state</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
@@ -467,7 +463,7 @@
 <span class="sd">  If key is not set in the global context, FProp does nothing.</span>
 <span class="sd">  Otherwise it returns value associated to &#39;key&#39;.</span>
 
-<span class="sd">  To override a tensor during my_layer.FProp:</span>
+<span class="sd">  To override a tensor during my_layer.FProp::</span>
 
 <span class="sd">    OverrideLayer.Set(key, value)</span>
 <span class="sd">    out_with_override = my_layer.FProp(...)</span>
@@ -649,7 +645,7 @@
 
 <span class="sd">  Below ` indicates common way of splitting along mesh dimension.</span>
 
-<span class="sd">  Dimensions cheat sheet:</span>
+<span class="sd">  Dimensions cheat sheet::</span>
 
 <span class="sd">    G: group_dim</span>
 <span class="sd">    S: group_size_dim</span>
@@ -805,7 +801,7 @@
     <span class="c1"># For policy=random, it&#39;s better to nomalize gate_{1,2} before taking</span>
     <span class="c1"># capacity  into account and before potentially dropping second expert.</span>
     <span class="c1">#</span>
-    <span class="c1"># According to mean_xent (http://short/_NzbZ5rINr5):</span>
+    <span class="c1"># According to mean_xent:</span>
     <span class="c1">#   MoE_512_102xen_PolicyAll_298510175</span>
     <span class="c1">#   MoE_512_102xen_PolicyRandom_298510175</span>
     <span class="c1">#</span>
@@ -832,7 +828,7 @@
     <span class="c1">#   0.310606</span>
     <span class="c1">#   0.288229</span>
     <span class="c1">#</span>
-    <span class="c1"># Additional comparison, see mean_xent http://short/_YHccOhQtdu with</span>
+    <span class="c1"># Additional comparison, see mean_xent with</span>
     <span class="c1"># legacy_mtf_behavior=False models</span>
     <span class="c1">#   3 - MoE_512_102xen_PolicyAll_LegacyFalse</span>
     <span class="c1">#   6 - MoE_512_102xen_PolicyRandom_LegacyFalse</span>
@@ -876,8 +872,7 @@
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">):</span>
     <span class="c1"># The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of</span>
     <span class="c1"># reduce_mean(density_1_proxy * density_1_proxy). Here we replace one of</span>
-    <span class="c1"># the density_1_proxy with the discrete density_1 following</span>
-    <span class="c1"># mesh_tensorflow/transformer/moe.py?rcl=283569345.</span>
+    <span class="c1"># the density_1_proxy with the discrete density_1 following mesh_tensorflow.</span>
     <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span> <span class="o">*</span> <span class="n">density_1</span><span class="p">)</span>  <span class="c1"># element-wise</span>
     <span class="n">aux_loss</span> <span class="o">*=</span> <span class="n">experts_dim</span> <span class="o">*</span> <span class="n">experts_dim</span>  <span class="c1"># const coefficient</span>
 

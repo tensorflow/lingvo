@@ -180,8 +180,7 @@
 <li><p><strong>split_dimension</strong> – xla_sharding.split arg.</p></li>
 <li><p><strong>num_devices</strong> – xla_sharding.split arg.</p></li>
 <li><p><strong>use_sharding_op</strong> – <p>If true, adds a sharding op to set the sharding:
-tensor = gen_xla_ops.xla_sharding(tensor)
-See <a class="reference external" href="http://cs/search/?q=XlaSharding+file:xla_ops.cc">http://cs/search/?q=XlaSharding+file:xla_ops.cc</a></p>
+tensor = gen_xla_ops.xla_sharding(tensor)</p>
 <dl>
 <dt>hyouklee&#64;: use_sharding_op=False</dt><dd><p>”It adds the sharding attribute to the op itself. The outcome is that,
 that information could be lost by TF graph transformations. Also,
@@ -326,7 +325,6 @@ tuple of states.</p>
 <span class="n">state1</span> <span class="o">=</span> <span class="n">StateLayer</span><span class="o">.</span><span class="n">UpdateState</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">state1</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>(see <code class="xref py py-obj docutils literal notranslate"><span class="pre">moe_builder_test.py</span></code> for a more complete example.)</p>
 <dl class="py attribute">
 <dt id="lingvo.core.moe_layers.StateLayer._use_flat_beam_search">
 <code class="sig-name descname">_use_flat_beam_search</code><em class="property"> = False</em><a class="headerlink" href="#lingvo.core.moe_layers.StateLayer._use_flat_beam_search" title="Permalink to this definition">¶</a></dt>
@@ -421,11 +419,11 @@ layer and its children layers.</p></li>
 <p>If key is not set in the global context, FProp does nothing.
 Otherwise it returns value associated to ‘key’.</p>
 <p>To override a tensor during my_layer.FProp:</p>
-<blockquote>
-<div><p>OverrideLayer.Set(key, value)
-out_with_override = my_layer.FProp(…)
-OverrideLayer.Clear()</p>
-</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+<span class="n">out_with_override</span> <span class="o">=</span> <span class="n">my_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Clear</span><span class="p">()</span>
+</pre></div>
+</div>
 <dl class="py attribute">
 <dt id="lingvo.core.moe_layers.OverrideLayer._OVERRIDE">
 <code class="sig-name descname">_OVERRIDE</code><em class="property"> = {}</em><a class="headerlink" href="#lingvo.core.moe_layers.OverrideLayer._OVERRIDE" title="Permalink to this definition">¶</a></dt>
@@ -555,15 +553,15 @@ examples.</p></li>
 </ol>
 <p>Below ` indicates common way of splitting along mesh dimension.</p>
 <p>Dimensions cheat sheet:</p>
-<blockquote>
-<div><p>G: group_dim
-S: group_size_dim
-E: number of experts
-C: capacity per expert
-M: model_dim (same as input_dim, same as output_dim)
-B: original batch_dim
-L: original sequence_length_dim</p>
-</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">G</span><span class="p">:</span> <span class="n">group_dim</span>
+<span class="n">S</span><span class="p">:</span> <span class="n">group_size_dim</span>
+<span class="n">E</span><span class="p">:</span> <span class="n">number</span> <span class="n">of</span> <span class="n">experts</span>
+<span class="n">C</span><span class="p">:</span> <span class="n">capacity</span> <span class="n">per</span> <span class="n">expert</span>
+<span class="n">M</span><span class="p">:</span> <span class="n">model_dim</span> <span class="p">(</span><span class="n">same</span> <span class="k">as</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">same</span> <span class="k">as</span> <span class="n">output_dim</span><span class="p">)</span>
+<span class="n">B</span><span class="p">:</span> <span class="n">original</span> <span class="n">batch_dim</span>
+<span class="n">L</span><span class="p">:</span> <span class="n">original</span> <span class="n">sequence_length_dim</span>
+</pre></div>
+</div>
 <p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
 group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
 <dl class="field-list simple">
