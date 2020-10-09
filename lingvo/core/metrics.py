@@ -333,6 +333,8 @@ class AUCMetric(BaseMetric):
       # In case self._label still has just 1 type of label, e.g. all(labels==0).
       if 'Only one class present in y_true.' in str(exception):
         return 0.0
+      else:
+        raise
 
   def Summary(self, name):
 
