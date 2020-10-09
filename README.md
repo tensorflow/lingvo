@@ -7,8 +7,6 @@
 
 [![License](https://img.shields.io/github/license/tensorflow/lingvo)](LICENSE)
 
-![Docker](https://github.com/tensorflow/lingvo/workflows/Docker/badge.svg)
-
 ## What is it?
 
 Lingvo is a framework for building neural networks in Tensorflow, particularly

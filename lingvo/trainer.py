@@ -53,6 +53,7 @@ import numpy as np
 from lingvo import base_runner
 
 # pylint:disable=g-direct-tensorflow-import
+from tensorflow.core.framework import summary_pb2
 from tensorflow.core.protobuf.tpu import compilation_result_pb2 as tpu_compilation_result
 from tensorflow.python.tpu import device_assignment as device_assignment_lib
 from tensorflow.python.tpu import tpu
@@ -946,6 +947,7 @@ class Evaler(base_runner.BaseRunner):
         self._params = self._model.params
         self._model.ConstructFPropGraph()
         self._task = self._model.GetTask(self._model_task_name)
+      self._summary_op = tf.summary.merge_all()
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for eval models.
@@ -1021,6 +1023,14 @@ class Evaler(base_runner.BaseRunner):
       path = '{}/ckpt-{:08d}'.format(self._train_dir, ckpt_id)
       self._EvalOnce(path, sess)
 
+  def _RemoveScalarSummaries(self, summaries):
+    proto = summary_pb2.Summary()
+    proto.ParseFromString(summaries)
+    for i, value in enumerate(proto.value):
+      if value.HasField('simple_value'):
+        del proto.value[i]
+    return summary_pb2.Summary().SerializeToString(proto)
+
   def _EvalOnce(self, path, sess):
     """Runs evaluation for a batch of samples.
 
@@ -1055,11 +1065,21 @@ class Evaler(base_runner.BaseRunner):
     while samples_per_summary == 0 or (num_samples_metric.total_value <
                                        samples_per_summary):
       try:
-        # NOTE: We intentionally do not let FProp generate summaries by default,
-        # because evaler calls FProp multiple times for each checkpoint.
-        # Multiple summaries at the same step is often confusing. Instead,
-        # models should update eval_metrics and generate aggregate summaries.
-        ans = sess.run(self._task.eval_metrics)
+        # NOTE: We intentionally do not let FProp generate scalar summaries by
+        # default, because evaler calls FProp multiple times for each
+        # checkpoint. Multiple summaries at the same step is often confusing.
+        # Instead, models should update eval_metrics and generate aggregate
+        # summaries. Other types of summaries (images, audio etc.) will be
+        # generated for the first eval batch.
+        if num_samples_metric.total_value == 0 and self._summary_op is not None:
+          ans, summaries = sess.run([self._task.eval_metrics, self._summary_op])
+          summaries = self._RemoveScalarSummaries(summaries)
+
+          # Add non-scalar summaries only for the first batch of data.
+          self._summary_writer.add_summary(summaries, global_step)
+        else:
+          ans = sess.run(self._task.eval_metrics)
+
         for name, (value, weight) in ans.items():
           metrics_dict[name].Update(value, weight)
         tf.logging.info('Total examples done: %d/%d',
