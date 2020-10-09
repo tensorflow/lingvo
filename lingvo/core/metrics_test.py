@@ -109,6 +109,16 @@ class MetricsTest(test_utils.TestCase):
     self.assertEqual(5, summary.value[0].simple_value)
     self.assertEqual(3, summary.value[1].simple_value)
 
+  def testAUCMetric(self):
+    m = metrics.AUCMetric()
+    m.Update(label=[1, 1], prob=[0.1, 0.2], weight=[1.0, 1.0])
+    # No meaningful AUC yet, since all(labels==1) and function needs 2 types of
+    # labels.
+    self.assertEqual(0.0, m.value)
+
+    m.Update(label=[0, 0], prob=[0.1, 0.2], weight=[1.0, 1.0])
+    self.assertEqual(0.5, m.value)
+
 
 if __name__ == '__main__':
   tf.test.main()

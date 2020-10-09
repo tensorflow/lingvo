@@ -327,7 +327,12 @@ class AUCMetric(BaseMetric):
 
   @property
   def value(self):
-    return self._score_fn(self._label, self._prob, sample_weight=self._weight)
+    try:
+      return self._score_fn(self._label, self._prob, sample_weight=self._weight)
+    except ValueError as exception:
+      # In case self._label still has just 1 type of label, e.g. all(labels==0).
+      if 'Only one class present in y_true.' in str(exception):
+        return 0.0
 
   def Summary(self, name):
 
