@@ -713,7 +713,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p = self.params
     num_heads = p.num_heads
     atten_dim = p.hidden_dim
-    if not atten_dim:  # Check for Pathways as atten_tpl.hidden_dim is not set.
+    if not atten_dim:
       atten_dim = p.input_dim
     dim_per_head = atten_dim // num_heads
     # TODO(shafey): Determine if we want to make the cached shape 128 to
