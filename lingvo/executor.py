@@ -149,8 +149,6 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     self._cluster_def = self._cluster.worker_cluster_def
 
-    # There is a single Executor task
-    assert self._cluster.num_replicas == 1
     data_parallelism = self._cluster.num_splits_per_client
 
     assert data_parallelism
@@ -206,7 +204,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     train_cfg = self.params
 
     @py_utils.RetryOnTransientTfError()
-    def _WaitTillInit():
+    def _WaitTillInit(job=None):
       """Wait until the model is ready."""
       try:
         # tpu.initialize_system() is called with None as embedding_config, as
@@ -217,7 +215,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         dummy_graph = tf.Graph()
         with dummy_graph.as_default():
           tpu_initialize_system_op = tf.tpu.initialize_system(
-              embedding_config=None, job=None)
+              embedding_config=None, job=job)
 
         with self._GetSession(graph=dummy_graph) as sess:
           topology = sess.run(tpu_initialize_system_op)
@@ -235,7 +233,7 @@ class ExecutorTpu(base_runner.BaseRunner):
                   num_devices_per_split, topology),
               num_replicas=data_parallelism,
               device_order_mode=train_cfg.train.tpu_device_order_mode)
-        py_utils.SetTpuDeviceAssignment(device_assignment)
+        py_utils.SetTpuDeviceAssignment(device_assignment, job)
         tf.logging.info('device_assignment.core_assignment: %s',
                         str(device_assignment.core_assignment))
         tf.logging.info('device_assignment.topology.device_coordinates: %s',
@@ -246,7 +244,11 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     if self._ml_perf_log:
       mlp_log.mlperf_print(key='init_start', value=None)
-    _WaitTillInit()
+    if len(self._cluster.all_worker_names) > 1:
+      for worker in self._cluster.all_worker_names:
+        _WaitTillInit(worker)
+    else:
+      _WaitTillInit(None)
 
     shared_model = self._MaybeConstructSharedModel(train_cfg)
 
@@ -258,7 +260,8 @@ class ExecutorTpu(base_runner.BaseRunner):
       program_schedule_params.num_splits_per_client = data_parallelism
       program_schedule_params.task_name = task_string
       # If the model was created above, we'll inject it here as a shared_model.
-      ps = program_schedule_params.Instantiate(shared_model=shared_model)
+      ps = program_schedule_params.Instantiate(
+          shared_model=shared_model, tf_master=self._tf_master)
       self._program_schedule_dict[task_string] = ps
       tf.logging.info('program_schedule_params: %s',
                       program_schedule_params.ToText())
@@ -341,7 +344,9 @@ class ExecutorTpu(base_runner.BaseRunner):
       config_proto = (
           self._tpu_embedding.config_proto
           if self._tpu_embedding is not None else None)
-      sess.run(tf.tpu.initialize_system(embedding_config=config_proto))
+      for worker in self._cluster.all_worker_names:
+        sess.run(
+            tf.tpu.initialize_system(embedding_config=config_proto, job=worker))
 
       # Initialize the variables first, if needed.
       for program in self._programs:

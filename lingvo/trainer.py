@@ -100,6 +100,8 @@ tf.flags.DEFINE_string('controller_job', '/job:controller', 'Job name.')
 tf.flags.DEFINE_integer('controller_gpus', 0, 'Number of controller GPUs.')
 
 tf.flags.DEFINE_string('worker_job', '/job:trainer', 'Job name.')
+tf.flags.DEFINE_list('additional_worker_jobs', [],
+                     'Additional worker job names.')
 tf.flags.DEFINE_integer('worker_replicas', 1, 'Number of replicas.')
 tf.flags.DEFINE_integer('worker_gpus', 0, 'Number of gpus to use per replica.')
 tf.flags.DEFINE_integer('worker_tpus', 0, 'Number of tpus to use per replica.')
@@ -1541,9 +1543,17 @@ class RunnerManager:
     cluster.worker.tpus_per_replica = FLAGS.worker_tpus
     cluster.worker.num_tpu_hosts = FLAGS.worker_num_tpu_hosts
     cluster.worker.devices_per_split = FLAGS.worker_split_size
+    if FLAGS.additional_worker_jobs:
+      for additional_job in FLAGS.additional_worker_jobs:
+        cluster.worker.additional_worker_names.append(additional_job)
+
     if FLAGS.tpu:
       job_name = cluster.worker.name.replace('/job:', '', 1)
       worker_hosts = _GetClusterSpecDict()[job_name]
+      if FLAGS.additional_worker_jobs:
+        for additional_job in cluster.worker.additional_worker_names:
+          additional_job_name = additional_job.replace('/job:', '', 1)
+          worker_hosts.extend(_GetClusterSpecDict()[additional_job_name])
       cluster.worker.targets = ','.join(
           'grpc://{}'.format(host) for host in worker_hosts)
 

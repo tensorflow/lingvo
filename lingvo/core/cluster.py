@@ -54,6 +54,7 @@ class _Cluster:
     p.Define('tpus_per_replica', 0,
              'The number of tpu cores to use per replica.')
     p.Define('num_tpu_hosts', 0, 'The number of tpu hosts.')
+    p.Define('additional_worker_names', [], 'A list of additional job names')
     return p
 
   @classmethod
@@ -332,6 +333,10 @@ class _Cluster:
     else:
       return ''
 
+  @property
+  def all_worker_names(self):
+    return [self._job_spec.name] + self._job_spec.additional_worker_names
+
   def PlaceInput(self, input_params):
     """Applies a placement policy on the given input generator params.
 
@@ -515,5 +520,30 @@ class _LeastLoadedPlacer(VarPlacer):
       allocated += shape.num_elements() * size
     heapq.heappush(self._var_space_pq, (allocated, device))
     tf.logging.info('Place variable %s on %s %d', var_op.name, device,
-                         allocated)
+                    allocated)
     return device
+
+
+def ParseDeviceString(device_str):
+  """Parse a device string and return a NestedMap.
+
+  Args:
+    device_str: a device string in the format of that may contain up to 4 parts:
+      job, replica, task, and device.
+
+  Returns:
+    parsed_device: a NestedMap that maps job, replica, task, and device to their
+      corresponding value.
+  """
+  parsed_device = py_utils.NestedMap()
+  device_parts = device_str.split('/')
+  for device_part in device_parts:
+    if device_part.startswith('job:'):
+      parsed_device.job = device_part[4:]
+    elif device_part.startswith('replica:'):
+      parsed_device.replica = int(device_part[8:])
+    elif device_part.startswith('task:'):
+      parsed_device.task = int(device_part[5:])
+    elif device_part.startswith('device:'):
+      parsed_device.device = device_part[7:].split(':')[0]
+  return parsed_device

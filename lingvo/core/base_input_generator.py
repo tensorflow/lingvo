@@ -251,10 +251,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
       shards = shards // cluster.num_devices_per_split
     return shards
 
-  def CreateTpuEnqueueOps(self):
+  def CreateTpuEnqueueOps(self, job_name=None):
     """Create the host-side enqueue ops.
 
     This should be called in an outer non-TPU context.
+    Args:
+      job_name: the name of the job on which the enqueue operations run.
     """
     assert not self._tpu_queues, ('CreateTpuEnqueueOps should only be called '
                                   'once.')
@@ -343,7 +345,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
                         dtypes)
 
         if p.use_partitioned_infeed_queue:
-          device_assignment = py_utils.GetTpuDeviceAssignment()
+          device_assignment = py_utils.GetTpuDeviceAssignment(job_name)
 
           host_device = device_assignment.host_device(
               replica=0, job=tf.flags.FLAGS.tf_master)
@@ -395,7 +397,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
         else:
           input_ops = q.split_inputs_and_generate_enqueue_ops(
               batch.Flatten(),
-              device_assignment=py_utils.GetTpuDeviceAssignment())
+              device_assignment=py_utils.GetTpuDeviceAssignment(job_name))
         input_ops_list += input_ops
 
     tf.logging.info('input_ops_list %s', input_ops_list)

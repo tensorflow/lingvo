@@ -199,6 +199,7 @@ class _CreateLayerVariablesStatus(enum.Enum):
   NOT_CALLED = 1
   IN_PROGRESS = 2
   COMPLETED = 3
+  PER_SPLIT_COMPLETED = 4
 
 
 LAYER_WT = 'layer_weight_variable'

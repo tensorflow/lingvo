@@ -73,7 +73,7 @@ class BaseProgram:
     p.Define('spmd', False, 'Whether program is running under SPMD mode.')
     return p
 
-  def __init__(self, params, shared_model=None):
+  def __init__(self, params, shared_model=None, **kwargs):
     self.params = params.Copy()
     p = self.params
     self._task_params = p.task
@@ -81,6 +81,7 @@ class BaseProgram:
     self._task_name = p.task_name
     self._program_name = ''
     self._shared_model = shared_model
+    self._tf_master = kwargs.pop('tf_master', None)
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
@@ -229,8 +230,8 @@ class BaseProgram:
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
-  def __init__(self, params, shared_model=None):
-    super().__init__(params, shared_model=shared_model)
+  def __init__(self, params, shared_model=None, **kwargs):
+    super().__init__(params, shared_model=shared_model, **kwargs)
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
 
@@ -457,8 +458,8 @@ class EvalProgram(BaseProgram):
   evaluation.
   """
 
-  def __init__(self, params, shared_model=None):
-    super().__init__(params, shared_model=shared_model)
+  def __init__(self, params, shared_model=None, **kwargs):
+    super().__init__(params, shared_model=shared_model, **kwargs)
     self._program_name = 'EvalProgram'
 
   def TpuEvalStep(self, *args):
@@ -559,8 +560,8 @@ class DecodeProgram(BaseProgram):
   decoder run.
   """
 
-  def __init__(self, params, shared_model=None):
-    super().__init__(params, shared_model=shared_model)
+  def __init__(self, params, shared_model=None, **kwargs):
+    super().__init__(params, shared_model=shared_model, **kwargs)
     self._program_name = 'DecodeProgram'
 
   def _CompileDecodeFn(self):
@@ -769,8 +770,8 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     p.Define('ml_perf', None, 'MLPerf config')
     return p
 
-  def __init__(self, params, shared_model=None):
-    super().__init__(params, shared_model=shared_model)
+  def __init__(self, params, shared_model=None, **kwargs):
+    super().__init__(params, shared_model=shared_model, **kwargs)
     p = self.params
     if p.ml_perf is not None and p.ml_perf.benchmark_name is not None:
       self._ml_perf_log = True
@@ -987,7 +988,7 @@ class SimpleProgramSchedule:
     mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
     return p
 
-  def __init__(self, params, shared_model=None):
+  def __init__(self, params, shared_model=None, **kwargs):
     self.params = params.Copy()
     p = self.params
     self._shared_model = shared_model
@@ -1008,10 +1009,11 @@ class SimpleProgramSchedule:
       eval_program_params.num_splits_per_client = p.num_splits_per_client
 
     self.eval_programs = []
-    self.train_program = p.train_program.Instantiate(shared_model=shared_model)
+    self.train_program = p.train_program.Instantiate(
+        shared_model=shared_model, **kwargs)
     for eval_program in p.eval_programs:
       self.eval_programs.append(
-          eval_program.Instantiate(shared_model=shared_model))
+          eval_program.Instantiate(shared_model=shared_model, **kwargs))
 
     self._programs = []
     self._programs.append(self.train_program)
@@ -1128,7 +1130,7 @@ class MLPerfProgramSchedule:
 
     return p
 
-  def __init__(self, params, shared_model=None):
+  def __init__(self, params, shared_model=None, **kwargs):
     self.params = params.Copy()
     p = self.params
     self._shared_model = shared_model
@@ -1151,7 +1153,8 @@ class MLPerfProgramSchedule:
     p.train_program.task_name = p.task_name
     p.train_program.ml_perf = p.ml_perf.Copy()
 
-    self.train_program = p.train_program.Instantiate(shared_model=shared_model)
+    self.train_program = p.train_program.Instantiate(
+        shared_model=shared_model, **kwargs)
     self._programs = []
     self._programs.append(self.train_program)
 

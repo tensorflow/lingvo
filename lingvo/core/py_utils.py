@@ -708,26 +708,26 @@ def tpu_host(func):  # pylint: disable=invalid-name
 
   return Wrapped
 
+# Maps a TPU job name ('/job:xxx') to the job's DeviceAssignment object.
+# When there is only a single TPU job, the key could be None.
+_tpu_device_assignment_dict = dict()
 
-_tpu_device_assignment = None
 
-
-def SetTpuDeviceAssignment(tpu_device_assignment):
-  global _tpu_device_assignment
-  if _tpu_device_assignment is not None:
+def SetTpuDeviceAssignment(tpu_device_assignment, job=None):
+  if job in _tpu_device_assignment_dict:
     tf.logging.warning('tpu_device_assignment was already set, '
                        'overwriting with new assignment.')
-  _tpu_device_assignment = tpu_device_assignment
+  _tpu_device_assignment_dict[job] = tpu_device_assignment
 
 
 # This function should called in unittest only.
 def ClearTpuDevice():
-  global _tpu_device_assignment
-  _tpu_device_assignment = None
+  global _tpu_device_assignment_dict
+  _tpu_device_assignment_dict = dict()
 
 
-def GetTpuDeviceAssignment():
-  return _tpu_device_assignment
+def GetTpuDeviceAssignment(job=None):
+  return _tpu_device_assignment_dict[job]
 
 
 def SessionConfig(soft_placement=True,
@@ -2549,11 +2549,16 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
   return var_names_overridden
 
 
-def ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
-                           colocate_gradients_with_ops, gate_gradients):
+def ComputeGradientsSimple(loss_or_activations,
+                           all_vars,
+                           grad_aggregation_method,
+                           colocate_gradients_with_ops,
+                           gate_gradients,
+                           activations_grad=None):
   return tf.gradients(
-      loss,
+      loss_or_activations,
       all_vars,
+      grad_ys=activations_grad,
       aggregation_method=grad_aggregation_method,
       colocate_gradients_with_ops=colocate_gradients_with_ops,
       gate_gradients=gate_gradients)
@@ -2581,14 +2586,16 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding, step):
   return send_gradient_op
 
 
-def _ComputeGradientsTpu(loss,
+def _ComputeGradientsTpu(loss_or_activations,
                          all_vars,
                          grad_aggregation_method,
                          colocate_gradients_with_ops,
                          gate_gradients,
                          skip_zero_gradients=None,
                          use_bf16_gradients_ar=False,
-                         defer_crs_to_apply_grad=False):
+                         defer_crs_to_apply_grad=False,
+                         activations_grad=None,
+                         is_activations=False):
   """Computes gradients for local loss across whole TPU cluster.
 
   This implementation specializes for the case where weight params maybe used
@@ -2599,7 +2606,7 @@ def _ComputeGradientsTpu(loss,
   one.
 
   Args:
-    loss: The loss to backprop from.
+    loss_or_activations: The loss or activations to backprop from.
     all_vars: Vars with respect to which gradients are to be computed.
     grad_aggregation_method: aggregation method to use when calling
       tf.gradients.
@@ -2614,6 +2621,8 @@ def _ComputeGradientsTpu(loss,
       when doing gradient accumulation, which does gradient cross replica sum
       only every k steps in a tf.cond. Currently this works only when
       skip_zero_gradients is None.
+    activations_grad: The gradients computed for activations.
+    is_activations: A boolean, whether the input is loss or activations.
 
   Returns:
     Gradients to be passed back.
@@ -2621,17 +2630,25 @@ def _ComputeGradientsTpu(loss,
   Raises:
     ValueError: upon invalid arguments.
   """
-  if not skip_zero_gradients:
+  if is_activations:
+    assert activations_grad is not None
+
+  if not skip_zero_gradients and not is_activations:
     # Scale the loss to account for the full batch size.
     shards = tpu_function.get_tpu_context().number_of_shards
     assert shards
-    loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
+    loss_or_activations *= tf.constant(
+        1.0 / shards, dtype=loss_or_activations.dtype)
 
   # Computes the gradients.
   # Sum the grads so that we can compute statistics across the whole batch.
-  all_grads = ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
-                                     colocate_gradients_with_ops,
-                                     gate_gradients)
+  all_grads = ComputeGradientsSimple(
+      loss_or_activations=loss_or_activations,
+      all_vars=all_vars,
+      grad_aggregation_method=grad_aggregation_method,
+      colocate_gradients_with_ops=colocate_gradients_with_ops,
+      gate_gradients=gate_gradients,
+      activations_grad=activations_grad)
 
   # NOTE: We can't use tpu_optimizer.CrossShardOptimizer since
   # we need to scale the grads *after* the cross_replica_sum to
@@ -2710,7 +2727,7 @@ def SkipNoneGradients(var_grads):
 
 
 def ComputeGradients(
-    loss,
+    loss_or_activations,
     vmap,
     grad_aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE,
     colocate_gradients_with_ops=True,
@@ -2719,11 +2736,14 @@ def ComputeGradients(
     skip_zero_gradients=None,
     use_bf16_gradients_ar=False,
     skip_none_gradients=True,
-    defer_crs_to_apply_grad=False):
+    defer_crs_to_apply_grad=False,
+    activations_grad=None,
+    is_activations=False):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
-    loss: A scalar Tensor.
+    loss_or_activations: either the loss, which is a scalar tensor, or
+      activations, which could be a tensor or a list of tensors.
     vmap: A `.NestedMap` of variables.
     grad_aggregation_method: Specifies the method used to combine gradient
       terms. Accepted values are constants defined in the class
@@ -2751,6 +2771,8 @@ def ComputeGradients(
     skip_none_gradients: Whether to skip gradients that are None.
     defer_crs_to_apply_grad: Whether to defer gradient cross replica sum to
       apply_gradient. This applies to TPU only.
+    activations_grad: The gradients computed for activations.
+    is_activations: A boolean, whether the input is loss or activations.
 
   Returns:
     var_grad - a `.NestedMap` of VarGrad. You can view
@@ -2760,7 +2782,8 @@ def ComputeGradients(
     must exist in vmap.  grad is the corresponding gradient computed
     for var. grad is guaranteed to be not None.
   """
-  loss = HasRank(loss, 0)
+  if not is_activations:
+    loss_or_activations = HasRank(loss_or_activations, 0)
   assert isinstance(vmap, NestedMap)
   assert skip_zero_gradients in (None, 'variable', 'weight')
 
@@ -2768,9 +2791,9 @@ def ComputeGradients(
   filtered_vmap = vmap.Filter(_Unique())
   assert filtered_vmap is not None
 
-  # Filter out variables not contributing to 'loss'.
+  # Filter out variables not contributing to 'loss_or_activations'.
   trainable_variables = set(tf.trainable_variables())
-  dependent_ops_and_tensors = set(FindNeeded([loss]))
+  dependent_ops_and_tensors = set(FindNeeded([loss_or_activations]))
 
   def Needed(v):
     if isinstance(v, tf.Variable):
@@ -2795,12 +2818,15 @@ def ComputeGradients(
           _ComputeGradientsTpu,
           skip_zero_gradients=skip_zero_gradients,
           use_bf16_gradients_ar=use_bf16_gradients_ar,
-          defer_crs_to_apply_grad=defer_crs_to_apply_grad)
+          defer_crs_to_apply_grad=defer_crs_to_apply_grad,
+          activations_grad=activations_grad,
+          is_activations=is_activations)
     else:
       take_grad = ComputeGradientsSimple
 
-  grads = take_grad(loss, filtered_vlist, grad_aggregation_method,
-                    colocate_gradients_with_ops, gate_gradients)
+  grads = take_grad(loss_or_activations, filtered_vlist,
+                    grad_aggregation_method, colocate_gradients_with_ops,
+                    gate_gradients)
 
   # Formulate pairs of (var, grad) and pack them into the same
   # structure as filtered_vmap.
@@ -2820,7 +2846,8 @@ def ComputeGradients(
         err_msg = ('Variable %s is not a dependent of %s, expect '
                    'gradient be None, but got %s. This should not happen, '
                    'please contact the owner of b/150689507 for further '
-                   'investigation.' % (str(vg.var), str(loss), str(vg.grad)))
+                   'investigation.' %
+                   (str(vg.var), str(loss_or_activations), str(vg.grad)))
         assert False, err_msg
       return True
 
