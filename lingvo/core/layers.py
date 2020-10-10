@@ -1067,6 +1067,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
             dtype=inputs.dtype)
       w, b = self._GetWeights(theta, inputs, paddings)
+      w = self.AqtWeight(w, feature_axis=-1)
       w = self.QWeight(w)
 
       if p.affine_last:
@@ -2291,7 +2292,12 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
             ids, 0, p.vocab_size, name='vocab_id_validation')
     ], ids)
     flat_ids = tf.reshape(ids, [-1])
-    embs_result = self._FpropImpl(self.QWeight(theta.wm), flat_ids)
+    wm = self.QWeight(theta.wm)
+    wm = self.ToAqtWeight(wm, feature_axis=-1)
+    embs_result = self._FpropImpl(wm, flat_ids)
+
+    embs_result = self.FromAqtWeight(embs_result)
+
     if p.vn.global_vn or p.vn.per_step_vn:
       p.vn.seed = p.random_seed
       embs_result = py_utils.AddGlobalVN(p, embs_result)
@@ -2857,7 +2863,10 @@ class SimpleFullSoftmax(SoftmaxLayer):
   def _LogitsUsingConcatenatedWeightsHelper(self, theta, inputs):
     p = self.params
     inputs = self.QTensor('inputs', inputs)
-    wm = self.QWeight(theta.wm)
+    # TODO(shivaniagrawal): rescaling might be expensive for softmax; move
+    # rescaling after Matmul.
+    wm = self.AqtWeight(theta.wm, feature_axis=-1)
+    wm = self.QWeight(wm)
 
     if p.use_bias:
       bias = self.QWeight(theta.bias)

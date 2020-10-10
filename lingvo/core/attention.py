@@ -1386,10 +1386,12 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_vec_depth = py_utils.GetShape(source_vecs)[2]
       with tf.name_scope('init__0b'):
         if p.enable_source_proj:
+          w_source_proj = self.AqtWeight(theta.source_proj, feature_axis=-1)
+          w_source_proj = fns.qweight(w_source_proj)
           source_projected = (
               fns.qbatchmatmul(
                   tf.reshape(source_vecs, [-1, source_vec_depth]),
-                  fns.qweight(theta.source_proj),
+                  w_source_proj,
                   qt='source_proj_matmul'))
           if p.use_bias:
             source_projected = fns.qadd(
@@ -1411,10 +1413,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_contexts_reshaped = source_projected
       else:
         if p.enable_ctx_pre_proj:
+          w_ctx_proj = self.AqtWeight(theta.ctx_proj, feature_axis=-1)
+          w_ctx_proj = fns.qweight(w_ctx_proj)
+
           source_contexts_projected = fns.qbatchmatmul(
               tf.reshape(source_contexts,
                          [-1, py_utils.GetShape(source_contexts)[2]]),
-              fns.qweight(theta.ctx_proj),
+              w_ctx_proj,
               qt='ctx_pre_proj_matmul')
           if p.use_bias:
             source_contexts_projected = fns.qadd(
@@ -1623,8 +1628,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     query_vec_projected_shape = [batch_size * num_heads, static_inner_atten_dim]
 
     if p.enable_query_proj:
+      w_query_proj = self.AqtWeight(theta.query_proj, feature_axis=-1)
+      w_query_proj = fns.qweight(w_query_proj)
       query_vec_projected = fns.qbatchmatmul(
-          query_vec, fns.qweight(theta.query_proj), qt='query_proj_matmul')
+          query_vec, w_query_proj, qt='query_proj_matmul')
       if p.use_bias:
         query_vec_projected = fns.qadd(
             query_vec_projected,
@@ -1674,10 +1681,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             'atten_idx is None, this means there is no need to select '
             'different post projections, and p.num_post_proj is supposed to be '
             '1. However you set p.num_post_proj=%s .' % p.num_post_proj)
+        w_ctx_post_proj = self.AqtWeight(theta.ctx_post_proj, feature_axis=-1)
+        w_ctx_post_proj = fns.qweight(w_ctx_post_proj)
         ctx_vec = fns.qbatchmatmul(
-            ctx_vec,
-            fns.qweight(theta.ctx_post_proj),
-            qt='ctx_post_proj_matmul')
+            ctx_vec, w_ctx_post_proj, qt='ctx_post_proj_matmul')
         if p.use_bias:
           ctx_vec = fns.qadd(
               ctx_vec,

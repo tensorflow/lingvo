@@ -1218,7 +1218,8 @@ class LayerNormalizedLSTMCell(RNNCell):
   def _Mix(self, theta, state0, inputs):
     if not isinstance(inputs.act, list):
       raise ValueError('Input activations must be of list type!')
-    return py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), theta.wm)
+    wm = self.AqtWeight(theta.wm, feature_axis=-1)
+    return py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), wm)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
