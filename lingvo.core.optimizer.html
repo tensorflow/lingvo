@@ -588,6 +588,165 @@ Naman Agarwal, Rohan Anil, Elad Hazan, Tomer Koren, Cyril Zhang
 
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.optimizer._StepNum">
+<code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">_StepNum</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#_StepNum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer._StepNum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.optimizer._AdafactorDecayRatePow">
+<code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">_AdafactorDecayRatePow</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exponent</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#_AdafactorDecayRatePow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer._AdafactorDecayRatePow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Second moment decay rate where memory-length grows as step_num^exponent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>exponent</strong> – a float between 0 and 1</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a scalar</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.optimizer._AdafactorDecayRateAdam">
+<code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">_AdafactorDecayRateAdam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">beta2</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#_AdafactorDecayRateAdam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer._AdafactorDecayRateAdam" title="Permalink to this definition">¶</a></dt>
+<dd><p>Second-moment decay rate like Adam, subsuming the correction factor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>beta2</strong> – a float between 0 and 1</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a scalar</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.optimizer._ReduceRms">
+<code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">_ReduceRms</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#_ReduceRms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer._ReduceRms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute mean square of x.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">XLAShardingAdafactorOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">multiply_by_parameter_scale</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">learning_rate</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">decay_rate</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">beta1</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">clipping_threshold</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">factored</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">epsilon1</span><span class="o">=</span><span class="default_value">1e-30</span></em>, <em class="sig-param"><span class="n">epsilon2</span><span class="o">=</span><span class="default_value">0.001</span></em>, <em class="sig-param"><span class="n">min_dim_size_to_factor</span><span class="o">=</span><span class="default_value">128</span></em>, <em class="sig-param"><span class="n">use_locking</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">cond_is_finite</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'Adafactor'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.training.optimizer.Optimizer</span></code></p>
+<p>Adafactor optimizer for XLA sharding.</p>
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer._factored_dims">
+<code class="sig-name descname">_factored_dims</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shape</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer._factored_dims"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._factored_dims" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should we use a factored second moment estimator.</p>
+<p>Based on the shape of the variable.
+If we factor the accumulator, then this function returns a list of two
+tf.Dimensions to reduce over.  We always pick the two largest dimensions.
+If there are not two dimensions of size &gt;= min_dim_size_to_factor, then we
+do not factor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shape</strong> – a Shape</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>either a list of 2 Dimension indices or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer._parameter_scale">
+<code class="sig-name descname">_parameter_scale</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer._parameter_scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._parameter_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate the scale of the parameters from the current values.</p>
+<p>We include a minimum value of 0.001 to give it a chance to escape 0
+if it was zero-initialized.</p>
+<p>Instead of using the value, we could impute the scale from the shape,
+as initializers do.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>var</strong> – a variable or Tensor.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a Scalar</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer._create_slots">
+<code class="sig-name descname">_create_slots</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer._create_slots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._create_slots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create all slots needed by the variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>var_list</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Variable</span></code> objects.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer._apply_dense">
+<code class="sig-name descname">_apply_dense</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">grad</span></em>, <em class="sig-param"><span class="n">var</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer._apply_dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._apply_dense" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add ops to apply dense gradients to <code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>.</p></li>
+<li><p><strong>var</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Variable</span></code> object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer.try_apply_dense">
+<code class="sig-name descname">try_apply_dense</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">grad</span></em>, <em class="sig-param"><span class="n">var</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer.try_apply_dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer.try_apply_dense" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer._resource_apply_dense">
+<code class="sig-name descname">_resource_apply_dense</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">grad</span></em>, <em class="sig-param"><span class="n">var</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer._resource_apply_dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._resource_apply_dense" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add ops to apply dense gradients to the variable <code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> representing the gradient.</p></li>
+<li><p><strong>handle</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of dtype <a class="reference external" href="https://docs.python.org/3.7/library/resource.html#module-resource" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource</span></code></a> which points to the variable
+to be updated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code> which updates the value of the variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactor">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">XLAShardingAdafactor</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
+<p>Adafactor optimizer for XLA sharding.</p>
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactor.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactor.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactor.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactor.GetOptimizer">
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactor.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactor.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the TF optimizer object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactor.AddSummary">
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactor.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactor.AddSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds summary if needed.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
