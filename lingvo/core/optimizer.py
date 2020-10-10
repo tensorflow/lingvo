@@ -15,6 +15,8 @@
 # ==============================================================================
 """Optimizers."""
 
+import copy
+import functools
 import re
 
 import lingvo.compat as tf
@@ -602,3 +604,413 @@ class AdaGraft(Base):
       summary_utils.scalar('optimizer/d_step_norm', d_step_norm_total)
       summary_utils.scalar('optimizer/norm_correction',
                            m_step_norm_total / d_step_norm_total)
+
+
+def _StepNum():
+  return tf.cast(tf.train.get_or_create_global_step(), tf.float32)
+
+
+def _AdafactorDecayRatePow(exponent):
+  """Second moment decay rate where memory-length grows as step_num^exponent.
+
+  Args:
+    exponent: a float between 0 and 1
+
+  Returns:
+    a scalar
+  """
+  return 1.0 - tf.pow((_StepNum() + 1.0), -exponent)
+
+
+def _AdafactorDecayRateAdam(beta2):
+  """Second-moment decay rate like Adam, subsuming the correction factor.
+
+  Args:
+    beta2: a float between 0 and 1
+
+  Returns:
+    a scalar
+  """
+  t = _StepNum() + 1.0
+  decay = beta2 * (1.0 - tf.pow(beta2, t - 1.0)) / (1.0 - tf.pow(beta2, t))
+  # decay = tf.cond(tf.equal(t, 1.0), lambda: beta2, lambda: decay)
+  return decay
+
+
+def _ReduceRms(x):
+  """Compute mean square of x."""
+  denom = functools.reduce((lambda x, y: x * y), x.shape.as_list())
+  if denom > 1e+8:
+    tf.logging.info('reduce_rms %s denom=%d', x, denom)
+    sq = tf.math.square(x)
+    sq = tf.math.reduce_sum(sq, -1)
+    sq = tf.math.reduce_sum(sq)
+    sq = sq / tf.constant(denom, dtype=sq.dtype)  # equiv. to reduce_mean
+    return tf.math.sqrt(sq)
+
+  return tf.math.sqrt(tf.math.reduce_mean(tf.math.square(x)))
+
+
+# Adaptation of mesh_tensorflow.optimize.Adafactor
+class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
+  """Adafactor optimizer for XLA sharding."""
+
+  def __init__(
+      self,
+      multiply_by_parameter_scale=True,
+      learning_rate=None,
+      decay_rate=None,
+      beta1=0.0,
+      clipping_threshold=1.0,
+      factored=True,
+      epsilon1=1e-30,
+      epsilon2=1e-3,
+      min_dim_size_to_factor=128,
+      use_locking=False,
+      cond_is_finite=False,  # cl/295761665 and reduce_rms change
+      name='Adafactor',
+  ):
+    """Construct a new Adafactor optimizer.
+
+    See class comment.
+
+    Args:
+      multiply_by_parameter_scale: a boolean
+      learning_rate: an optional Scalar.
+      decay_rate: an optional Scalar.
+      beta1: a float value between 0 and 1
+      clipping_threshold: an optional float >= 1
+      factored: a boolean - whether to use factored second-moment estimator for
+        2d variables
+      epsilon1: Regularization constant for squared gradient.
+      epsilon2: Regularization constant for parameter scale.
+      min_dim_size_to_factor: only factor accumulator if two tensor dimensions
+        are at least this size.
+      use_locking: No clue what this does.
+      cond_is_finite: Check if Adafactor sufficient stats are finite on update.
+      name: optimizer name.
+
+    Raises:
+      ValueError: if absolute_update_scale and relative_update_scale_fn are both
+        present or both absent.
+    """
+    super().__init__(use_locking, name)
+    self._multiply_by_parameter_scale = multiply_by_parameter_scale
+    assert learning_rate is not None
+    self._learning_rate = learning_rate
+    assert decay_rate is not None
+    self._decay_rate = decay_rate
+    self._beta1 = beta1
+    self._clipping_threshold = clipping_threshold
+    self._factored = factored
+    self._epsilon1 = epsilon1
+    self._epsilon2 = epsilon2
+    self._min_dim_size_to_factor = min_dim_size_to_factor
+    self._cond_is_finite = cond_is_finite
+
+  def _factored_dims(self, shape):
+    """Should we use a factored second moment estimator.
+
+    Based on the shape of the variable.
+    If we factor the accumulator, then this function returns a list of two
+    tf.Dimensions to reduce over.  We always pick the two largest dimensions.
+    If there are not two dimensions of size >= min_dim_size_to_factor, then we
+    do not factor.
+
+    Args:
+      shape: a Shape
+
+    Returns:
+      either a list of 2 Dimension indices or None
+    """
+    if not self._factored or len(shape) < 2:
+      return None
+    s = [(s, i) for i, s in enumerate(shape)]
+    sorted_dims = sorted(s, key=lambda d: -d[0])
+    if sorted_dims[1][0] < self._min_dim_size_to_factor:
+      return None
+    return sorted_dims[0][1], sorted_dims[1][1]
+
+  def _parameter_scale(self, var):
+    """Estimate the scale of the parameters from the current values.
+
+    We include a minimum value of 0.001 to give it a chance to escape 0
+    if it was zero-initialized.
+
+    Instead of using the value, we could impute the scale from the shape,
+    as initializers do.
+
+    Args:
+      var: a variable or Tensor.
+
+    Returns:
+      a Scalar
+    """
+    return tf.math.maximum(
+        _ReduceRms(var), tf.constant(self._epsilon2, var.dtype))
+
+  def _create_slots(self, var_list):
+    for var in var_list:
+      grad_dtype = var.dtype  # TODO(lepikhin): add to params
+      if self._beta1:
+        self._zeros_slot(var, 'm', self._name)
+
+      factored_dims = self._factored_dims(var.shape.as_list())
+      if factored_dims:
+        d0, d1 = factored_dims
+        vr_shape = copy.deepcopy(var.shape.as_list())
+        del vr_shape[d0]
+        vc_shape = copy.deepcopy(var.shape.as_list())
+        del vc_shape[d1]
+        r_val = tf.zeros(vr_shape, dtype=grad_dtype)
+        c_val = tf.zeros(vc_shape, dtype=grad_dtype)
+        self._get_or_make_slot(var, r_val, 'vr', self._name)
+        self._get_or_make_slot(var, c_val, 'vc', self._name)
+        tf.logging.info('Adafactor %s %r slot_vc: %r slot_vr: %r', var.name,
+                        var.shape.as_list(), vc_shape, vr_shape)
+      else:
+        v_val = tf.zeros(var.shape, dtype=grad_dtype)
+        self._get_or_make_slot(var, v_val, 'v', self._name)
+
+  def _apply_dense(self, grad, var):
+    return self._resource_apply_dense(grad, var)
+
+  # _apply_dense simulation for testing purposes
+  def try_apply_dense(self, grad, var):
+    assert grad is not None
+
+    cond = tf.constant(True)
+    is_finite_checks = []
+    stats = {}
+
+    grad_dtype = var.dtype  # TODO(lepikhin): add to params
+    grad = tf.cast(grad, grad_dtype)
+    factored_dims = self._factored_dims(var.shape.as_list())
+    if factored_dims:
+      vr = self.get_slot(var, 'vr')
+      vc = self.get_slot(var, 'vc')
+    else:
+      v = self.get_slot(var, 'v')
+    if self._beta1:
+      m = self.get_slot(var, 'm')
+
+    def _Upd(c, k, x):
+      stats[k] = x
+      is_finite_checks.append(tf.reduce_all(tf.math.is_finite(x)))
+      return c
+
+    with tf.variable_scope(var.name[:-2] + '/Adafactor'):
+      grad_squared = tf.math.square(grad) + tf.cast(self._epsilon1, grad_dtype)
+      cond = _Upd(cond, 'grad_squared', grad_squared)  # 0 (factored)
+      decay_rate = tf.cast(self._decay_rate, var.dtype)
+      old_val = tf.identity(var)  # TODO(lepikhin): introduce gradient dtype
+      assert self._multiply_by_parameter_scale
+      if self._multiply_by_parameter_scale:
+        parameter_scale = self._parameter_scale(old_val)
+        cond = _Upd(cond, 'parameter_scale', parameter_scale)  # 1 (factored)
+        update_scale = self._parameter_scale(old_val) * tf.cast(
+            self._learning_rate, grad_dtype)
+
+      else:
+        update_scale = self._learning_rate
+      mixing_rate = tf.cast(1.0 - decay_rate, grad_dtype)
+      update_scale = tf.cast(update_scale, grad_dtype)
+      if factored_dims:
+        d0, d1 = factored_dims
+        vr_axis, vc_axis = d0, d1
+        grad_squared_row_mean = tf.reduce_mean(grad_squared, axis=vr_axis)
+        grad_squared_col_mean = tf.reduce_mean(grad_squared, axis=vc_axis)
+        # new_vr = (decay_rate * vr + mixing_rate * grad_squared_row_mean)
+        new_vr = vr * decay_rate + grad_squared_row_mean * mixing_rate
+        # new_vc = (decay_rate * vc + mixing_rate * grad_squared_col_mean)
+        new_vc = vc * decay_rate + grad_squared_col_mean * mixing_rate
+        cond = _Upd(cond, 'new_vr', new_vr)  # 2 (factored)
+        cond = _Upd(cond, 'new_vc', new_vc)  # 3 (factored)
+        # vr_update = _Wrap(tf.assign, vr, new_vr)
+        # vc_update = _Wrap(tf.assign, vc, new_vc)
+        # updates.extend([vr_update, vc_update])
+        long_term_mean = tf.reduce_mean(new_vr, -1, keepdims=True)
+        r_factor = tf.math.rsqrt(new_vr / long_term_mean)
+        c_factor = tf.math.rsqrt(new_vc)
+        mult = tf.expand_dims(r_factor, vr_axis) * tf.expand_dims(
+            c_factor, vc_axis)
+        cond = _Upd(cond, 'mult', mult)  # 4 (factored)
+        x = grad * mult
+      else:
+        new_v = v * decay_rate + grad_squared * mixing_rate
+        cond = _Upd(cond, 'new_v', new_v)
+        # v_update = _Wrap(tf.assign, v, new_v)
+        # updates.append(v_update)
+        x = grad * tf.math.rsqrt(new_v)
+
+      assert self._clipping_threshold is not None
+
+      if self._clipping_threshold is not None:
+        clipping_denom = tf.maximum(
+            tf.constant(1.0, grad_dtype),
+            _ReduceRms(x) / tf.constant(self._clipping_threshold, grad_dtype))
+        x /= clipping_denom
+      cond = _Upd(cond, 'x', x)
+      subtrahend = x * update_scale
+      if self._beta1:
+        new_m = (
+            m * tf.constant(self._beta1, dtype=grad_dtype) +
+            subtrahend * tf.constant(1.0 - self._beta1, dtype=grad_dtype))
+        subtrahend = new_m
+        cond = _Upd(cond, 'new_m', new_m)
+        # updates.append(_Wrap(tf.assign, m, new_m))
+
+      # It is critical to use assign_sub instead of tf.assign(var - subtrahend)
+      #  for the case of bfloat16 activations, so as to avoid repeatedly
+      #  rounding the slice value, which results in poor quality.
+      cond = _Upd(cond, 'subtrahend', subtrahend)  # 5 (factored)
+
+      # var_update = _Wrap(tf.assign_sub, var, subtrahend)
+      # updates.append(var_update)
+
+      return is_finite_checks, stats
+
+  def _resource_apply_dense(self, grad, var):
+    if grad is None:
+      tf.logging.warning('Gradient is None for variable %s' % var.name)
+      return []
+
+    grad_dtype = var.dtype  # TODO(lepikhin): add to params
+    grad = tf.cast(grad, grad_dtype)
+    factored_dims = self._factored_dims(var.shape.as_list())
+    if factored_dims:
+      vr = self.get_slot(var, 'vr')
+      vc = self.get_slot(var, 'vc')
+    else:
+      v = self.get_slot(var, 'v')
+    if self._beta1:
+      m = self.get_slot(var, 'm')
+
+    cond = tf.constant(True)
+
+    def _Upd(c, x):
+      if not self._cond_is_finite:
+        return c
+      c = tf.math.logical_and(c, tf.reduce_all(tf.math.is_finite(x)))
+      c = tf.math.logical_and(
+          c, tf.reduce_all(tf.math.logical_not(tf.math.is_inf(x))))
+      return c
+
+    def _Wrap(fn, x, y):
+      if not self._cond_is_finite:
+        return fn(x, y)
+      return tf.cond(cond, lambda: fn(x, y), lambda: x)
+
+    with tf.variable_scope(var.name[:-2] + '/Adafactor'):
+      grad_squared = tf.math.square(grad) + tf.cast(self._epsilon1, grad_dtype)
+      cond = _Upd(cond, grad_squared)
+      decay_rate = tf.cast(self._decay_rate, var.dtype)
+      old_val = tf.identity(var)  # TODO(lepikhin): introduce gradient dtype
+      if self._multiply_by_parameter_scale:
+        update_scale = self._parameter_scale(old_val) * tf.cast(
+            self._learning_rate, grad_dtype)
+      else:
+        update_scale = self._learning_rate
+      mixing_rate = tf.cast(1.0 - decay_rate, grad_dtype)
+      update_scale = tf.cast(update_scale, grad_dtype)
+      updates = []
+      if factored_dims:
+        d0, d1 = factored_dims
+        vr_axis, vc_axis = d0, d1
+        grad_squared_row_mean = tf.reduce_mean(grad_squared, axis=vr_axis)
+        grad_squared_col_mean = tf.reduce_mean(grad_squared, axis=vc_axis)
+        # new_vr = (decay_rate * vr + mixing_rate * grad_squared_row_mean)
+        new_vr = vr * decay_rate + grad_squared_row_mean * mixing_rate
+        # new_vc = (decay_rate * vc + mixing_rate * grad_squared_col_mean)
+        new_vc = vc * decay_rate + grad_squared_col_mean * mixing_rate
+        cond = _Upd(cond, new_vr)
+        cond = _Upd(cond, new_vc)
+        vr_update = _Wrap(tf.assign, vr, new_vr)
+        vc_update = _Wrap(tf.assign, vc, new_vc)
+        updates.extend([vr_update, vc_update])
+        long_term_mean = tf.reduce_mean(new_vr, -1, keepdims=True)
+        r_factor = tf.math.rsqrt(new_vr / long_term_mean)
+        c_factor = tf.math.rsqrt(new_vc)
+        x = grad * tf.expand_dims(r_factor, vr_axis) * tf.expand_dims(
+            c_factor, vc_axis)
+      else:
+        new_v = v * decay_rate + grad_squared * mixing_rate
+        cond = _Upd(cond, new_v)
+        v_update = _Wrap(tf.assign, v, new_v)
+        updates.append(v_update)
+        x = grad * tf.math.rsqrt(new_v)
+      if self._clipping_threshold is not None:
+        clipping_denom = tf.maximum(
+            tf.constant(1.0, grad_dtype),
+            _ReduceRms(x) / tf.constant(self._clipping_threshold, grad_dtype))
+        x /= clipping_denom
+      subtrahend = x * update_scale
+      if self._beta1:
+        new_m = (
+            m * tf.constant(self._beta1, dtype=grad_dtype) +
+            subtrahend * tf.constant(1.0 - self._beta1, dtype=grad_dtype))
+        subtrahend = new_m
+        cond = _Upd(cond, new_m)
+        updates.append(_Wrap(tf.assign, m, new_m))
+      # It is critical to use assign_sub instead of tf.assign(var - subtrahend)
+      #  for the case of bfloat16 activations, so as to avoid repeatedly
+      #  rounding the slice value, which results in poor quality.
+      cond = _Upd(cond, subtrahend)
+      var_update = _Wrap(tf.assign_sub, var, subtrahend)
+      updates.append(var_update)
+      return tf.group(*updates)
+
+
+class XLAShardingAdafactor(Base):
+  """Adafactor optimizer for XLA sharding."""
+
+  @classmethod
+  def Params(cls):
+    params = super().Params()
+    params.Define('beta1', 0, 'Beta1 of Adam. Can be zero.')
+    params.Define('beta2', 0.999, 'Beta2 of Adam.')
+    params.Define(
+        'multiply_by_parameter_scale', True,
+        'If True, then compute absolute_update_scale as described '
+        'in tensor2tensor/utils/adafactor.py. If False, let '
+        'absolute_update_scale be the externally supplied '
+        'learning_rate.')
+    params.Define('clipping_threshold', None,
+                  'Should be >=1.0 or None for no update clipping')
+    params.Define(
+        'factored', True,
+        'Whether to factor the second-moment estimator. True means '
+        'less memory usage.')
+    params.Define('decay_exponent_pow', None,
+                  'if set, call adafactor_decay_rate_pow from T2T adafactor')
+    params.Define(
+        'min_dim_size_to_factor', 128, 'only factor accumulator if '
+        'two tensor dimensions are at least this size.')
+    params.Define(
+        'cond_is_finite', False,
+        'Condition Adafactor update on sufficient stats being finite.')
+    params.name = 'Adafactor'
+    return params
+
+  def GetOptimizer(self, lr):
+    params = self.params
+    if params.decay_exponent_pow:
+      decay_rate = _AdafactorDecayRatePow(params.decay_exponent_pow)
+    else:
+      decay_rate = _AdafactorDecayRateAdam(params.beta2)
+
+    opt = XLAShardingAdafactorOptimizer(
+        learning_rate=lr,
+        factored=params.factored,
+        clipping_threshold=params.clipping_threshold,
+        multiply_by_parameter_scale=params.multiply_by_parameter_scale,
+        decay_rate=decay_rate,
+        beta1=params.beta1,
+        min_dim_size_to_factor=params.min_dim_size_to_factor,
+        cond_is_finite=params.cond_is_finite,
+        name=params.name)
+    self._cached_opt = opt
+    return opt
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar('adafactor_lr', lr)
