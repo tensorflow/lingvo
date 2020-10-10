@@ -502,7 +502,7 @@ error if dynamic shape checks fail.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.SetTpuDeviceAssignment">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">SetTpuDeviceAssignment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tpu_device_assignment</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SetTpuDeviceAssignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SetTpuDeviceAssignment" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">SetTpuDeviceAssignment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tpu_device_assignment</span></em>, <em class="sig-param"><span class="n">job</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SetTpuDeviceAssignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SetTpuDeviceAssignment" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -512,7 +512,7 @@ error if dynamic shape checks fail.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.GetTpuDeviceAssignment">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GetTpuDeviceAssignment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetTpuDeviceAssignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetTpuDeviceAssignment" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GetTpuDeviceAssignment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetTpuDeviceAssignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetTpuDeviceAssignment" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -1509,7 +1509,7 @@ the loading rules.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.ComputeGradientsSimple">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradientsSimple</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">all_vars</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span></em>, <em class="sig-param"><span class="n">gate_gradients</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradientsSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradientsSimple" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradientsSimple</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss_or_activations</span></em>, <em class="sig-param"><span class="n">all_vars</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span></em>, <em class="sig-param"><span class="n">gate_gradients</span></em>, <em class="sig-param"><span class="n">activations_grad</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradientsSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradientsSimple" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -1530,7 +1530,7 @@ the loading rules.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils._ComputeGradientsTpu">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">all_vars</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span></em>, <em class="sig-param"><span class="n">gate_gradients</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss_or_activations</span></em>, <em class="sig-param"><span class="n">all_vars</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span></em>, <em class="sig-param"><span class="n">gate_gradients</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">activations_grad</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">is_activations</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients for local loss across whole TPU cluster.</p>
 <p>This implementation specializes for the case where weight params maybe used
 for different number of times in the forward computation, so that gradients
@@ -1540,7 +1540,7 @@ one.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>loss</strong> – The loss to backprop from.</p></li>
+<li><p><strong>loss_or_activations</strong> – The loss or activations to backprop from.</p></li>
 <li><p><strong>all_vars</strong> – Vars with respect to which gradients are to be computed.</p></li>
 <li><p><strong>grad_aggregation_method</strong> – aggregation method to use when calling
 tf.gradients.</p></li>
@@ -1555,6 +1555,8 @@ apply_gradient. This helps reducing the number of gradient all-reduces
 when doing gradient accumulation, which does gradient cross replica sum
 only every k steps in a tf.cond. Currently this works only when
 skip_zero_gradients is None.</p></li>
+<li><p><strong>activations_grad</strong> – The gradients computed for activations.</p></li>
+<li><p><strong>is_activations</strong> – A boolean, whether the input is loss or activations.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1587,12 +1589,13 @@ skip_zero_gradients is None.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">gate_gradients</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">compute_gradients_fn</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">skip_none_gradients</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss_or_activations</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">gate_gradients</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">compute_gradients_fn</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">skip_none_gradients</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">activations_grad</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">is_activations</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients of variables in vmap w.r.t loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>loss</strong> – A scalar Tensor.</p></li>
+<li><p><strong>loss_or_activations</strong> – either the loss, which is a scalar tensor, or
+activations, which could be a tensor or a list of tensors.</p></li>
 <li><p><strong>vmap</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of variables.</p></li>
 <li><p><strong>grad_aggregation_method</strong> – Specifies the method used to combine gradient
 terms. Accepted values are constants defined in the class
@@ -1624,6 +1627,8 @@ all-reduce. This applies to TPU only.</p></li>
 <li><p><strong>skip_none_gradients</strong> – Whether to skip gradients that are None.</p></li>
 <li><p><strong>defer_crs_to_apply_grad</strong> – Whether to defer gradient cross replica sum to
 apply_gradient. This applies to TPU only.</p></li>
+<li><p><strong>activations_grad</strong> – The gradients computed for activations.</p></li>
+<li><p><strong>is_activations</strong> – A boolean, whether the input is loss or activations.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

@@ -315,6 +315,11 @@ is the j-th visible device on i-th visible replica.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.cluster._Cluster.all_worker_names">
+<em class="property">property </em><code class="sig-name descname">all_worker_names</code><a class="headerlink" href="#lingvo.core.cluster._Cluster.all_worker_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.cluster._Cluster.PlaceInput">
 <code class="sig-name descname">PlaceInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#_Cluster.PlaceInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster._Cluster.PlaceInput" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies a placement policy on the given input generator params.</p>
@@ -434,6 +439,28 @@ the device’s load.</p>
 <code class="sig-name descname">_AssignVar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var_op</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#_LeastLoadedPlacer._AssignVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster._LeastLoadedPlacer._AssignVar" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.cluster.ParseDeviceString">
+<code class="sig-prename descclassname">lingvo.core.cluster.</code><code class="sig-name descname">ParseDeviceString</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">device_str</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#ParseDeviceString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster.ParseDeviceString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a device string and return a NestedMap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>device_str</strong> – a device string in the format of that may contain up to 4 parts:
+job, replica, task, and device.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>a NestedMap that maps job, replica, task, and device to their</dt><dd><p>corresponding value.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>parsed_device</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>

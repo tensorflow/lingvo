@@ -856,26 +856,26 @@
 
   <span class="k">return</span> <span class="n">Wrapped</span></div>
 
+<span class="c1"># Maps a TPU job name (&#39;/job:xxx&#39;) to the job&#39;s DeviceAssignment object.</span>
+<span class="c1"># When there is only a single TPU job, the key could be None.</span>
+<span class="n">_tpu_device_assignment_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
-<span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="kc">None</span>
 
-
-<div class="viewcode-block" id="SetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">tpu_device_assignment</span><span class="p">):</span>
-  <span class="k">global</span> <span class="n">_tpu_device_assignment</span>
-  <span class="k">if</span> <span class="n">_tpu_device_assignment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="SetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">tpu_device_assignment</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">_tpu_device_assignment_dict</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;tpu_device_assignment was already set, &#39;</span>
                        <span class="s1">&#39;overwriting with new assignment.&#39;</span><span class="p">)</span>
-  <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="n">tpu_device_assignment</span></div>
+  <span class="n">_tpu_device_assignment_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_device_assignment</span></div>
 
 
 <span class="c1"># This function should called in unittest only.</span>
 <div class="viewcode-block" id="ClearTpuDevice"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ClearTpuDevice">[docs]</a><span class="k">def</span> <span class="nf">ClearTpuDevice</span><span class="p">():</span>
-  <span class="k">global</span> <span class="n">_tpu_device_assignment</span>
-  <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="kc">None</span></div>
+  <span class="k">global</span> <span class="n">_tpu_device_assignment_dict</span>
+  <span class="n">_tpu_device_assignment_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="GetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">GetTpuDeviceAssignment</span><span class="p">():</span>
-  <span class="k">return</span> <span class="n">_tpu_device_assignment</span></div>
+<div class="viewcode-block" id="GetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">GetTpuDeviceAssignment</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">_tpu_device_assignment_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="SessionConfig"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SessionConfig">[docs]</a><span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -2697,11 +2697,16 @@
   <span class="k">return</span> <span class="n">var_names_overridden</span></div>
 
 
-<div class="viewcode-block" id="ComputeGradientsSimple"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradientsSimple">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                           <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">):</span>
+<div class="viewcode-block" id="ComputeGradientsSimple"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradientsSimple">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span>
+                           <span class="n">all_vars</span><span class="p">,</span>
+                           <span class="n">grad_aggregation_method</span><span class="p">,</span>
+                           <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+                           <span class="n">gate_gradients</span><span class="p">,</span>
+                           <span class="n">activations_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
-      <span class="n">loss</span><span class="p">,</span>
+      <span class="n">loss_or_activations</span><span class="p">,</span>
       <span class="n">all_vars</span><span class="p">,</span>
+      <span class="n">grad_ys</span><span class="o">=</span><span class="n">activations_grad</span><span class="p">,</span>
       <span class="n">aggregation_method</span><span class="o">=</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
       <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
       <span class="n">gate_gradients</span><span class="o">=</span><span class="n">gate_gradients</span><span class="p">)</span></div>
@@ -2729,14 +2734,16 @@
   <span class="k">return</span> <span class="n">send_gradient_op</span></div>
 
 
-<div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span>
+<div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span>
                          <span class="n">all_vars</span><span class="p">,</span>
                          <span class="n">grad_aggregation_method</span><span class="p">,</span>
                          <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
                          <span class="n">gate_gradients</span><span class="p">,</span>
                          <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                          <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                         <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                         <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                         <span class="n">activations_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">is_activations</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients for local loss across whole TPU cluster.</span>
 
 <span class="sd">  This implementation specializes for the case where weight params maybe used</span>
@@ -2747,7 +2754,7 @@
 <span class="sd">  one.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    loss: The loss to backprop from.</span>
+<span class="sd">    loss_or_activations: The loss or activations to backprop from.</span>
 <span class="sd">    all_vars: Vars with respect to which gradients are to be computed.</span>
 <span class="sd">    grad_aggregation_method: aggregation method to use when calling</span>
 <span class="sd">      tf.gradients.</span>
@@ -2762,6 +2769,8 @@
 <span class="sd">      when doing gradient accumulation, which does gradient cross replica sum</span>
 <span class="sd">      only every k steps in a tf.cond. Currently this works only when</span>
 <span class="sd">      skip_zero_gradients is None.</span>
+<span class="sd">    activations_grad: The gradients computed for activations.</span>
+<span class="sd">    is_activations: A boolean, whether the input is loss or activations.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Gradients to be passed back.</span>
@@ -2769,17 +2778,25 @@
 <span class="sd">  Raises:</span>
 <span class="sd">    ValueError: upon invalid arguments.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_zero_gradients</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">is_activations</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">activations_grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_zero_gradients</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_activations</span><span class="p">:</span>
     <span class="c1"># Scale the loss to account for the full batch size.</span>
     <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
     <span class="k">assert</span> <span class="n">shards</span>
-    <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">loss_or_activations</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss_or_activations</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
   <span class="c1"># Computes the gradients.</span>
   <span class="c1"># Sum the grads so that we can compute statistics across the whole batch.</span>
-  <span class="n">all_grads</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                                     <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
-                                     <span class="n">gate_gradients</span><span class="p">)</span>
+  <span class="n">all_grads</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span><span class="p">(</span>
+      <span class="n">loss_or_activations</span><span class="o">=</span><span class="n">loss_or_activations</span><span class="p">,</span>
+      <span class="n">all_vars</span><span class="o">=</span><span class="n">all_vars</span><span class="p">,</span>
+      <span class="n">grad_aggregation_method</span><span class="o">=</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
+      <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+      <span class="n">gate_gradients</span><span class="o">=</span><span class="n">gate_gradients</span><span class="p">,</span>
+      <span class="n">activations_grad</span><span class="o">=</span><span class="n">activations_grad</span><span class="p">)</span>
 
   <span class="c1"># NOTE: We can&#39;t use tpu_optimizer.CrossShardOptimizer since</span>
   <span class="c1"># we need to scale the grads *after* the cross_replica_sum to</span>
@@ -2858,7 +2875,7 @@
 
 
 <div class="viewcode-block" id="ComputeGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradients</span><span class="p">(</span>
-    <span class="n">loss</span><span class="p">,</span>
+    <span class="n">loss_or_activations</span><span class="p">,</span>
     <span class="n">vmap</span><span class="p">,</span>
     <span class="n">grad_aggregation_method</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AggregationMethod</span><span class="o">.</span><span class="n">EXPERIMENTAL_TREE</span><span class="p">,</span>
     <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -2867,11 +2884,14 @@
     <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">skip_none_gradients</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">activations_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">is_activations</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    loss: A scalar Tensor.</span>
+<span class="sd">    loss_or_activations: either the loss, which is a scalar tensor, or</span>
+<span class="sd">      activations, which could be a tensor or a list of tensors.</span>
 <span class="sd">    vmap: A `.NestedMap` of variables.</span>
 <span class="sd">    grad_aggregation_method: Specifies the method used to combine gradient</span>
 <span class="sd">      terms. Accepted values are constants defined in the class</span>
@@ -2899,6 +2919,8 @@
 <span class="sd">    skip_none_gradients: Whether to skip gradients that are None.</span>
 <span class="sd">    defer_crs_to_apply_grad: Whether to defer gradient cross replica sum to</span>
 <span class="sd">      apply_gradient. This applies to TPU only.</span>
+<span class="sd">    activations_grad: The gradients computed for activations.</span>
+<span class="sd">    is_activations: A boolean, whether the input is loss or activations.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of VarGrad. You can view</span>
@@ -2908,7 +2930,8 @@
 <span class="sd">    must exist in vmap.  grad is the corresponding gradient computed</span>
 <span class="sd">    for var. grad is guaranteed to be not None.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">loss</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">is_activations</span><span class="p">:</span>
+    <span class="n">loss_or_activations</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
   <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vmap</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)</span>
   <span class="k">assert</span> <span class="n">skip_zero_gradients</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;variable&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">)</span>
 
@@ -2916,9 +2939,9 @@
   <span class="n">filtered_vmap</span> <span class="o">=</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">_Unique</span><span class="p">())</span>
   <span class="k">assert</span> <span class="n">filtered_vmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
-  <span class="c1"># Filter out variables not contributing to &#39;loss&#39;.</span>
+  <span class="c1"># Filter out variables not contributing to &#39;loss_or_activations&#39;.</span>
   <span class="n">trainable_variables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span>
-  <span class="n">dependent_ops_and_tensors</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">FindNeeded</span><span class="p">([</span><span class="n">loss</span><span class="p">]))</span>
+  <span class="n">dependent_ops_and_tensors</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">FindNeeded</span><span class="p">([</span><span class="n">loss_or_activations</span><span class="p">]))</span>
 
   <span class="k">def</span> <span class="nf">Needed</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
@@ -2943,12 +2966,15 @@
           <span class="n">_ComputeGradientsTpu</span><span class="p">,</span>
           <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">skip_zero_gradients</span><span class="p">,</span>
           <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="n">use_bf16_gradients_ar</span><span class="p">,</span>
-          <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="n">defer_crs_to_apply_grad</span><span class="p">)</span>
+          <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="n">defer_crs_to_apply_grad</span><span class="p">,</span>
+          <span class="n">activations_grad</span><span class="o">=</span><span class="n">activations_grad</span><span class="p">,</span>
+          <span class="n">is_activations</span><span class="o">=</span><span class="n">is_activations</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">take_grad</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span>
 
-  <span class="n">grads</span> <span class="o">=</span> <span class="n">take_grad</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">filtered_vlist</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                    <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">)</span>
+  <span class="n">grads</span> <span class="o">=</span> <span class="n">take_grad</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span> <span class="n">filtered_vlist</span><span class="p">,</span>
+                    <span class="n">grad_aggregation_method</span><span class="p">,</span> <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+                    <span class="n">gate_gradients</span><span class="p">)</span>
 
   <span class="c1"># Formulate pairs of (var, grad) and pack them into the same</span>
   <span class="c1"># structure as filtered_vmap.</span>
@@ -2968,7 +2994,8 @@
         <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Variable </span><span class="si">%s</span><span class="s1"> is not a dependent of </span><span class="si">%s</span><span class="s1">, expect &#39;</span>
                    <span class="s1">&#39;gradient be None, but got </span><span class="si">%s</span><span class="s1">. This should not happen, &#39;</span>
                    <span class="s1">&#39;please contact the owner of b/150689507 for further &#39;</span>
-                   <span class="s1">&#39;investigation.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">vg</span><span class="o">.</span><span class="n">var</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">loss</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">vg</span><span class="o">.</span><span class="n">grad</span><span class="p">)))</span>
+                   <span class="s1">&#39;investigation.&#39;</span> <span class="o">%</span>
+                   <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">vg</span><span class="o">.</span><span class="n">var</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">vg</span><span class="o">.</span><span class="n">grad</span><span class="p">)))</span>
         <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="n">err_msg</span>
       <span class="k">return</span> <span class="kc">True</span>
 

@@ -221,7 +221,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;spmd&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether program is running under SPMD mode.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span>
@@ -229,6 +229,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_model</span> <span class="o">=</span> <span class="n">shared_model</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;tf_master&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
     <span class="c1"># Program dirs are where the summaries are written to.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
@@ -377,8 +378,8 @@
 <div class="viewcode-block" id="TrainProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram">[docs]</a><span class="k">class</span> <span class="nc">TrainProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;TrainProgram trains a single task and handles checkpoints.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StepRateTracker</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;TrainProgram&#39;</span>
 
@@ -605,8 +606,8 @@
 <span class="sd">  evaluation.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;EvalProgram&#39;</span>
 
 <div class="viewcode-block" id="EvalProgram.TpuEvalStep"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.TpuEvalStep">[docs]</a>  <span class="k">def</span> <span class="nf">TpuEvalStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -707,8 +708,8 @@
 <span class="sd">  decoder run.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;DecodeProgram&#39;</span>
 
 <div class="viewcode-block" id="DecodeProgram._CompileDecodeFn"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._CompileDecodeFn">[docs]</a>  <span class="k">def</span> <span class="nf">_CompileDecodeFn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -917,8 +918,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ml_perf&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;MLPerf config&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">True</span>
@@ -1135,7 +1136,7 @@
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;benchmark_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Benchmark name for compliance log.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_model</span> <span class="o">=</span> <span class="n">shared_model</span>
@@ -1156,10 +1157,11 @@
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits_per_client</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
+        <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-          <span class="n">eval_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">))</span>
+          <span class="n">eval_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">)</span>
@@ -1276,7 +1278,7 @@
 
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_model</span> <span class="o">=</span> <span class="n">shared_model</span>
@@ -1299,7 +1301,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">ml_perf</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
+        <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">)</span>
 
