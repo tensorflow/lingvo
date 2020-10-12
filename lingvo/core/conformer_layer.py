@@ -22,6 +22,7 @@ from lingvo.core import base_layer
 from lingvo.core import batch_major_attention as attention_lib
 from lingvo.core import bn_layers
 from lingvo.core import conv_layers_with_time_padding
+from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
@@ -58,6 +59,11 @@ class LConvLayer(base_layer.BaseLayer):
     p.Define('kernel_size', None, 'Kernel size of 1d deptwise conv.')
     p.Define('conv_activation', 'SWISH', 'Activation after normalization.')
     p.Define(
+        'is_causal', False, 'Whether this is a causal layer.'
+        'If set to true, use '
+        'conv_layers_with_time_padding.CausalDepthwiseConv2DLayer for '
+        '`depthwise_conv_tpl`.')
+    p.Define(
         'glu_activation', 'NONE',
         'Activation in GLU. Check lingvo.core.activations._ACTIVATIONS for '
         'other options.')
@@ -65,9 +71,11 @@ class LConvLayer(base_layer.BaseLayer):
 
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Input layer norm template.')
     p.Define('linear_start_tpl', layers.FCLayer.Params(), 'Linear start layer.')
-    p.Define('depthwise_conv_tpl',
-             conv_layers_with_time_padding.DepthwiseConv2DLayer.Params(),
-             'Depthwise conv template.')
+    p.Define(
+        'depthwise_conv_tpl',
+        conv_layers_with_time_padding.DepthwiseConv2DLayer.Params(),
+        'Depthwise conv template. For causal layer, use '
+        'conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.')
     p.Define('conv_norm_layer_tpl', bn_layers.BatchNormLayer.Params(),
              'Normalization layer after conv.')
     p.Define('linear_end_tpl', layers.FCLayer.Params(), 'Linear end layer.')
@@ -82,6 +90,7 @@ class LConvLayer(base_layer.BaseLayer):
   def CommonParams(cls,
                    input_dim=None,
                    kernel_size=None,
+                   is_causal=False,
                    conv_activation='SWISH',
                    dropout_prob=0.):
     p = cls.Params().Set(
@@ -89,6 +98,9 @@ class LConvLayer(base_layer.BaseLayer):
         kernel_size=kernel_size,
         conv_activation=conv_activation,
         dropout_prob=dropout_prob)
+    if is_causal:
+      p.depthwise_conv_tpl = (
+          conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.Params())
     return p
 
   def __init__(self, params):
@@ -107,10 +119,20 @@ class LConvLayer(base_layer.BaseLayer):
 
     norm_p = p.conv_norm_layer_tpl.Copy().Set(
         name='norm_layer', dim=p.input_dim)
+    if p.conv_norm_layer_tpl.cls == bn_layers.GroupNormLayer:
+      norm_p.cumulative = p.is_causal
     self.CreateChild('norm', norm_p)
 
+    if (p.is_causal and p.depthwise_conv_tpl.cls ==
+        conv_layers_with_time_padding.DepthwiseConv2DLayer):
+      # If causal, switch to causal depthwise conv.
+      depthwise_conv_p = (
+          conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.Params())
+      hyperparams.CopyFieldsTo(p.depthwise_conv_tpl, depthwise_conv_p)
+    else:
+      depthwise_conv_p = p.depthwise_conv_tpl.Copy()
     # 1d depthwise conv with channel_mulitplier = 1
-    depthwise_conv_p = p.depthwise_conv_tpl.Copy().Set(
+    depthwise_conv_p.Set(
         name='depthwise_conv',
         filter_shape=(p.kernel_size, 1, p.input_dim, 1),
         filter_stride=(1, 1))
@@ -130,6 +152,35 @@ class LConvLayer(base_layer.BaseLayer):
     if act_name == 'NONE':
       return inputs
     return activations.GetFn(act_name)(inputs)
+
+  def _Normalize(self, theta, inputs, paddings):
+    """Applies normalization.
+
+    Args:
+      theta: A NestedMap of layer params.
+      inputs: [b, t, 1, d].
+      paddings: [b, t].
+
+    Returns:
+      A Tensor of shape [b, t, d].
+    """
+    if isinstance(self.norm, bn_layers.GroupNormLayer):
+      assert self.norm.params.input_rank == 4
+      inputs, _ = self.norm.FProp(theta.norm, inputs, paddings)
+      # [b, t, d]
+      inputs = tf.squeeze(inputs, 2)
+    else:
+      # [b, t, 1, d] -> [b, t, d]
+      inputs = tf.squeeze(inputs, 2)
+      if isinstance(self.norm, bn_layers.BatchNormLayer):
+        inputs = self.norm.FProp(theta.norm, inputs, paddings)
+      elif isinstance(self.norm, layers.LayerNorm):
+        inputs = self.norm.FProp(theta.norm, inputs)
+      else:
+        raise NotImplementedError(
+            'Only bn_layers.{BatchNormLayer,GroupNormLayer}, layers.LayerNorm '
+            'are supported.')
+    return inputs
 
   def FProp(self, theta, inputs, paddings):
     """Builds FProp graph.
@@ -153,16 +204,12 @@ class LConvLayer(base_layer.BaseLayer):
 
       inputs = self._GLU(inputs)
 
+      # TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.
       # [b, t, d] --> [b, t, 1, d]
       inputs = tf.expand_dims(inputs, 2)
       inputs, paddings = self.depthwise_conv1d.FProp(theta.depthwise_conv1d,
                                                      inputs, paddings)
-      # normalize on 4d inputs. sometimes normalization layer reshapes inputs,
-      # so there's no hurry to squeeze the input back, which adds extra overhead
-      # on tpu.
-      # TODO(jamesqin): add paddings in the call, for causal case.
-      inputs = self.norm.FProp(theta.norm, inputs)
-      inputs = tf.squeeze(inputs, 2)
+      inputs = self._Normalize(theta, inputs, paddings)
 
       inputs = self._ApplyActivation(inputs, p.conv_activation)
 
@@ -190,6 +237,11 @@ class ConformerLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('input_dim', None, 'Input dimension.')
+    p.Define(
+        'is_causal', False, 'If use causal lconv and MHSA layer.'
+        'Notice atten_right_context must be not be infinite(None) if is_causal '
+        'is True. It is important to always set is_causal for streaming case, '
+        'and not expect to infer from atten_{left,right}_context.')
     # atten layer
     p.Define('atten_num_heads', None,
              'Num of heads in multi-head self-attention.')
@@ -238,6 +290,7 @@ class ConformerLayer(base_layer.BaseLayer):
   @classmethod
   def CommonParams(cls,
                    input_dim=None,
+                   is_causal=False,
                    atten_num_heads=None,
                    atten_local_context=None,
                    atten_left_context=None,
@@ -251,7 +304,7 @@ class ConformerLayer(base_layer.BaseLayer):
     assert all([input_dim, atten_num_heads, kernel_size, fflayer_hidden_dim])
 
     if atten_local_context:
-      assert not any([atten_left_context, atten_right_context]), (
+      assert atten_left_context is None and atten_right_context is None, (
           'atten_local_context and atten_{left,right}_context can not be set'
           'at the same time.')
       atten_left_context = atten_local_context + 1  # including self position.
@@ -266,6 +319,7 @@ class ConformerLayer(base_layer.BaseLayer):
         fflayer_hidden_dim=fflayer_hidden_dim,
         fflayer_activation=fflayer_activation,
         kernel_size=kernel_size,
+        is_causal=is_causal,
         layer_order=layer_order,
         dropout_prob=0.)
     return p
@@ -274,6 +328,11 @@ class ConformerLayer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
     assert p.layer_order in ['mhsa_before_conv', 'conv_before_mhsa']
+    if p.is_causal:
+      # None is different from 0, the former is 'infinite'.
+      assert p.atten_right_context is not None, (
+          'is_causal is not compatible with infinite atten_right_context '
+          '(None).')
 
     fflayer_start_p = p.fflayer_start_tpl.Copy().Set(
         input_dim=p.input_dim,
@@ -293,16 +352,19 @@ class ConformerLayer(base_layer.BaseLayer):
         relu_dropout_prob=p.dropout_prob)
     self.CreateChild('fflayer_end', fflayer_end_p)
 
+    # For local MHSA, is_masked is ignored, thus it's safe to set is_masked
+    # based on p.is_causal, for global and local MHSA cases.
     trans_atten_p = p.trans_atten_tpl.Copy().Set(
         input_dim=p.input_dim,
         num_heads=p.atten_num_heads,
+        is_masked=p.is_causal,
         atten_dropout_prob=p.dropout_prob,
         residual_dropout_prob=p.dropout_prob)
     self._ConfigSelfAttenParams(trans_atten_p)
     self.CreateChild('trans_atten', trans_atten_p)
 
     lconv_p = p.lconv_tpl.Copy().Set(
-        input_dim=p.input_dim, kernel_size=p.kernel_size)
+        input_dim=p.input_dim, kernel_size=p.kernel_size, is_causal=p.is_causal)
     self.CreateChild('lconv', lconv_p)
 
     ln_p = p.final_ln_tpl.Copy().Set(name='final_ln', input_dim=p.input_dim)
@@ -312,18 +374,20 @@ class ConformerLayer(base_layer.BaseLayer):
     p = self.params
     if not p.relative_pos_emb_dim:
       p.relative_pos_emb_dim = p.input_dim
-    if not any([p.atten_left_context, p.atten_right_context]):
+
+    # TODO(jamesqin): add an attention factory in batch_major_attention.
+    if p.atten_left_context is None and p.atten_right_context is None:
+      # No atten context set, each position attends to all positions.
       atten_type = 'global' if not p.use_relative_atten else 'global_relative'
     elif p.atten_left_context is None and p.atten_right_context == 0:
+      # Left context is infinite, right context is 0.
       assert not p.use_relative_atten, (
           'Relative attention isn\'t supported for causal attention.')
-      atten_type = 'causal'
+      atten_type = 'global_causal'
     else:
       atten_type = 'local_relative' if p.use_relative_atten else 'local'
 
-    if atten_type == 'causal':
-      trans_atten_p.is_masked = True
-    elif atten_type == 'global_relative':
+    if atten_type == 'global_relative':
       trans_atten_p.atten_tpl = (
           attention_lib.MultiHeadedAttentionXL.Params().Set(
               rel_pos_emb_dim=p.relative_pos_emb_dim))
@@ -336,7 +400,10 @@ class ConformerLayer(base_layer.BaseLayer):
       trans_atten_p.atten_tpl = attention_lib.LocalSelfAttention.Params().Set(
           left_context=p.atten_left_context,
           right_context=p.atten_right_context)
-    # No op for 'global' atten
+    else:
+      # No op for 'global' atten
+      assert atten_type in ('global', 'global_causal'), (
+          f'Unknown atten_type {atten_type}')
 
   def _SelfAtten(self, theta, inputs, paddings):
     inputs, _ = self.trans_atten.FProp(
