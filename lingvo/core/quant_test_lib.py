@@ -98,6 +98,18 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
 class QuantUtilsBaseTest(test_utils.TestCase):
   """Base test class for testing quantizable layer."""
 
+  # pyformat: disable
+  NO_QDOMAIN_EXPECTED = [
+   [[ 0.00071405, -0.03868543, -0.01999986, -0.00994987],
+    [ 0.08905827,  0.13636404, -0.03180931,  0.06056439],
+    [ 0.        ,  0.        ,  0.        ,  0.        ],
+    [-0.0208858 , -0.17595209, -0.05192588,  0.02618068]],
+   [[ 0.        ,  0.        ,  0.        ,  0.        ],
+    [ 0.        ,  0.        ,  0.        ,  0.        ],
+    [-0.02125708, -0.10454545, -0.01147466,  0.06903321],
+    [ 0.0276652 , -0.14823943, -0.09726462,  0.01415125]]]
+  # pyformat: enable
+
   def _testLayerHelper(self,
                        test_case,
                        p,
