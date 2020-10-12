@@ -279,6 +279,8 @@ class Params:
     similar = self._SimilarKeys(name)
     if similar:
       return name + ' (did you mean: [%s])' % (','.join(sorted(similar)))
+    if '_params' in self.__dict__:
+      return name + ' (keys are %s)' % self._params.keys()
     return name
 
   def Copy(self):
