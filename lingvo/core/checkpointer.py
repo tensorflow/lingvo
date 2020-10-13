@@ -245,20 +245,16 @@ def GetSpecificCheckpoint(load_checkpoint_from):
   if not load_checkpoint_from:
     return None
 
+  # Check validity of eval path by looking for the index file.
+  if tf.io.gfile.exists(load_checkpoint_from + '.index'):
+    return load_checkpoint_from
+
   # If load_checkpoint_from is a directory, return the latest
   # checkpoint in the directory.
   if tf.io.gfile.isdir(load_checkpoint_from):
     return tf.train.latest_checkpoint(load_checkpoint_from)
 
-  # We assume that load_checkpoint_from is a specific checkpoint to
-  # evaluate since it is not a directory.
-  #
-  # Check validity of eval path by looking for the index file.
-  if tf.io.gfile.exists(load_checkpoint_from + '.index'):
-    return load_checkpoint_from
-
   # Fail if we see an unexpected load_checkpoint_from.
-  #
   # This might happen if load_checkpoint_from refers to a checkpoint
   # but the index file cannot be found.
   raise ValueError('Invalid load_checkpoint_from: %s' % load_checkpoint_from)
