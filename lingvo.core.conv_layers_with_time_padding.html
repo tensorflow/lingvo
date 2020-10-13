@@ -457,6 +457,55 @@ width dimension as in images.</p></li>
 <dd><p>Apply convolution to inputs.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.zero_state">
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalDepthwiseConv2DLayer.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A NestedMap of tensors including:</dt><dd><ul class="simple">
+<li><p>context: A Tensor of shape [b, w, 1, c]</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>state0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.StreamStep">
+<code class="sig-name descname">StreamStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalDepthwiseConv2DLayer.StreamStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a singele step of convolution to input_tensor.</p>
+<p>Only supports 1d causal convolution. Doesn’t support dilation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
+<li><p><strong>inputs</strong> – A Tensor of shape [b, t=1, 1, c]</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [b, t=1].</p></li>
+<li><p><strong>state0</strong> – A NestedMap of tensors of the same struct as returned by
+zero_state().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [b, t=1, 1, c * channel_multiplier]
+padding: the same as input paddings.
+state1: A NestedMap of the same struct as input state</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">

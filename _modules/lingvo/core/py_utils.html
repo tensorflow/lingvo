@@ -4001,6 +4001,9 @@
 <div class="viewcode-block" id="LengthsFromPaddings"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.LengthsFromPaddings">[docs]</a><span class="k">def</span> <span class="nf">LengthsFromPaddings</span><span class="p">(</span><span class="n">paddings</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes lengths of each sequence in a batch, ignoring trailing padding.</span>
 
+<span class="sd">  Note the following isn&#39;t guaranteed due to leading paddings.</span>
+<span class="sd">  PaddingsFromLengths(LengthsFromPaddings(x)) == x</span>
+
 <span class="sd">  Args:</span>
 <span class="sd">    paddings: a tensor with shape [batch, length].</span>
 
@@ -4023,6 +4026,30 @@
   <span class="c1"># Special case for all 0 paddings.</span>
   <span class="n">all_zero_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">all_zero_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">length</span><span class="p">),</span> <span class="n">length</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PaddingsFromLengths"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PaddingsFromLengths">[docs]</a><span class="k">def</span> <span class="nf">PaddingsFromLengths</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes paddings Tensor from lengths.</span>
+
+<span class="sd">  Note the following isn&#39;t guaranteed due to leading paddings.</span>
+<span class="sd">  PaddingsFromLengths(LengthsFromPaddings(x)) == x.</span>
+
+<span class="sd">  This method does not generate leading paddings.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    lengths: A int32 Tensor of shape [B].</span>
+<span class="sd">    maxlen: None or a Python int or a scalar Tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A 0/1 valued Tensor of shape [B, maxlen or ?] where 1s are padded positions.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">lengths</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">maxlen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">lengths</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">maxlen</span><span class="p">)],</span>
+        <span class="n">lengths</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">maxlen</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="TrimTrailingPaddings"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.TrimTrailingPaddings">[docs]</a><span class="k">def</span> <span class="nf">TrimTrailingPaddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>

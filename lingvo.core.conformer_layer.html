@@ -254,6 +254,36 @@ out_paddings: A Tensor of shape [batch, seqlen].</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.zero_state">
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.StreamStep">
+<code class="sig-name descname">StreamStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.StreamStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs single step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
+<li><p><strong>inputs</strong> – [b, 1, d].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [b, 1].</p></li>
+<li><p><strong>state0</strong> – A NestedMap of tensors of the same struct as returned by
+zero_state().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap of tensors consisting:
+padding: the same as input paddings.
+state1: A NestedMap of tensors of the same struct as state0.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -330,6 +360,36 @@ layer and its children layers.</p></li>
 <li><p><strong>*args</strong> – List args.</p></li>
 <li><p><strong>**kwargs</strong> – Keyward args.</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.zero_state">
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.StreamStep">
+<code class="sig-name descname">StreamStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.StreamStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs single step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of read-only layer params.</p></li>
+<li><p><strong>inputs</strong> – A tensor of shape [b, 1, d].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [b, 1].</p></li>
+<li><p><strong>state0</strong> – A NestedMap of tensors of the same struct as returned by
+zero_state().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of shape [b, 1, d].
+padding: the same as input paddings.
+state1: A NestedMap of tensors of the same struct as state0.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
 </dd>
 </dl>
 </dd></dl>

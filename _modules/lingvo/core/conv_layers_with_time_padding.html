@@ -492,7 +492,7 @@
 <div class="viewcode-block" id="BaseConv2DLayerWithPadding._RescaleBoundary"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._RescaleBoundary">[docs]</a>  <span class="k">def</span> <span class="nf">_RescaleBoundary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">in_paddings</span><span class="p">):</span>
     <span class="c1"># Rescale every output position by:</span>
     <span class="c1">#   (# input positions) / (# non-padding input positions)</span>
-    <span class="c1"># where (# input posisions) = filter_size.</span>
+    <span class="c1"># where (# input positions) = filter_size.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">in_mask</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">in_paddings</span>
 
@@ -743,7 +743,75 @@
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">],</span>
         <span class="n">dilations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
         <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
-        <span class="n">padding</span><span class="o">=</span><span class="n">padding_algorithm</span><span class="p">)</span></div></div>
+        <span class="n">padding</span><span class="o">=</span><span class="n">padding_algorithm</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CausalDepthwiseConv2DLayer.zero_state"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the initial state given the batch size.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch_size: the batch size.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      state0: A NestedMap of tensors including:</span>
+<span class="sd">        - context: A Tensor of shape [b, w, 1, c]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;StreamStep only supports 1d causal convolution.&#39;</span><span class="p">)</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CausalDepthwiseConv2DLayer.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply a singele step of convolution to input_tensor.</span>
+
+<span class="sd">    Only supports 1d causal convolution. Doesn&#39;t support dilation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap of layer params.</span>
+<span class="sd">      inputs: A Tensor of shape [b, t=1, 1, c]</span>
+<span class="sd">      paddings: A 0/1 valued tensor of shape [b, t=1].</span>
+<span class="sd">      state0: A NestedMap of tensors of the same struct as returned by</span>
+<span class="sd">        zero_state().</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      outputs: A Tensor of shape [b, t=1, 1, c * channel_multiplier]</span>
+<span class="sd">      padding: the same as input paddings.</span>
+<span class="sd">      state1: A NestedMap of the same struct as input state</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;StreamStep only supports 1d causal convolution.&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;StreamStep doesn</span><span class="se">\&#39;</span><span class="s1">t support striding&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;StreamStep doesn</span><span class="se">\&#39;</span><span class="s1">t support dilation&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span>
+              <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]])</span>
+      <span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="c1"># next state.</span>
+      <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">context</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">context</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">inputs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+      <span class="n">expanded_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="c1"># Not updating the states for padded examples.</span>
+      <span class="n">state1</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">state0</span><span class="o">.</span><span class="n">context</span> <span class="o">*</span> <span class="n">expanded_paddings</span> <span class="o">+</span> <span class="n">state1</span><span class="o">.</span><span class="n">context</span> <span class="o">*</span>
+          <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">expanded_paddings</span><span class="p">))</span>
+
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">depthwise_conv2d</span><span class="p">(</span>
+          <span class="n">state1</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeight</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">),</span>
+          <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+          <span class="n">dilations</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+          <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
+          <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;VALID&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state1</span></div></div>
 
 
 <div class="viewcode-block" id="NormalizedDepthwiseConv2DLayer"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer">[docs]</a><span class="k">class</span> <span class="nc">NormalizedDepthwiseConv2DLayer</span><span class="p">(</span><span class="n">DepthwiseConv2DLayer</span><span class="p">):</span>
