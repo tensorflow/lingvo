@@ -450,6 +450,9 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
                         <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
+  <span class="k">def</span> <span class="nf">_GetSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span><span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
   <span class="k">def</span> <span class="nf">_MaybeConstructSharedModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_cfg</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct a single shared copy of the model if this is a MultiTaskModel.</span>
 
@@ -486,7 +489,6 @@
 
   <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span>
-        <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">,</span>
         <span class="n">disable_meta_optimizer</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_meta_optimizer_in_executor</span>
     <span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="n">config_proto</span> <span class="o">=</span> <span class="p">(</span>
