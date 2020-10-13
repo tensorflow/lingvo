@@ -1,0 +1,361 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.lm.params.synthetic_packed_input &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+        <script src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.lm.params.synthetic_packed_input</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.lm.params.synthetic_packed_input</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;DenseBuilder-based LM with synthetic inputs.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_registry</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_builder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">optimizer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">program</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">schedule</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="SyntheticTrain"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.SyntheticTrain">[docs]</a><span class="k">class</span> <span class="nc">SyntheticTrain</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generated synthetic data with packed_input lm formats.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SyntheticTrain._InputBatch"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.SyntheticTrain._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1024</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">input_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">targets</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">targets</span>
+    <span class="n">input_batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1024</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">input_batch</span></div></div>
+
+
+<div class="viewcode-block" id="DenseLmTemplate"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate">[docs]</a><span class="k">class</span> <span class="nc">DenseLmTemplate</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;DenseBuilder-based LM Template.&quot;&quot;&quot;</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">64</span><span class="p">]</span>
+
+  <span class="c1"># The number of data replicas.</span>
+  <span class="n">DATA_PARALLELISM</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="c1"># Batch size per replica = BATCH_DIM_PER_DEVICE * NUM_DEVICES_PER_SPLIT</span>
+  <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.0625</span>
+  <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">64</span>  <span class="c1"># number of devices per data replica.</span>
+  <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
+
+  <span class="n">HIDDEN_DIM</span> <span class="o">=</span> <span class="mi">65536</span>
+  <span class="n">ATTENTION_KEY_VALUE_DIM</span> <span class="o">=</span> <span class="mi">128</span>
+  <span class="n">MODEL_DIM</span> <span class="o">=</span> <span class="mi">8192</span>
+  <span class="n">NUM_HEADS</span> <span class="o">=</span> <span class="mi">128</span>
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">32</span>
+  <span class="n">LABEL_SMOOTHING</span> <span class="o">=</span> <span class="mf">0.0</span>
+  <span class="n">VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">32000</span>
+  <span class="c1"># The sharding config of model parallelim</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># prod(DEVICE_MESH_SHAPE) = NUM_DEVICES_PER_SPLIT</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">DEBUG</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="DenseLmTemplate.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># tokens per batch per replica (~64 cores)</span>
+    <span class="n">batch_size_per_tf_replica</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">*</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">NUM_DEVICES_PER_SPLIT</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">gshard_builder</span><span class="o">.</span><span class="n">UniTransformer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">gated_gelu</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span>
+        <span class="n">positional_embedding</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;transformer&#39;</span><span class="p">,</span>
+        <span class="n">builder</span><span class="o">=</span><span class="n">gshard_builder</span><span class="o">.</span><span class="n">DenseBuilder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">device_mesh_shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span>
+            <span class="n">device_mesh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DEVICE_MESH</span><span class="p">,</span>
+            <span class="n">relative_attention_num_buckets</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+            <span class="n">relative_attention_type</span><span class="o">=</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
+            <span class="n">relative_attention_max_distance</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
+            <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">num_devices</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>  <span class="c1"># Obsolete params</span>
+            <span class="n">attention_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">attention_key_value_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ATTENTION_KEY_VALUE_DIM</span><span class="p">,</span>
+            <span class="n">attention_extra_logit</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">relative_attention_use_universal_1d_position</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">model_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MODEL_DIM</span><span class="p">,</span>
+            <span class="n">attention_num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_HEADS</span><span class="p">,</span>
+            <span class="n">ff_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">HIDDEN_DIM</span><span class="p">,</span>
+            <span class="n">attention_combine_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size_per_tf_replica</span><span class="p">,</span>
+        <span class="n">sequence_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">SEQUENCE_LENGTH</span><span class="p">,</span>
+        <span class="n">num_transformer_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_TRANSFORMER_LAYERS</span><span class="p">,</span>
+        <span class="n">aux_loss_coef</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">label_smoothing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">LABEL_SMOOTHING</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VOCAB_SIZE</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">SEQUENCE_LENGTH</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">XLAShardingAdafactor</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">beta1</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">beta2</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span>
+        <span class="n">multiply_by_parameter_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">clipping_threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">factored</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">decay_exponent_pow</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">SqrtDecay</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="mi">2000000</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_max_to_keep</span> <span class="o">=</span> <span class="mi">100</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="DenseLmTemplate.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">SyntheticTrain</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_DEVICES_PER_SPLIT</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="DenseLmTemplate.ProgramSchedule"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.ProgramSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
+        <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
+        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Train&#39;</span><span class="p">],</span>
+        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">spmd</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="c1"># every 5K steps</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<span class="c1"># total params: 137,702,416,384</span>
+<div class="viewcode-block" id="DenseLm128B8x8"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B8x8">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DenseLm128B8x8</span><span class="p">(</span><span class="n">DenseLmTemplate</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;128B params LM model with 2D split.&quot;&quot;&quot;</span>
+  <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">128</span>
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">64</span>  <span class="c1"># 64 blocks of [DecSelfAttention, DenseReluDense]</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)),</span> <span class="n">DEVICE_MESH_SHAPE</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DenseLm128B8x8.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B8x8.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># DeviceOrderMode.MESH</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">emb_w_split</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">emb_out_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">blm_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># Partition final logits along B and L so that the argmax will be fully</span>
+    <span class="c1"># partitioned.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">logits_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
