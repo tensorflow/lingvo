@@ -22,7 +22,7 @@ import importlib
 import inspect
 import re
 import sys
-from typing import TypeVar, Generic
+from typing import Any, TypeVar, Generic, Sequence
 
 import dataclasses
 import lingvo.compat as tf
@@ -814,7 +814,51 @@ class Params:
       A string of differences.
     """
 
-    def TextDiffHelper(a, b, spaces):
+    def IsStringy(x) -> bool:
+      return isinstance(x, (str, bytes))
+
+    def TextDiffHelper(a, b, key: str, spaces: str) -> str:
+      """Return the differences between a and b as a string."""
+      if a == b:
+        return ''
+
+      if isinstance(a, Params) and isinstance(b, Params):
+        diff = ''
+        diff += '?' + spaces + key + ':\n'
+        diff += TextDiffParamsHelper(a, b, spaces + '  ')
+        return diff
+
+      sequences = False
+      try:
+        len(a)
+        len(b)
+        sequences = True
+      except TypeError:
+        pass
+
+      if sequences and not IsStringy(a) and not IsStringy(b):
+        return TextDiffSequenceHelper(a, b, key, spaces)
+
+      diff = ''
+      diff += '>' + spaces + key + ': ' + str(a) + '\n'
+      diff += '<' + spaces + key + ': ' + str(b) + '\n'
+      return diff
+
+    def TextDiffSequenceHelper(a: Sequence[Any], b: Sequence[Any], key: str,
+                               spaces: str):
+      """Return the differences between a and b as a string."""
+      diff = ''
+      for i in range(max([len(a), len(b)])):
+        key_i = f'{key}[{i}]'
+        if i < len(a) and i < len(b):
+          diff += TextDiffHelper(a[i], b[i], key_i, spaces)
+        elif i < len(a):
+          diff += '>' + spaces + key_i + ': ' + str(a[i]) + '\n'
+        else:
+          diff += '<' + spaces + key_i + ': ' + str(b[i]) + '\n'
+      return diff
+
+    def TextDiffParamsHelper(a: Params, b: Params, spaces: str) -> str:
       """Return the differences between a and b as a string."""
       a_keys = set([key for key, _ in a.IterParams()])
       b_keys = set([key for key, _ in b.IterParams()])
@@ -826,15 +870,10 @@ class Params:
         elif key in b_keys and key not in a_keys:
           diff += '<' + spaces + key + ': ' + str(b.Get(key)) + '\n'
         elif a.Get(key) != b.Get(key):
-          if isinstance(a.Get(key), Params):
-            diff += '?' + spaces + key + ':\n'
-            diff += TextDiffHelper(a.Get(key), b.Get(key), spaces + '  ')
-          else:
-            diff += '>' + spaces + key + ': ' + str(a.Get(key)) + '\n'
-            diff += '<' + spaces + key + ': ' + str(b.Get(key)) + '\n'
+          diff += TextDiffHelper(a.Get(key), b.Get(key), key, spaces)
       return diff
 
-    return TextDiffHelper(self, other, spaces=' ')
+    return TextDiffParamsHelper(self, other, spaces=' ')
 
 
 T = TypeVar('T')

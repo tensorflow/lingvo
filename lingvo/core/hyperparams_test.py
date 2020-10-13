@@ -587,6 +587,48 @@ escaping_single : 'In "quotes"'
         '>   hey: hi\n'
         '<   hey: hello\n')
 
+  def testDiffSequences(self):
+    a = _params.Params()
+    a.Define('a', 42, '')
+    a.Define('b', [], '')
+    b = a.Copy()
+
+    # Everything is the same so we don't expect diffs.
+    self.assertEqual(a.TextDiff(b), '')
+
+    a.b = [1, 2, 3]
+    b.b = [1, 3, 3]
+    self.assertEqual(a.TextDiff(b), '> b[1]: 2\n' '< b[1]: 3\n')
+
+  def testDiffSequenceParams(self):
+
+    def loss_params():
+      p = _params.Params()
+      p.Define('beta', 0.5, '')
+      return p
+
+    a = _params.Params()
+    a.Define('a', 42, '')
+    a.Define('losses', [(1.0, loss_params())], '')
+    b = a.Copy()
+    c = a.Copy()
+
+    # Everything is the same so we don't expect diffs.
+    self.assertEqual(a.TextDiff(b), '')
+
+    # Change just the weight.
+    b.losses[0] = (0.25, loss_params())
+    self.assertEqual(
+        a.TextDiff(b), '> losses[0][0]: 1.0\n'
+        '< losses[0][0]: 0.25\n')
+
+    # Change beta.
+    c.losses[0][1].beta = 0.75
+    self.assertEqual(
+        a.TextDiff(c), '? losses[0][1]:\n'
+        '>   beta: 0.5\n'
+        '<   beta: 0.75\n')
+
   def testInstantiate(self):
     a = _params.InstantiableParams(InstantiableClass)
     a.Define('new_param', None, 'A meaningless param.')
