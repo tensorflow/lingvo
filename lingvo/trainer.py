@@ -1518,7 +1518,8 @@ class RunnerManager:
     FLAGS.worker_tpus = (
         cluster_resolver.num_accelerators()['TPU'] * FLAGS.worker_num_tpu_hosts)
     FLAGS.ps_job = FLAGS.worker_job
-    FLAGS.ps_replicas = FLAGS.worker_replicas
+    if FLAGS.job == 'trainer_client':
+      FLAGS.ps_replicas = FLAGS.worker_replicas
 
     FLAGS.cluster_spec = ('@'.join('{}={}'.format(job, ','.join(hosts))
                                    for job, hosts in cluster_spec_dict.items()))

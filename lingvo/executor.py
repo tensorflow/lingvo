@@ -302,6 +302,9 @@ class ExecutorTpu(base_runner.BaseRunner):
       tf.io.write_graph(self._graph.as_graph_def(), self._checkpoint_dir,
                         'train.pbtxt')
 
+  def _GetSession(self, **kwargs):
+    return super()._GetSession(cluster_def=self._cluster_def, **kwargs)
+
   def _MaybeConstructSharedModel(self, train_cfg):
     """Construct a single shared copy of the model if this is a MultiTaskModel.
 
@@ -338,7 +341,6 @@ class ExecutorTpu(base_runner.BaseRunner):
 
   def _Loop(self):
     with self._cluster, tf.container(self._container_id), self._GetSession(
-        cluster_def=self._cluster_def,
         disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
     ) as sess:
       config_proto = (
