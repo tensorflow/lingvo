@@ -16,10 +16,12 @@
 """GShard Builder. To be used with xla_sharding + SPMD."""
 
 from lingvo import compat as tf
+from lingvo.core import base_model
 from lingvo.core import builder
 from lingvo.core import layers
 from lingvo.core import moe_layers
 from lingvo.core import py_utils
+import numpy as np
 
 
 class MoEBuilder(builder.Base):
@@ -1138,3 +1140,532 @@ class MoEBuilder(builder.Base):
         ('i.dec_outs,i.tgt,w->o',
          self._Fn('softmax',
                   lambda x, t, w: self._Softmax(x, t, w, vocab_dim))))
+
+
+class DenseBuilder(MoEBuilder):
+  """Desnse layrs with GShard annotations."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    # p.Delete('e_dim')
+    # p.Delete('c_dim')
+    # p.Delete('moe_hidden_dim')
+    # p.Delete('second_expert_policy')
+    # p.Delete('second_expert_threshold')
+    # p.Delete('capacity_factor')
+    p.Define('device_mesh_shape', None, 'Device mesh shape.')
+    p.Define(
+        'device_mesh', None,
+        'Device mesh as a numpy ND array of device IDs. If specified, '
+        'device order in the array will be preserved, and the shape must equal '
+        'device_mesh_shape if that is also specified.')
+
+    # Weight sharding configs.
+    p.Define('emb_w_split', None, 'Mesh split for embedding weights.')
+    p.Define('mhd_w_split', [0, 1, -1], 'Mesh split for attention MHD weight')
+    p.Define('mh_wi_split', [0, 1], 'Mesh split for dense MH weight')
+    p.Define('hm_wo_split', [1, 0], 'Mesh split for dense HM weight')
+
+    # Activation sharding configs.
+    # one_hot_ids_split split should be inferred by XLA.
+    p.Define('one_hot_ids_split', None, 'Mesh split for one_hot_ids.')
+    p.Define('emb_out_split', [0, -1, -1], 'Mesh split for embedding outputs.')
+    p.Define('qkv_split', [0, -1, 1, -1], 'Mesh split for Q, K, V')
+    p.Define('blm_split', [0, -1, -1], 'Mesh split for BLM.')
+    p.Define('blh_split', [0, -1, 1], 'Mesh split for BLH.')
+    p.Define('logits_split', [0, -1, -1], 'Mesh split for logits.')
+    p.Define('model_dim_reshape_segments', None,
+             'Size of N when reshaping model dimension M to Nm')
+    p.attention_combine_dims = False
+    return p
+
+  def _AdjustMSplit(self, split, m_dim):
+    """Adjusts split annotation according to model_dim_reshape_segments."""
+    if self.params.model_dim_reshape_segments is None:
+      return split
+    new_split = list(split)
+    new_split.insert(m_dim + 1, -1)
+    return new_split
+
+  def _ReshapeM(self, x, m_dim):
+    """Reshapes tensor x according to model_dim_reshape_segments."""
+    new_shape = x.shape
+    if self.params.model_dim_reshape_segments is not None:
+      new_shape = list(x.shape[0:m_dim])
+      new_shape.append(self.params.model_dim_reshape_segments)
+      new_shape.append(x.shape[m_dim] // self.params.model_dim_reshape_segments)
+      new_shape.extend(d for d in x.shape[m_dim + 1:])
+    return tf.reshape(x, new_shape)
+
+  def _EinsumWithModelDim(self, equation, x, y):
+    """Einsum with adjusted equation according to model_dim_reshape_segments.
+
+    It changes each dimension named 'M' in the equation into two dimensions 'NM'
+    if model_dim_reshape_segments is set in the params. Therefore the original
+    equation should not have 'N', and only use 'M' when it is expected to be
+    reshaped.
+
+    Args:
+      equation: a string describing the contraction, in the same format as
+        numpy.einsum.
+      x: First input to einsum.
+      y: second input to einsum.
+
+    Returns:
+      tf.einsum(maybe_modified_equation, x, y)
+    """
+    if self.params.model_dim_reshape_segments is None:
+      return tf.einsum(equation, x, y)
+    new_equation = ''
+    for c in equation:
+      assert c != 'N'
+      if c == 'M':
+        new_equation += 'N'
+      new_equation += c
+    return tf.einsum(new_equation, x, y)
+
+  def EinsumWithModelDim(self, name, equation):
+    return self._Fn(name, lambda x, y: self._EinsumWithModelDim(equation, x, y))
+
+  def _LN(self, name):
+    """Overriding _LN to consider model_dim_reshape_segments."""
+    if self.params.model_dim_reshape_segments is None:
+      return super()._LN(name)
+
+    ln_weight_reshape = [
+        self.params.model_dim_reshape_segments,
+        self.params.model_dim // self.params.model_dim_reshape_segments
+    ]
+    return self._LNInternal(name, ln_weight_reshape)
+
+  def _MeshSplit(self, x, tensor_split_dims_mapping):
+    p = self.params
+    device_mesh = p.device_mesh
+    if device_mesh is None:
+      if not p.device_mesh_shape:
+        return x
+      num_devices = np.product(p.device_mesh_shape)
+      device_mesh = np.reshape(np.arange(0, num_devices), p.device_mesh_shape)
+    elif p.device_mesh_shape is not None:
+      assert p.device_mesh_shape == list(p.device_mesh.shape)
+    return moe_layers.MeshSplit(x, device_mesh, tensor_split_dims_mapping)
+
+  def MeshSplit(self, name, tensor_split_dims_mapping):
+    return self._Fn(name,
+                    lambda x: self._MeshSplit(x, tensor_split_dims_mapping))
+
+  def Embedding(self, name, vocab_dim):
+    p = self.params
+    return self._Graph(
+        name, ['ids'], ['outputs'],
+        ('->emb', self._EmbeddingWeight('w', vocab_dim)),
+        ('emb->emb_split', self.MeshSplit('w_split', p.emb_w_split)),
+        ('ids->one_hot_ids', self._OneHotEncode('one_hot_ids', vocab_dim)),
+        ('one_hot_ids->one_hot_ids_split',
+         self.MeshSplit('one_hot_ids_split', p.one_hot_ids_split)),
+        ('emb_split,one_hot_ids_split->outputs_pre_split',
+         self._Fn('einsum', fn=lambda w, x: tf.einsum('VH,BLV->BLH', w, x))),
+        ('outputs_pre_split->outputs_pre_reshape',
+         self.MeshSplit('output_split', p.emb_out_split)),
+        ('outputs_pre_reshape->outputs',
+         self._Fn('outputs_reshape', fn=lambda x: self._ReshapeM(x, 2))))
+
+  def Attention(self, name):
+    """Attention with multiple attention heads."""
+    p = self.params
+
+    def _AddBias(logits, bias):
+      # logits: BLHM [batch, length, heads, memory_length]
+      # bias: BLHM [batch, length, heads, memory_length]
+      #       (in case of attention with relative bias) OR
+      #
+      #       BLM  [batch, length, memory_length]
+      #       (default masking bias with very negative logits).
+
+      if bias.shape.ndims == 3:
+        # Expanding the 'heads' dimension
+        retval = logits + tf.expand_dims(bias, 2)
+      else:
+        assert bias.shape.ndims == 4
+        retval = logits + bias
+      return retval
+
+    def _ReduceLogsumexp(x):
+      max_logit = tf.math.reduce_max(
+          tf.stop_gradient(x), axis=-1, keepdims=True)
+      extra_logit = p.attention_extra_logit
+      if extra_logit is not None:
+        extra_logit = tf.convert_to_tensor(extra_logit, p.fprop_dtype)
+        max_logit = tf.math.maximum(max_logit, extra_logit)
+      x -= max_logit
+      exp_x = tf.math.exp(x)
+      sum_exp_x = tf.math.reduce_sum(exp_x, axis=-1, keepdims=True)
+      if extra_logit is not None:
+        sum_exp_x += tf.math.exp(extra_logit - max_logit)
+      return tf.math.log(sum_exp_x) + max_logit
+
+    def _LogSoftmax(x):
+      return x - _ReduceLogsumexp(x)
+
+    def _Softmax(x):
+      # TODO(lepikhin): consider
+      # if p.attention_extra_logit is None:
+      #   return tf.nn.softmax(x)
+      return tf.math.exp(_LogSoftmax(x))
+
+    return self._Graph(
+        name, ['_q', '_k', '_v', 'bias'], ['outputs'],
+        ('_q->q', self.MeshSplit('_q', p.qkv_split)),
+        ('_k->k', self.MeshSplit('_k', p.qkv_split)),
+        ('_v->v', self.MeshSplit('_v', p.qkv_split)),
+        ('q,k->l',
+         self._Fn('logits',
+                  fn=lambda q, k: tf.einsum('BLHD,BMHD->BLHM', q, k))),
+        ('l,bias->logits', self._Fn('bias', fn=_AddBias)),
+        ('logits->w', self._Fn('weights', _Softmax)),
+        ('w->weights', self._Dropout('dropout', 1 - self.params.dropout_rate)),
+        ('weights->weights_split', self.MeshSplit('_wsplit', p.qkv_split)),
+        ('weights_split,v->outputs_unsplitted',
+         self._Fn(
+             'outputs',
+             fn=lambda weights, v: tf.einsum('BLHM,BMHD->BLHD', weights, v))),
+        ('outputs_unsplitted->outputs', self.MeshSplit('_o', p.qkv_split)))
+
+  def _ComputeQKV(self, name):
+    p = self.params
+
+    def _Compute(x, w):
+      if p.attention_combine_dims:
+        combined_split = None if p.mhd_w_split is None else p.mhd_w_split[:-1]
+        w = self._MeshSplit(w, combined_split)
+        w = tf.reshape(
+            w, [p.model_dim, p.attention_num_heads, p.attention_key_value_dim])
+      w = self._MeshSplit(w, p.mhd_w_split)
+      w = self._ReshapeM(w, 0)
+      return self._EinsumWithModelDim('BLM,MHD->BLHD', x, w)
+
+    return self._Fn(name, _Compute)
+
+  def _ComputeAttenOutputs(self, o, wo):
+    p = self.params
+    hdm_split = None if p.mhd_w_split is None else [
+        p.mhd_w_split[1], -1, p.mhd_w_split[0]
+    ]
+    if p.attention_combine_dims:
+      combined_split = None if hdm_split is None else [
+          hdm_split[0], hdm_split[2]
+      ]
+      wo = self._MeshSplit(wo, combined_split)
+      wo = tf.reshape(
+          wo, [p.attention_num_heads, p.attention_key_value_dim, p.model_dim])
+    wo = self._MeshSplit(wo, hdm_split)
+    wo = self._ReshapeM(wo, 2)
+    return self._MeshSplit(
+        self._EinsumWithModelDim('HDM,BLHD->BLM', wo, o),
+        self._AdjustMSplit(p.blm_split, 2))
+
+  def DenseReluDense(self, name, decoder=False):
+    input_endpoints = ['inputs', 'segment_id', 'segment_pos']
+    if decoder:
+      input_endpoints += [
+          'unused_encoder_output',
+          'unused_encoder_segment_id',
+          'unused_encoder_segment_pos',
+      ]
+    p = self.params
+    # Note that dropout is used here, but not in the MoE layer by default.
+    return self._Graph(
+        name,
+        input_endpoints,
+        ['outputs', 'aux_loss'],
+        ('->wi,wo', self._DenseReluDenseWeights('w')),
+        ('wi->wi_split', self.MeshSplit('wi_split', p.mh_wi_split)),
+        ('wo->wo_split', self.MeshSplit('wo_split', p.hm_wo_split)),
+        ('wi_split->wi_reshaped',
+         self._Fn('wi_reshape', fn=lambda x: self._ReshapeM(x, 0))),
+        ('wo_split->wo_reshaped',
+         self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
+        ('wi_reshaped,inputs->h', self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
+        ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
+        ('h_split->h_relu', self._Fn('relu', tf.nn.relu)),
+        ('h_relu->h_dropout', self._Dropout('input_dropout',
+                                            1 - p.dropout_rate)),
+        ('wo_reshaped,h_dropout->outputs_pre_split',
+         self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),
+        ('outputs_pre_split->outputs',
+         self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+    )
+
+  def DenseReluDenseGatedGELU(self, name, decoder=False):
+    # Need to unify.
+    input_endpoints = ['inputs', 'segment_id', 'segment_pos']
+    if decoder:
+      input_endpoints += [
+          'unused_encoder_output',
+          'unused_encoder_segment_id',
+          'unused_encoder_segment_pos',
+      ]
+
+    def _Impl(wi_0, wi_1, inputs):
+      return tf.math.multiply(
+          tf.nn.gelu(
+              self._EinsumWithModelDim('MH,BLM->BLH', wi_0, inputs),
+              approximate=True),
+          # linear / pass-through
+          self._EinsumWithModelDim('MH,BLM->BLH', wi_1, inputs))
+
+    p = self.params
+    return self._Graph(
+        name,
+        input_endpoints,
+        ['outputs', 'aux_loss'],
+        ('->wi_0,wi_1,wo', self._DenseReluDenseWeightsGatedGELU('w')),
+        ('wi_0->wi_0_split', self.MeshSplit('wi_0_split', p.mh_wi_split)),
+        ('wi_1->wi_1_split', self.MeshSplit('wi_1_split', p.mh_wi_split)),
+        ('wo->wo_split', self.MeshSplit('wo_split', p.hm_wo_split)),
+        ('wi_0_split->wi_0_reshaped',
+         self._Fn('wi0_reshape', fn=lambda x: self._ReshapeM(x, 0))),
+        ('wi_1_split->wi_1_reshaped',
+         self._Fn('wi1_reshape', fn=lambda x: self._ReshapeM(x, 0))),
+        ('wo_split->wo_reshaped',
+         self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
+        ('wi_0_reshaped,wi_1_reshaped,inputs->h', self._Fn('wi', fn=_Impl)),
+        ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
+        ('h_split->h_dropout',
+         self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
+        ('wo_reshaped,h_dropout->outputs_pre_split',
+         self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),
+        ('outputs_pre_split->outputs',
+         self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+    )
+
+
+class UniTransformer(base_model.BaseTask):
+  """LM TransformerModel with z-loss."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('debug', False, 'If true, outfeed additional per-example tensor.')
+
+    p.Define('builder', None, 'GShard Builder.')
+    p.Define('vocab_size', None, 'Vocabulary size')
+    p.Define('sequence_length', None, 'Sequence length.')
+    p.Define(
+        'max_length', 512,
+        'Max sequence length. Second pos_emb Tensor dim is set to ' +
+        'max_length.')
+    p.Define('batch_size', None, 'Batch size.')
+    p.Define('num_transformer_layers', None,
+             'Number of blocks in builder.{Decoder,Encoder}LayerStack.')
+
+    p.Define(
+        'use_tgt_labels_size_as_loss_denominator', True,
+        'False to use total number of non-padding tokens instead of '
+        'fixed tgt_labels tensor size.')
+
+    p.Define('aux_loss_coef', 0.01, 'Multiplier for GShard aux_loss.')
+    p.Define('label_smoothing', 0.1, 'Label smoothing.')
+    p.Define('logits_abs_max', None, 'Logits clipping.')
+    p.Define(
+        'z_loss', 1e-4, 'if z_loss is nonzero, we add a loss equal to '
+        'z_loss * tf.math.square(tf.math.reduce_logsumexp(logits, -1))')
+    p.Define('positional_embedding', True, 'Positional embs.')
+    p.Define('gated_gelu', False, 'FFN gated GELU.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+
+    b = p.builder.Instantiate()
+
+    tgt_vocab_size = p.vocab_size
+
+    dec_emb = b.Embedding('dec_emb', tgt_vocab_size)
+    self.CreateChild('dec_emb', dec_emb)
+
+    if p.positional_embedding:
+      dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
+      self.CreateChild('dec_pos_emb', dec_pos_emb)
+
+    dec = b.DecoderLayerStack('decoder', [
+        (b.DecSelfAttentionRelativeBias('dec_self_attention')
+         if not p.positional_embedding else
+         b.DecSelfAttention('dec_self_attention')),
+        (b.DenseReluDense('dense_relu_dense', decoder=True) if not p.gated_gelu
+         else b.DenseReluDenseGatedGELU('dense_relu_dense', decoder=True)),
+    ], p.num_transformer_layers)
+    dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+    emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
+    dec_out_split = b.MeshSplit('dec_out_split',
+                                b._AdjustMSplit(b.params.blm_split, 2))
+    logits_split = b.MeshSplit('logits_split', b.params.logits_split)
+
+    self.CreateChild('dec', dec)
+    self.CreateChild('emb_w_split', emb_w_split)
+    self.CreateChild('dec_out_split', dec_out_split)
+    self.CreateChild('logits_split', logits_split)
+
+  def ComputePredictions(self, theta, input_batch):
+    """Forward propagation through one tower of the model.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values of this task
+        copied to this tower's devices.
+      input_batch: A `.NestedMap` object containing input tensors to this tower.
+
+    Returns:
+      A dict containing metrics pairs.
+    """
+    p = self.params
+
+    with tf.name_scope(p.name):
+      # ops.text_packed:
+      #   target_id_eos => tgt_labels
+      #   target_bos_id => tgt_ids
+
+      y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
+
+      if p.positional_embedding:
+        y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
+                                    input_batch.tgt.segment_pos)
+
+      dec_outputs, aux_loss = self.dec.FProp(
+          theta.dec, y, input_batch.tgt.segment_ids,
+          input_batch.tgt.segment_pos, tf.zeros_like(y),
+          tf.zeros_like(input_batch.tgt.segment_ids),
+          tf.zeros_like(input_batch.tgt.segment_pos),
+          tf.convert_to_tensor(0.0, py_utils.FPropDtype(p)))
+      dec_outputs *= (p.builder.model_dim**-0.5)
+      dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
+      # TODO(lepikhin): we only support
+      # shared_embedding_and_softmax_weights=True at the moment.
+      softmax_weights = self.vars.dec_emb.w.embedding.read_value()
+      softmax_weights = self.emb_w_split.FProp(theta.emb_w_split,
+                                               softmax_weights)
+      if dec_outputs.dtype != softmax_weights.dtype:
+        # to enable fprop_dtype = tf.bfloat16
+        softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
+      if p.builder.model_dim_reshape_segments is not None:
+        dec_outputs = tf.reshape(
+            dec_outputs, [dec_outputs.shape[0], dec_outputs.shape[1], -1])
+      logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
+      logits = self.logits_split.FProp(theta.logits_split, logits)
+
+      if p.logits_abs_max is not None:
+        logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
+                                        p.logits_abs_max)
+      logits = self.logits_split.FProp(theta.logits_split, logits)
+      return logits, aux_loss
+
+  def _ComputeNonPadding(self, input_batch):
+    non_padding = tf.cast(
+        tf.not_equal(input_batch.tgt.segment_ids, 0),
+        py_utils.FPropDtype(self.params))
+    return non_padding
+
+  def ComputeLoss(self, theta, predictions, input_batch):
+    p = self.params
+
+    vocab_size = p.vocab_size
+
+    with tf.name_scope(p.name):
+      logits, aux_loss = predictions
+      if 'soft_labels' in input_batch.tgt:
+        tf.logging.info('using input_batch.tgt.soft_labels: %r',
+                        input_batch.tgt.soft_labels)
+        soft_labels = input_batch.tgt.soft_labels
+      else:
+        label_smoothing = p.label_smoothing
+        off_value = label_smoothing / vocab_size
+        on_value = 1.0 - label_smoothing + off_value
+        tf.logging.info({'on_value': on_value, 'off_value': off_value})
+        soft_labels = tf.one_hot(
+            input_batch.tgt.labels,
+            vocab_size,
+            on_value=on_value,
+            off_value=off_value)
+
+      xent = tf.nn.softmax_cross_entropy_with_logits(
+          labels=tf.one_hot(input_batch.tgt.labels, vocab_size), logits=logits)
+
+      top1 = tf.math.argmax(
+          logits, -1, output_type=input_batch.tgt.labels.dtype)
+      acc1 = tf.cast(tf.equal(input_batch.tgt.labels, top1), logits.dtype)
+      assert acc1.shape == xent.shape, (acc1.shape, xent.shape)
+
+      loss = tf.nn.softmax_cross_entropy_with_logits(
+          labels=soft_labels, logits=logits)
+      soft_labels_xent = loss
+
+      if self.params.z_loss > 0.0:
+        log_z = tf.math.reduce_logsumexp(logits, -1)
+        z_loss_increment = self.params.z_loss * tf.math.square(log_z)
+        loss += z_loss_increment
+
+      non_padding = self._ComputeNonPadding(input_batch)
+
+      per_token_loss = loss * non_padding
+      if self.params.z_loss:
+        per_token_z_loss_increment = z_loss_increment * non_padding
+
+      if p.use_tgt_labels_size_as_loss_denominator:
+        # E.g. loss is going to be tiny if inputs are not packed and only a
+        # fraction of tgt_labels are non-padding.
+        loss_denom = tf.reduce_sum(tf.ones_like(non_padding))
+      else:
+        loss_denom = tf.reduce_sum(non_padding)
+      avg_loss = tf.reduce_sum(per_token_loss) / loss_denom
+      avg_z_loss_increment = (tf.reduce_sum(per_token_z_loss_increment) /
+                              loss_denom) if p.z_loss else 0.0
+
+      soft_labels_xent = (
+          tf.reduce_sum(soft_labels_xent * non_padding) /
+          tf.reduce_sum(non_padding))
+      avg_loss += p.aux_loss_coef * aux_loss
+
+      # TODO(lepikhin): consider returning
+      #   {'loss': (unnormalized per_token_loss, tf.reduce_sum(non_padding))}
+      per_step_loss = {
+          'loss': tf.reshape(avg_loss, [1]),
+      }
+
+      eval_metrics = {
+          'acc1':
+              (tf.reduce_sum(acc1 * non_padding) / tf.reduce_sum(non_padding),
+               tf.reduce_sum(non_padding)),
+          'mean_xent':
+              (tf.reduce_sum(xent * non_padding) / tf.reduce_sum(non_padding),
+               tf.reduce_sum(non_padding)),
+          'soft_labels_xent': (soft_labels_xent, tf.reduce_sum(non_padding)),
+          'weight': (tf.reduce_sum(non_padding), 1.0),
+          'loss': (avg_loss, 1.0),
+          'aux_loss': (p.aux_loss_coef * aux_loss, 1.0),
+          'avg_z_loss_increment': (avg_z_loss_increment, 1.0),
+      }
+      eval_metrics.update(py_utils.GetTpuSummaryTensors())
+      return eval_metrics, per_step_loss
+
+  def FilterPerExampleTensors(self, per_step):
+    return per_step if self.params.debug else {}
+
+  def ProcessFPropResults(self, sess, global_step, metrics, per_step):
+    del sess, metrics
+    if not per_step:
+      return
+    iterations_per_loop = 0
+    for key, per_step_values in per_step.items():
+      iterations_per_loop = iterations_per_loop or len(per_step_values)
+      assert iterations_per_loop == len(per_step_values)
+
+    for t in range(iterations_per_loop):
+      for key, per_step_values in per_step.items():
+        # Each per_step_values is an aggregation of outfeed tensor over
+        # iterations_per_loop steps.
+        tf.logging.info('Step = {}, {} = {}'.format(global_step + t, key,
+                                                    per_step_values[t]))

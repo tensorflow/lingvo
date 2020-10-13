@@ -19,6 +19,7 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import tpu_summary
+import numpy as np
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
@@ -63,6 +64,21 @@ def Split(x,
       input_shape=input_shape,
       use_sharding_op=use_sharding_op,
   )
+
+
+def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
+  """Wrapper of xla_sharding.mesh_split()."""
+  if tensor_split_dims_mapping is None or device_mesh.size <= 1:
+    return x
+  num_tiles = np.prod(
+      [device_mesh.shape[i] for i in tensor_split_dims_mapping if i >= 0])
+  if num_tiles <= 1:
+    return x
+  return xla_sharding.mesh_split(
+      x,
+      device_mesh,
+      tensor_split_dims_mapping,
+      use_sharding_op=use_sharding_op)
 
 
 class VarLayer(base_layer.BaseLayer):
