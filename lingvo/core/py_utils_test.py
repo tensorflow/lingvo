@@ -2037,6 +2037,50 @@ class LengthsFromPaddingsTest(test_utils.TestCase):
       self.assertAllEqual(actual_lengths, lengths)
 
 
+class PaddingsFromLengthsTest(test_utils.TestCase):
+
+  def testBasic(self):
+    with self.session():
+      expected = np.array([
+          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+          [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+          [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+      ])
+      lengths = np.array([6, 3, 5, 0])
+      actual = py_utils.PaddingsFromLengths(
+          tf.convert_to_tensor(lengths)).eval()
+      self.assertAllEqual(expected, actual)
+
+  def testZeroLength(self):
+    with self.session():
+      expected = np.zeros([4, 0])
+      lengths = np.array([0, 0, 0, 0])
+      actual = py_utils.PaddingsFromLengths(
+          tf.convert_to_tensor(lengths)).eval()
+      self.assertAllEqual(expected, actual)
+
+  def testMaxLen(self):
+    with self.session():
+      expected = np.array([
+          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0],
+          [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+          [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+      ])
+      lengths = np.array([6, 3, 5, 0])
+      actual = py_utils.PaddingsFromLengths(
+          tf.convert_to_tensor(lengths), maxlen=8).eval()
+      self.assertAllEqual(expected, actual)
+
+  def testMaxLenTooShort(self):
+    with self.session():
+      lengths = np.array([6, 3, 5, 0])
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, ''):
+        py_utils.PaddingsFromLengths(
+            tf.convert_to_tensor(lengths), maxlen=4).eval()
+
+
 class TrimTrailingPaddingsTest(test_utils.TestCase):
 
   def test2D(self):

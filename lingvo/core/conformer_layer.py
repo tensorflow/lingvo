@@ -95,6 +95,7 @@ class LConvLayer(base_layer.BaseLayer):
                    dropout_prob=0.):
     p = cls.Params().Set(
         input_dim=input_dim,
+        is_causal=is_causal,
         kernel_size=kernel_size,
         conv_activation=conv_activation,
         dropout_prob=dropout_prob)
@@ -117,8 +118,12 @@ class LConvLayer(base_layer.BaseLayer):
     self.CreateChild('linear_start', linear_start_p)
     self.CreateChild('linear_end', linear_end_p)
 
-    norm_p = p.conv_norm_layer_tpl.Copy().Set(
-        name='norm_layer', dim=p.input_dim)
+    if p.conv_norm_layer_tpl.cls == layers.LayerNorm:
+      norm_p = p.conv_norm_layer_tpl.Copy().Set(
+          name='norm_layer', input_dim=p.input_dim)
+    else:
+      norm_p = p.conv_norm_layer_tpl.Copy().Set(
+          name='norm_layer', dim=p.input_dim)
     if p.conv_norm_layer_tpl.cls == bn_layers.GroupNormLayer:
       norm_p.cumulative = p.is_causal
     self.CreateChild('norm', norm_p)
@@ -218,6 +223,60 @@ class LConvLayer(base_layer.BaseLayer):
 
       output = inputs + unnormalized_inputs
       return output, paddings
+
+  def zero_state(self, batch_size):
+    p = self.params
+    assert p.is_causal
+    return py_utils.NestedMap(
+        conv_state=self.depthwise_conv1d.zero_state(batch_size))
+
+  def StreamStep(self, theta, inputs, paddings, state0):
+    """Runs single step.
+
+    Args:
+      theta: A NestedMap of layer params.
+      inputs: [b, 1, d].
+      paddings: A 0/1 valued tensor of shape [b, 1].
+      state0: A NestedMap of tensors of the same struct as returned by
+        zero_state().
+
+    Returns:
+      outputs: A NestedMap of tensors consisting:
+      padding: the same as input paddings.
+      state1: A NestedMap of tensors of the same struct as state0.
+    """
+    p = self.params
+    assert p.is_causal
+    assert self.do_eval
+
+    with tf.name_scope(f'{p.name}/StreamStep'):
+      unnormalized_inputs = inputs
+
+      inputs = self.ln.FProp(theta.ln, inputs)
+      inputs = self.linear_start.FProp(theta.linear_start, inputs)
+
+      inputs = self._GLU(inputs)
+
+      # TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.
+      # TODO(jamesqin): optimize DepthwiseConv1D.StreamStep()
+      # [b, t, d] --> [b, t, 1, d]
+      inputs = tf.expand_dims(inputs, 2)
+      # [b, t, 1, d]
+      inputs, paddings, conv_state1 = self.depthwise_conv1d.StreamStep(
+          theta.depthwise_conv1d, inputs, paddings, state0.conv_state)
+      # [b, t, d]
+      inputs = tf.squeeze(inputs, 2)
+      # TODO(jamesqin): support GroupNorm single step!!!1
+      assert isinstance(self.norm, layers.LayerNorm)
+      inputs = self.norm.FProp(theta.norm, inputs)
+
+      inputs = self._ApplyActivation(inputs, p.conv_activation)
+
+      inputs = self.linear_end.FProp(theta.linear_end, inputs)
+      inputs = self.dropout.FProp(theta.dropout, inputs)
+
+      output = inputs + unnormalized_inputs
+      return output, paddings, py_utils.NestedMap(conv_state=conv_state1)
 
 
 class ConformerLayer(base_layer.BaseLayer):
@@ -454,3 +513,47 @@ class ConformerLayer(base_layer.BaseLayer):
         allow_implicit_capture=p.allow_implicit_capture)
 
     return state1.inputs, state1.paddings
+
+  def zero_state(self, batch_size):
+    return py_utils.NestedMap(
+        lconv_state=self.lconv.zero_state(batch_size),
+        atten_state=self.trans_atten.zero_state(batch_size))
+
+  def StreamStep(self, theta, inputs, paddings, state0):
+    """Runs single step.
+
+    Args:
+      theta: A NestedMap of read-only layer params.
+      inputs: A tensor of shape [b, 1, d].
+      paddings: A 0/1 valued tensor of shape [b, 1].
+      state0: A NestedMap of tensors of the same struct as returned by
+        zero_state().
+
+    Returns:
+      outputs:A tensor of shape [b, 1, d].
+      padding: the same as input paddings.
+      state1: A NestedMap of tensors of the same struct as state0.
+    """
+    p = self.params
+    assert p.is_causal
+    assert p.layer_order == 'conv_before_mhsa'
+    assert not p.remat
+    assert self.do_eval
+
+    with tf.name_scope(f'{p.name}/StreamStep'):
+      outputs = self.fflayer_start.FProp(theta.fflayer_start, inputs, paddings)
+
+      # lconv
+      outputs, paddings, lconv_state1 = self.lconv.StreamStep(
+          theta.lconv, outputs, paddings, state0.lconv_state)
+
+      # atten
+      outputs, paddings, atten_state1 = self.trans_atten.StreamStep(
+          theta.trans_atten, outputs, paddings, state0.atten_state)
+
+      outputs = self.fflayer_end.FProp(theta.fflayer_end, outputs, paddings)
+      outputs = self.final_ln.FProp(theta.final_ln, outputs)
+
+      state1 = py_utils.NestedMap(
+          lconv_state=lconv_state1, atten_state=atten_state1)
+      return outputs, paddings, state1

@@ -205,6 +205,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":conformer_layer",
+        ":py_utils",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
         "//lingvo/core:bn_layers",

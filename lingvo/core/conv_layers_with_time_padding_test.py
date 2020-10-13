@@ -517,6 +517,51 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-2.031689, 7.911201], [v1, v2])
 
+  def testCausalDepthwiseConv2DLayerStreamStep(self):
+    tf.random.set_seed(398847392)
+    np.random.seed(12345)
+
+    batch_size, max_seqlen, channel = 2, 4, 3
+    kernel, channel_multiplier = 3, 1
+    params = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
+        name='conv',
+        filter_stride=[1, 1],
+        filter_shape=[kernel, 1, channel, channel_multiplier],
+        params_init=py_utils.WeightInit.Gaussian(0.1))
+
+    conv_layer = params.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    inputs = tf.constant(
+        np.random.normal(0.1, 0.5, [batch_size, max_seqlen, 1, channel]),
+        dtype=tf.float32)
+    seqlen = tf.random.uniform([batch_size],
+                               minval=1,
+                               maxval=max_seqlen + 1,
+                               dtype=tf.int32)
+    input_padding = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+
+    base_outputs, _ = conv_layer.FProp(conv_layer.theta, inputs, input_padding)
+    base_outputs *= tf.reshape(1. - input_padding,
+                               [batch_size, max_seqlen, 1, 1])
+
+    outputs = []
+    state = conv_layer.zero_state(batch_size)
+    for i in range(0, max_seqlen):
+      output, _, state = conv_layer.StreamStep(conv_layer.theta,
+                                               inputs[:, i:(i + 1), :, :],
+                                               input_padding[:,
+                                                             i:(i + 1)], state)
+      outputs.append(output)
+    # [b, t, 1, c * channel_multiplier]
+    outputs = tf.concat(outputs, axis=1)
+    outputs *= tf.reshape(1. - input_padding, [batch_size, max_seqlen, 1, 1])
+
+    with self.session(use_gpu=True) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([base_outputs, outputs])
+      self.assertAllClose(expected, actual)
+
   def testActivationLayer(self):
     with self.session(use_gpu=True):
       p = conv_layers.ActivationLayer.Params()

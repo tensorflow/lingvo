@@ -344,7 +344,7 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
   def _RescaleBoundary(self, out, in_paddings):
     # Rescale every output position by:
     #   (# input positions) / (# non-padding input positions)
-    # where (# input posisions) = filter_size.
+    # where (# input positions) = filter_size.
     p = self.params
     in_mask = 1.0 - in_paddings
 
@@ -596,6 +596,74 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
         dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
+
+  def zero_state(self, batch_size):
+    """Returns the initial state given the batch size.
+
+    Args:
+      batch_size: the batch size.
+
+    Returns:
+      state0: A NestedMap of tensors including:
+        - context: A Tensor of shape [b, w, 1, c]
+    """
+    p = self.params
+    assert p.filter_shape[1] == 1, (
+        'StreamStep only supports 1d causal convolution.')
+
+    context = tf.zeros(
+        shape=[batch_size, p.filter_shape[0], 1, p.filter_shape[2]],
+        dtype=tf.float32)
+    return py_utils.NestedMap(context=context)
+
+  def StreamStep(self, theta, inputs, paddings, state0):
+    """Apply a singele step of convolution to input_tensor.
+
+    Only supports 1d causal convolution. Doesn't support dilation.
+
+    Args:
+      theta: A NestedMap of layer params.
+      inputs: A Tensor of shape [b, t=1, 1, c]
+      paddings: A 0/1 valued tensor of shape [b, t=1].
+      state0: A NestedMap of tensors of the same struct as returned by
+        zero_state().
+
+    Returns:
+      outputs: A Tensor of shape [b, t=1, 1, c * channel_multiplier]
+      padding: the same as input paddings.
+      state1: A NestedMap of the same struct as input state
+    """
+    p = self.params
+    assert p.filter_shape[1] == 1, (
+        'StreamStep only supports 1d causal convolution.')
+    assert p.filter_stride[0] == 1, ('StreamStep doesn\'t support striding')
+    assert p.dilation_rate == (1, 1), ('StreamStep doesn\'t support dilation')
+
+    with tf.name_scope(p.name):
+      inputs = py_utils.with_dependencies([
+          py_utils.assert_shape_match(
+              py_utils.GetShape(inputs), [-1, 1, 1, p.filter_shape[2]])
+      ], inputs)
+      b = py_utils.GetShape(inputs)[0]
+
+      # next state.
+      state1 = py_utils.NestedMap(
+          context=tf.concat([state0.context[:, 1:, :, :], inputs], axis=1))
+
+      expanded_paddings = tf.reshape(paddings, [b, 1, 1, 1])
+      # Not updating the states for padded examples.
+      state1.context = (
+          state0.context * expanded_paddings + state1.context *
+          (1. - expanded_paddings))
+
+      outputs = tf.nn.depthwise_conv2d(
+          state1.context,
+          self._GetWeight(self.theta),
+          strides=(1, 1, 1, 1),
+          dilations=(1, 1),
+          data_format='NHWC',
+          padding='VALID')
+      return outputs, paddings, state1
 
 
 class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):

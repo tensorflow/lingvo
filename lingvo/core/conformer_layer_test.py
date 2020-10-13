@@ -20,7 +20,10 @@ from absl.testing import parameterized
 
 from lingvo import compat as tf
 from lingvo.core import bn_layers
+from lingvo.core import cluster_factory
 from lingvo.core import conformer_layer
+from lingvo.core import layers
+from lingvo.core import py_utils
 from lingvo.core import test_utils
 
 import numpy as np
@@ -53,6 +56,40 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       tf.global_variables_initializer().run()
       out_vals = sess.run(outputs)
       print([x.shape for x in out_vals])
+
+  def testStreamStep(self):
+    with cluster_factory.SetEval(True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+
+      batch, max_seqlen, input_dim, kernel = 2, 8, 2, 3
+      p = conformer_layer.LConvLayer.CommonParams(
+          input_dim=input_dim, is_causal=True, kernel_size=kernel)
+      p.conv_norm_layer_tpl = layers.LayerNorm.Params()
+      p.name = 'lconv'
+
+      l = p.Instantiate()
+      init_op = tf.global_variables_initializer()
+
+      inputs = tf.convert_to_tensor(
+          np.random.normal(0.1, 0.5,
+                           [batch, max_seqlen, input_dim]).astype(np.float32))
+      paddings = tf.zeros([batch, max_seqlen])
+      base_outputs, _ = l.FProp(l.theta, inputs, paddings)
+
+      outputs = []
+      state = l.zero_state(batch)
+      for i in range(max_seqlen):
+        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + 1), :],
+                                        paddings[:, i:(i + 1)], state)
+        outputs.append(output)
+      # [b, t, d]
+      outputs = tf.concat(outputs, axis=1)
+
+      with self.session(use_gpu=False) as sess:
+        sess.run(init_op)
+        expected, actual = sess.run([base_outputs, outputs])
+        self.assertAllClose(expected, actual)
 
 
 class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
@@ -162,6 +199,54 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         p.Instantiate()
         self.assertFalse(m1.called)
         self.assertFalse(m2.called)
+
+  def testStreamStep(self):
+    with cluster_factory.SetEval(True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+
+      batch, max_seqlen, input_dim, kernel = 2, 8, 2, 3
+      num_heads, left_context, ffn_dim = 2, 3, 4
+      p = conformer_layer.ConformerLayer.CommonParams(
+          input_dim=input_dim,
+          is_causal=True,
+          atten_num_heads=num_heads,
+          atten_left_context=left_context,
+          atten_right_context=0,
+          use_relative_atten=False,
+          fflayer_hidden_dim=ffn_dim,
+          kernel_size=kernel,
+          layer_order='conv_before_mhsa')
+      p.lconv_tpl.conv_norm_layer_tpl = layers.LayerNorm.Params()
+      p.name = 'conformer'
+
+      l = p.Instantiate()
+      init_op = tf.global_variables_initializer()
+
+      inputs = tf.convert_to_tensor(10 * np.random.normal(
+          0.1, 0.5, [batch, max_seqlen, input_dim]).astype(np.float32))
+      seqlen = tf.random.uniform([batch],
+                                 minval=1,
+                                 maxval=max_seqlen + 1,
+                                 dtype=tf.int32)
+      paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+      base_outputs, _ = l.FProp(l.theta, inputs, paddings)
+      base_outputs *= tf.reshape(1. - paddings, [batch, max_seqlen, 1])
+
+      outputs = []
+      state = l.zero_state(batch)
+      for i in range(max_seqlen):
+        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + 1), :],
+                                        paddings[:, i:(i + 1)], state)
+        outputs.append(output)
+      # [b, t, d]
+      outputs = tf.concat(outputs, axis=1)
+      outputs *= tf.reshape(1. - paddings, [batch, max_seqlen, 1])
+
+      with self.session(use_gpu=False) as sess:
+        sess.run(init_op)
+        expected, actual = sess.run([base_outputs, outputs])
+        self.assertAllClose(expected, actual, atol=5e-06)
 
 
 if __name__ == '__main__':

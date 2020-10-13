@@ -3853,6 +3853,9 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
 def LengthsFromPaddings(paddings):
   """Computes lengths of each sequence in a batch, ignoring trailing padding.
 
+  Note the following isn't guaranteed due to leading paddings.
+  PaddingsFromLengths(LengthsFromPaddings(x)) == x
+
   Args:
     paddings: a tensor with shape [batch, length].
 
@@ -3875,6 +3878,30 @@ def LengthsFromPaddings(paddings):
   # Special case for all 0 paddings.
   all_zero_paddings = tf.equal(tf.reduce_sum(1 - paddings, axis=1), 0)
   return tf.where(all_zero_paddings, tf.zeros_like(length), length)
+
+
+def PaddingsFromLengths(lengths, maxlen=None):
+  """Computes paddings Tensor from lengths.
+
+  Note the following isn't guaranteed due to leading paddings.
+  PaddingsFromLengths(LengthsFromPaddings(x)) == x.
+
+  This method does not generate leading paddings.
+
+  Args:
+    lengths: A int32 Tensor of shape [B].
+    maxlen: None or a Python int or a scalar Tensor.
+
+  Returns:
+    A 0/1 valued Tensor of shape [B, maxlen or ?] where 1s are padded positions.
+  """
+  lengths = HasRank(lengths, 1)
+  if maxlen is not None:
+    lengths = with_dependencies(
+        [assert_less_equal(tf.cast(tf.reduce_max(lengths), tf.int32), maxlen)],
+        lengths)
+
+  return 1. - tf.sequence_mask(lengths, maxlen=maxlen, dtype=tf.float32)
 
 
 def TrimTrailingPaddings(inputs, paddings):
