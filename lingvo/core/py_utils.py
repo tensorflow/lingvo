@@ -4311,7 +4311,7 @@ def SequencesToDebugStrings(ids, lens, summarize=5):
 
 
 # TODO(jamesqin): follow suggestions in
-# https://b.corp.google.com/issues/167460492#comment16
+# https://b/167460492#comment16
 def RematerializeFn(fn, *xs):
   """Calls fn and rematerializes fn in the backward pass.
 

@@ -340,7 +340,7 @@ class ConformerLayer(base_layer.BaseLayer):
              layers_with_attention.TransformerFeedForwardLayer.Params(),
              'Layer params for Feed forward layer at the end.')
     p.Define('final_ln_tpl', layers.LayerNorm.Params(), 'Final layer norm.')
-    # https://b.corp.google.com/issues/167460492#comment16
+    # https://b/167460492#comment16
     p.Define(
         'remat', False, 'If to rematerialize the layer. If true, '
         'intermediate tensors are not saved in FProp().')
