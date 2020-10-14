@@ -164,7 +164,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   @RecurrentTestParameters
   def testBasic(self):
 
-    with self.session():
+    with self.session(use_gpu=True):
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -205,7 +205,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   @RecurrentTestParameters
   def testBasicWithAccumulator(self):
 
-    with self.session():
+    with self.session(use_gpu=True):
 
       p = _SampleAccumulatorLayer.Params()
       p.name = 'sample'
@@ -269,7 +269,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   @RecurrentTestParameters
   def testTimeBasedStopFn(self):
 
-    with self.session():
+    with self.session(use_gpu=True):
 
       def StopFn(t, unused_theta, unused_state):
         # This stops after 3 iterations.
@@ -314,7 +314,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   @RecurrentTestParameters
   def testStateBasedStopFn(self):
 
-    with self.session():
+    with self.session(use_gpu=True):
 
       def StopFn(unused_t, unused_theta, state):
         # This stops after 3 iterations.
@@ -359,7 +359,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   @RecurrentTestParameters
   def testStopFnNotTriggeredBeforeEOS(self):
 
-    with self.session():
+    with self.session(use_gpu=True):
 
       def StopFn(t, unused_theta, unused_state):
         # The input sequence is only length 4, so this is never true.
@@ -405,7 +405,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   @RecurrentTestParameters
   def testCapture(self):
 
-    with self.session():
+    with self.session(use_gpu=True):
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -464,7 +464,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   @RecurrentTestParameters
   def testCaptureDisallowed(self):
 
-    with self.session() as unused_sess:
+    with self.session(use_gpu=True):
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -509,7 +509,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       dinputs = py_utils.NestedMap(t=dstate1.value * theta.w * x_tensor)
       return dtheta, dstate0, dinputs, None
 
-    with self.session():
+    with self.session(use_gpu=True):
       theta = py_utils.NestedMap(w=tf.constant(1., name='w'))
       state0 = py_utils.NestedMap(value=tf.constant(0., name='value'))
       inputs = py_utils.NestedMap(t=tf.constant([1., 2., 3.], name='t'))
@@ -556,7 +556,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
           inputs.coeff * tf.random.uniform(shape=[], dtype=state.value.dtype))
       return next_state, py_utils.NestedMap()
 
-    with self.session():
+    with self.session(use_gpu=True):
       theta = py_utils.NestedMap()
       state = py_utils.NestedMap()
       state.value = tf.constant(0.0)
@@ -590,7 +590,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       next_state.value = state.value + Coeff(inputs.coeff)
       return next_state, py_utils.NestedMap()
 
-    with self.session():
+    with self.session(use_gpu=True):
       theta = py_utils.NestedMap()
       state = py_utils.NestedMap()
       state.value = tf.constant(0.0)
@@ -612,7 +612,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
                                        [0, 2]), ([[0.0], [1.0], [0.0]], [0, 0]),
                             ([[0.0], [0.0], [1.0]], [0, 1]), ([[0.0], [0.0],
                                                                [0.0]], [0, 0])]:
-      with self.session():
+      with self.session(use_gpu=True):
         inputs = py_utils.NestedMap()
         inputs.padding = tf.constant(value)
 
@@ -625,7 +625,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
     return tf.random.uniform(shape, minval=-0.2, maxval=0.2, dtype=tf.float64)
 
   def _testElmanHelper(self, seqlen, use_grad, stop_fn=None):
-    with self.session():
+    with self.session(use_gpu=True):
       tf.random.set_seed(342462)
 
       batch = 3
@@ -758,7 +758,7 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
           inputs=inputs)
       dw0, dw1, dw2 = tf.gradients(tf.reduce_sum(output.s), [w0, w1, w2])
 
-    with self.session(graph=g):
+    with self.session(graph=g, use_gpu=True):
       (output, dw0, dw1, dw2) = self.evaluate([output.s, dw0, dw1, dw2])
 
     self.assertAllClose(output, [1., 4., 9., 0.])
@@ -840,7 +840,7 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
           seqlen, trailing_pad_len, batch, dims, layers)
     ref = ref[:-trailing_pad_len]
     output = output[:-trailing_pad_len]
-    with self.session(graph=g):
+    with self.session(graph=g, use_gpu=True):
       ref_val, out_val = self.evaluate([ref, output])
     self._LogDiff(ref_val, out_val)
     self.assertAllClose(ref_val, out_val)
@@ -868,7 +868,7 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
     # Fetches all gradients (dxs) in one session run and compare
     # them with their respective numerical gradient.
-    with self.session(graph=g) as sess:
+    with self.session(graph=g, use_gpu=True) as sess:
       s_dxs = self.evaluate(dxs)
       for (x, s_dx) in zip(xs, s_dxs):
         n_dx = test_utils.ComputeNumericGradient(sess, loss, x)
@@ -879,7 +879,7 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
     # and compare with its numerical gradient.
     xs_dxs = list(zip(xs, dxs))
     np.random.shuffle(xs_dxs)
-    with self.session(graph=g) as sess:
+    with self.session(graph=g, use_gpu=True) as sess:
       for (x, dx) in xs_dxs[:4]:
         s_dx = self.evaluate(dx)
         n_dx = test_utils.ComputeNumericGradient(sess, loss, x)

@@ -1447,7 +1447,7 @@ py_library(
     ],
 )
 
-py_test(
+lingvo_cuda_py_test(
     name = "recurrent_test",
     srcs = ["recurrent_test.py"],
     python_version = "PY3",
@@ -1469,19 +1469,6 @@ py_library(
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-    ],
-)
-
-lingvo_cuda_py_test(
-    name = "recurrent_gpu_test",
-    srcs = ["recurrent_gpu_test.py"],
-    python_version = "PY3",
-    shard_count = 6,
-    deps = [
-        ":py_utils",
-        ":recurrent",
-        ":test_utils",
-        "//lingvo:compat",
     ],
 )
 
