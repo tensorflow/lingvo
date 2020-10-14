@@ -507,12 +507,16 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
 
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_ops</span><span class="p">)</span>
+      <span class="n">program_schedule</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">program_schedule</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Shutting down programs.&#39;</span><span class="p">)</span>
+            <span class="n">program_schedule</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
           <span class="k">return</span>
 
         <span class="c1"># If a task is explicitly selected, only run the programs associated</span>
