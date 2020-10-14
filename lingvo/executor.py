@@ -359,12 +359,16 @@ class ExecutorTpu(base_runner.BaseRunner):
       sess.run(self._initialize_local_vars)
 
       sess.run(self._load_ops)
+      program_schedule = None
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if not self._ml_perf_log:
             self.save_only_checkpointer.Save(sess, global_step)
+          if program_schedule:
+            tf.logging.info('Shutting down programs.')
+            program_schedule.Shutdown()
           return
 
         # If a task is explicitly selected, only run the programs associated
