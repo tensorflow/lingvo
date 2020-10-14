@@ -26,7 +26,6 @@ py_library(
         "//lingvo/core:cluster_factory",
         "//lingvo/core:early_stop",
         "//lingvo/core:py_utils",
-        # Implicit tensorflow py proto dependency.
     ],
 )
 
@@ -156,6 +155,7 @@ py_library(
     name = "datasets_lib",
     srcs = ["datasets.py"],
     srcs_version = "PY3",
+    deps = [":compat"],
 )
 
 py_test(
@@ -184,7 +184,6 @@ py_library(
         # Implicit network file system dependency.
         "//lingvo:base_runner",
         # Implicit IPython dependency.
-        "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
         "//lingvo/core:checkpointer_lib",
@@ -259,15 +258,17 @@ py_library(
         ":compat",
         ":model_registry",
         ":trainer_lib",
+        # Implicit absl.testing.flagsaver dependency.
         "//lingvo/core:base_input_generator",
-        "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
-        "//lingvo/core:py_utils",
+        "//lingvo/core:base_model_params",
+        "//lingvo/core:hyperparams",
+        "//lingvo/core:inference_graph_py_pb2",
         "//lingvo/core:test_utils",
         "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",
-        "//lingvo/tasks/image/params:mnist",
-        "//lingvo/tasks/punctuator/params:codelab",
+        "//lingvo/tasks/image/params:mnist",  # build_cleaner: keep
+        "//lingvo/tasks/punctuator/params:codelab",  # build_cleaner: keep
         # Implicit numpy dependency.
     ],
 )
