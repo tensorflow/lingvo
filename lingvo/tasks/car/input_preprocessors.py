@@ -2154,7 +2154,7 @@ class RandomDropLaserPoints(Preprocessor):
       points_xyz = features.lasers.points_xyz
       points_feature = features.lasers.points_feature
 
-    num_points, _ = py_utils.GetShape(features.lasers.points_xyz)
+    num_points, _ = py_utils.GetShape(points_xyz)
 
     pts_keep_sample_prob = tf.random.uniform([num_points],
                                              minval=0,
