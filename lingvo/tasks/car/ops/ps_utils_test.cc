@@ -322,44 +322,41 @@ TEST(PSUtilsTest, TestSeeded) {
   EXPECT_EQ(points_t(0, indices_t(0, 0, 0), 0), 2.);
 }
 
-void BenchmarkFarthestPoint(int iters, int num_centers, int num_neighbors,
-                            PSUtils::Options opts) {
-  testing::StopTiming();
-  testing::SetLabel(strings::Printf("#Centers=%4d #Neighbors=%4d", num_centers,
-                                    num_neighbors));
+void BenchmarkFarthestPoint(benchmark::State& state, PSUtils::Options opts) {
+  testing::SetLabel(strings::Printf("#Centers=%4d #Neighbors=%4d",
+                                    opts.num_centers, opts.num_neighbors));
   PSUtils fu(opts);
   Tensor points;
   Tensor points_padding;
   GeneratePoints(1, 1000, 100, &points, &points_padding);
-  testing::StartTiming();
-  for (int i = 0; i < iters; ++i) {
+  for (auto _ : state) {
     auto ret = fu.Sample(points, points_padding, 0);
   }
 }
 
-void BM_Farthest(int iters, int num_centers, int num_neighbors) {
+void BM_Farthest(benchmark::State& state) {
   PSUtils::Options opts;
   opts.cmethod = PSUtils::Options::C_FARTHEST;
   opts.nmethod = PSUtils::Options::N_UNIFORM;
-  opts.num_centers = num_centers;
-  opts.num_neighbors = num_neighbors;
+  opts.num_centers = state.range(0);
+  opts.num_neighbors = state.range(1);
   opts.max_dist = 1.0;
   opts.random_seed = -1;
-  BenchmarkFarthestPoint(iters, num_centers, num_neighbors, opts);
+  BenchmarkFarthestPoint(state, opts);
 }
 
 BENCHMARK(BM_Farthest)->RangePair(1, 1024, 1, 1024);
 
-void BM_FarthestHash(int iters, int num_centers, int num_neighbors) {
+void BM_FarthestHash(benchmark::State& state) {
   PSUtils::Options opts;
   opts.cmethod = PSUtils::Options::C_FARTHEST;
   opts.nmethod = PSUtils::Options::N_UNIFORM;
   opts.neighbor_search_algorithm = PSUtils::Options::N_HASH;
-  opts.num_centers = num_centers;
-  opts.num_neighbors = num_neighbors;
+  opts.num_centers = state.range(0);
+  opts.num_neighbors = state.range(1);
   opts.max_dist = 1.0;
   opts.random_seed = -1;
-  BenchmarkFarthestPoint(iters, num_centers, num_neighbors, opts);
+  BenchmarkFarthestPoint(state, opts);
 }
 
 BENCHMARK(BM_FarthestHash)->RangePair(1, 1024, 1, 1024);
