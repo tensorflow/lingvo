@@ -230,17 +230,20 @@ class Checkpointer:
 def GetSpecificCheckpoint(load_checkpoint_from):
   """Returns a specific checkpoint given `load_checkpoint_from`.
 
-  When load_checkpoint_from is a directory, we find the latest
-  checkpoint in the directory and use that as the checkpoint
-  to evaluate.
+  When `load_checkpoint_from` is a checkpoint (determined by the existence of
+  `load_checkpoint_from` + '.index'), validate the path and return it.
 
-  When load_checkpoint_from is a specific checkpoint, we
-  validate the path and return it.
+  Otherwise, if `load_checkpoint_from` is a directory, we find the latest
+  checkpoint in the directory and return that checkpoint.
 
   Args:
     load_checkpoint_from: If not None, specifies the directory or specific
       checkpoint to load.  If a directory, the latest checkpoint in the
       directory will be used.
+
+  Raises:
+    ValueError: if `load_checkpoint_from` is not a checkpoint or a directory
+      containing checkpoints.
   """
   if not load_checkpoint_from:
     return None
@@ -252,7 +255,9 @@ def GetSpecificCheckpoint(load_checkpoint_from):
   # If load_checkpoint_from is a directory, return the latest
   # checkpoint in the directory.
   if tf.io.gfile.isdir(load_checkpoint_from):
-    return tf.train.latest_checkpoint(load_checkpoint_from)
+    latest_checkpoint = tf.train.latest_checkpoint(load_checkpoint_from)
+    if latest_checkpoint:
+      return latest_checkpoint
 
   # Fail if we see an unexpected load_checkpoint_from.
   # This might happen if load_checkpoint_from refers to a checkpoint
