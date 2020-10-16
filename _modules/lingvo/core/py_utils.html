@@ -197,6 +197,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">init_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">stateless_random_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tf2</span> <span class="kn">import</span> <span class="n">enabled</span> <span class="k">as</span> <span class="n">tf2_enabled</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">topology</span> <span class="k">as</span> <span class="n">tf_topology</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">deprecation</span>
@@ -242,7 +243,7 @@
 
 <span class="c1"># TODO(laigd): remove after the migration.</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-                     <span class="s1">&#39;If True use tf.function instead of Defun.&#39;</span><span class="p">)</span>
+                     <span class="s1">&#39;If True, force using tf.function instead of Defun.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -5329,6 +5330,35 @@
   <span class="k">return</span> <span class="n">res</span></div>
 
 
+<span class="c1"># Global variable to control whether to use tf.function.</span>
+<span class="c1"># If not set, the result is determined by FLAGS.use_tf_function and whether tf2</span>
+<span class="c1"># is enabled. See _UseTfFunction for details.</span>
+<span class="c1"># TODO(laigd): remove after b/169869929 is fixed.</span>
+<span class="n">_USE_TF_FUNCTION</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="TfFunctionScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.TfFunctionScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">TfFunctionScope</span><span class="p">(</span><span class="n">use_tf_function</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="n">_USE_TF_FUNCTION</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">use_tf_function</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_USE_TF_FUNCTION</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="_UseTfFunction"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._UseTfFunction">[docs]</a><span class="k">def</span> <span class="nf">_UseTfFunction</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Whether to use tf.function instead of tf.Defun.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">_USE_TF_FUNCTION</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_USE_TF_FUNCTION</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">True</span>
+  <span class="c1"># TODO(laigd): remove TF version check when 312743821 and 313682500 are in the</span>
+  <span class="c1"># release.</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="s1">&#39;2.3.0&#39;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">False</span>
+  <span class="k">return</span> <span class="n">tf2_enabled</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="Function"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Function">[docs]</a><span class="k">class</span> <span class="nc">Function</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Function builds a TensorFlow graph function from a callable.</span>
 
@@ -5454,7 +5484,7 @@
 <span class="sd">        FLAGS.use_tf_function.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">use_tf_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">use_tf_function</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">)</span>
+      <span class="n">use_tf_function</span> <span class="o">=</span> <span class="n">_UseTfFunction</span><span class="p">()</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span> <span class="k">if</span> <span class="n">use_tf_function</span> <span class="k">else</span> <span class="n">_DefineDefun</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span>
         <span class="n">fwd</span><span class="o">=</span><span class="n">fwd</span><span class="p">,</span>
