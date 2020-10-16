@@ -241,10 +241,6 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;disable_py_utils_debug&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;If True disables all py_utils.Debug() logs.&#39;</span><span class="p">)</span>
 
-<span class="c1"># TODO(laigd): remove after the migration.</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-                     <span class="s1">&#39;If True, force using tf.function instead of Defun.&#39;</span><span class="p">)</span>
-
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Use stateless TensorFlow random number generators (RNG) (e.g. &#39;</span>
@@ -5331,8 +5327,8 @@
 
 
 <span class="c1"># Global variable to control whether to use tf.function.</span>
-<span class="c1"># If not set, the result is determined by FLAGS.use_tf_function and whether tf2</span>
-<span class="c1"># is enabled. See _UseTfFunction for details.</span>
+<span class="c1"># If not set, the result is determined by tf2 status. See _UseTfFunction for</span>
+<span class="c1"># details.</span>
 <span class="c1"># TODO(laigd): remove after b/169869929 is fixed.</span>
 <span class="n">_USE_TF_FUNCTION</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 
@@ -5350,8 +5346,6 @@
   <span class="sd">&quot;&quot;&quot;Whether to use tf.function instead of tf.Defun.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">_USE_TF_FUNCTION</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">_USE_TF_FUNCTION</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_tf_function&#39;</span><span class="p">):</span>
-    <span class="k">return</span> <span class="kc">True</span>
   <span class="c1"># TODO(laigd): remove TF version check when 312743821 and 313682500 are in the</span>
   <span class="c1"># release.</span>
   <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="s1">&#39;2.3.0&#39;</span><span class="p">:</span>
@@ -5431,8 +5425,7 @@
 <span class="sd">      bak_as_function: Whether to create a TF graph function for `bak`.</span>
 <span class="sd">      device: The device on which to run `fwd` and `bak`. Defaults to the</span>
 <span class="sd">        current device.</span>
-<span class="sd">      use_tf_function: Whether use tf.function. Defaults to the value of</span>
-<span class="sd">        FLAGS.use_tf_function.</span>
+<span class="sd">      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_bak</span> <span class="o">=</span> <span class="n">bak</span>
@@ -5480,8 +5473,7 @@
 <span class="sd">      bak_as_function: Whether to create a TF graph function for `bak`.</span>
 <span class="sd">      device: The device on which to run `fwd` and `bak`. Defaults to the</span>
 <span class="sd">        current device.</span>
-<span class="sd">      use_tf_function: Whether use tf.function. Defaults to the value of</span>
-<span class="sd">        FLAGS.use_tf_function.</span>
+<span class="sd">      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">use_tf_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">use_tf_function</span> <span class="o">=</span> <span class="n">_UseTfFunction</span><span class="p">()</span>
