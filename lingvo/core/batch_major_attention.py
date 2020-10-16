@@ -1506,7 +1506,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
-    assert p.right_context == 0, 'StreamStep does not support look ahead'
+    assert p.right_context == 0, 'StreamStep does not support look-ahead'
 
     key_state = tf.zeros(
         [p.left_context, batch_size, p.num_heads, p.hidden_dim // p.num_heads],

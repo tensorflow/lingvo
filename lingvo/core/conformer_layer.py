@@ -225,10 +225,30 @@ class LConvLayer(base_layer.BaseLayer):
       return output, paddings
 
   def zero_state(self, batch_size):
-    p = self.params
-    assert p.is_causal
-    return py_utils.NestedMap(
-        conv_state=self.depthwise_conv1d.zero_state(batch_size))
+    if self.params.is_causal:
+      return py_utils.NestedMap(
+          conv_state=self.depthwise_conv1d.zero_state(batch_size))
+    else:
+      # If not causal, depthwise_conv1d does not have zero_state().
+      return py_utils.NestedMap()
+
+  def _NormalizeStep(self, theta, inputs, paddings):
+    if isinstance(self.norm, bn_layers.GroupNormLayer):
+      # TODO(jamesqin): support 3d inputs.
+      assert self.norm.params.input_rank == 4
+      inputs, _ = self.norm.FProp(theta.norm, inputs, paddings)
+      # [b, t, d]
+      inputs = tf.squeeze(inputs, 2)
+    else:
+      # [b, t, 1, d] -> [b, t, d]
+      inputs = tf.squeeze(inputs, 2)
+      if isinstance(self.norm, layers.LayerNorm):
+        inputs = self.norm.FProp(theta.norm, inputs)
+      else:
+        raise NotImplementedError(
+            'Only bn_layers.GroupNormLayer, layers.LayerNorm are supported.')
+    # [b, t, d]
+    return inputs
 
   def StreamStep(self, theta, inputs, paddings, state0):
     """Runs single step.
@@ -247,7 +267,6 @@ class LConvLayer(base_layer.BaseLayer):
     """
     p = self.params
     assert p.is_causal
-    assert self.do_eval
 
     with tf.name_scope(f'{p.name}/StreamStep'):
       unnormalized_inputs = inputs
@@ -265,10 +284,7 @@ class LConvLayer(base_layer.BaseLayer):
       inputs, paddings, conv_state1 = self.depthwise_conv1d.StreamStep(
           theta.depthwise_conv1d, inputs, paddings, state0.conv_state)
       # [b, t, d]
-      inputs = tf.squeeze(inputs, 2)
-      # TODO(jamesqin): support GroupNorm single step!!!1
-      assert isinstance(self.norm, layers.LayerNorm)
-      inputs = self.norm.FProp(theta.norm, inputs)
+      inputs = self._NormalizeStep(theta, inputs, paddings)
 
       inputs = self._ApplyActivation(inputs, p.conv_activation)
 
@@ -515,9 +531,12 @@ class ConformerLayer(base_layer.BaseLayer):
     return state1.inputs, state1.paddings
 
   def zero_state(self, batch_size):
-    return py_utils.NestedMap(
-        lconv_state=self.lconv.zero_state(batch_size),
-        atten_state=self.trans_atten.zero_state(batch_size))
+    if self.params.is_causal:
+      return py_utils.NestedMap(
+          lconv_state=self.lconv.zero_state(batch_size),
+          atten_state=self.trans_atten.zero_state(batch_size))
+    else:
+      return py_utils.NestedMap()
 
   def StreamStep(self, theta, inputs, paddings, state0):
     """Runs single step.
@@ -538,7 +557,6 @@ class ConformerLayer(base_layer.BaseLayer):
     assert p.is_causal
     assert p.layer_order == 'conv_before_mhsa'
     assert not p.remat
-    assert self.do_eval
 
     with tf.name_scope(f'{p.name}/StreamStep'):
       outputs = self.fflayer_start.FProp(theta.fflayer_start, inputs, paddings)

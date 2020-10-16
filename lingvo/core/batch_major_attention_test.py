@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for batch_major_attention."""
 
+from absl.testing import flagsaver
 from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import attention as tm_attention
@@ -1370,58 +1371,65 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [5.135725, 1.340482, 1.065773, 4.116683, 4.928454, 3.161165],
           np.sum(new_source_vecs, axis=1))
 
-  def testStreamStep(self):
-    batch_size = 2
-    max_seqlen = 5
-    input_dim = 4
-    hidden_dim = 4
-    num_heads = 2
-    left_context = 2
+  @parameterized.named_parameters(('Basic',), ('SkipNorm', True))
+  def testStreamStep(self, testonly_skip_norm_layers=False):
+    with flagsaver.flagsaver(
+        testonly_skip_norm_layers=testonly_skip_norm_layers):
+      batch_size = 2
+      max_seqlen = 32
+      input_dim = 4
+      hidden_dim = 4
+      num_heads = 2
+      left_context = 3
 
-    # Prepares inputs.
-    tf.random.set_seed(12345)
-    np.random.seed(123456789)
-    inputs = tf.constant(
-        np.random.normal(0.1, 0.5, [batch_size, max_seqlen, input_dim]),
-        dtype=tf.float32)
-    seqlen = tf.random.uniform([batch_size],
-                               minval=1,
-                               maxval=max_seqlen + 1,
-                               dtype=tf.int32)
-    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+      # Prepares inputs.
+      np.random.seed(None)
+      inputs = np.random.normal(
+          0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
+      print(f'np.sum(inputs): {np.sum(inputs)}')
+      inputs = tf.convert_to_tensor(inputs)
+      seqlen = tf.random.uniform([batch_size],
+                                 minval=1,
+                                 maxval=max_seqlen + 1,
+                                 dtype=tf.int32)
+      paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
 
-    # Builds graph.
-    p = attention.LocalSelfAttention.Params().Set(
-        name='local_self_atten',
-        num_heads=num_heads,
-        input_dim=input_dim,
-        hidden_dim=hidden_dim,
-        left_context=left_context,
-        right_context=0)
+      # Builds graph.
+      p = attention.LocalSelfAttention.Params().Set(
+          name='local_self_atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          left_context=left_context,
+          right_context=0)
 
-    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-    l = p.Instantiate()
-    init_op = tf.global_variables_initializer()
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      init_op = tf.global_variables_initializer()
 
-    base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
-    base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+      base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
+      base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
 
-    state = l.zero_state(batch_size)
-    outputs = []
-    for i in range(max_seqlen):
-      output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + 1), :],
-                                      paddings[:, i:(i + 1)], state)
-      outputs.append(output)
-    outputs = tf.concat(outputs, axis=1)
-    outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+      state = l.zero_state(batch_size)
+      outputs = []
+      for i in range(max_seqlen):
+        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + 1), :],
+                                        paddings[:, i:(i + 1)], state)
+        outputs.append(output)
+      outputs = tf.concat(outputs, axis=1)
+      outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
 
-    with self.session(use_gpu=False) as sess:
-      sess.run(init_op)
+      with self.session(use_gpu=False) as sess:
+        sess.run(init_op)
 
-      expected_out, actual_out = sess.run([base_outputs, outputs])
-      self.assertAllClose(expected_out, actual_out)
-      self.assertEqual(
-          tuple(expected_out.shape), (batch_size, max_seqlen, input_dim))
+        expected, actual = sess.run([base_outputs, outputs])
+        print(repr(expected))
+        print(repr(actual))
+        print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+        print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+        self.assertAllClose(expected, actual)
+        self.assertEqual(
+            tuple(expected.shape), (batch_size, max_seqlen, input_dim))
 
 
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):

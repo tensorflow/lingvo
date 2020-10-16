@@ -388,6 +388,9 @@ class BatchNormLayer(base_layer.BaseLayer):
       Output after applying batch normalization, with the same shape as
       'inputs'.
     """
+    if py_utils.testonly_skip_norm_layers():
+      return inputs
+
     p = self.params
     if paddings is None:
       paddings = self._GetDefaultPaddings(inputs)
@@ -476,6 +479,9 @@ class CategoricalBN(BatchNormLayer):
       Output after applying batch normalization, with the same shape as
       'inputs'.
     """
+    if py_utils.testonly_skip_norm_layers():
+      return inputs
+
     p = self.params
     batch = py_utils.GetShape(inputs)[0]
     class_emb = py_utils.HasShape(class_emb, [batch, p.class_emb_dim])
@@ -655,6 +661,9 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
       Output after applying batch normalization, with the same shape as
       'inputs'.
     """
+    if py_utils.testonly_skip_norm_layers():
+      return inputs
+
     p = self.params
     inputs_dtype = inputs.dtype
     inputs = tf.cast(inputs, p.dtype)
@@ -753,6 +762,12 @@ class GroupNormLayer(base_layer.BaseLayer):
       the same shape as 'inputs'. Or a output, output_paddings pair if input
       paddings is not None.
     """
+    if py_utils.testonly_skip_norm_layers():
+      if paddings is None:
+        return inputs
+      else:
+        return inputs, paddings
+
     p = self.params
     inputs = py_utils.with_dependencies(
         [py_utils.assert_greater_equal(py_utils.GetRank(inputs), p.input_rank)],

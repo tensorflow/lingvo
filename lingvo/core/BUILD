@@ -98,6 +98,7 @@ py_library(
         ":py_utils",
         ":symbolic",
         ":tshape",
+        # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
     ],
 )
@@ -890,7 +891,10 @@ lingvo_cuda_py_test(
     name = "conv_layers_with_time_padding_test",
     srcs = ["conv_layers_with_time_padding_test.py"],
     python_version = "PY3",
-    deps = [":layers_test_lib"],
+    deps = [
+        ":layers_test_lib",
+        # Implicit absl.testing.flagsaver dependency.
+    ],
 )
 
 py_library(

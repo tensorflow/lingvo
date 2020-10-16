@@ -63,6 +63,12 @@ tf.flags.DEFINE_bool('enable_check_numerics', True,
 tf.flags.DEFINE_bool('print_debug_tensors', False,
                      'Whether to print debug tensors.')
 
+tf.flags.DEFINE_bool(
+    'testonly_skip_norm_layers', False,
+    'Disable normalization layers, used for checking goldens '
+    'in unittests. Normalizations make differences harder to '
+    'catch.')
+
 tf.flags.DEFINE_string(
     'xla_device', '', 'If non-empty, can be cpu, gpu, or tpu (case sensitive)')
 
@@ -645,6 +651,10 @@ def use_tpu():  # pylint: disable=invalid-name
   if res:
     assert not _FromGlobal('enable_asserts')  # asserts not supported on tpu
   return res
+
+
+def testonly_skip_norm_layers():  # pylint: disable=invalid-name
+  return _FromGlobal('testonly_skip_norm_layers')
 
 
 def tpu_compat():  # pylint: disable=invalid-name

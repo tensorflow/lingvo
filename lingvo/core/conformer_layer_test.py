@@ -16,6 +16,7 @@
 """Tests for conformer layers as in https://arxiv.org/abs/2005.08100."""
 # Lint as: PY3
 from unittest import mock
+from absl.testing import flagsaver
 from absl.testing import parameterized
 
 from lingvo import compat as tf
@@ -57,12 +58,11 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       out_vals = sess.run(outputs)
       print([x.shape for x in out_vals])
 
-  def testStreamStep(self):
-    with cluster_factory.SetEval(True):
-      tf.random.set_seed(398847392)
-      np.random.seed(12345)
-
-      batch, max_seqlen, input_dim, kernel = 2, 8, 2, 3
+  @parameterized.named_parameters(('Basic',), ('SkipNorm', True))
+  def testStreamStep(self, testonly_skip_norm_layers=False):
+    with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
+                            ), cluster_factory.SetEval(True):
+      batch, max_seqlen, input_dim, kernel = 2, 32, 2, 3
       p = conformer_layer.LConvLayer.CommonParams(
           input_dim=input_dim, is_causal=True, kernel_size=kernel)
       p.conv_norm_layer_tpl = layers.LayerNorm.Params()
@@ -71,9 +71,12 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       l = p.Instantiate()
       init_op = tf.global_variables_initializer()
 
-      inputs = tf.convert_to_tensor(
-          np.random.normal(0.1, 0.5,
-                           [batch, max_seqlen, input_dim]).astype(np.float32))
+      np.random.seed(None)
+      inputs = np.random.normal(
+          0.1, 0.5, [batch, max_seqlen, input_dim]).astype(np.float32)
+      print(f'np.sum(inputs): {np.sum(inputs)}')
+      inputs = tf.convert_to_tensor(inputs)
+
       paddings = tf.zeros([batch, max_seqlen])
       base_outputs, _ = l.FProp(l.theta, inputs, paddings)
 
@@ -89,6 +92,10 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       with self.session(use_gpu=False) as sess:
         sess.run(init_op)
         expected, actual = sess.run([base_outputs, outputs])
+        print(repr(expected))
+        print(repr(actual))
+        print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+        print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
         self.assertAllClose(expected, actual)
 
 
@@ -200,12 +207,11 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.assertFalse(m1.called)
         self.assertFalse(m2.called)
 
-  def testStreamStep(self):
-    with cluster_factory.SetEval(True):
-      tf.random.set_seed(398847392)
-      np.random.seed(12345)
-
-      batch, max_seqlen, input_dim, kernel = 2, 8, 2, 3
+  @parameterized.named_parameters(('Basic',), ('SkipNorm', True))
+  def testStreamStep(self, testonly_skip_norm_layers=False):
+    with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
+                            ), cluster_factory.SetEval(True):
+      batch, max_seqlen, input_dim, kernel = 2, 32, 2, 3
       num_heads, left_context, ffn_dim = 2, 3, 4
       p = conformer_layer.ConformerLayer.CommonParams(
           input_dim=input_dim,
@@ -223,13 +229,18 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       l = p.Instantiate()
       init_op = tf.global_variables_initializer()
 
-      inputs = tf.convert_to_tensor(10 * np.random.normal(
-          0.1, 0.5, [batch, max_seqlen, input_dim]).astype(np.float32))
+      np.random.seed(None)
+      inputs = 5 * np.random.normal(
+          0.1, 0.5, [batch, max_seqlen, input_dim]).astype(np.float32)
+      print(f'np.sum(inputs): {np.sum(inputs)}')
+      inputs = tf.convert_to_tensor(inputs)
+
       seqlen = tf.random.uniform([batch],
                                  minval=1,
                                  maxval=max_seqlen + 1,
                                  dtype=tf.int32)
       paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+
       base_outputs, _ = l.FProp(l.theta, inputs, paddings)
       base_outputs *= tf.reshape(1. - paddings, [batch, max_seqlen, 1])
 
@@ -246,7 +257,12 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       with self.session(use_gpu=False) as sess:
         sess.run(init_op)
         expected, actual = sess.run([base_outputs, outputs])
-        self.assertAllClose(expected, actual, atol=5e-06)
+        print(repr(expected))
+        print(repr(actual))
+        print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+        print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+        tol = 1.e-6 if testonly_skip_norm_layers else 2.e-5
+        self.assertAllClose(expected, actual, atol=tol, rtol=tol)
 
 
 if __name__ == '__main__':

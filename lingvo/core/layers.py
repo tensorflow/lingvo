@@ -3535,7 +3535,7 @@ class LayerNorm(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
     assert p.name
-    assert p.input_dim > 0
+    assert p.input_dim > 0, p.input_dim
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -3573,6 +3573,9 @@ class LayerNorm(base_layer.BaseLayer):
     Returns:
       tensor of the same shape with inputs
     """
+    if py_utils.testonly_skip_norm_layers():
+      return inputs
+
     p = self.params
     inputs = py_utils.with_dependencies(
         [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
