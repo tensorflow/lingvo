@@ -1031,7 +1031,7 @@ class Evaler(base_runner.BaseRunner):
     for i, value in enumerate(proto.value):
       if value.HasField('simple_value'):
         del proto.value[i]
-    return summary_pb2.Summary().SerializeToString(proto)
+    return proto.SerializeToString()
 
   def _EvalOnce(self, path, sess):
     """Runs evaluation for a batch of samples.
