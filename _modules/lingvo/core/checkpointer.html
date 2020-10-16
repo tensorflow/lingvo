@@ -378,17 +378,20 @@
 <div class="viewcode-block" id="GetSpecificCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.GetSpecificCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a specific checkpoint given `load_checkpoint_from`.</span>
 
-<span class="sd">  When load_checkpoint_from is a directory, we find the latest</span>
-<span class="sd">  checkpoint in the directory and use that as the checkpoint</span>
-<span class="sd">  to evaluate.</span>
+<span class="sd">  When `load_checkpoint_from` is a checkpoint (determined by the existence of</span>
+<span class="sd">  `load_checkpoint_from` + &#39;.index&#39;), validate the path and return it.</span>
 
-<span class="sd">  When load_checkpoint_from is a specific checkpoint, we</span>
-<span class="sd">  validate the path and return it.</span>
+<span class="sd">  Otherwise, if `load_checkpoint_from` is a directory, we find the latest</span>
+<span class="sd">  checkpoint in the directory and return that checkpoint.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    load_checkpoint_from: If not None, specifies the directory or specific</span>
 <span class="sd">      checkpoint to load.  If a directory, the latest checkpoint in the</span>
 <span class="sd">      directory will be used.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: if `load_checkpoint_from` is not a checkpoint or a directory</span>
+<span class="sd">      containing checkpoints.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">load_checkpoint_from</span><span class="p">:</span>
     <span class="k">return</span> <span class="kc">None</span>
@@ -400,7 +403,9 @@
   <span class="c1"># If load_checkpoint_from is a directory, return the latest</span>
   <span class="c1"># checkpoint in the directory.</span>
   <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
+    <span class="n">latest_checkpoint</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">latest_checkpoint</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">latest_checkpoint</span>
 
   <span class="c1"># Fail if we see an unexpected load_checkpoint_from.</span>
   <span class="c1"># This might happen if load_checkpoint_from refers to a checkpoint</span>
