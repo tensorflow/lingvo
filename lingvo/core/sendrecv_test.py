@@ -60,8 +60,7 @@ class SendrecvTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(to_send, val)
 
   @parameterized.named_parameters(
-      ("_function",) if py_utils._FromGlobal("use_tf_function") else
-      ("_defun",))
+      ("_function",) if py_utils._UseTfFunction() else ("_defun",))
   def testInsideFunction(self):
     devices = _ListDevices(_Target())
     sender, recver = devices[0], devices[-1]

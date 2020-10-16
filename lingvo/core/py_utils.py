@@ -49,6 +49,7 @@ from tensorflow.python.framework import func_graph
 from tensorflow.python.framework import function
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import stateless_random_ops
+from tensorflow.python.tf2 import enabled as tf2_enabled
 from tensorflow.python.tpu import topology as tf_topology
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
@@ -94,7 +95,7 @@ tf.flags.DEFINE_bool('disable_py_utils_debug', False,
 
 # TODO(laigd): remove after the migration.
 tf.flags.DEFINE_bool('use_tf_function', False,
-                     'If True use tf.function instead of Defun.')
+                     'If True, force using tf.function instead of Defun.')
 
 tf.flags.DEFINE_bool(
     'stateless_vars_init', False,
@@ -5181,6 +5182,35 @@ def _DefineFunction(fwd,
   return res
 
 
+# Global variable to control whether to use tf.function.
+# If not set, the result is determined by FLAGS.use_tf_function and whether tf2
+# is enabled. See _UseTfFunction for details.
+# TODO(laigd): remove after b/169869929 is fixed.
+_USE_TF_FUNCTION = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def TfFunctionScope(use_tf_function=True):
+  _USE_TF_FUNCTION.stack.append(use_tf_function)
+  try:
+    yield
+  finally:
+    _USE_TF_FUNCTION.stack.pop()
+
+
+def _UseTfFunction():
+  """Whether to use tf.function instead of tf.Defun."""
+  if _USE_TF_FUNCTION.stack:
+    return _USE_TF_FUNCTION.stack[-1]
+  if _FromGlobal('use_tf_function'):
+    return True
+  # TODO(laigd): remove TF version check when 312743821 and 313682500 are in the
+  # release.
+  if tf.compat.v1.__version__ < '2.3.0':
+    return False
+  return tf2_enabled()
+
+
 class Function(object):
   """Function builds a TensorFlow graph function from a callable.
 
@@ -5306,7 +5336,7 @@ class DefinedFunction(object):
         FLAGS.use_tf_function.
     """
     if use_tf_function is None:
-      use_tf_function = _FromGlobal('use_tf_function')
+      use_tf_function = _UseTfFunction()
     fn = _DefineFunction if use_tf_function else _DefineDefun
     self._data = fn(
         fwd=fwd,

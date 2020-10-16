@@ -145,7 +145,7 @@ def ElmanOutGrad(dout):
 
 
 def RecurrentTestParameters(test_fn):
-  use_tf_function = py_utils._FromGlobal('use_tf_function')
+  use_tf_function = py_utils._UseTfFunction()
 
   def WrappedTestFn(self):
     # TODO(laigd): remove this check when 312743821 and 313682500 are in the

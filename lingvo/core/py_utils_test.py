@@ -2576,7 +2576,7 @@ class RematerializeFnTest(test_utils.TestCase):
 
 def WrapFunction(*dtypes, noinline=False):
   """Wrap a python function as a Defun or tf.function."""
-  if py_utils._FromGlobal('use_tf_function'):
+  if py_utils._UseTfFunction():
 
     def Decorated(fn):
 
@@ -2593,7 +2593,7 @@ def WrapFunction(*dtypes, noinline=False):
 
 
 def StatefulRandomOpsInDefunTestParameters(test_fn):
-  use_tf_function = py_utils._FromGlobal('use_tf_function')
+  use_tf_function = py_utils._UseTfFunction()
 
   def WrappedTestFn(self):
     # TODO(laigd): remove this check when 312743821 is in the release.
@@ -2946,7 +2946,7 @@ class FromGlobalTest(test_utils.TestCase):
 
 
 def FunctionTestParameters(test_fn):
-  use_tf_function = py_utils._FromGlobal('use_tf_function')
+  use_tf_function = py_utils._UseTfFunction()
   suffix = '_function' if use_tf_function else '_defun'
 
   def WrappedTestFn(self, bak_as_function):
@@ -3179,8 +3179,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
       return xs * 2
 
     self.assertIsInstance(
-        Fwd.func, function_type
-        if py_utils._FromGlobal('use_tf_function') else defun_type)
+        Fwd.func, function_type if py_utils._UseTfFunction() else defun_type)
 
   def testWithControlFlowOps(self):
     with self.session():
@@ -3192,7 +3191,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
 
 
 def IfTestParameters(test_fn):
-  use_tf_function = py_utils._FromGlobal('use_tf_function')
+  use_tf_function = py_utils._UseTfFunction()
 
   def WrappedTestFn(self):
     # TODO(laigd): remove this check when 313682500 is in the release.
