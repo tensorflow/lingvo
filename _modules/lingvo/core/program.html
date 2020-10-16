@@ -1140,15 +1140,21 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_model</span> <span class="o">=</span> <span class="n">shared_model</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># Propagate run-time parameters to programs:</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">dataset_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not find </span><span class="si">%s</span><span class="s1"> in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                            <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">))</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">]</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits_per_client</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">dataset_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not find </span><span class="si">%s</span><span class="s1"> in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">))</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits_per_client</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
+          <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">eval_program_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
@@ -1157,14 +1163,9 @@
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits_per_client</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
-        <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
           <span class="n">eval_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span>
 
 <div class="viewcode-block" id="SimpleProgramSchedule.Programs"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Programs">[docs]</a>  <span class="k">def</span> <span class="nf">Programs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1178,10 +1179,12 @@
         <span class="k">break</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">False</span></div>
+    <span class="n">should_exit</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">should_exit</span></div>
 
 <div class="viewcode-block" id="SimpleProgramSchedule.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">eval_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span></div></div>
 
