@@ -992,15 +992,21 @@ class SimpleProgramSchedule:
     self.params = params.Copy()
     p = self.params
     self._shared_model = shared_model
+    self._programs = []
+    self.train_program = None
 
     # Propagate run-time parameters to programs:
-    p.train_program.logdir = p.logdir
-    if p.train_program.dataset_name not in p.task_dict:
-      tf.logging.error('could not find %s in %s' %
-                            (p.train_program.dataset_name, p.task_dict))
-    p.train_program.task = p.task_dict[p.train_program.dataset_name]
-    p.train_program.num_splits_per_client = p.num_splits_per_client
-    p.train_program.task_name = p.task_name
+    if p.train_executions_per_eval > 0:
+      p.train_program.logdir = p.logdir
+      if p.train_program.dataset_name not in p.task_dict:
+        tf.logging.error('could not find %s in %s' %
+                         (p.train_program.dataset_name, p.task_dict))
+      p.train_program.task = p.task_dict[p.train_program.dataset_name]
+      p.train_program.num_splits_per_client = p.num_splits_per_client
+      p.train_program.task_name = p.task_name
+      self.train_program = p.train_program.Instantiate(
+          shared_model=shared_model, **kwargs)
+      self._programs.append(self.train_program)
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir
@@ -1009,14 +1015,9 @@ class SimpleProgramSchedule:
       eval_program_params.num_splits_per_client = p.num_splits_per_client
 
     self.eval_programs = []
-    self.train_program = p.train_program.Instantiate(
-        shared_model=shared_model, **kwargs)
     for eval_program in p.eval_programs:
       self.eval_programs.append(
           eval_program.Instantiate(shared_model=shared_model, **kwargs))
-
-    self._programs = []
-    self._programs.append(self.train_program)
     self._programs += self.eval_programs
 
   def Programs(self):
@@ -1030,10 +1031,12 @@ class SimpleProgramSchedule:
         break
     for eval_program in self.eval_programs:
       eval_program.Run(sess)
-    return False
+    should_exit = p.train_executions_per_eval == 0
+    return should_exit
 
   def Shutdown(self):
-    self.train_program.Shutdown()
+    if self.train_program:
+      self.train_program.Shutdown()
     for eval_program in self.eval_programs:
       eval_program.Shutdown()
 
