@@ -2592,23 +2592,8 @@ def WrapFunction(*dtypes, noinline=False):
     return tf.Defun(*dtypes, noinline=noinline)
 
 
-def StatefulRandomOpsInDefunTestParameters(test_fn):
-  use_tf_function = py_utils._UseTfFunction()
-
-  def WrappedTestFn(self):
-    # TODO(laigd): remove this check when 312743821 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    test_fn(self)
-
-  decorator = parameterized.named_parameters((
-      '_function',) if use_tf_function else ('_defun',))
-  return decorator(WrappedTestFn)
-
-
 class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatelessOp(self):
 
     @WrapFunction()
@@ -2618,7 +2603,6 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
     self.assertAllEqual(
         [], py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessOp))
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatefulOp(self):
 
     @WrapFunction()
@@ -2629,7 +2613,6 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
         ['RandomUniformInt'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulOp))
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatelessFunctionCall(self):
 
     @WrapFunction()
@@ -2644,7 +2627,6 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
         [],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionCall))
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatefulFunctionCall(self):
 
     @WrapFunction()
@@ -2659,7 +2641,6 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
         ['RandomUniformInt'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionCall))
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatefulFunctionalWhile(self):
 
     @WrapFunction()
@@ -2680,7 +2661,6 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
         ['RandomUniform'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalWhile))
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatefulFunctionalIf(self):
 
     @WrapFunction()
@@ -2701,7 +2681,6 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
         ['RandomUniform'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalIf))
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatefulFunctionalFor(self):
 
     @WrapFunction()
@@ -2722,7 +2701,6 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
                             py_utils.StatefulRandomOpsInDefun(
                                 FunctionWithStatefulFunctionalFor)))
 
-  @StatefulRandomOpsInDefunTestParameters
   def testFunctionWithStatelessFunctionalFor(self):
 
     @WrapFunction()
@@ -2946,20 +2924,12 @@ class FromGlobalTest(test_utils.TestCase):
 
 
 def FunctionTestParameters(test_fn):
-  use_tf_function = py_utils._UseTfFunction()
-  suffix = '_function' if use_tf_function else '_defun'
-
-  def WrappedTestFn(self, bak_as_function):
-    # TODO(laigd): remove this check when 312743821 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    test_fn(self, bak_as_function)
-
+  suffix = '_function' if py_utils._UseTfFunction() else '_defun'
   decorator = parameterized.named_parameters(
       (suffix, False),
       (suffix + '_bakasfunction', True),
   )
-  return decorator(WrappedTestFn)
+  return decorator(test_fn)
 
 
 class FunctionTest(test_utils.TestCase, parameterized.TestCase):
@@ -3190,23 +3160,8 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual([1], self.evaluate(y))
 
 
-def IfTestParameters(test_fn):
-  use_tf_function = py_utils._UseTfFunction()
-
-  def WrappedTestFn(self):
-    # TODO(laigd): remove this check when 313682500 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    test_fn(self)
-
-  decorator = parameterized.named_parameters((
-      '_tf_function',) if use_tf_function else ('_defun',))
-  return decorator(WrappedTestFn)
-
-
 class IfTest(test_utils.TestCase, parameterized.TestCase):
 
-  @IfTestParameters
   def testNestedMapInput(self):
     g = tf.Graph()
     with g.as_default():
@@ -3230,7 +3185,6 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(-1., true_out.value)
     self.assertEqual(1., false_out.value)
 
-  @IfTestParameters
   def testScalarInput(self):
     g = tf.Graph()
     with g.as_default():
@@ -3252,7 +3206,6 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(-1., true_out)
     self.assertEqual(1., false_out)
 
-  @IfTestParameters
   def testListInput(self):
     g = tf.Graph()
     with g.as_default():

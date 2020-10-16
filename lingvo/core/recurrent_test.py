@@ -144,24 +144,8 @@ def ElmanOutGrad(dout):
   return py_utils.NestedMap(h=dout.x, padding=dout.padding)
 
 
-def RecurrentTestParameters(test_fn):
-  use_tf_function = py_utils._UseTfFunction()
-
-  def WrappedTestFn(self):
-    # TODO(laigd): remove this check when 312743821 and 313682500 are in the
-    # release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    test_fn(self)
-
-  decorator = parameterized.named_parameters((
-      '_function',) if use_tf_function else ('_defun',))
-  return decorator(WrappedTestFn)
-
-
 class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
-  @RecurrentTestParameters
   def testBasic(self):
 
     with self.session(use_gpu=True):
@@ -202,7 +186,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(dx_val, 16.)
       self.assertAllClose(d_coeff_val, [3., 4., 4.])
 
-  @RecurrentTestParameters
   def testBasicWithAccumulator(self):
 
     with self.session(use_gpu=True):
@@ -266,7 +249,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(0, accum_obj._disable_count)
       self.assertAllClose([accum_obj_value], [16.0])
 
-  @RecurrentTestParameters
   def testTimeBasedStopFn(self):
 
     with self.session(use_gpu=True):
@@ -311,7 +293,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(16., dx_val)
       self.assertAllClose([3., 4., 4., 0.], d_coeff_val)
 
-  @RecurrentTestParameters
   def testStateBasedStopFn(self):
 
     with self.session(use_gpu=True):
@@ -356,7 +337,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(16., dx_val)
       self.assertAllClose([3., 4., 4., 0.], d_coeff_val)
 
-  @RecurrentTestParameters
   def testStopFnNotTriggeredBeforeEOS(self):
 
     with self.session(use_gpu=True):
@@ -402,7 +382,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(78., dx_val)
       self.assertAllClose([4., 6., 8., 8.], d_coeff_val)
 
-  @RecurrentTestParameters
   def testCapture(self):
 
     with self.session(use_gpu=True):
@@ -461,7 +440,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(ref_dx_values, real_dx_values)
       self.assertAllClose(ref_dcaptured_values, real_dcaptured_values)
 
-  @RecurrentTestParameters
   def testCaptureDisallowed(self):
 
     with self.session(use_gpu=True):
@@ -486,7 +464,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
         unused_real_acc, unused_real_staten = recurrent.Recurrent(
             theta, state0, inputs, CellFn, allow_implicit_capture=False)
 
-  @RecurrentTestParameters
   def testSymbolToTensorMap(self):
     """Tests that cell_fn can rely on the contextual symbol-to-tensor map."""
 
@@ -545,7 +522,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(dw_val, x_val * (1. + 2. + 3.))
       self.assertEqual(dx_val, (1. + 2. + 3.))
 
-  @RecurrentTestParameters
   def testStatefulCellFn(self):
 
     def Rand(theta, state, inputs):
@@ -566,7 +542,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       with self.assertRaisesRegex(ValueError, 'stateful.*random_uniform'):
         recurrent.Recurrent(theta, state, inputs, Rand, check_stateful_ops=True)
 
-  @RecurrentTestParameters
   def testNestedCellFn(self):
     """Tests when cell_fn calls another function."""
 
@@ -602,7 +577,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       with self.assertRaisesRegex(ValueError, 'cell_fn contains stateful ops:'):
         recurrent.Recurrent(theta, state, inputs, Rand, check_stateful_ops=True)
 
-  @RecurrentTestParameters
   def testSeqLenActual(self):
     for value, expected in [([[1.0], [1.0], [1.0]],
                              [0, 3]), ([[1.0], [1.0], [0.0]],
@@ -678,7 +652,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(dh0, dh1)
       self.assertAllClose(di0, di1)
 
-  @RecurrentTestParameters
   def testElman(self):
     self._testElmanHelper(1, False)
     self._testElmanHelper(1, True)
@@ -691,7 +664,6 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
     self._testElmanHelper(7, False, StopFn)
     self._testElmanHelper(7, True, StopFn)
 
-  @RecurrentTestParameters
   def testSetShape(self):
     dst = py_utils.NestedMap(
         a=tf.placeholder(tf.int32, shape=None),
@@ -726,7 +698,6 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
     del theta, state0
     return py_utils.NestedMap(s=inputs.s), py_utils.NestedMap()
 
-  @RecurrentTestParameters
   def testSimpleStacked(self):
     g = tf.Graph()
     with g.as_default():
@@ -845,15 +816,12 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
     self._LogDiff(ref_val, out_val)
     self.assertAllClose(ref_val, out_val)
 
-  @RecurrentTestParameters
   def testStackedElman_2(self):
     self._CompareStackedElman(4, 3, 8, 2)
 
-  @RecurrentTestParameters
   def testStackedElman_4(self):
     self._CompareStackedElman(8, 5, 8, 4)
 
-  @RecurrentTestParameters
   def testStackedElman_8(self):
     self._CompareStackedElman(11, 1, 4, 8)
 
@@ -886,19 +854,15 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
         self._LogDiff(n_dx, s_dx)
         self.assertAllClose(n_dx, s_dx)
 
-  @RecurrentTestParameters
   def testStackedElmanGrad_1(self):
     self._TestStackedElmanGradient(1)
 
-  @RecurrentTestParameters
   def testStackedElmanGrad_2(self):
     self._TestStackedElmanGradient(2)
 
-  @RecurrentTestParameters
   def testStackedElmanGrad_4(self):
     self._TestStackedElmanGradient(4)
 
-  @RecurrentTestParameters
   def testStackedElmanGrad_8(self):
     self._TestStackedElmanGradient(8, seqlen=5, batch=3)
 

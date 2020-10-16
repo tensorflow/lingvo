@@ -93,10 +93,6 @@ tf.flags.DEFINE_bool(
 tf.flags.DEFINE_bool('disable_py_utils_debug', False,
                      'If True disables all py_utils.Debug() logs.')
 
-# TODO(laigd): remove after the migration.
-tf.flags.DEFINE_bool('use_tf_function', False,
-                     'If True, force using tf.function instead of Defun.')
-
 tf.flags.DEFINE_bool(
     'stateless_vars_init', False,
     'Use stateless TensorFlow random number generators (RNG) (e.g. '
@@ -5183,8 +5179,8 @@ def _DefineFunction(fwd,
 
 
 # Global variable to control whether to use tf.function.
-# If not set, the result is determined by FLAGS.use_tf_function and whether tf2
-# is enabled. See _UseTfFunction for details.
+# If not set, the result is determined by tf2 status. See _UseTfFunction for
+# details.
 # TODO(laigd): remove after b/169869929 is fixed.
 _USE_TF_FUNCTION = ThreadLocalStack()
 
@@ -5202,8 +5198,6 @@ def _UseTfFunction():
   """Whether to use tf.function instead of tf.Defun."""
   if _USE_TF_FUNCTION.stack:
     return _USE_TF_FUNCTION.stack[-1]
-  if _FromGlobal('use_tf_function'):
-    return True
   # TODO(laigd): remove TF version check when 312743821 and 313682500 are in the
   # release.
   if tf.compat.v1.__version__ < '2.3.0':
@@ -5283,8 +5277,7 @@ class Function(object):
       bak_as_function: Whether to create a TF graph function for `bak`.
       device: The device on which to run `fwd` and `bak`. Defaults to the
         current device.
-      use_tf_function: Whether use tf.function. Defaults to the value of
-        FLAGS.use_tf_function.
+      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().
     """
     self._fwd_sig = fwd_sig
     self._bak = bak
@@ -5332,8 +5325,7 @@ class DefinedFunction(object):
       bak_as_function: Whether to create a TF graph function for `bak`.
       device: The device on which to run `fwd` and `bak`. Defaults to the
         current device.
-      use_tf_function: Whether use tf.function. Defaults to the value of
-        FLAGS.use_tf_function.
+      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().
     """
     if use_tf_function is None:
       use_tf_function = _UseTfFunction()
