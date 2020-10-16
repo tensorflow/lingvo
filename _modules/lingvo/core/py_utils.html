@@ -211,6 +211,12 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;print_debug_tensors&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;Whether to print debug tensors.&#39;</span><span class="p">)</span>
 
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;testonly_skip_norm_layers&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Disable normalization layers, used for checking goldens &#39;</span>
+    <span class="s1">&#39;in unittests. Normalizations make differences harder to &#39;</span>
+    <span class="s1">&#39;catch.&#39;</span><span class="p">)</span>
+
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;If non-empty, can be cpu, gpu, or tpu (case sensitive)&#39;</span><span class="p">)</span>
 
@@ -793,6 +799,10 @@
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">)</span>  <span class="c1"># asserts not supported on tpu</span>
   <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="testonly_skip_norm_layers"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.testonly_skip_norm_layers">[docs]</a><span class="k">def</span> <span class="nf">testonly_skip_norm_layers</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;testonly_skip_norm_layers&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="tpu_compat"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.tpu_compat">[docs]</a><span class="k">def</span> <span class="nf">tpu_compat</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>

@@ -536,6 +536,9 @@
 <span class="sd">      Output after applying batch normalization, with the same shape as</span>
 <span class="sd">      &#39;inputs&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">testonly_skip_norm_layers</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDefaultPaddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
@@ -624,6 +627,9 @@
 <span class="sd">      Output after applying batch normalization, with the same shape as</span>
 <span class="sd">      &#39;inputs&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">testonly_skip_norm_layers</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">class_emb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_emb</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">class_emb_dim</span><span class="p">])</span>
@@ -803,6 +809,9 @@
 <span class="sd">      Output after applying batch normalization, with the same shape as</span>
 <span class="sd">      &#39;inputs&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">testonly_skip_norm_layers</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs_dtype</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -901,6 +910,12 @@
 <span class="sd">      the same shape as &#39;inputs&#39;. Or a output, output_paddings pair if input</span>
 <span class="sd">      paddings is not None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">testonly_skip_norm_layers</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
         <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span><span class="p">)],</span>
