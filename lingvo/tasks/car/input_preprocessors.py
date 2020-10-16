@@ -2145,16 +2145,7 @@ class RandomDropLaserPoints(Preprocessor):
 
   def TransformFeatures(self, features):
     p = self.params
-    if 'points_padding' in features.lasers:
-      points_mask = 1 - features.lasers.points_padding
-      points_xyz = tf.boolean_mask(features.lasers.points_xyz, points_mask)
-      points_feature = tf.boolean_mask(features.lasers.points_feature,
-                                       points_mask)
-    else:
-      points_xyz = features.lasers.points_xyz
-      points_feature = features.lasers.points_feature
-
-    num_points, _ = py_utils.GetShape(points_xyz)
+    num_points, _ = py_utils.GetShape(features.lasers.points_xyz)
 
     pts_keep_sample_prob = tf.random.uniform([num_points],
                                              minval=0,
@@ -2162,21 +2153,17 @@ class RandomDropLaserPoints(Preprocessor):
                                              seed=p.random_seed)
     pts_keep_mask = pts_keep_sample_prob < p.keep_prob
 
-    points_xyz = tf.boolean_mask(points_xyz, pts_keep_mask)
-    points_feature = tf.boolean_mask(points_feature, pts_keep_mask)
-
     if 'points_padding' in features.lasers:
-      features.lasers.points_xyz = py_utils.PadOrTrimTo(
-          points_xyz, tf.shape(features.lasers.points_xyz))
-      features.lasers.points_feature = py_utils.PadOrTrimTo(
-          points_feature, tf.shape(features.lasers.points_feature))
-      total_points = tf.shape(points_xyz)[0]
-      features.lasers.points_padding = 1.0 - py_utils.PadOrTrimTo(
-          tf.ones([total_points]), tf.shape(features.lasers.points_padding))
+      # Update points_padding so that where pts_keep_mask is True,
+      # points_padding remains 0.
+      points_mask = 1 - features.lasers.points_padding
+      points_mask *= tf.cast(pts_keep_mask, tf.float32)
+      features.lasers.points_padding = 1 - points_mask
     else:
-      features.lasers.points_xyz = points_xyz
-      features.lasers.points_feature = points_feature
-
+      features.lasers.points_xyz = tf.boolean_mask(features.lasers.points_xyz,
+                                                   pts_keep_mask)
+      features.lasers.points_feature = tf.boolean_mask(
+          features.lasers.points_feature, pts_keep_mask)
     return features
 
   def TransformShapes(self, shapes):
