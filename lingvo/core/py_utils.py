@@ -598,9 +598,11 @@ def HasShape(tensor, expected_shape, ndims=None):
 
   all_static_checks = True
   for idx, (dim, expected_dim) in enumerate(zip(tensor_shape, expected_shape)):
-    if expected_dim == -1:
+    if isinstance(expected_dim, tf.Tensor):
+      all_static_checks = False
+    elif expected_dim == -1:
       continue
-    if isinstance(dim, tf.Tensor) or isinstance(expected_dim, tf.Tensor):
+    elif isinstance(dim, tf.Tensor):
       all_static_checks = False
     elif dim != expected_dim:
       raise ValueError('Tensor does not match expected shape on dimension {}.\n'

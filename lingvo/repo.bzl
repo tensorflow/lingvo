@@ -223,9 +223,9 @@ filegroup(
 )
 """,
         urls = [
-            "https://github.com/protocolbuffers/protobuf/releases/download/v3.8.0/protoc-3.8.0-linux-x86_64.zip",
+            "https://github.com/protocolbuffers/protobuf/releases/download/v3.9.2/protoc-3.9.2-linux-x86_64.zip",
         ],
-        sha256 = "717903f32653f07cd895cfe89ca18ff4ca35f825afa7fe17bcb5cb13bf628be0",
+        sha256 = "0d9034a3b02bd77edf5ef926fb514819a0007f84252c5e6a6391ddfc4189b904",
     )
 
 def icu():

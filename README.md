@@ -51,7 +51,7 @@ Details for older releases are unavailable.
 
 ### Major breaking changes
 
-#### HEAD
+#### 0.8.1
 
 *   **General**
     *   NestedMap Flatten/Pack/Transform/Filter etc now expand descendent dicts
@@ -66,14 +66,18 @@ Details for older releases are unavailable.
         `_CreateLayerVariables` now raises an error.
     *   It is no longer possible to access self.vars or self.theta inside of
         `__init__`. Refactor by moving the variable creation and access to
-        `_CreateLayerVariables`. The variable scope is set automatically according to
-        the layer name in `_CreateLayerVariables`.
+        `_CreateLayerVariables`. The variable scope is set automatically
+        according to the layer name in `_CreateLayerVariables`.
+
+#### HEAD
+
+None yet.
 
 <details><summary>
 <b>Older releases</b>
 </summary><p>
 
-Details for older releases are available.
+Details for older releases are unavailable.
 
 </p></details>
 
@@ -106,7 +110,7 @@ for how to get started with the pip package.
 
 The prerequisites are:
 
-*   a TensorFlow 2.2 [installation](https://www.tensorflow.org/install/),
+*   a TensorFlow 2.3 [installation](https://www.tensorflow.org/install/),
 *   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 

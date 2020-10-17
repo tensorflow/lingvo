@@ -31,6 +31,7 @@ if [[ -z "${PYTHON_MINOR_VERSION}" ]]; then
 else
   PYTHON="python${PYTHON_VERSION}.${PYTHON_MINOR_VERSION}"
 fi
+update-alternatives --install /usr/bin/python3 python3 "/usr/bin/$PYTHON_VERSION" 1
 
 function write_to_bazelrc() {
   echo "$1" >> .bazelrc
@@ -49,8 +50,6 @@ write_to_bazelrc 'build --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0"'
 write_to_bazelrc 'build --auto_output_filter=subpackages'
 write_to_bazelrc 'build --copt="-Wall" --copt="-Wno-sign-compare"'
 write_to_bazelrc 'build --linkopt="-lrt -lm"'
-write_to_bazelrc 'build --incompatible_bzl_disallow_load_after_statement=false'
-write_to_bazelrc 'query --incompatible_bzl_disallow_load_after_statement=false'
 
 TF_NEED_CUDA=0
 echo 'Using installed tensorflow'

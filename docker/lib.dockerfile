@@ -35,6 +35,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install python 3.8
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776
+RUN echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/deadsnakes-ppa-bionic.list
+RUN apt-get update && apt-get install -y python3.8 python3.8-distutils 
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1000
+
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py && rm get-pip.py
 
 RUN pip3 --no-cache-dir install lingvo

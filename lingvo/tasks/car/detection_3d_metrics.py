@@ -35,29 +35,20 @@ class TopDownVisualizationMetric(metrics.BaseMetric):
   """Top-down detection visualization, expecting 3D laser points and 2D bboxes.
 
   Updates to this metric is expected to be `.NestedMap` containing:
-
-    visualization_labels: [N, B1] int tensor containing visualization labels.
-
-    predicted_bboxes: [N, B1, 5] float tensor containing predicted 2D bboxes
-    each with (x, y, dx, dy, phi).
-
-    visualization_weights: [N, B1] float tensor containing weights for each
-    prediction. predictions with 0 weight will not be drawn.
-
-    points_xyz: [N, P, 3] float tensor containing points (x, y, z) coordinates.
-
-    points_padding: [N, P] tensor containing 1 if the point is a padded point.
-
-    gt_bboxes_2d: [N, B2, 5] float tensor containing ground-truth 2D bboxes.
-
-    gt_bboxes_2d_weights: [N, B2] float tensor containing weights for each
-    ground-truth. predictions with 0 weight will not be drawn. The
-    ground-truth mask can be used here.
-
-    labels: [N, B2] int tensor containing ground-truth labels.
-
-    difficulties: [N, B2]: int tensor containing the difficulty levels of
-    each groundtruth box.
+    - visualization_labels: [N, B1] int tensor containing visualization labels.
+    - predicted_bboxes: [N, B1, 5] float tensor containing predicted 2D bboxes
+      each with (x, y, dx, dy, phi).
+    - visualization_weights: [N, B1] float tensor containing weights for each
+      prediction. predictions with 0 weight will not be drawn.
+    - points_xyz: [N, P, 3] float tensor containing (x, y, z) coordinates.
+    - points_padding: [N, P] tensor containing 1 if the point is a padded point.
+    - gt_bboxes_2d: [N, B2, 5] float tensor containing ground-truth 2D bboxes.
+    - gt_bboxes_2d_weights: [N, B2] float tensor containing weights for each
+      ground-truth. predictions with 0 weight will not be drawn. The
+      ground-truth mask can be used here.
+    - labels: [N, B2] int tensor containing ground-truth labels.
+    - difficulties: [N, B2]: int tensor containing the difficulty levels of
+      each groundtruth box.
 
   Default parameters visualize the area around the car, with the car centered in
   the image, over a 32m x 48m range.
@@ -110,10 +101,10 @@ class TopDownVisualizationMetric(metrics.BaseMetric):
     """Add top down visualization to summaries.
 
     Args:
-      decoded_outputs: A `.NestedMap` containing the following fields:
-      visualization_labels, predicted_bboxes, visualization_weights,
-      points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
-      labels.
+      decoded_outputs: A `.NestedMap` containing the fields
+        visualization_labels, predicted_bboxes, visualization_weights,
+        points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
+        labels.
     """
     self._sampler.Add(decoded_outputs)
     # Invalidate cache.
@@ -306,10 +297,10 @@ class WorldViewer(metrics.BaseMetric):
     """Add point cloud mesh data to be summarized.
 
     Args:
-      decoded_outputs: A `.NestedMap` containing the following fields:
-      visualization_labels, predicted_bboxes, visualization_weights,
-      points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
-      labels.
+      decoded_outputs: A `.NestedMap` containing the fields
+        visualization_labels, predicted_bboxes, visualization_weights,
+        points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
+        labels.
     """
     self._sampler.Add(decoded_outputs)
     # Invalidate cache.

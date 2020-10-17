@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y python3.6 python3.7 python3.8 python3.8
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
 # Download and install bazel.
-RUN wget https://github.com/bazelbuild/bazel/releases/download/0.29.0/bazel-0.29.0-installer-linux-x86_64.sh > /dev/null
-RUN bash bazel-0.29.0-installer-linux-x86_64.sh
+RUN wget https://github.com/bazelbuild/bazel/releases/download/3.1.0/bazel-3.1.0-installer-linux-x86_64.sh > /dev/null
+RUN bash bazel-3.1.0-installer-linux-x86_64.sh
 
 RUN for python in python3.6 python3.7 python3.8; do \
       $python get-pip.py && \

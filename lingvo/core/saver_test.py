@@ -108,7 +108,7 @@ class SaverTest(test_utils.TestCase):
     nmap.foo = py_utils.NestedMap()
     nmap.foo.bar = np.arange(10).astype(np.int32).reshape([2, 5])
     saver.WriteNpArrays(prefix, nmap)
-    files = tf.io.gfile.glob(prefix + '*')
+    files = sorted(tf.io.gfile.glob(prefix + '*'))
     self.assertEqual(len(files), 2)
     self.assertEqual(files[0], prefix + '.data-00000-of-00001')
     self.assertEqual(files[1], prefix + '.index')
