@@ -175,23 +175,25 @@
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_metrics.</code><code class="sig-name descname">TopDownVisualizationMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">top_down_transform</span></em>, <em class="sig-param"><span class="n">class_id_to_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_height</span><span class="o">=</span><span class="default_value">1536</span></em>, <em class="sig-param"><span class="n">image_width</span><span class="o">=</span><span class="default_value">1024</span></em>, <em class="sig-param"><span class="n">figsize</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ground_removal_threshold</span><span class="o">=</span><span class="default_value">- 1.35</span></em>, <em class="sig-param"><span class="n">sampler_num_samples</span><span class="o">=</span><span class="default_value">8</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Top-down detection visualization, expecting 3D laser points and 2D bboxes.</p>
-<p>Updates to this metric is expected to be <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing:</p>
-<blockquote>
-<div><p>visualization_labels: [N, B1] int tensor containing visualization labels.</p>
-<p>predicted_bboxes: [N, B1, 5] float tensor containing predicted 2D bboxes
-each with (x, y, dx, dy, phi).</p>
-<p>visualization_weights: [N, B1] float tensor containing weights for each
-prediction. predictions with 0 weight will not be drawn.</p>
-<p>points_xyz: [N, P, 3] float tensor containing points (x, y, z) coordinates.</p>
-<p>points_padding: [N, P] tensor containing 1 if the point is a padded point.</p>
-<p>gt_bboxes_2d: [N, B2, 5] float tensor containing ground-truth 2D bboxes.</p>
-<p>gt_bboxes_2d_weights: [N, B2] float tensor containing weights for each
+<dl class="simple">
+<dt>Updates to this metric is expected to be <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing:</dt><dd><ul class="simple">
+<li><p>visualization_labels: [N, B1] int tensor containing visualization labels.</p></li>
+<li><p>predicted_bboxes: [N, B1, 5] float tensor containing predicted 2D bboxes
+each with (x, y, dx, dy, phi).</p></li>
+<li><p>visualization_weights: [N, B1] float tensor containing weights for each
+prediction. predictions with 0 weight will not be drawn.</p></li>
+<li><p>points_xyz: [N, P, 3] float tensor containing (x, y, z) coordinates.</p></li>
+<li><p>points_padding: [N, P] tensor containing 1 if the point is a padded point.</p></li>
+<li><p>gt_bboxes_2d: [N, B2, 5] float tensor containing ground-truth 2D bboxes.</p></li>
+<li><p>gt_bboxes_2d_weights: [N, B2] float tensor containing weights for each
 ground-truth. predictions with 0 weight will not be drawn. The
-ground-truth mask can be used here.</p>
-<p>labels: [N, B2] int tensor containing ground-truth labels.</p>
-<p>difficulties: [N, B2]: int tensor containing the difficulty levels of
-each groundtruth box.</p>
-</div></blockquote>
+ground-truth mask can be used here.</p></li>
+<li><p>labels: [N, B2] int tensor containing ground-truth labels.</p></li>
+<li><p>difficulties: [N, B2]: int tensor containing the difficulty levels of
+each groundtruth box.</p></li>
+</ul>
+</dd>
+</dl>
 <p>Default parameters visualize the area around the car, with the car centered in
 the image, over a 32m x 48m range.</p>
 <p>Ground-truth boxes will be drawn with color=cyan (see DrawBBoxesOnImages for
@@ -203,21 +205,12 @@ with a different color per class.</p>
 <dd><p>Add top down visualization to summaries.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p></li>
-<li><p><strong>visualization_labels</strong> – </p></li>
-<li><p><strong>predicted_bboxes</strong> – </p></li>
-<li><p><strong>visualization_weights</strong> – </p></li>
-</ul>
+<dd class="field-odd"><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the fields
+visualization_labels, predicted_bboxes, visualization_weights,
+points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
+labels.</p>
 </dd>
 </dl>
-<p>:param :
-:param points_xyz:
-:param points_padding:
-:param gt_bboxes_2d:
-:param gt_bboxes_2d_weights:
-:param and:
-:param labels.:</p>
 </dd></dl>
 
 <dl class="py method">
@@ -281,21 +274,12 @@ with a different color per class.</p>
 <dd><p>Add point cloud mesh data to be summarized.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p></li>
-<li><p><strong>visualization_labels</strong> – </p></li>
-<li><p><strong>predicted_bboxes</strong> – </p></li>
-<li><p><strong>visualization_weights</strong> – </p></li>
-</ul>
+<dd class="field-odd"><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the fields
+visualization_labels, predicted_bboxes, visualization_weights,
+points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
+labels.</p>
 </dd>
 </dl>
-<p>:param :
-:param points_xyz:
-:param points_padding:
-:param gt_bboxes_2d:
-:param gt_bboxes_2d_weights:
-:param and:
-:param labels.:</p>
 </dd></dl>
 
 <dl class="py method">

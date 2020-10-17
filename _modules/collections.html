@@ -195,7 +195,7 @@
         <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_collections_abc</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
         <span class="kn">import</span> <span class="nn">warnings</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Using or importing the ABCs from &#39;collections&#39; instead &quot;</span>
-                      <span class="s2">&quot;of from &#39;collections.abc&#39; is deprecated since Python 3.3,&quot;</span>
+                      <span class="s2">&quot;of from &#39;collections.abc&#39; is deprecated since Python 3.3, &quot;</span>
                       <span class="s2">&quot;and in 3.9 it will stop working&quot;</span><span class="p">,</span>
                       <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="nb">globals</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
@@ -241,16 +241,10 @@
     <span class="c1"># Individual links are kept alive by the hard reference in self.__map.</span>
     <span class="c1"># Those hard references disappear when a key is deleted from an OrderedDict.</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="p">(),</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Initialize an ordered dictionary.  The signature is the same as</span>
 <span class="sd">        regular dictionaries.  Keyword argument order is preserved.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;descriptor &#39;__init__&#39; of &#39;OrderedDict&#39; object &quot;</span>
-                            <span class="s2">&quot;needs an argument&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;expected at most 1 arguments, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__root</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
@@ -258,7 +252,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">__root</span> <span class="o">=</span> <span class="n">root</span> <span class="o">=</span> <span class="n">_proxy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__hardroot</span><span class="p">)</span>
             <span class="n">root</span><span class="o">.</span><span class="n">prev</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="n">root</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__map</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">__update</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__update</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
                     <span class="n">dict_setitem</span><span class="o">=</span><span class="nb">dict</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="n">_proxy</span><span class="p">,</span> <span class="n">Link</span><span class="o">=</span><span class="n">_Link</span><span class="p">):</span>
@@ -459,7 +453,10 @@
 <span class="c1">### namedtuple</span>
 <span class="c1">################################################################################</span>
 
-<span class="n">_nt_itemgetters</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">_collections</span> <span class="kn">import</span> <span class="n">_tuplegetter</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">_tuplegetter</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">index</span><span class="p">,</span> <span class="n">doc</span><span class="p">:</span> <span class="nb">property</span><span class="p">(</span><span class="n">_itemgetter</span><span class="p">(</span><span class="n">index</span><span class="p">),</span> <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">namedtuple</span><span class="p">(</span><span class="n">typename</span><span class="p">,</span> <span class="n">field_names</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">rename</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a new subclass of tuple with named fields.</span>
@@ -535,7 +532,7 @@
     <span class="n">arg_list</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">field_names</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">repr_fmt</span> <span class="o">=</span> <span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">=%r&#39;</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">field_names</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span>
     <span class="n">tuple_new</span> <span class="o">=</span> <span class="nb">tuple</span><span class="o">.</span><span class="fm">__new__</span>
-    <span class="n">_len</span> <span class="o">=</span> <span class="nb">len</span>
+    <span class="n">_dict</span><span class="p">,</span> <span class="n">_tuple</span><span class="p">,</span> <span class="n">_len</span><span class="p">,</span> <span class="n">_map</span><span class="p">,</span> <span class="n">_zip</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">zip</span>
 
     <span class="c1"># Create all the named tuple methods to be added to the class namespace</span>
 
@@ -558,8 +555,8 @@
     <span class="n">_make</span><span class="o">.</span><span class="vm">__func__</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Make a new </span><span class="si">{</span><span class="n">typename</span><span class="si">}</span><span class="s1"> object from a sequence &#39;</span>
                               <span class="s1">&#39;or iterable&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_replace</span><span class="p">(</span><span class="n">_self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">_self</span><span class="o">.</span><span class="n">_make</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">kwds</span><span class="o">.</span><span class="n">pop</span><span class="p">,</span> <span class="n">field_names</span><span class="p">,</span> <span class="n">_self</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">_replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make</span><span class="p">(</span><span class="n">_map</span><span class="p">(</span><span class="n">kwds</span><span class="o">.</span><span class="n">pop</span><span class="p">,</span> <span class="n">field_names</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">kwds</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Got unexpected field names: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">kwds</span><span class="p">)</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span>
@@ -572,15 +569,14 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="n">repr_fmt</span> <span class="o">%</span> <span class="bp">self</span>
 
     <span class="k">def</span> <span class="nf">_asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="s1">&#39;Return a new OrderedDict which maps field names to their values.&#39;</span>
-        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span>
+        <span class="s1">&#39;Return a new dict which maps field names to their values.&#39;</span>
+        <span class="k">return</span> <span class="n">_dict</span><span class="p">(</span><span class="n">_zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fields</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__getnewargs__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="s1">&#39;Return self as a plain tuple.  Used by copy and pickle.&#39;</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="c1"># Modify function metadata to help with introspection and debugging</span>
-
     <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">(</span><span class="fm">__new__</span><span class="p">,</span> <span class="n">_make</span><span class="o">.</span><span class="vm">__func__</span><span class="p">,</span> <span class="n">_replace</span><span class="p">,</span>
                    <span class="fm">__repr__</span><span class="p">,</span> <span class="n">_asdict</span><span class="p">,</span> <span class="n">__getnewargs__</span><span class="p">):</span>
         <span class="n">method</span><span class="o">.</span><span class="vm">__qualname__</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">typename</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">method</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">&#39;</span>
@@ -601,15 +597,9 @@
         <span class="s1">&#39;_asdict&#39;</span><span class="p">:</span> <span class="n">_asdict</span><span class="p">,</span>
         <span class="s1">&#39;__getnewargs__&#39;</span><span class="p">:</span> <span class="n">__getnewargs__</span><span class="p">,</span>
     <span class="p">}</span>
-    <span class="n">cache</span> <span class="o">=</span> <span class="n">_nt_itemgetters</span>
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">field_names</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">itemgetter_object</span><span class="p">,</span> <span class="n">doc</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="n">itemgetter_object</span> <span class="o">=</span> <span class="n">_itemgetter</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-            <span class="n">doc</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Alias for field number </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s1">&#39;</span>
-            <span class="n">cache</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">itemgetter_object</span><span class="p">,</span> <span class="n">doc</span>
-        <span class="n">class_namespace</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">itemgetter_object</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">)</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="n">_sys</span><span class="o">.</span><span class="n">intern</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Alias for field number </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">class_namespace</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_tuplegetter</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">doc</span><span class="p">)</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">typename</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,),</span> <span class="n">class_namespace</span><span class="p">)</span>
 
@@ -695,7 +685,7 @@
     <span class="c1">#   http://code.activestate.com/recipes/259174/</span>
     <span class="c1">#   Knuth, TAOCP Vol. II section 4.6.3</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Create a new, empty Counter object.  And if given, count elements</span>
 <span class="sd">        from an input iterable.  Or, initialize the count from another mapping</span>
 <span class="sd">        of elements to their counts.</span>
@@ -706,14 +696,8 @@
 <span class="sd">        &gt;&gt;&gt; c = Counter(a=4, b=2)                   # a new counter from keyword args</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;descriptor &#39;__init__&#39; of &#39;Counter&#39; object &quot;</span>
-                            <span class="s2">&quot;needs an argument&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;expected at most 1 arguments, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Counter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__missing__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="s1">&#39;The count of elements not in the Counter is zero.&#39;</span>
@@ -724,8 +708,8 @@
         <span class="sd">&#39;&#39;&#39;List the n most common elements and their counts from the most</span>
 <span class="sd">        common to the least.  If n is None, then list all element counts.</span>
 
-<span class="sd">        &gt;&gt;&gt; Counter(&#39;abcdeabcdabcaba&#39;).most_common(3)</span>
-<span class="sd">        [(&#39;a&#39;, 5), (&#39;b&#39;, 4), (&#39;c&#39;, 3)]</span>
+<span class="sd">        &gt;&gt;&gt; Counter(&#39;abracadabra&#39;).most_common(3)</span>
+<span class="sd">        [(&#39;a&#39;, 5), (&#39;b&#39;, 2), (&#39;r&#39;, 2)]</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="c1"># Emulate Bag.sortedByCount from Smalltalk</span>
@@ -759,12 +743,17 @@
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">fromkeys</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="c1"># There is no equivalent method for counters because setting v=1</span>
-        <span class="c1"># means that no element can have a count greater than one.</span>
+        <span class="c1"># There is no equivalent method for counters because the semantics</span>
+        <span class="c1"># would be ambiguous in cases such as Counter.fromkeys(&#39;aaabbc&#39;, v=2).</span>
+        <span class="c1"># Initializing counters to zero values isn&#39;t necessary because zero</span>
+        <span class="c1"># is already the default value for counter lookups.  Initializing</span>
+        <span class="c1"># to one is easily accomplished with Counter(set(iterable)).  For</span>
+        <span class="c1"># more exotic cases, create a dictionary first using a dictionary</span>
+        <span class="c1"># comprehension or dict.fromkeys().</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s1">&#39;Counter.fromkeys() is undefined.  Use Counter(iterable) instead.&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Like dict.update() but add counts instead of replacing them.</span>
 
 <span class="sd">        Source can be an iterable, a dictionary, or another Counter instance.</span>
@@ -784,13 +773,6 @@
         <span class="c1"># contexts.  Instead, we implement straight-addition.  Both the inputs</span>
         <span class="c1"># and outputs are allowed to contain zero and negative counts.</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;descriptor &#39;update&#39; of &#39;Counter&#39; object &quot;</span>
-                            <span class="s2">&quot;needs an argument&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;expected at most 1 arguments, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
-        <span class="n">iterable</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">iterable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">_collections_abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="p">:</span>
@@ -804,7 +786,7 @@
         <span class="k">if</span> <span class="n">kwds</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwds</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">subtract</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">subtract</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Like dict.update() but subtracts counts instead of replacing them.</span>
 <span class="sd">        Counts can be reduced below zero.  Both the inputs and outputs are</span>
 <span class="sd">        allowed to contain zero and negative counts.</span>
@@ -820,13 +802,6 @@
 <span class="sd">        -1</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;descriptor &#39;subtract&#39; of &#39;Counter&#39; object &quot;</span>
-                            <span class="s2">&quot;needs an argument&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;expected at most 1 arguments, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
-        <span class="n">iterable</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">iterable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">self_get</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">_collections_abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
@@ -868,6 +843,13 @@
     <span class="c1">#</span>
     <span class="c1"># To strip negative and zero counts, add-in an empty counter:</span>
     <span class="c1">#       c += Counter()</span>
+    <span class="c1">#</span>
+    <span class="c1"># Rich comparison operators for multiset subset and superset tests</span>
+    <span class="c1"># are deliberately omitted due to semantic conflicts with the</span>
+    <span class="c1"># existing inherited dict equality method.  Subset and superset</span>
+    <span class="c1"># semantics ignore zero counts and require that p≤q ∧ p≥q → p=q;</span>
+    <span class="c1"># however, that would not be the case for p=Counter(a=1, b=0)</span>
+    <span class="c1"># and q=Counter(a=1) where the dictionaries are not equal.</span>
 
     <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Add counts from two counters.</span>
@@ -1083,8 +1065,7 @@
 
     <span class="nd">@_recursive_repr</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{0.__class__.__name__}</span><span class="s1">(</span><span class="si">{1}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">(</span><span class="si">{</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maps</span><span class="p">))</span><span class="si">}</span><span class="s1">)&#39;</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">fromkeys</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -1164,8 +1145,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="nb">dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="fm">__init__</span><span class="o">.</span><span class="n">__text_signature__</span> <span class="o">=</span> <span class="s1">&#39;($self, dict=None, /, **kwargs)&#39;</span>
+
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
@@ -1287,7 +1270,7 @@
     <span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">reverse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
-    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">UserList</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
@@ -1360,9 +1343,8 @@
     <span class="fm">__rmul__</span> <span class="o">=</span> <span class="fm">__mul__</span>
     <span class="k">def</span> <span class="fm">__mod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">%</span> <span class="n">args</span><span class="p">)</span>
-    <span class="k">def</span> <span class="fm">__rmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="nb">format</span> <span class="o">%</span> <span class="n">args</span><span class="p">)</span>
-
+    <span class="k">def</span> <span class="fm">__rmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="p">)</span>
     <span class="c1"># the following methods are defined in alphabetical order:</span>
     <span class="k">def</span> <span class="nf">capitalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">capitalize</span><span class="p">())</span>
     <span class="k">def</span> <span class="nf">casefold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1373,12 +1355,10 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">UserString</span><span class="p">):</span>
             <span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">data</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="c1"># XXX improve this?</span>
-        <span class="k">if</span> <span class="n">encoding</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding</span><span class="p">,</span> <span class="n">errors</span><span class="p">))</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding</span><span class="p">))</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;strict&#39;</span><span class="p">):</span>
+        <span class="n">encoding</span> <span class="o">=</span> <span class="s1">&#39;utf-8&#39;</span> <span class="k">if</span> <span class="n">encoding</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">encoding</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="s1">&#39;strict&#39;</span> <span class="k">if</span> <span class="n">errors</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">errors</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">encoding</span><span class="p">,</span> <span class="n">errors</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">endswith</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">_sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">suffix</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">expandtabs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tabsize</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
@@ -1387,7 +1367,7 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">UserString</span><span class="p">):</span>
             <span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">data</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">format_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">format_map</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>

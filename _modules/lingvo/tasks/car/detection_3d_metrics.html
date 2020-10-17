@@ -183,29 +183,20 @@
   <span class="sd">&quot;&quot;&quot;Top-down detection visualization, expecting 3D laser points and 2D bboxes.</span>
 
 <span class="sd">  Updates to this metric is expected to be `.NestedMap` containing:</span>
-
-<span class="sd">    visualization_labels: [N, B1] int tensor containing visualization labels.</span>
-
-<span class="sd">    predicted_bboxes: [N, B1, 5] float tensor containing predicted 2D bboxes</span>
-<span class="sd">    each with (x, y, dx, dy, phi).</span>
-
-<span class="sd">    visualization_weights: [N, B1] float tensor containing weights for each</span>
-<span class="sd">    prediction. predictions with 0 weight will not be drawn.</span>
-
-<span class="sd">    points_xyz: [N, P, 3] float tensor containing points (x, y, z) coordinates.</span>
-
-<span class="sd">    points_padding: [N, P] tensor containing 1 if the point is a padded point.</span>
-
-<span class="sd">    gt_bboxes_2d: [N, B2, 5] float tensor containing ground-truth 2D bboxes.</span>
-
-<span class="sd">    gt_bboxes_2d_weights: [N, B2] float tensor containing weights for each</span>
-<span class="sd">    ground-truth. predictions with 0 weight will not be drawn. The</span>
-<span class="sd">    ground-truth mask can be used here.</span>
-
-<span class="sd">    labels: [N, B2] int tensor containing ground-truth labels.</span>
-
-<span class="sd">    difficulties: [N, B2]: int tensor containing the difficulty levels of</span>
-<span class="sd">    each groundtruth box.</span>
+<span class="sd">    - visualization_labels: [N, B1] int tensor containing visualization labels.</span>
+<span class="sd">    - predicted_bboxes: [N, B1, 5] float tensor containing predicted 2D bboxes</span>
+<span class="sd">      each with (x, y, dx, dy, phi).</span>
+<span class="sd">    - visualization_weights: [N, B1] float tensor containing weights for each</span>
+<span class="sd">      prediction. predictions with 0 weight will not be drawn.</span>
+<span class="sd">    - points_xyz: [N, P, 3] float tensor containing (x, y, z) coordinates.</span>
+<span class="sd">    - points_padding: [N, P] tensor containing 1 if the point is a padded point.</span>
+<span class="sd">    - gt_bboxes_2d: [N, B2, 5] float tensor containing ground-truth 2D bboxes.</span>
+<span class="sd">    - gt_bboxes_2d_weights: [N, B2] float tensor containing weights for each</span>
+<span class="sd">      ground-truth. predictions with 0 weight will not be drawn. The</span>
+<span class="sd">      ground-truth mask can be used here.</span>
+<span class="sd">    - labels: [N, B2] int tensor containing ground-truth labels.</span>
+<span class="sd">    - difficulties: [N, B2]: int tensor containing the difficulty levels of</span>
+<span class="sd">      each groundtruth box.</span>
 
 <span class="sd">  Default parameters visualize the area around the car, with the car centered in</span>
 <span class="sd">  the image, over a 32m x 48m range.</span>
@@ -258,10 +249,10 @@
     <span class="sd">&quot;&quot;&quot;Add top down visualization to summaries.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      decoded_outputs: A `.NestedMap` containing the following fields:</span>
-<span class="sd">      visualization_labels, predicted_bboxes, visualization_weights,</span>
-<span class="sd">      points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and</span>
-<span class="sd">      labels.</span>
+<span class="sd">      decoded_outputs: A `.NestedMap` containing the fields</span>
+<span class="sd">        visualization_labels, predicted_bboxes, visualization_weights,</span>
+<span class="sd">        points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and</span>
+<span class="sd">        labels.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sampler</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">decoded_outputs</span><span class="p">)</span>
     <span class="c1"># Invalidate cache.</span>
@@ -454,10 +445,10 @@
     <span class="sd">&quot;&quot;&quot;Add point cloud mesh data to be summarized.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      decoded_outputs: A `.NestedMap` containing the following fields:</span>
-<span class="sd">      visualization_labels, predicted_bboxes, visualization_weights,</span>
-<span class="sd">      points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and</span>
-<span class="sd">      labels.</span>
+<span class="sd">      decoded_outputs: A `.NestedMap` containing the fields</span>
+<span class="sd">        visualization_labels, predicted_bboxes, visualization_weights,</span>
+<span class="sd">        points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and</span>
+<span class="sd">        labels.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sampler</span><span class="o">.</span><span class="n">Add</span><span class="p">(</span><span class="n">decoded_outputs</span><span class="p">)</span>
     <span class="c1"># Invalidate cache.</span>
