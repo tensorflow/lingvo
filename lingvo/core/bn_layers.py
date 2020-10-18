@@ -44,12 +44,12 @@ class AddingAccumulator(base_layer.Accumulator):
     self.SetValue(self.GetValue() + tf.cast(value, self.dtype))
 
 
-def ComputeMomentsWithPadding(inputs,
-                              padding,
-                              reduce_over_dims,
-                              cumulative_axis=None,
-                              enable_cross_replica_sum_on_tpu=False,
-                              keepdims=False):
+def ComputeMoments(inputs,
+                   padding,
+                   reduce_over_dims,
+                   cumulative_axis=None,
+                   enable_cross_replica_sum_on_tpu=False,
+                   keepdims=False):
   """Computes mean and variance over the valid data points in inputs."""
   mask = 1.0 - padding
   inputs = py_utils.with_dependencies([
@@ -287,9 +287,8 @@ class BatchNormLayer(base_layer.BaseLayer):
       else:
         rank = tf.rank(paddings)
         reduce_over_dims = tf.range(0, rank - 1)
-        mean, variance = ComputeMomentsWithPadding(
-            inputs, paddings, reduce_over_dims, None,
-            p.enable_cross_replica_sum_on_tpu)
+        mean, variance = ComputeMoments(inputs, paddings, reduce_over_dims,
+                                        None, p.enable_cross_replica_sum_on_tpu)
 
         py_utils.UpdateBatchNormVars(self.vars.moving_mean, mean, self._decay)
         py_utils.UpdateBatchNormVars(self.vars.moving_variance, variance,
@@ -721,6 +720,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     assert p.name
     assert p.num_groups > 0
     assert p.min_group_size > 0
+    assert p.dim % p.min_group_size == 0
+
     if p.dim >= p.num_groups:
       assert p.dim % p.num_groups == 0, ('p.dim({0}) is not dividable by '
                                          'p.num_groups({1})').format(
@@ -747,6 +748,67 @@ class GroupNormLayer(base_layer.BaseLayer):
     # Note, The real gamma to use is 1 + gamma.
     self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
+  @property
+  def group_size(self):
+    p = self.params
+    assert p.min_group_size <= p.dim
+    return max(p.dim // p.num_groups, p.min_group_size)
+
+  @property
+  def num_groups(self):
+    p = self.params
+    return p.dim // self.group_size
+
+  def zero_state(self, batch_size):
+    p = self.params
+    num_groups = self.num_groups
+
+    if not p.cumulative:
+      return py_utils.NestedMap()
+
+    if p.input_rank == 4:
+      cache_shape = [batch_size, 1, 1, num_groups, 1]
+    else:
+      cache_shape = [batch_size, 1, num_groups, 1]
+    cached_sum = tf.zeros(cache_shape)
+    cached_count = tf.zeros(cache_shape)
+    cached_var = tf.zeros(cache_shape)
+    return py_utils.NestedMap(
+        cached_sum=cached_sum, cached_count=cached_count, cached_var=cached_var)
+
+  def _Normalize(self, theta, grouped_inputs, group_mean, group_variance):
+    p = self.params
+    group_mean = py_utils.CheckNumerics(
+        group_mean, f'mean of {p.name} failed numeric check.')
+    group_variance = py_utils.CheckNumerics(
+        group_variance, f'variance of {p.name} failed numeric check.')
+
+    input_shape = py_utils.GetShape(grouped_inputs)
+    moment_shape = list(input_shape)
+    if p.input_rank == 4:
+      moment_shape[2] = 1
+      moment_shape[-1] = 1
+    else:
+      moment_shape[-1] = 1
+    if not p.cumulative:
+      # If not cumulative, the seqlen dimension is also reduced.
+      moment_shape[1] = 1
+
+    group_mean = py_utils.HasShape(group_mean, moment_shape)
+    group_variance = py_utils.HasShape(group_variance, moment_shape)
+    group_variance = py_utils.with_dependencies([
+        py_utils.assert_greater_equal(group_variance,
+                                      tf.cast(0, group_variance.dtype))
+    ], group_variance)
+
+    grouped_inputs = (grouped_inputs - group_mean
+                     ) * tf.math.rsqrt(group_variance + self._epsilon)
+    # Merges the last two dims.
+    grouped_inputs = tf.reshape(grouped_inputs, input_shape[:-2] + [-1])
+
+    outputs = grouped_inputs * theta.gamma + theta.beta
+    return outputs
+
   def FProp(self, theta, inputs, paddings=None):
     """Apply group normalization.
 
@@ -754,6 +816,7 @@ class GroupNormLayer(base_layer.BaseLayer):
       theta: A NestedMap object containing weights' values of this layer and its
         children layers.
       inputs: The inputs tensor with shape [batch_size, height, width, channel].
+        if p.rank == 4, else [batch, height, channel].
       paddings: The paddings tensor with shape [batch_size, height]. Intended to
         be used for sequence processing where `height` is `time`.
 
@@ -769,75 +832,144 @@ class GroupNormLayer(base_layer.BaseLayer):
         return inputs, paddings
 
     p = self.params
-    inputs = py_utils.with_dependencies(
-        [py_utils.assert_greater_equal(py_utils.GetRank(inputs), p.input_rank)],
-        inputs)
-
-    min_group_size = min(p.min_group_size, p.dim)
-    group_size = max(p.dim // p.num_groups, min_group_size)
-    num_groups = p.dim // group_size
+    inputs = py_utils.HasRank(inputs, p.input_rank)
+    num_groups = self.num_groups
 
     input_shape = py_utils.GetShape(inputs)
     with tf.name_scope(p.name):
-      x = tf.reshape(inputs, input_shape[:-1] + [num_groups, group_size])
+      x = tf.reshape(inputs, input_shape[:-1] + [num_groups, self.group_size])
       expanded_rank = p.input_rank + 1
       all_dims = list(range(expanded_rank))
-      if paddings is None:
-        # Skip d0, d[-2]
-        axes = all_dims[1:-2] + all_dims[-1:]
+      if paddings is None or not p.cumulative:
+        # Skips batch and num_groups.
+        reduce_over_dims = all_dims[1:-2] + all_dims[-1:]
+      else:
+        # Skips batch, seqlen and num_groups.
+        reduce_over_dims = all_dims[2:-2] + all_dims[-1:]
+
+      if paddings is None and not p.cumulative:
+        # Fast path on tpu without reshape.
         counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
-            x, axes=axes, keepdims=True)
-        norm_mean, norm_variance = tf.nn.normalize_moments(
+            x, axes=reduce_over_dims, keepdims=True)
+        group_mean, group_variance = tf.nn.normalize_moments(
             counts, means_ss, variance_ss, None)
       else:
         expanded_paddings = tf.reshape(
             paddings, input_shape[:2] + [1] * (expanded_rank - 2))
-        # skip the batching and group dim
-        if p.cumulative:
-          # Skip d0, d1 and d[-2]
-          reduce_over_dims = all_dims[2:-2] + all_dims[-1:]
-          norm_mean, norm_variance = ComputeMomentsWithPadding(
-              x,
-              expanded_paddings,
-              reduce_over_dims=reduce_over_dims,
-              cumulative_axis=1,
-              enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
-              keepdims=True)
-        else:
-          # Skip d0, d[-2]
-          reduce_over_dims = all_dims[1:-2] + all_dims[-1:]
-          norm_mean, norm_variance = ComputeMomentsWithPadding(
-              x,
-              expanded_paddings,
-              reduce_over_dims,
-              enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
-              keepdims=True)
+        group_mean, group_variance = ComputeMoments(
+            x,
+            expanded_paddings,
+            reduce_over_dims,
+            cumulative_axis=1,
+            enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
+            keepdims=True)
 
-      norm_mean = py_utils.CheckNumerics(
-          norm_mean, 'mean of %s failed numeric check' % p.name)
-      norm_variance = py_utils.CheckNumerics(
-          norm_variance, 'variance of %s failed numeric check' % p.name)
+      outputs = self._Normalize(theta, x, group_mean, group_variance)
 
-      beta = theta.beta
-      gamma = theta.gamma
-      n = input_shape[0]
-      t = input_shape[1] if p.cumulative else 1
-      norm_shape = [n, t, 1, num_groups, 1
-                   ] if p.input_rank == 4 else [n, t, num_groups, 1]
-      with tf.control_dependencies([
-          py_utils.assert_greater_equal(norm_variance,
-                                        tf.cast(0., norm_variance.dtype)),
-          py_utils.assert_shape_match(norm_shape, tf.shape(norm_mean)),
-          py_utils.assert_shape_match(norm_shape, tf.shape(norm_variance)),
-      ]):
-        x = (x - norm_mean) / tf.sqrt(norm_variance + self._epsilon)
-        x = tf.reshape(x, input_shape)
-        gn_output = x * gamma + beta
-        gn_output = tf.reshape(gn_output, input_shape)
-        if paddings is None:
-          return gn_output
-        else:
-          return gn_output, paddings
+      if paddings is None:
+        return outputs
+      else:
+        return outputs, paddings
+
+  def _StreamMoments(self, inputs, paddings, cached_sum, cached_count,
+                     cached_var):
+    """Computes mean and variance over the valid data points in inputs.
+
+    Args:
+      inputs: [B, T, F, N, G] or [B, T, N, G]
+      paddings: [B, T, 1, 1, 1] or [B, T, 1, 1]
+      cached_sum: [B, 1, 1, N, 1] or [B, 1, N, 1]
+      cached_count: same shape as cached_sum.
+      cached_var: same shape as cached_sum.
+
+    Returns:
+      mean: [B, T, 1, N, 1] or [B, T, N, 1]
+      variance: same shape as mean.
+      new_cached_sum: same shape as cached_sum.
+      new_cached_count: same shape as cached_count.
+    """
+    tf.logging.vlog(1, 'inputs: %r', inputs)
+    tf.logging.vlog(1, 'paddings: %r', paddings)
+    tf.logging.vlog(1, 'cached_sum: %r', cached_sum)
+    tf.logging.vlog(1, 'cached_count: %r', cached_count)
+
+    mask = 1.0 - paddings
+    inputs *= tf.cast(mask, inputs.dtype)
+
+    input_rank = py_utils.GetRank(inputs)
+    assert input_rank is not None, (f'inputs rank must be staic for '
+                                    f'{repr(inputs)}')
+    reduce_over_dims = list(range(input_rank))
+    # Skip B, T, and N. Reduce {F,G} or just G.
+    reduce_over_dims = reduce_over_dims[2:-2] + reduce_over_dims[-1:]
+    tf.logging.vlog(1, 'reduce_over_dims: %s', reduce_over_dims)
+
+    # [B, T, 1, N, 1] or [B, T, N, 1]
+    sum_v = tf.reduce_sum(inputs, reduce_over_dims, keepdims=True)
+    sum_v = tf.math.cumsum(sum_v, axis=1)
+    sum_v += cached_sum
+
+    # [B, T, 1, 1, 1] or [B, T, 1, 1]
+    count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=True)
+    count_v = tf.math.cumsum(count_v, axis=1)
+    input_shape = py_utils.GetShape(inputs)
+    if input_rank == 4:
+      # F * G
+      multiplier = input_shape[-1] * input_shape[-3]
+    else:
+      # G
+      multiplier = input_shape[-1]
+    count_v *= multiplier
+    count_v += cached_count
+    count_v = tf.maximum(count_v, 1.0)
+
+    tf.logging.vlog(1, 'sum_v: %r', sum_v)
+    tf.logging.vlog(1, 'count_v: %r', count_v)
+
+    mean = sum_v / count_v
+    sum_vv = tf.reduce_sum(
+        (inputs - mean)**2 * mask, reduce_over_dims, keepdims=True)
+    sum_vv = tf.math.cumsum(sum_vv, axis=1)
+    sum_vv += cached_var
+
+    cached_sum = sum_v[:, -1:]
+    cached_count = count_v[:, -1:]
+    cached_var = sum_vv[:, -1:]
+
+    variance = py_utils.with_dependencies([
+        py_utils.assert_greater_equal(sum_vv, tf.cast(0, sum_vv.dtype)),
+    ], sum_vv / count_v)
+    return mean, variance, cached_sum, cached_count, cached_var
+
+  def StreamStep(self, theta, inputs, paddings, state0):
+    if py_utils.testonly_skip_norm_layers():
+      return inputs, paddings, state0
+
+    p = self.params
+    assert p.cumulative
+    inputs = py_utils.HasRank(inputs, p.input_rank)
+
+    group_size = self.group_size
+    num_groups = self.num_groups
+    tf.logging.vlog(1, 'group_size: %s', group_size)
+    tf.logging.vlog(1, 'num_groups: %s', num_groups)
+
+    input_shape = py_utils.GetShape(inputs)
+    with tf.name_scope(f'{p.name}/StreamStep'):
+      x = tf.reshape(inputs, input_shape[:-1] + [num_groups, group_size])
+      expanded_rank = p.input_rank + 1
+      expanded_paddings = tf.reshape(
+          paddings, input_shape[:2] + [1] * (expanded_rank - 2))
+      (group_mean, group_variance, cached_sum, cached_count,
+       cached_var) = self._StreamMoments(x, expanded_paddings,
+                                         state0.cached_sum, state0.cached_count,
+                                         state0.cached_var)
+      outputs = self._Normalize(theta, x, group_mean, group_variance)
+
+      return outputs, paddings, py_utils.NestedMap(
+          cached_sum=cached_sum,
+          cached_count=cached_count,
+          cached_var=cached_var)
 
   @classmethod
   def FPropMeta(cls, p, inputs):

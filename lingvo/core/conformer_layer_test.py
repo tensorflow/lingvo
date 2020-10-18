@@ -58,14 +58,23 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       out_vals = sess.run(outputs)
       print([x.shape for x in out_vals])
 
-  @parameterized.named_parameters(('Basic',), ('SkipNorm', True))
-  def testStreamStep(self, testonly_skip_norm_layers=False):
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicGN', False, 'gn'),
+      ('SkipNorm', True),
+  )
+  def testStreamStep(self, testonly_skip_norm_layers=False, norm_type='ln'):
     with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
                             ), cluster_factory.SetEval(True):
-      batch, max_seqlen, input_dim, kernel = 2, 32, 2, 3
+      assert norm_type in ('ln', 'gn')
+      batch, max_seqlen, input_dim, kernel = 2, 8, 2, 3
       p = conformer_layer.LConvLayer.CommonParams(
           input_dim=input_dim, is_causal=True, kernel_size=kernel)
-      p.conv_norm_layer_tpl = layers.LayerNorm.Params()
+      if norm_type == 'ln':
+        p.conv_norm_layer_tpl = layers.LayerNorm.Params()
+      else:
+        p.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+            num_groups=2, cumulative=True)
       p.name = 'lconv'
 
       l = p.Instantiate()
@@ -77,8 +86,13 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       print(f'np.sum(inputs): {np.sum(inputs)}')
       inputs = tf.convert_to_tensor(inputs)
 
-      paddings = tf.zeros([batch, max_seqlen])
+      seqlen = np.random.randint(
+          low=1, high=max_seqlen + 1, size=(batch,), dtype=np.int32)
+      print(repr(seqlen))
+      seqlen = tf.convert_to_tensor(seqlen)
+      paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
       base_outputs, _ = l.FProp(l.theta, inputs, paddings)
+      base_outputs *= tf.expand_dims(1. - paddings, -1)
 
       outputs = []
       state = l.zero_state(batch)
@@ -88,6 +102,7 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
         outputs.append(output)
       # [b, t, d]
       outputs = tf.concat(outputs, axis=1)
+      outputs *= tf.expand_dims(1. - paddings, -1)
 
       with self.session(use_gpu=False) as sess:
         sess.run(init_op)
@@ -207,11 +222,22 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.assertFalse(m1.called)
         self.assertFalse(m2.called)
 
-  @parameterized.named_parameters(('Basic',), ('SkipNorm', True))
-  def testStreamStep(self, testonly_skip_norm_layers=False):
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicGN', False, 'gn'),
+      ('BasicGNG1', False, 'gn', 1),
+      ('BasicGNG8', False, 'gn', 8),
+      ('SkipNorm', True),
+      ('SkipNormGN', True),
+  )
+  def testStreamStep(self,
+                     testonly_skip_norm_layers=False,
+                     norm_type='ln',
+                     num_groups=2):
+    assert norm_type in ('ln', 'gn'), norm_type
     with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
                             ), cluster_factory.SetEval(True):
-      batch, max_seqlen, input_dim, kernel = 2, 32, 2, 3
+      batch, max_seqlen, input_dim, kernel = 2, 16, 8, 3
       num_heads, left_context, ffn_dim = 2, 3, 4
       p = conformer_layer.ConformerLayer.CommonParams(
           input_dim=input_dim,
@@ -223,7 +249,11 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           fflayer_hidden_dim=ffn_dim,
           kernel_size=kernel,
           layer_order='conv_before_mhsa')
-      p.lconv_tpl.conv_norm_layer_tpl = layers.LayerNorm.Params()
+      if norm_type == 'ln':
+        p.lconv_tpl.conv_norm_layer_tpl = layers.LayerNorm.Params()
+      else:
+        p.lconv_tpl.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+            num_groups=num_groups, cumulative=True)
       p.name = 'conformer'
 
       l = p.Instantiate()
@@ -235,14 +265,14 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       print(f'np.sum(inputs): {np.sum(inputs)}')
       inputs = tf.convert_to_tensor(inputs)
 
-      seqlen = tf.random.uniform([batch],
-                                 minval=1,
-                                 maxval=max_seqlen + 1,
-                                 dtype=tf.int32)
+      seqlen = np.random.randint(
+          low=1, high=max_seqlen + 1, size=(batch,), dtype=np.int32)
+      print(repr(seqlen))
+      seqlen = tf.convert_to_tensor(seqlen)
       paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
 
       base_outputs, _ = l.FProp(l.theta, inputs, paddings)
-      base_outputs *= tf.reshape(1. - paddings, [batch, max_seqlen, 1])
+      base_outputs *= tf.expand_dims(1. - paddings, -1)
 
       outputs = []
       state = l.zero_state(batch)
@@ -252,7 +282,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         outputs.append(output)
       # [b, t, d]
       outputs = tf.concat(outputs, axis=1)
-      outputs *= tf.reshape(1. - paddings, [batch, max_seqlen, 1])
+      outputs *= tf.expand_dims(1. - paddings, -1)
 
       with self.session(use_gpu=False) as sess:
         sess.run(init_op)

@@ -226,19 +226,26 @@ class LConvLayer(base_layer.BaseLayer):
 
   def zero_state(self, batch_size):
     if self.params.is_causal:
-      return py_utils.NestedMap(
+      res = py_utils.NestedMap(
           conv_state=self.depthwise_conv1d.zero_state(batch_size))
+      if hasattr(self.norm, 'zero_state'):
+        res.norm_state = self.norm.zero_state(batch_size)
+      return res
     else:
       # If not causal, depthwise_conv1d does not have zero_state().
       return py_utils.NestedMap()
 
-  def _NormalizeStep(self, theta, inputs, paddings):
-    if isinstance(self.norm, bn_layers.GroupNormLayer):
+  def _NormalizeStep(self, theta, inputs, paddings, state0, state1):
+    if hasattr(self.norm, 'StreamStep'):
       # TODO(jamesqin): support 3d inputs.
-      assert self.norm.params.input_rank == 4
-      inputs, _ = self.norm.FProp(theta.norm, inputs, paddings)
+      # At present it's guaranteed GroupNorm.
+      assert (isinstance(self.norm, bn_layers.GroupNormLayer) and
+              self.norm.params.input_rank == 4)
+      inputs, _, norm_state1 = self.norm.StreamStep(theta.norm, inputs,
+                                                    paddings, state0.norm_state)
       # [b, t, d]
       inputs = tf.squeeze(inputs, 2)
+      state1.norm_state = norm_state1
     else:
       # [b, t, 1, d] -> [b, t, d]
       inputs = tf.squeeze(inputs, 2)
@@ -268,6 +275,7 @@ class LConvLayer(base_layer.BaseLayer):
     p = self.params
     assert p.is_causal
 
+    state1 = py_utils.NestedMap()
     with tf.name_scope(f'{p.name}/StreamStep'):
       unnormalized_inputs = inputs
 
@@ -283,8 +291,9 @@ class LConvLayer(base_layer.BaseLayer):
       # [b, t, 1, d]
       inputs, paddings, conv_state1 = self.depthwise_conv1d.StreamStep(
           theta.depthwise_conv1d, inputs, paddings, state0.conv_state)
+      state1.conv_state = conv_state1
       # [b, t, d]
-      inputs = self._NormalizeStep(theta, inputs, paddings)
+      inputs = self._NormalizeStep(theta, inputs, paddings, state0, state1)
 
       inputs = self._ApplyActivation(inputs, p.conv_activation)
 
@@ -292,7 +301,7 @@ class LConvLayer(base_layer.BaseLayer):
       inputs = self.dropout.FProp(theta.dropout, inputs)
 
       output = inputs + unnormalized_inputs
-      return output, paddings, py_utils.NestedMap(conv_state=conv_state1)
+      return output, paddings, state1
 
 
 class ConformerLayer(base_layer.BaseLayer):

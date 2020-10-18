@@ -1499,22 +1499,26 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     Returns:
       A `.NestedMap` object containing
-      - key: [W=left_context, B, N, H].
-      - value: [W=left_context, B, N, H].
-      - mask: [W=left_context, B]. A 0/1 Tensor where 1s are masked out
+      - key: [B, left_context-1, N, H].
+      - value: [B, left_context-1, N, H].
+      - paddings : [B, left_context-1]. A 0/1 Tensor where 1s are masked out
       positions.
+
+      Note p.left_context includes self position, thus only left_context -1
+      positions are needed in the state.
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
     assert p.right_context == 0, 'StreamStep does not support look-ahead'
 
-    key_state = tf.zeros(
-        [p.left_context, batch_size, p.num_heads, p.hidden_dim // p.num_heads],
-        py_utils.FPropDtype(p))
+    key_state = tf.zeros([
+        batch_size, p.left_context - 1, p.num_heads, p.hidden_dim // p.num_heads
+    ], py_utils.FPropDtype(p))
     value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
-    mask = tf.ones([p.left_context, batch_size], py_utils.FPropDtype(p))
-    return py_utils.NestedMap(key=key_state, value=value_state, mask=mask)
+    paddings = tf.ones([batch_size, p.left_context - 1], py_utils.FPropDtype(p))
+    return py_utils.NestedMap(
+        key=key_state, value=value_state, paddings=paddings)
 
   def StreamStep(self, theta, query_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
@@ -1524,76 +1528,97 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     Args:
       theta: A NestedMap of layer params.
-      query_vec: A query vector of shape [B, 1, D].
-      paddings: A 0/1 valued tensor of shape [B, 1].
+      query_vec: A query vector of shape [B, Q, D].
+      paddings: A 0/1 valued tensor of shape [B, Q].
       state0: A NestedMap of the same structure as returned by zero_state().
 
     Returns:
-      output: Output of the given query vector with shape [B, 1, D].
+      output: Output of the given query vector with shape [B, Q, D].
       padding: the same as input paddings.
       state1: Updated state of the same structure as state0.
     """
-    # Sanity check.
     p = self.params
+    # Sanity checks.
     assert p.enable_value_proj, 'Value projection must be enabled.'
     assert p.right_context == 0, ('StreamStep() does not support look ahead.')
-    query_vec = py_utils.HasShape(query_vec, [-1, 1, p.input_dim])
     state0.key = py_utils.HasShape(
         state0.key,
-        [p.left_context, -1, p.num_heads, p.hidden_dim // p.num_heads])
+        [-1, p.left_context - 1, p.num_heads, p.hidden_dim // p.num_heads])
     state0.value = py_utils.HasShape(state0.value,
                                      py_utils.GetShape(state0.key))
-    _, b, n, h = py_utils.GetShape(state0.key, 4)
+    b, _, _, h = py_utils.GetShape(state0.key, 4)
+    query_vec = py_utils.HasShape(query_vec, [b, -1, p.input_dim])
+    q = py_utils.GetShape(query_vec)[1]
+    paddings = py_utils.HasShape(paddings, [b, q])
 
-    # Computes query projection.
-    query_proj = self.query.FProp(theta.query, query_vec)  # [B, 1, N, H]
+    # query projection.
+    # [B, Q, N, H]
+    query_proj = self.query.FProp(theta.query, query_vec)
     if p.enable_per_dim_scale:
       query_proj = self.per_dim_scale.FProp(theta.per_dim_scale, query_proj)
     else:
       query_proj *= h**-0.5
-    query_proj = tf.reshape(query_proj, [b, n, h])
 
-    # Computes key, value projection and updates state.
-    new_key_proj = self.key.FProp(theta.key, query_vec)  # [B, 1, N, H]
-    new_key_proj = tf.reshape(new_key_proj, [1, b, n, h])
-    new_value_proj = self.key.FProp(theta.value, query_vec)  # [B, 1, N, H]
-    new_value_proj = tf.reshape(new_value_proj, [1, b, n, h])
+    # key, value, mask.
+    # [B, T=Q+W-1, N, H] where W = left_context.
+    key = tf.concat([state0.key, self.key.FProp(theta.key, query_vec)], axis=1)
+    # [B, T=Q+W-1, N, H]
+    value = tf.concat(
+        [state0.value, self.value.FProp(theta.value, query_vec)], axis=1)
+    # [B, T=Q+W-1]. 1s are masked positions.
+    state_paddings = tf.concat([state0.paddings, paddings], axis=1)
+    t = py_utils.GetShape(state_paddings)[1]
 
-    state1 = py_utils.NestedMap(
-        key=tf.concat([state0.key[1:, :, :, :], new_key_proj], axis=0),
-        value=tf.concat([state0.value[1:, :, :, :], new_value_proj], axis=0),
-        mask=tf.concat(
-            [state0.mask[1:, :], tf.zeros([1, b])], axis=0))
-
-    # Not updating states for padded examples.
-    expanded_paddings = tf.reshape(tf.transpose(paddings), [1, b, 1, 1])
-    state1.key = (
-        state0.key * expanded_paddings + state1.key * (1. - expanded_paddings))
-    state1.value = (
-        state0.value * expanded_paddings + state1.value *
-        (1. - expanded_paddings))
-    state1.mask = (
-        state0.mask * tf.transpose(paddings) + state1.mask *
-        (1. - tf.transpose(paddings)))
-
-    # Computes attention outputs.
+    # [B, Q, T, N]
     # TODO(wildstone): Replaces the einsum ops used below with mat mul to get
     # rid of TfLite Flex ops.
-    # [W, B, N]
-    logits = tf.einsum('BNH,WBNH->WBN', query_proj, state1.key)
+    logits = tf.einsum('BQNH,BTNH->BQTN', query_proj, key)
+
     very_negative_logits = logits.dtype.max * tf.constant(-0.7, logits.dtype)
-    logits = logits * (1 - tf.expand_dims(
-        state1.mask, -1)) + very_negative_logits * tf.expand_dims(
-            state1.mask, -1)
+
+    # Generate local atten mask.
+    # [Q, 1]
+    rows = tf.expand_dims(tf.range(q), -1)
+    # [Q, T]
+    rows = tf.tile(rows, [1, t])
+    # [Q, T]
+    cols = tf.expand_dims(tf.range(t), 0)
+    # [Q, T]
+    cols = tf.tile(cols, [q, 1])
+    # 1s are masked positions.
+    # [Q, T=Q+W-1]
+    local_atten_per_step_paddings = tf.where(
+        tf.logical_and(cols - rows <= p.left_context - 1, cols - rows >= 0),
+        tf.zeros([q, t]), tf.ones([q, t]))
+    # [B, Q, T]
+    local_atten_per_step_paddings = tf.tile(
+        tf.expand_dims(local_atten_per_step_paddings, 0), [b, 1, 1])
+    # [B, Q, T]
+    expanded_state_paddings = tf.tile(
+        tf.expand_dims(state_paddings, 1), [1, q, 1])
+
+    final_paddings = tf.logical_or(
+        tf.cast(expanded_state_paddings, tf.bool),
+        tf.cast(local_atten_per_step_paddings, tf.bool))
+    # [B, Q, T, 1]
+    final_paddings = tf.expand_dims(tf.cast(final_paddings, tf.float32), -1)
+
+    logits = logits * (1 -
+                       final_paddings) + very_negative_logits * final_paddings
+    # [B, Q, T, N]
     posteriors = py_utils.Softmax(
-        logits, axis=0, extra_logit=p.atten_extra_logit)
-    output = tf.einsum('TBN,TBNH->BNH', posteriors, state1.value)
+        logits, axis=2, extra_logit=p.atten_extra_logit)
+    # [B, Q, N, H]
+    output = tf.einsum('BQTN,BTNH->BQNH', posteriors, value)
 
     # Post projection.
-    # [B,1,N,H]
-    output = tf.expand_dims(output, 1)
-    # [B,1,D]
+    # [B,Q,D]
     output = self.post.FProp(self.theta.post, output)
+
+    state1 = py_utils.NestedMap(
+        key=key[:, -(p.left_context - 1):, :, :],
+        value=value[:, -(p.left_context - 1):, :, :],
+        paddings=state_paddings[:, -(p.left_context - 1):])
     return output, paddings, state1
 
   @classmethod
@@ -2845,18 +2870,19 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     Args:
       theta: a NestedMap with layer weights.
-      query_vec: A query vector of shape [B, 1, D].
-      paddings: A 0/1 valued tensor of shape [B, 1].
+      query_vec: A query vector of shape [B, T, D].
+      paddings: A 0/1 valued tensor of shape [B, T].
       state0: A `.NestedMap` of the same structure as returned by zero_state().
 
     Returns:
-      output: Output of the given query vector with shape [B, 1, D].
+      output: Output of the given query vector with shape [B, T, D].
       padding: the same as input paddings.
       state: updated state.
     """
     assert isinstance(self.atten, LocalSelfAttention)
 
     p = self.params
+    assert p.is_masked
     unnormalized_query_vec = query_vec
 
     if p.ln_tpl:

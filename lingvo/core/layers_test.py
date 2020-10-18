@@ -61,7 +61,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       in_padding1 = tf.zeros([2, 2, 8, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 2, 8, 2]), dtype=tf.float32)
-      mean1, var1 = bn_layers.ComputeMomentsWithPadding(
+      mean1, var1 = bn_layers.ComputeMoments(
           bn_in1, in_padding1, reduce_over_dims=[0, 1, 2])
       mean2, var2 = tf.nn.moments(bn_in1, [0, 1, 2])
 
@@ -70,7 +70,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
           np.random.normal(-0.3, 1.0, [2, 2, 8, 2]), dtype=tf.float32)
       in_padding3 = tf.concat([in_padding1, in_padding2], 1)
       bn_in3 = tf.concat([bn_in1, bn_in2], 1)
-      mean3, var3 = bn_layers.ComputeMomentsWithPadding(
+      mean3, var3 = bn_layers.ComputeMoments(
           bn_in3, in_padding3, reduce_over_dims=[0, 1, 2])
       mean4, var4 = tf.nn.moments(bn_in3, [0, 1, 2])
 
@@ -168,7 +168,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       in_padding1 = tf.zeros([2, 8, 1, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 8, 4, 3]), dtype=tf.float32)
-      mean1, var1 = bn_layers.ComputeMomentsWithPadding(
+      mean1, var1 = bn_layers.ComputeMoments(
           bn_in1, in_padding1, reduce_over_dims=[0, 1, 2])
       mean2, var2 = tf.nn.moments(bn_in1, [0, 1, 2])
 
@@ -177,7 +177,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
           np.random.normal(-0.3, 1.0, [2, 8, 4, 3]), dtype=tf.float32)
       in_padding3 = tf.concat([in_padding1, in_padding2], 1)
       bn_in3 = tf.concat([bn_in1, bn_in2], 1)
-      mean3, var3 = bn_layers.ComputeMomentsWithPadding(
+      mean3, var3 = bn_layers.ComputeMoments(
           bn_in3, in_padding3, reduce_over_dims=[0, 1, 2])
       mean4, var4 = tf.nn.moments(bn_in3, [0, 1, 2])
 
@@ -340,7 +340,7 @@ class CategoricalBNTest(test_utils.TestCase, parameterized.TestCase):
 
 class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testGroupNormLayerConstruction(self):
+  def testConstruction(self):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
@@ -355,7 +355,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       expected_var_names = ['gn/beta/var:0', 'gn/gamma/var:0']
       self.assertEqual(expected_var_names, gn_var_names)
 
-  def testGroupNormLayerFProp(self):
+  def testFProp(self):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
@@ -378,7 +378,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       ])
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
 
-  def testGroupNormLayerFPropWithPaddings(self):
+  def testFPropWithPaddings(self):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
@@ -409,7 +409,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
       self.assertAllEqual(paddings.eval(), paddings_out.eval())
 
-  def testGroupNormLayerFPropWithPaddings3DInput(self):
+  def testFPropWithPaddings3DInput(self):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
@@ -437,7 +437,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(paddings_out_3d.eval(), paddings_out.eval())
 
   @parameterized.named_parameters(('4D',), ('3D', 3))
-  def testGroupNormLayerFPropCumulativeMode(self, input_rank=4):
+  def testFPropCumulativeMode(self, input_rank=4):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
@@ -460,6 +460,62 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       expected_out = np.stack([base_block, base_block],
                               axis=0).reshape(input_shape)
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('Group1', 1, 1),
+      ('Stride2', 2),
+      ('Stride2Group1', 2, 1),
+      ('Stride4', 4),
+  )
+  def testStreamStep(self, stride=1, num_groups=2):
+    batch, max_seqlen, input_dim = 2, 16, 4
+    p = bn_layers.GroupNormLayer.Params().Set(
+        name='gn',
+        dim=input_dim,
+        num_groups=num_groups,
+        cumulative=True,
+        input_rank=4)
+
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    np.random.seed(None)
+    inputs = np.random.normal(
+        0.1, 0.5, [batch, max_seqlen, 1, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=1, high=max_seqlen + 1, size=(batch,), dtype=np.int32)
+    print(repr(seqlen))
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+    expanded_paddings = tf.reshape(paddings,
+                                   py_utils.GetShape(paddings) + [1, 1])
+    base_outs, _ = l.FProp(l.theta, inputs, paddings)
+    base_outs *= 1. - expanded_paddings
+
+    # Runs N//stride step each with input seqlen=stride.
+    assert max_seqlen % stride == 0
+    actual_outs = []
+    state = l.zero_state(batch)
+    for i in range(max_seqlen // stride):
+      output, _, state = l.StreamStep(
+          l.theta, inputs[:, stride * i:stride * (i + 1), :, :],
+          paddings[:, stride * i:stride * (i + 1)], state)
+      actual_outs.append(output)
+    actual_outs = tf.concat(actual_outs, axis=1)
+    actual_outs *= 1. - expanded_paddings
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([base_outs, actual_outs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
 
 
 class ConvLayerTest(test_utils.TestCase):

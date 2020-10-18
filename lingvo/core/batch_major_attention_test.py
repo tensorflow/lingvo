@@ -1371,65 +1371,77 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [5.135725, 1.340482, 1.065773, 4.116683, 4.928454, 3.161165],
           np.sum(new_source_vecs, axis=1))
 
-  @parameterized.named_parameters(('Basic',), ('SkipNorm', True))
-  def testStreamStep(self, testonly_skip_norm_layers=False):
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicS4', False, 4),
+      ('SkipNorm', True),
+      ('SkipNormS2', True, 2),
+  )
+  def testStreamStep(self, testonly_skip_norm_layers=False, stride=1):
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      batch_size = 2
-      max_seqlen = 32
-      input_dim = 4
-      hidden_dim = 4
-      num_heads = 2
-      left_context = 3
+      self._TestStreamStepHelper(testonly_skip_norm_layers, stride)
 
-      # Prepares inputs.
-      np.random.seed(None)
-      inputs = np.random.normal(
-          0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
-      print(f'np.sum(inputs): {np.sum(inputs)}')
-      inputs = tf.convert_to_tensor(inputs)
-      seqlen = tf.random.uniform([batch_size],
-                                 minval=1,
-                                 maxval=max_seqlen + 1,
-                                 dtype=tf.int32)
-      paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+  def _TestStreamStepHelper(self, testonly_skip_norm_layers, stride):
+    batch_size, max_seqlen, input_dim = 2, 32, 4
+    hidden_dim, num_heads = 4, 2
+    left_context = 3
 
-      # Builds graph.
-      p = attention.LocalSelfAttention.Params().Set(
-          name='local_self_atten',
-          num_heads=num_heads,
-          input_dim=input_dim,
-          hidden_dim=hidden_dim,
-          left_context=left_context,
-          right_context=0)
+    # Prepares inputs.
+    np.random.seed(None)
+    inputs = np.random.normal(
+        0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
 
-      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-      l = p.Instantiate()
-      init_op = tf.global_variables_initializer()
+    seqlen = np.random.randint(
+        low=max_seqlen // 2,
+        high=max_seqlen + 1,
+        size=(batch_size,),
+        dtype=np.int32)
+    print(repr(seqlen))
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
 
-      base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
-      base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+    # Builds graph.
+    p = attention.LocalSelfAttention.Params().Set(
+        name='local_self_atten',
+        num_heads=num_heads,
+        input_dim=input_dim,
+        hidden_dim=hidden_dim,
+        left_context=left_context,
+        right_context=0)
 
-      state = l.zero_state(batch_size)
-      outputs = []
-      for i in range(max_seqlen):
-        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + 1), :],
-                                        paddings[:, i:(i + 1)], state)
-        outputs.append(output)
-      outputs = tf.concat(outputs, axis=1)
-      outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
 
-      with self.session(use_gpu=False) as sess:
-        sess.run(init_op)
+    base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
+    base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
 
-        expected, actual = sess.run([base_outputs, outputs])
-        print(repr(expected))
-        print(repr(actual))
-        print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
-        print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-        self.assertAllClose(expected, actual)
-        self.assertEqual(
-            tuple(expected.shape), (batch_size, max_seqlen, input_dim))
+    state = l.zero_state(batch_size)
+    outputs = []
+    assert max_seqlen % stride == 0
+    for i in range(max_seqlen // stride):
+      output, _, state = l.StreamStep(l.theta,
+                                      inputs[:, stride * i:stride * (i + 1), :],
+                                      paddings[:, stride * i:stride * (i + 1)],
+                                      state)
+      outputs.append(output)
+    outputs = tf.concat(outputs, axis=1)
+    outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+
+      expected, actual = sess.run([base_outputs, outputs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+      self.assertEqual(
+          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
 
 
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
