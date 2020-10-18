@@ -1647,22 +1647,26 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A `.NestedMap` object containing</span>
-<span class="sd">      - key: [W=left_context, B, N, H].</span>
-<span class="sd">      - value: [W=left_context, B, N, H].</span>
-<span class="sd">      - mask: [W=left_context, B]. A 0/1 Tensor where 1s are masked out</span>
+<span class="sd">      - key: [B, left_context-1, N, H].</span>
+<span class="sd">      - value: [B, left_context-1, N, H].</span>
+<span class="sd">      - paddings : [B, left_context-1]. A 0/1 Tensor where 1s are masked out</span>
 <span class="sd">      positions.</span>
+
+<span class="sd">      Note p.left_context includes self position, thus only left_context -1</span>
+<span class="sd">      positions are needed in the state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">,</span> <span class="s1">&#39;Value projection must be enabled.&#39;</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;StreamStep does not support look-ahead&#39;</span>
 
-    <span class="n">key_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">],</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">key_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="n">value_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">key_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="c1"># At the beginning, all positions are masked out.</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span></div>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
@@ -1672,76 +1676,97 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap of layer params.</span>
-<span class="sd">      query_vec: A query vector of shape [B, 1, D].</span>
-<span class="sd">      paddings: A 0/1 valued tensor of shape [B, 1].</span>
+<span class="sd">      query_vec: A query vector of shape [B, Q, D].</span>
+<span class="sd">      paddings: A 0/1 valued tensor of shape [B, Q].</span>
 <span class="sd">      state0: A NestedMap of the same structure as returned by zero_state().</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      output: Output of the given query vector with shape [B, 1, D].</span>
+<span class="sd">      output: Output of the given query vector with shape [B, Q, D].</span>
 <span class="sd">      padding: the same as input paddings.</span>
 <span class="sd">      state1: Updated state of the same structure as state0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Sanity check.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Sanity checks.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">,</span> <span class="s1">&#39;Value projection must be enabled.&#39;</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;StreamStep() does not support look ahead.&#39;</span><span class="p">)</span>
-    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
     <span class="n">state0</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
         <span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span>
-        <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">])</span>
+        <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">])</span>
     <span class="n">state0</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
                                      <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
 
-    <span class="c1"># Computes query projection.</span>
-    <span class="n">query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>  <span class="c1"># [B, 1, N, H]</span>
+    <span class="c1"># query projection.</span>
+    <span class="c1"># [B, Q, N, H]</span>
+    <span class="n">query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">:</span>
       <span class="n">query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">query_proj</span> <span class="o">*=</span> <span class="n">h</span><span class="o">**-</span><span class="mf">0.5</span>
-    <span class="n">query_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
 
-    <span class="c1"># Computes key, value projection and updates state.</span>
-    <span class="n">new_key_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>  <span class="c1"># [B, 1, N, H]</span>
-    <span class="n">new_key_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_key_proj</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
-    <span class="n">new_value_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>  <span class="c1"># [B, 1, N, H]</span>
-    <span class="n">new_value_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_value_proj</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+    <span class="c1"># key, value, mask.</span>
+    <span class="c1"># [B, T=Q+W-1, N, H] where W = left_context.</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># [B, T=Q+W-1, N, H]</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># [B, T=Q+W-1]. 1s are masked positions.</span>
+    <span class="n">state_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
 
-    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">key</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">new_key_proj</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
-        <span class="n">value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">new_value_proj</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
-        <span class="n">mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-
-    <span class="c1"># Not updating states for padded examples.</span>
-    <span class="n">expanded_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="n">state1</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">state0</span><span class="o">.</span><span class="n">key</span> <span class="o">*</span> <span class="n">expanded_paddings</span> <span class="o">+</span> <span class="n">state1</span><span class="o">.</span><span class="n">key</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">expanded_paddings</span><span class="p">))</span>
-    <span class="n">state1</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">state0</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="n">expanded_paddings</span> <span class="o">+</span> <span class="n">state1</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span>
-        <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">expanded_paddings</span><span class="p">))</span>
-    <span class="n">state1</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">state0</span><span class="o">.</span><span class="n">mask</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span> <span class="o">+</span> <span class="n">state1</span><span class="o">.</span><span class="n">mask</span> <span class="o">*</span>
-        <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">paddings</span><span class="p">)))</span>
-
-    <span class="c1"># Computes attention outputs.</span>
+    <span class="c1"># [B, Q, T, N]</span>
     <span class="c1"># TODO(wildstone): Replaces the einsum ops used below with mat mul to get</span>
     <span class="c1"># rid of TfLite Flex ops.</span>
-    <span class="c1"># [W, B, N]</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNH,WBNH-&gt;WBN&#39;</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">state1</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQNH,BTNH-&gt;BQTN&#39;</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
     <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-        <span class="n">state1</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="n">very_negative_logits</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-            <span class="n">state1</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Generate local atten mask.</span>
+    <span class="c1"># [Q, 1]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># [Q, T]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+    <span class="c1"># [Q, T]</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># [Q, T]</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># 1s are masked positions.</span>
+    <span class="c1"># [Q, T=Q+W-1]</span>
+    <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cols</span> <span class="o">-</span> <span class="n">rows</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cols</span> <span class="o">-</span> <span class="n">rows</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">t</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">t</span><span class="p">]))</span>
+    <span class="c1"># [B, Q, T]</span>
+    <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># [B, Q, T]</span>
+    <span class="n">expanded_state_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">state_paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">expanded_state_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
+    <span class="c1"># [B, Q, T, 1]</span>
+    <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">final_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span>
+                       <span class="n">final_paddings</span><span class="p">)</span> <span class="o">+</span> <span class="n">very_negative_logits</span> <span class="o">*</span> <span class="n">final_paddings</span>
+    <span class="c1"># [B, Q, T, N]</span>
     <span class="n">posteriors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
-        <span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;TBN,TBNH-&gt;BNH&#39;</span><span class="p">,</span> <span class="n">posteriors</span><span class="p">,</span> <span class="n">state1</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
+    <span class="c1"># [B, Q, N, H]</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQTN,BTNH-&gt;BQNH&#39;</span><span class="p">,</span> <span class="n">posteriors</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
     <span class="c1"># Post projection.</span>
-    <span class="c1"># [B,1,N,H]</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="c1"># [B,1,D]</span>
+    <span class="c1"># [B,Q,D]</span>
     <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">[:,</span> <span class="o">-</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):,</span> <span class="p">:,</span> <span class="p">:],</span>
+        <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">[:,</span> <span class="o">-</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):,</span> <span class="p">:,</span> <span class="p">:],</span>
+        <span class="n">paddings</span><span class="o">=</span><span class="n">state_paddings</span><span class="p">[:,</span> <span class="o">-</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):])</span>
     <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state1</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
@@ -2993,18 +3018,19 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: a NestedMap with layer weights.</span>
-<span class="sd">      query_vec: A query vector of shape [B, 1, D].</span>
-<span class="sd">      paddings: A 0/1 valued tensor of shape [B, 1].</span>
+<span class="sd">      query_vec: A query vector of shape [B, T, D].</span>
+<span class="sd">      paddings: A 0/1 valued tensor of shape [B, T].</span>
 <span class="sd">      state0: A `.NestedMap` of the same structure as returned by zero_state().</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      output: Output of the given query vector with shape [B, 1, D].</span>
+<span class="sd">      output: Output of the given query vector with shape [B, T, D].</span>
 <span class="sd">      padding: the same as input paddings.</span>
 <span class="sd">      state: updated state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">LocalSelfAttention</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span>
     <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>

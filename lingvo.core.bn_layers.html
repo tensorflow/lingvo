@@ -189,8 +189,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.bn_layers.ComputeMomentsWithPadding">
-<code class="sig-prename descclassname">lingvo.core.bn_layers.</code><code class="sig-name descname">ComputeMomentsWithPadding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">reduce_over_dims</span></em>, <em class="sig-param"><span class="n">cumulative_axis</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">enable_cross_replica_sum_on_tpu</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">keepdims</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#ComputeMomentsWithPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.ComputeMomentsWithPadding" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.bn_layers.ComputeMoments">
+<code class="sig-prename descclassname">lingvo.core.bn_layers.</code><code class="sig-name descname">ComputeMoments</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">reduce_over_dims</span></em>, <em class="sig-param"><span class="n">cumulative_axis</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">enable_cross_replica_sum_on_tpu</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">keepdims</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#ComputeMoments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.ComputeMoments" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes mean and variance over the valid data points in inputs.</p>
 </dd></dl>
 
@@ -467,6 +467,26 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.bn_layers.GroupNormLayer.group_size">
+<em class="property">property </em><code class="sig-name descname">group_size</code><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.group_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.bn_layers.GroupNormLayer.num_groups">
+<em class="property">property </em><code class="sig-name descname">num_groups</code><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.num_groups" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.bn_layers.GroupNormLayer.zero_state">
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.bn_layers.GroupNormLayer._Normalize">
+<code class="sig-name descname">_Normalize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">grouped_inputs</span></em>, <em class="sig-param"><span class="n">group_mean</span></em>, <em class="sig-param"><span class="n">group_variance</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._Normalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._Normalize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.bn_layers.GroupNormLayer.FProp">
 <code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply group normalization.</p>
@@ -475,7 +495,8 @@ its children layers.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
 children layers.</p></li>
-<li><p><strong>inputs</strong> – The inputs tensor with shape [batch_size, height, width, channel].</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor with shape [batch_size, height, width, channel].
+if p.rank == 4, else [batch, height, channel].</p></li>
 <li><p><strong>paddings</strong> – The paddings tensor with shape [batch_size, height]. Intended to
 be used for sequence processing where <code class="xref py py-obj docutils literal notranslate"><span class="pre">height</span></code> is <a class="reference external" href="https://docs.python.org/3.7/library/time.html#module-time" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">time</span></code></a>.</p></li>
 </ul>
@@ -487,6 +508,37 @@ paddings is not None.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.bn_layers.GroupNormLayer._StreamMoments">
+<code class="sig-name descname">_StreamMoments</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">cached_sum</span></em>, <em class="sig-param"><span class="n">cached_count</span></em>, <em class="sig-param"><span class="n">cached_var</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._StreamMoments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._StreamMoments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes mean and variance over the valid data points in inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – [B, T, F, N, G] or [B, T, N, G]</p></li>
+<li><p><strong>paddings</strong> – [B, T, 1, 1, 1] or [B, T, 1, 1]</p></li>
+<li><p><strong>cached_sum</strong> – [B, 1, 1, N, 1] or [B, 1, N, 1]</p></li>
+<li><p><strong>cached_count</strong> – same shape as cached_sum.</p></li>
+<li><p><strong>cached_var</strong> – same shape as cached_sum.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, T, 1, N, 1] or [B, T, N, 1]
+variance: same shape as mean.
+new_cached_sum: same shape as cached_sum.
+new_cached_count: same shape as cached_count.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.bn_layers.GroupNormLayer.StreamStep">
+<code class="sig-name descname">StreamStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.StreamStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.bn_layers.GroupNormLayer.FPropMeta">

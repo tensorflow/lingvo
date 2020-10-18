@@ -1113,11 +1113,14 @@ updated_value_vec: [T, B, N, H].</p>
 <dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing
-- key: [W=left_context, B, N, H].
-- value: [W=left_context, B, N, H].
-- mask: [W=left_context, B]. A 0/1 Tensor where 1s are masked out
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing
+- key: [B, left_context-1, N, H].
+- value: [B, left_context-1, N, H].
+- paddings : [B, left_context-1]. A 0/1 Tensor where 1s are masked out
 positions.</p>
+<p>Note p.left_context includes self position, thus only left_context -1
+positions are needed in the state.</p>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1132,13 +1135,13 @@ known in advance.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
-<li><p><strong>query_vec</strong> – A query vector of shape [B, 1, D].</p></li>
-<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, 1].</p></li>
+<li><p><strong>query_vec</strong> – A query vector of shape [B, Q, D].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, Q].</p></li>
 <li><p><strong>state0</strong> – A NestedMap of the same structure as returned by zero_state().</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output of the given query vector with shape [B, 1, D].
+<dd class="field-even"><p>Output of the given query vector with shape [B, Q, D].
 padding: the same as input paddings.
 state1: Updated state of the same structure as state0.</p>
 </dd>
@@ -1298,11 +1301,14 @@ updated_value_vec: [T, B, N, H].</p>
 <dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing
-- key: [W=left_context, B, N, H].
-- value: [W=left_context, B, N, H].
-- mask: [W=left_context, B]. A 0/1 Tensor where 1s are masked out
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing
+- key: [B, left_context-1, N, H].
+- value: [B, left_context-1, N, H].
+- paddings : [B, left_context-1]. A 0/1 Tensor where 1s are masked out
 positions.</p>
+<p>Note p.left_context includes self position, thus only left_context -1
+positions are needed in the state.</p>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1317,13 +1323,13 @@ known in advance.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
-<li><p><strong>query_vec</strong> – A query vector of shape [B, 1, D].</p></li>
-<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, 1].</p></li>
+<li><p><strong>query_vec</strong> – A query vector of shape [B, Q, D].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, Q].</p></li>
 <li><p><strong>state0</strong> – A NestedMap of the same structure as returned by zero_state().</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output of the given query vector with shape [B, 1, D].
+<dd class="field-even"><p>Output of the given query vector with shape [B, Q, D].
 padding: the same as input paddings.
 state1: Updated state of the same structure as state0.</p>
 </dd>
@@ -1764,13 +1770,13 @@ value - [T, B, N, H].</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – a NestedMap with layer weights.</p></li>
-<li><p><strong>query_vec</strong> – A query vector of shape [B, 1, D].</p></li>
-<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, 1].</p></li>
+<li><p><strong>query_vec</strong> – A query vector of shape [B, T, D].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, T].</p></li>
 <li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of the same structure as returned by zero_state().</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output of the given query vector with shape [B, 1, D].
+<dd class="field-even"><p>Output of the given query vector with shape [B, T, D].
 padding: the same as input paddings.
 state: updated state.</p>
 </dd>
