@@ -25,6 +25,7 @@ import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+from tensorflow.python.ops import resource_variable_ops  # pylint: disable=g-direct-tensorflow-import
 
 FLAGS = tf.flags.FLAGS
 
@@ -770,12 +771,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     meta.kwargs.setdefault('default_seed', self.params.random_seed)
     var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
     self._private_vars[name] = var
-    if py_utils.use_tpu():
-      # On TPU, pass the resource variable directly into the training loop.
+    if resource_variable_ops.is_resource_variable(var):
       value = var
     else:
-      # On CPU/GPU, cache a copy of the variable on the specific device to
-      # avoid extraneous sends.
       with tf.device(var.device):
         value = tf.identity(var)
     if meta.theta_fn is not None:
