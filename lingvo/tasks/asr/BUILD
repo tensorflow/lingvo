@@ -196,17 +196,29 @@ py_library(
 )
 
 py_library(
+    name = "decoder_metrics",
+    srcs = ["decoder_metrics.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":decoder_utils",
+        "//lingvo:compat",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:metrics",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_library(
     name = "model",
     srcs = ["model.py"],
     srcs_version = "PY3",
     deps = [
         ":decoder",
-        ":decoder_utils",
+        ":decoder_metrics",
         ":encoder",
         ":frontend",
         "//lingvo:compat",
         "//lingvo/core:base_model",
-        "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
         "//lingvo/tools:audio_lib",
