@@ -49,8 +49,8 @@ You can test that the install worked for the common case by running a model
 locally like:
 
 ```
-mkdir -p /tmp/lingvo_test/image
-cp -r /tmp/lingvo/lingvo/tasks/image/params/*.py /tmp/lingvo_test/image
+mkdir -p /tmp/lingvo_test/image/params
+cp -r /tmp/lingvo/lingvo/tasks/image/params/mnist.py /tmp/lingvo_test/image/params
 cd /tmp/lingvo_test
 python3 -m lingvo.trainer --model=image.mnist.LeNet5 --run_locally=cpu --logdir=/tmp/lenet5 --mode=sync
 ```
@@ -62,6 +62,7 @@ If this works successfully, you can then upload to the production server as
 follows.
 
 ```
+cd /tmp/lingvo_pip_pkg_build
 python3 -m twine upload *manylinux2010*.whl
 ```
 

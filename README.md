@@ -36,6 +36,7 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
+0.8.2        | 93e123c6788e934e6b7b1fd85770371becf1e92e
 0.7.2        | b05642fe386ee79e0d88aa083565c9a93428519e
 
 <details><summary>
@@ -51,7 +52,11 @@ Details for older releases are unavailable.
 
 ### Major breaking changes
 
-#### 0.8.1
+#### HEAD
+
+None yet.
+
+#### 0.8.2
 
 *   **General**
     *   NestedMap Flatten/Pack/Transform/Filter etc now expand descendent dicts
@@ -68,10 +73,6 @@ Details for older releases are unavailable.
         `__init__`. Refactor by moving the variable creation and access to
         `_CreateLayerVariables`. The variable scope is set automatically
         according to the layer name in `_CreateLayerVariables`.
-
-#### HEAD
-
-None yet.
 
 <details><summary>
 <b>Older releases</b>

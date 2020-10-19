@@ -31,7 +31,7 @@ if [[ -z "${PYTHON_MINOR_VERSION}" ]]; then
 else
   PYTHON="python${PYTHON_VERSION}.${PYTHON_MINOR_VERSION}"
 fi
-update-alternatives --install /usr/bin/python3 python3 "/usr/bin/$PYTHON_VERSION" 1
+update-alternatives --install /usr/bin/python3 python3 "/usr/bin/$PYTHON" 1
 
 function write_to_bazelrc() {
   echo "$1" >> .bazelrc
