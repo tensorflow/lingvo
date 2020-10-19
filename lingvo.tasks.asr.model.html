@@ -170,12 +170,6 @@
   <div class="section" id="module-lingvo.tasks.asr.model">
 <span id="lingvo-tasks-asr-model-module"></span><h1>lingvo.tasks.asr.model module<a class="headerlink" href="#module-lingvo.tasks.asr.model" title="Permalink to this headline">¶</a></h1>
 <p>Speech model.</p>
-<dl class="py attribute">
-<dt id="lingvo.tasks.asr.model.DecoderTopK">
-<code class="sig-prename descclassname">lingvo.tasks.asr.model.</code><code class="sig-name descname">DecoderTopK</code><a class="headerlink" href="#lingvo.tasks.asr.model.DecoderTopK" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.model.topk</span></code></p>
-</dd></dl>
-
 <dl class="py class">
 <dt id="lingvo.tasks.asr.model.AsrModel">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.model.</code><code class="sig-name descname">AsrModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel" title="Permalink to this definition">¶</a></dt>
@@ -186,6 +180,11 @@
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.asr.model.AsrModel._DecoderMetricsParams">
+<code class="sig-name descname">_DecoderMetricsParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._DecoderMetricsParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._DecoderMetricsParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.tasks.asr.model.AsrModel._GetDecoderTargets">
@@ -317,12 +316,6 @@ children layers.</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.asr.model.AsrModel.AddAdditionalDecoderMetricsToGraph">
-<code class="sig-name descname">AddAdditionalDecoderMetricsToGraph</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">topk_hyps</span></em>, <em class="sig-param"><span class="n">filtered_hyps</span></em>, <em class="sig-param"><span class="n">filtered_refs</span></em>, <em class="sig-param"><span class="n">input_batch</span></em>, <em class="sig-param"><span class="n">decoder_outs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.AddAdditionalDecoderMetricsToGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.AddAdditionalDecoderMetricsToGraph" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a dict of metrics which should be computed from decoded hyps.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt id="lingvo.tasks.asr.model.AsrModel.DecodeWithTheta">
 <code class="sig-name descname">DecodeWithTheta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.DecodeWithTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.DecodeWithTheta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph.</p>
@@ -349,39 +342,13 @@ calculating decoder metrics.</p>
 <dl class="py method">
 <dt id="lingvo.tasks.asr.model.AsrModel._ComputeDecoderMetrics">
 <code class="sig-name descname">_ComputeDecoderMetrics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoder_outs</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._ComputeDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._ComputeDecoderMetrics" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes metrics on output from decoder.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>decoder_outs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code>, a namedtuple containing the
-decode results.</p></li>
-<li><p><strong>input_batch</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors representing the source, target,
-and other components of the input batch.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dict of Tensors containing decoder output and metrics.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.tasks.asr.model.AsrModel.CreateAdditionalDecoderMetrics">
-<code class="sig-name descname">CreateAdditionalDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.CreateAdditionalDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.CreateAdditionalDecoderMetrics" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a dictionary of additional metrics which should be computed.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.tasks.asr.model.AsrModel.CreateDecoderMetrics">
 <code class="sig-name descname">CreateDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.CreateDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a dict of decoder metrics for <a class="reference internal" href="#lingvo.tasks.asr.model.AsrModel.PostProcessDecodeOut" title="lingvo.tasks.asr.model.AsrModel.PostProcessDecodeOut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code></a> to update.</p>
 <p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.tasks.asr.model.AsrModel.UpdateAdditionalMetrics">
-<code class="sig-name descname">UpdateAdditionalMetrics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dec_out_dict</span></em>, <em class="sig-param"><span class="n">dec_metrics_dict</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.UpdateAdditionalMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.UpdateAdditionalMetrics" title="Permalink to this definition">¶</a></dt>
-<dd><p>Updates and returns a dictionary of metrics based on decoded hyps.</p>
 </dd></dl>
 
 <dl class="py method">
