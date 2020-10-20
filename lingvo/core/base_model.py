@@ -463,9 +463,7 @@ class BaseTask(base_layer.BaseLayer):
         index.
     """
     p = self.params
-    with tf.name_scope('fprop'), tf.name_scope(
-        p.name), py_utils.GlobalStepContext(
-            tf.identity(self._global_step_var, name='global_step_tensor')):
+    with tf.name_scope('fprop'), tf.name_scope(p.name):
       # Always reset step seed at the start of a new global_step.
       py_utils.ResetStepSeed()
       metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
