@@ -20,7 +20,7 @@ import enum
 
 import dataclasses
 import lingvo.compat as tf
-from lingvo.core import hyperparams as _params
+from lingvo.core import hyperparams
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
 from lingvo.core import test_utils
@@ -64,12 +64,19 @@ class InstantiableClass:
     self.other = other
 
 
+class SerializeAsStringClass(hyperparams.SerializeAsString):
+  """Used for testing ToProto."""
+
+  def __repr__(self):
+    return 'Serialized as string.'
+
+
 class ParamsTest(test_utils.TestCase):
 
   def testEquals(self):
     # pylint: disable=g-generic-assert
-    params1 = _params.Params()
-    params2 = _params.Params()
+    params1 = hyperparams.Params()
+    params2 = hyperparams.Params()
     self.assertTrue(params1 == params2)
     params1.Define('first', 'firstvalue', '')
     self.assertFalse(params1 == params2)
@@ -82,8 +89,8 @@ class ParamsTest(test_utils.TestCase):
     self.assertFalse(params1 == params2)
     params2.second = some_object
     self.assertTrue(params1 == params2)
-    params1.Define('third', _params.Params(), '')
-    params2.Define('third', _params.Params(), '')
+    params1.Define('third', hyperparams.Params(), '')
+    params2.Define('third', hyperparams.Params(), '')
     self.assertTrue(params1 == params2)
     params1.third.Define('fourth', 'x', '')
     params2.third.Define('fourth', 'y', '')
@@ -96,11 +103,11 @@ class ParamsTest(test_utils.TestCase):
     # pylint: enable=g-generic-assert
 
   def testDeepCopy(self):
-    inner = _params.Params()
+    inner = hyperparams.Params()
     inner.Define('alpha', 2, '')
     inner.Define('tensor', tf.constant(0), '')
     inner.Define('symbol', symbolic.Symbol('symbol'), '')
-    outer = _params.Params()
+    outer = hyperparams.Params()
     outer.Define('beta', 1, '')
     outer.Define('inner', inner, '')
     outer_copy = outer.Copy()
@@ -113,31 +120,31 @@ class ParamsTest(test_utils.TestCase):
     self.assertIs(outer.inner.symbol, outer_copy.inner.symbol)
 
   def testCopyFieldsTo(self):
-    source = _params.Params()
-    dest = _params.Params()
+    source = hyperparams.Params()
+    dest = hyperparams.Params()
     source.Define('a', 'a', '')
     source.Define('b', 'b', '')
     source.Define('c', 'c', '')
     dest.Define('a', '', '')
-    _params.CopyFieldsTo(source, dest, skip=['b', 'c'])
+    hyperparams.CopyFieldsTo(source, dest, skip=['b', 'c'])
     self.assertEqual(source.a, dest.a)
     self.assertNotIn('b', dest)
     self.assertNotIn('c', dest)
 
   def testCopyFieldsToDoesNotCopyClass(self):
-    source = _params.InstantiableParams(_params.Params)
-    dest = _params.InstantiableParams(_params.InstantiableParams)
-    _params.CopyFieldsTo(source, dest)
-    self.assertEqual(dest.cls, _params.InstantiableParams)
+    source = hyperparams.InstantiableParams(hyperparams.Params)
+    dest = hyperparams.InstantiableParams(hyperparams.InstantiableParams)
+    hyperparams.CopyFieldsTo(source, dest)
+    self.assertEqual(dest.cls, hyperparams.InstantiableParams)
 
   def testDefineExisting(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('foo', 1, '')
     self.assertRaisesRegex(AttributeError, 'already defined',
                            lambda: p.Define('foo', 1, ''))
 
   def testLegalParamNames(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     self.assertRaises(AssertionError, lambda: p.Define(None, 1, ''))
     self.assertRaises(AssertionError, lambda: p.Define('', 1, ''))
     self.assertRaises(AssertionError, lambda: p.Define('_foo', 1, ''))
@@ -148,7 +155,7 @@ class ParamsTest(test_utils.TestCase):
     p.Define('foo9', 1, '')
 
   def testSetAndGet(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     self.assertRaisesRegex(AttributeError, 'foo', lambda: p.Set(foo=4))
     # We use setattr() because lambda cannot contain explicit assignment.
     self.assertRaisesRegex(AttributeError, 'foo', lambda: setattr(p, 'foo', 4))
@@ -170,15 +177,15 @@ class ParamsTest(test_utils.TestCase):
     self.assertRaisesRegex(AttributeError, 'foo', p.Get, 'foo')
 
   def testSetAndGetNestedParam(self):
-    innermost = _params.Params()
+    innermost = hyperparams.Params()
     innermost.Define('delta', 22, '')
     innermost.Define('zeta', 5, '')
 
-    inner = _params.Params()
+    inner = hyperparams.Params()
     inner.Define('alpha', 2, '')
     inner.Define('innermost', innermost, '')
 
-    outer = _params.Params()
+    outer = hyperparams.Params()
     outer.Define('beta', 1, '')
     outer.Define('inner', inner, '')
     outer.Define('d', dict(foo='bar'), '')
@@ -228,7 +235,7 @@ class ParamsTest(test_utils.TestCase):
                            lambda: outer.Set(**{'d.foo': 'baz'}))
 
   def testFreeze(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     self.assertRaises(AssertionError, lambda: p.Define('_immutable', 1, ''))
     self.assertRaisesRegex(AttributeError, 'foo', lambda: p.Set(foo=4))
     # We use setattr() because lambda cannot contain explicit assignment.
@@ -260,9 +267,9 @@ class ParamsTest(test_utils.TestCase):
     self.assertRaises(TypeError, lambda: q.Set(foo=2))
 
   def testToString(self):
-    outer = _params.Params()
+    outer = hyperparams.Params()
     outer.Define('foo', 1, '')
-    inner = _params.Params()
+    inner = hyperparams.Params()
     inner.Define('bar', 2, '')
     outer.Define('inner', inner, '')
     outer.Define('list', [1, inner, 2], '')
@@ -282,7 +289,7 @@ class ParamsTest(test_utils.TestCase):
 
   def testIterParams(self):
     keys, values = ['a', 'b', 'c', 'd', 'e'], [True, None, 'zippidy', 78.5, 5]
-    p = _params.Params()
+    p = hyperparams.Params()
     for k, v in zip(keys, values):
       p.Define(k, v, 'description of %s' % k)
 
@@ -295,9 +302,9 @@ class ParamsTest(test_utils.TestCase):
     self.assertEqual(number_of_params, len(keys))
 
   def testToText(self):
-    outer = _params.Params()
+    outer = hyperparams.Params()
     outer.Define('foo', 1, '')
-    inner = _params.Params()
+    inner = hyperparams.Params()
     inner.Define('bar', 2.71, '')
     inner.Define('baz', 'hello', '')
     outer.Define('inner', inner, '')
@@ -396,10 +403,10 @@ tuple : (2, 3)
     self.assertIsNone(outer.namedtuple2.default_value, tf.int32)
 
   def testToFromProto(self):
-    outer = _params.Params()
+    outer = hyperparams.Params()
     outer.Define('integer_val', 1, '')
     outer.Define('cls_type', type(int), '')
-    inner = _params.Params()
+    inner = hyperparams.Params()
     inner.Define('float_val', 2.71, '')
     inner.Define('string_val', 'rosalie et adrien', '')
     inner.Define('bool_val', True, '')
@@ -415,7 +422,7 @@ tuple : (2, 3)
     outer.Define('namedtuple', tf.io.FixedLenSequenceFeature([42], tf.float32),
                  '')
 
-    rebuilt_outer = _params.InstantiableParams.FromProto(outer.ToProto())
+    rebuilt_outer = hyperparams.InstantiableParams.FromProto(outer.ToProto())
 
     self.assertNotIn('cls', rebuilt_outer)
     self.assertEqual(outer.integer_val, rebuilt_outer.integer_val)
@@ -434,8 +441,17 @@ tuple : (2, 3)
     self.assertEqual(outer.dataclass, rebuilt_outer.dataclass)
     self.assertEqual(outer.namedtuple, rebuilt_outer.namedtuple)
 
+  def testToFromProtoSerializeAsString(self):
+    p = hyperparams.Params()
+    p.Define('str_repr', SerializeAsStringClass(), '')
+    proto = p.ToProto()
+    self.assertEqual('Serialized as string.',
+                     proto.items['str_repr'].string_repr_val)
+    with self.assertRaises(TypeError):
+      hyperparams.Params.FromProto(proto)
+
   def testStringEscaping(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('bs_end_quote', 'Single\\', '')
     p.Define('embedded_newlines', 'Split\nAcross\nLines', '')
     p.Define('empty', '', '')
@@ -478,7 +494,7 @@ escaping_single : 'In "quotes"'
     self.assertEqual(p.escaping_double, 'In \\\'quotes\'')
 
   def testFromToText(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('activation', 'RELU', 'Can be a string or a list of strings.')
     np = p.Copy()
     p.Set(activation=['RELU', 'NONE'])
@@ -486,7 +502,7 @@ escaping_single : 'In "quotes"'
     self.assertEqual(np.activation, ['RELU', 'NONE'])
 
   def testSimilarKeys(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('activation', 'RELU', 'Can be a string or a list of strings.')
     p.Define('activations', 'RELU', 'Many activations.')
     p.Define('cheesecake', None, 'dessert')
@@ -500,7 +516,7 @@ escaping_single : 'In "quotes"'
         set_param)
 
   def testFromToTextTypes(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('scale', None, 'A float scale but default is None.')
     np1 = p.Copy()
     np2 = p.Copy()
@@ -512,7 +528,7 @@ escaping_single : 'In "quotes"'
     self.assertEqual(np2.scale, 1.0)
 
   def testFromTextBadFormat(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('scale', 1.0, 'A float parameter.')
     np1 = p.Copy()
     self.assertRaises(ValueError, lambda: np1.FromText('scale=2.0'))
@@ -521,7 +537,7 @@ escaping_single : 'In "quotes"'
     self.assertEqual(np2.scale, 2.0)
 
   def testTypeOverride(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('scale', '1', 'A str that will be overriden by float.')
     np1 = p.Copy()
     np2 = p.Copy()
@@ -539,12 +555,12 @@ escaping_single : 'In "quotes"'
     self.assertEqual(np2.scale, 2.1)
 
   def testDeterministicSerialize(self):
-    p = _params.Params()
+    p = hyperparams.Params()
     p.Define('a', 42, '')
     p.Define('b', None, '')
     p.Define('c', 'C', '')
     p.Define('d', None, '')
-    pnest = _params.Params()
+    pnest = hyperparams.Params()
     pnest.Define('x', 'X', '')
     p.Define('e', pnest, '')
     p.Define('f', [pnest.Copy().Set(x=2)], '')
@@ -565,8 +581,8 @@ escaping_single : 'In "quotes"'
         self.assertEqual(p, deserialized)
 
   def testDiff(self):
-    a = _params.Params()
-    d_inner = _params.Params()
+    a = hyperparams.Params()
+    d_inner = hyperparams.Params()
     d_inner.Define('hey', 'hi', '')
     a.Define('a', 42, '')
     a.Define('c', 'C', '')
@@ -588,7 +604,7 @@ escaping_single : 'In "quotes"'
         '<   hey: hello\n')
 
   def testDiffSequences(self):
-    a = _params.Params()
+    a = hyperparams.Params()
     a.Define('a', 42, '')
     a.Define('b', [], '')
     b = a.Copy()
@@ -603,11 +619,11 @@ escaping_single : 'In "quotes"'
   def testDiffSequenceParams(self):
 
     def loss_params():
-      p = _params.Params()
+      p = hyperparams.Params()
       p.Define('beta', 0.5, '')
       return p
 
-    a = _params.Params()
+    a = hyperparams.Params()
     a.Define('a', 42, '')
     a.Define('losses', [(1.0, loss_params())], '')
     b = a.Copy()
@@ -630,7 +646,7 @@ escaping_single : 'In "quotes"'
         '<   beta: 0.75\n')
 
   def testInstantiate(self):
-    a = _params.InstantiableParams(InstantiableClass)
+    a = hyperparams.InstantiableParams(InstantiableClass)
     a.Define('new_param', None, 'A meaningless param.')
     a.new_param = 'hi'
 
@@ -639,7 +655,7 @@ escaping_single : 'In "quotes"'
     self.assertEqual(obj.params.new_param, 'hi')
 
   def testInstantiateWithParams(self):
-    a = _params.InstantiableParams(InstantiableClass)
+    a = hyperparams.InstantiableParams(InstantiableClass)
     a.Define('new_param', None, 'A meaningless param.')
     a.new_param = 'hi'
 

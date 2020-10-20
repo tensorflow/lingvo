@@ -192,6 +192,15 @@ def CopyFieldsTo(from_p, to_p, skip=None):
   return to_p
 
 
+class SerializeAsString:
+  """Classes inheriting from this will be serialized as their string repr.
+
+  This affects Params.ToProto/FromProto. An error will be raised when attempting
+  to deserialize.
+  """
+  pass
+
+
 class Params:
   """Stores data for a set of parameters.
 
@@ -442,27 +451,32 @@ class Params:
       The serialized params as a Hyperparams proto.
     """
 
-    def _ToParamValue(val):
+    def _ToParamValue(key, val):
       """Serializes to HyperparamValue proto."""
       param_pb = hyperparams_pb2.HyperparamValue()
-      if isinstance(val, Params):
-        param_pb.param_val.CopyFrom(_ToParam(val))
+      if isinstance(val, SerializeAsString):
+        param_pb.string_repr_val = repr(val)
+      elif isinstance(val, Params):
+        param_pb.param_val.CopyFrom(_ToParam(val, prefix=key))
       elif isinstance(val, list) or isinstance(val, range):
         # The range function is serialized by explicitely calling it.
-        param_pb.list_val.items.extend([_ToParamValue(v) for v in val])
+        param_pb.list_val.items.extend(
+            [_ToParamValue(f'{key}[{i}]', v) for i, v in enumerate(val)])
+      elif isinstance(val, tuple):
+        param_pb.tuple_val.items.extend(
+            [_ToParamValue(f'{key}[{i}]', v) for i, v in enumerate(val)])
       elif dataclasses.is_dataclass(val) or _IsNamedTuple(val):
         val_cls = type(val)
-        vals = val.__dict__.values() if dataclasses.is_dataclass(
-            val) else val._asdict().values()
+        items = val.__dict__.items() if dataclasses.is_dataclass(
+            val) else val._asdict().items()
         param_pb.named_tuple_val.type = inspect.getmodule(
             val_cls).__name__ + '/' + val_cls.__name__
-        param_pb.named_tuple_val.items.extend([_ToParamValue(v) for v in vals])
-      elif isinstance(val, tuple):
-        param_pb.tuple_val.items.extend([_ToParamValue(v) for v in val])
+        param_pb.named_tuple_val.items.extend(
+            [_ToParamValue(f'{key}[{k}]', v) for k, v in items])
       elif isinstance(val, dict):
         param_pb.dict_val.SetInParent()
         for k, v in val.items():
-          param_pb.dict_val.items[k].CopyFrom(_ToParamValue(v))
+          param_pb.dict_val.items[k].CopyFrom(_ToParamValue(f'{key}[{k}]', v))
       elif isinstance(val, type):
         param_pb.type_val = inspect.getmodule(val).__name__ + '/' + val.__name__
       elif isinstance(val, tf.DType):
@@ -489,16 +503,16 @@ class Params:
         # We represent a NoneType by the absence of any of the oneof.
         pass
       else:
-        raise AttributeError('Unsupported type: %s for value %s' %
-                             (type(val), val))
+        raise AttributeError(f'Unsupported: {val} for key {key}')
       return param_pb
 
-    def _ToParam(val):
+    def _ToParam(val, prefix=''):
       """Serializes to Hyperparam proto."""
-
       param_pb = hyperparams_pb2.Hyperparam()
+      if prefix:
+        prefix += '.'
       for k, v in val.IterParams():
-        param_pb.items[k].CopyFrom(_ToParamValue(v))
+        param_pb.items[k].CopyFrom(_ToParamValue(prefix + k, v))
       return param_pb
 
     return _ToParam(self)
@@ -517,7 +531,9 @@ class Params:
       """Deserializes HyperparamValue proto."""
 
       which_oneof = param_pb.WhichOneof('kind')
-      if which_oneof == 'param_val':
+      if not which_oneof:
+        return None
+      elif which_oneof == 'param_val':
         return _FromParam(param_pb.param_val)
       elif which_oneof == 'list_val':
         return [_FromParamValue(val) for val in param_pb.list_val.items]
@@ -541,14 +557,6 @@ class Params:
         return getattr(importlib.import_module(tokens[0]), tokens[1])
       elif which_oneof == 'dtype_val':
         return tf.as_dtype(param_pb.dtype_val)
-      elif which_oneof == 'string_val':
-        return param_pb.string_val
-      elif which_oneof == 'int_val':
-        return param_pb.int_val
-      elif which_oneof == 'float_val':
-        return param_pb.float_val
-      elif which_oneof == 'bool_val':
-        return param_pb.bool_val
       elif which_oneof == 'enum_val':
         enum_cls = _LoadClass(param_pb.enum_val.type)
         if not issubclass(enum_cls, enum.Enum):
@@ -561,9 +569,11 @@ class Params:
         proto_msg = proto_cls()
         proto_msg.ParseFromString(param_pb.proto_val.val)
         return proto_msg
+      elif which_oneof == 'string_repr_val':
+        raise TypeError('Cannot deserialize SerializeAsString instance: %s' %
+                        param_pb.string_repr_val)
       else:
-        # If nothing is set, it's the None type.
-        return None
+        return getattr(param_pb, which_oneof)
 
     def _FromParam(param_pb):
       """Deserializes Hyperparam proto."""
