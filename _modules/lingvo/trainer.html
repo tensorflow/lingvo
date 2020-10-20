@@ -772,7 +772,7 @@
           <span class="c1"># amortizing the cost of the operations. Alternative of running</span>
           <span class="c1"># tpu.outside_compilation &amp; using tf.cond is expenseive.</span>
           <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructPostTrainingLoop</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">outfeed_dequeue_op</span><span class="p">)</span>
             <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">post_training_loop_op</span><span class="p">]):</span>
               <span class="k">return</span> <span class="p">([[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">train_loop_op</span><span class="p">],</span>
                        <span class="n">outfeed_dequeue_op</span><span class="p">])</span>

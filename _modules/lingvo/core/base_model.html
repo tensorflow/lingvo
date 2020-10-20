@@ -704,7 +704,12 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;BaseTask.AdjustGradients&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">vars_gradients</span></div>
 
-<div class="viewcode-block" id="BaseTask.PostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.PostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTask.PostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.PostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outfeed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct the post training loop op.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      outfeed: a dict of tensors dequeued from TPU outfeed queue.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_post_training_loop_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="p">[</span>
         <span class="n">opt</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">learners</span>
@@ -1123,7 +1128,7 @@
 <div class="viewcode-block" id="BaseModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseModel.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseModel.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outfeed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
@@ -1188,8 +1193,8 @@
 <div class="viewcode-block" id="SingleTaskBase.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="SingleTaskBase.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostTrainingLoop</span><span class="p">()</span></div></div>
+<div class="viewcode-block" id="SingleTaskBase.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outfeed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostTrainingLoop</span><span class="p">(</span><span class="n">outfeed</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="SingleTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModel</span><span class="p">(</span><span class="n">SingleTaskBase</span><span class="p">):</span>
