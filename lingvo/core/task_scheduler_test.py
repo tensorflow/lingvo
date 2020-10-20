@@ -193,6 +193,45 @@ class SchedulerTests(test_utils.TestCase):
     expected_tasks = ['a', 'a', 'b', 'b', 'c']
     self.assertEqual(expected_tasks, tasks)
 
+  def testPieceWiseScheduler(self):
+    """Test piecewise scheduler."""
+    p = task_scheduler.PieceWiseScheduler.Params()
+    p1 = task_scheduler.ConstantScheduler.Params()
+    p1.task_probs = [('a', 0.8), ('b', 0.2)]
+
+    p2 = task_scheduler.RoundRobinScheduler.Params()
+    p2.tasks = ['a', 'b']
+
+    p3 = task_scheduler.SequentialScheduler.Params()
+    p3.task_steps = [('a', 8), ('b', 10), ('c', 2)]
+
+    p.schedule_steps = [(p1, 10), (p2, 6), (p3, 20)]
+
+    schedule = p.Instantiate()
+    tasks = []
+
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    for global_step in range(36):
+      tasks.append(schedule.Sample(global_step))
+
+    # Testing the constant scheduler part.
+    count_a = len([t for t in tasks[:10] if t == 'a'])
+    self.assertEqual(count_a, 7)
+
+    # Testing the round robin scheduler part.
+    for i in range(10, 16):
+      if i % 2 == 0:
+        self.assertEqual(tasks[i], 'a')
+      else:
+        self.assertEqual(tasks[i], 'b')
+
+    # Testing the sequential scheduler part.
+    steps = [17, 21, 28, 31, 35]
+    expected_tasks = ['a', 'a', 'b', 'b', 'c']
+
+    for i in range(len(steps)):
+      self.assertEqual(tasks[steps[i]], expected_tasks[i])
+
 
 if __name__ == '__main__':
   tf.test.main()

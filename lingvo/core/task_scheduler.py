@@ -322,3 +322,49 @@ class SequentialScheduler(TaskScheduler):
       self.cur_probs[self.task_idx - 1] = 0
       self.cur_probs[self.task_idx] = 1
     return sampled_task
+
+
+class PieceWiseScheduler(TaskScheduler):
+  """Piecewise scheduler using different scheduling strategies."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'schedule_steps', [], 'List of tuples of (schedule_class_params, '
+        'number of steps to use this schedule class)')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    assert isinstance(self.params.schedule_steps, list)
+    self.schedule_steps = []
+    self.schedule_params = []
+    for (cls_params, steps) in self.params.schedule_steps:
+      if self.schedule_steps:
+        self.schedule_steps.append(steps + self.schedule_steps[-1])
+      else:
+        self.schedule_steps.append(steps)
+      self.schedule_params.append(cls_params)
+
+    self.CreateChildren('schedules', self.schedule_params)
+
+    self.n_schedules = len(self.schedule_steps)
+    self.schedule_idx = 0
+    self.task_step_offset = 0
+    self.cur_probs = self.schedules[0].cur_probs
+
+  def Sample(self, current_step):
+    """Sample a task."""
+
+    to_step = self.schedule_steps[self.schedule_idx]
+
+    if current_step >= to_step and self.schedule_idx < self.n_schedules - 1:
+      self.task_step_offset = to_step
+      self.schedule_idx += 1
+
+    cur_schedule = self.schedules[self.schedule_idx]
+    sampled_task = cur_schedule.Sample(current_step - self.task_step_offset)
+    self.cur_probs = cur_schedule.cur_probs
+
+    return sampled_task
