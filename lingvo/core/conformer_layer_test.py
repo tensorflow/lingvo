@@ -291,7 +291,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         print(repr(actual))
         print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
         print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-        tol = 1.e-6 if testonly_skip_norm_layers else 2.e-5
+        tol = 2.e-6 if testonly_skip_norm_layers else 2.e-5
         self.assertAllClose(expected, actual, atol=tol, rtol=tol)
 
 
