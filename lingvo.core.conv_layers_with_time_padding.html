@@ -216,6 +216,31 @@
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.conv_layers_with_time_padding.ComputeExplicitPaddingForCausalConv">
+<code class="sig-prename descclassname">lingvo.core.conv_layers_with_time_padding.</code><code class="sig-name descname">ComputeExplicitPaddingForCausalConv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filter_shape</span></em>, <em class="sig-param"><span class="n">dilation_rate</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ComputeExplicitPaddingForCausalConv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ComputeExplicitPaddingForCausalConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the explicit paddings for causal convolutions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filter_shape</strong> – a sequence of length 4. Elements are in the order of height
+(time), width (frequency), in_channel, out_channel.</p></li>
+<li><p><strong>dilation_rate</strong> – a pair of int: dilations on height and width axises.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>a list of pairs in the form of :</dt><dd><p>[[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>explicit_padding</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.conv_layers_with_time_padding._ComputeConvOutputPaddingV2">
 <code class="sig-prename descclassname">lingvo.core.conv_layers_with_time_padding.</code><code class="sig-name descname">_ComputeConvOutputPaddingV2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">window</span></em>, <em class="sig-param"><span class="n">stride</span></em>, <em class="sig-param"><span class="n">padding_algorithm</span><span class="o">=</span><span class="default_value">'SAME'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#_ComputeConvOutputPaddingV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding._ComputeConvOutputPaddingV2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes paddings for convolution and pooling output.</p>
@@ -339,8 +364,18 @@ width dimension as in images.</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._MaybeCausalPadding">
+<code class="sig-name descname">_MaybeCausalPadding</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#BaseConv2DLayerWithPadding._MaybeCausalPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._MaybeCausalPadding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
+<dl class="simple">
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._EvaluateConvKernel">
-<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">conv_input</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#BaseConv2DLayerWithPadding._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">conv_input</span></em>, <em class="sig-param"><span class="n">padding_algorithm</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#BaseConv2DLayerWithPadding._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluate the convolution kernel on input ‘conv_input’.</p>
 </dd></dl>
 
@@ -383,7 +418,7 @@ width dimension as in images.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._EvaluateConvKernel">
-<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#Conv2DLayerWithPadding._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">padding_algorithm</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#Conv2DLayerWithPadding._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply convolution to inputs.</p>
 </dd></dl>
 
@@ -395,9 +430,13 @@ width dimension as in images.</p></li>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding</span></code></a></p>
 <p>2D conv layer with causal dependency on the time axis.</p>
 <dl class="py method">
-<dt id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding._EvaluateConvKernel">
-<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalConv2DLayerWithPadding._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply convolution to inputs.</p>
+<dt id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding._MaybeCausalPadding">
+<code class="sig-name descname">_MaybeCausalPadding</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalConv2DLayerWithPadding._MaybeCausalPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding._MaybeCausalPadding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
+<dl class="simple">
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -440,7 +479,7 @@ width dimension as in images.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._EvaluateConvKernel">
-<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#DepthwiseConv2DLayer._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">padding_algorithm</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#DepthwiseConv2DLayer._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply convolution to inputs.</p>
 </dd></dl>
 
@@ -452,9 +491,13 @@ width dimension as in images.</p></li>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer</span></code></a></p>
 <p>Depthwise conv layer with causal dependency on the time axis.</p>
 <dl class="py method">
-<dt id="lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer._EvaluateConvKernel">
-<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalDepthwiseConv2DLayer._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply convolution to inputs.</p>
+<dt id="lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer._MaybeCausalPadding">
+<code class="sig-name descname">_MaybeCausalPadding</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalDepthwiseConv2DLayer._MaybeCausalPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer._MaybeCausalPadding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
+<dl class="simple">
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -581,9 +624,13 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer</span></code></a></p>
 <p>Depthwise conv layer with causal dependency on the time axis.</p>
 <dl class="py method">
-<dt id="lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer._EvaluateConvKernel">
-<code class="sig-name descname">_EvaluateConvKernel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalNormalizedDepthwiseConv2DLayer._EvaluateConvKernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer._EvaluateConvKernel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply convolution to inputs.</p>
+<dt id="lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer._MaybeCausalPadding">
+<code class="sig-name descname">_MaybeCausalPadding</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalNormalizedDepthwiseConv2DLayer._MaybeCausalPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer._MaybeCausalPadding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
+<dl class="simple">
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
