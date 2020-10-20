@@ -340,6 +340,15 @@
   <span class="k">return</span> <span class="n">to_p</span></div>
 
 
+<div class="viewcode-block" id="SerializeAsString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.SerializeAsString">[docs]</a><span class="k">class</span> <span class="nc">SerializeAsString</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Classes inheriting from this will be serialized as their string repr.</span>
+
+<span class="sd">  This affects Params.ToProto/FromProto. An error will be raised when attempting</span>
+<span class="sd">  to deserialize.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">pass</span></div>
+
+
 <div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Stores data for a set of parameters.</span>
 
@@ -590,27 +599,32 @@
 <span class="sd">      The serialized params as a Hyperparams proto.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_ToParamValue</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_ToParamValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Serializes to HyperparamValue proto.&quot;&quot;&quot;</span>
       <span class="n">param_pb</span> <span class="o">=</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">HyperparamValue</span><span class="p">()</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
-        <span class="n">param_pb</span><span class="o">.</span><span class="n">param_val</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">SerializeAsString</span><span class="p">):</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">string_repr_val</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">param_val</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">key</span><span class="p">))</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">range</span><span class="p">):</span>
         <span class="c1"># The range function is serialized by explicitely calling it.</span>
-        <span class="n">param_pb</span><span class="o">.</span><span class="n">list_val</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">])</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">list_val</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">val</span><span class="p">)])</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">tuple_val</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">val</span><span class="p">)])</span>
       <span class="k">elif</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">is_dataclass</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_IsNamedTuple</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
         <span class="n">val_cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-        <span class="n">vals</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">is_dataclass</span><span class="p">(</span>
-            <span class="n">val</span><span class="p">)</span> <span class="k">else</span> <span class="n">val</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">is_dataclass</span><span class="p">(</span>
+            <span class="n">val</span><span class="p">)</span> <span class="k">else</span> <span class="n">val</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">named_tuple_val</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span>
             <span class="n">val_cls</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">val_cls</span><span class="o">.</span><span class="vm">__name__</span>
-        <span class="n">param_pb</span><span class="o">.</span><span class="n">named_tuple_val</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">])</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-        <span class="n">param_pb</span><span class="o">.</span><span class="n">tuple_val</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">])</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">named_tuple_val</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">[</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">items</span><span class="p">])</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">dict_val</span><span class="o">.</span><span class="n">SetInParent</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-          <span class="n">param_pb</span><span class="o">.</span><span class="n">dict_val</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+          <span class="n">param_pb</span><span class="o">.</span><span class="n">dict_val</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">[</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">type_val</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">val</span><span class="o">.</span><span class="vm">__name__</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">):</span>
@@ -637,16 +651,16 @@
         <span class="c1"># We represent a NoneType by the absence of any of the oneof.</span>
         <span class="k">pass</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Unsupported type: </span><span class="si">%s</span><span class="s1"> for value </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                             <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">),</span> <span class="n">val</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unsupported: </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s1"> for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">param_pb</span>
 
-    <span class="k">def</span> <span class="nf">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Serializes to Hyperparam proto.&quot;&quot;&quot;</span>
-
       <span class="n">param_pb</span> <span class="o">=</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">Hyperparam</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+        <span class="n">prefix</span> <span class="o">+=</span> <span class="s1">&#39;.&#39;</span>
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-        <span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">_ToParamValue</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
       <span class="k">return</span> <span class="n">param_pb</span>
 
     <span class="k">return</span> <span class="n">_ToParam</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
@@ -665,7 +679,9 @@
       <span class="sd">&quot;&quot;&quot;Deserializes HyperparamValue proto.&quot;&quot;&quot;</span>
 
       <span class="n">which_oneof</span> <span class="o">=</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">WhichOneof</span><span class="p">(</span><span class="s1">&#39;kind&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;param_val&#39;</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">which_oneof</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;param_val&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_FromParam</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">param_val</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;list_val&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">_FromParamValue</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">list_val</span><span class="o">.</span><span class="n">items</span><span class="p">]</span>
@@ -689,14 +705,6 @@
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
       <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;dtype_val&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">as_dtype</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">dtype_val</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;string_val&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">string_val</span>
-      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;int_val&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">int_val</span>
-      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;float_val&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">float_val</span>
-      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;bool_val&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">bool_val</span>
       <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;enum_val&#39;</span><span class="p">:</span>
         <span class="n">enum_cls</span> <span class="o">=</span> <span class="n">_LoadClass</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">enum_val</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">enum_cls</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
@@ -709,9 +717,11 @@
         <span class="n">proto_msg</span> <span class="o">=</span> <span class="n">proto_cls</span><span class="p">()</span>
         <span class="n">proto_msg</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">val</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">proto_msg</span>
+      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;string_repr_val&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Cannot deserialize SerializeAsString instance: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                        <span class="n">param_pb</span><span class="o">.</span><span class="n">string_repr_val</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># If nothing is set, it&#39;s the None type.</span>
-        <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">param_pb</span><span class="p">,</span> <span class="n">which_oneof</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_FromParam</span><span class="p">(</span><span class="n">param_pb</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Deserializes Hyperparam proto.&quot;&quot;&quot;</span>
