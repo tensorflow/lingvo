@@ -113,6 +113,30 @@ def ComputeConvOutputPadding(paddings,
   return tf.squeeze(out_padding, -1)
 
 
+def ComputeExplicitPaddingForCausalConv(filter_shape, dilation_rate):
+  """Computes the explicit paddings for causal convolutions.
+
+  Args:
+    filter_shape: a sequence of length 4. Elements are in the order of height
+      (time), width (frequency), in_channel, out_channel.
+    dilation_rate: a pair of int: dilations on height and width axises.
+
+  Returns:
+    explicit_padding: a list of pairs in the form of :
+      [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]
+  """
+  assert filter_shape[1] == 1, 'Only 1D causal convolutions supported.'
+  # Use VALID padding and shift the inputs to the right to ensure that the
+  # first output only depends on the first input and so on. The output is
+  # the same size as the input, as if the convolution used SAME padding.
+  # The effective spatial filter width for dilated convolutions is
+  # (kernel_width - 1) * dilation_rate + 1 as according to
+  # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
+  causal_pad_size = (filter_shape[0] - 1) * dilation_rate[0]
+  explicit_padding = [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]]
+  return explicit_padding
+
+
 def _ComputeConvOutputPaddingV2(paddings,
                                 window,
                                 stride,
@@ -372,9 +396,18 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
     return out * factor[..., tf.newaxis]
 
   def _ApplyConv(self, theta, conv_input):
-    return self._EvaluateConvKernel(theta, conv_input)
+    return self._EvaluateConvKernel(theta, conv_input,
+                                    self._MaybeCausalPadding())
 
-  def _EvaluateConvKernel(self, theta, conv_input):
+  def _MaybeCausalPadding(self):
+    """Returns the padding algorithm for tf.*conv2d api.
+
+    The default value is 'SAME' for non-causal layers. Causal layers may
+      override and return a explicit padding.
+    """
+    return 'SAME'
+
+  def _EvaluateConvKernel(self, theta, conv_input, padding_algorithm):
     """Evaluate the convolution kernel on input 'conv_input'."""
     raise NotImplementedError
 
@@ -431,23 +464,24 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
     return filter_w
 
   def _ApplyConv(self, theta, conv_input):
-    out = self._EvaluateConvKernel(theta, conv_input)
+    out = self._EvaluateConvKernel(theta, conv_input,
+                                   self._MaybeCausalPadding())
     p = self.params
     if p.bias:
       out = tf.nn.bias_add(out, theta.b)
     return out
 
-  def _EvaluateConvKernel(self, theta, inputs):
+  def _EvaluateConvKernel(self, theta, inputs, padding_algorithm):
     """Apply convolution to inputs."""
     p = self.params
     filter_w = self._GetWeight(theta)
-    return tf.nn.convolution(
+    return tf.nn.conv2d(
         inputs,
         filter_w,
         strides=p.filter_stride,
         dilations=p.dilation_rate,
         data_format='NHWC',
-        padding='SAME')
+        padding=padding_algorithm)
 
 
 class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
@@ -458,28 +492,9 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
     p = self.params
     assert p.filter_shape[1] == 1, 'Only 1d causal convolution is supported.'
 
-  def _EvaluateConvKernel(self, theta, inputs):
-    """Apply convolution to inputs."""
+  def _MaybeCausalPadding(self):
     p = self.params
-    assert p.filter_shape[1] == 1, 'Only 1D causal convolutions supported.'
-    # Use VALID padding and shift the inputs to the right to ensure that the
-    # first output only depends on the first input and so on. The output is
-    # the same size as the input, as if the convolution used SAME padding.
-    padding_algorithm = 'VALID'
-    # The effective spatial filter width for dilated convolutions is
-    # (kernel_width - 1) * dilation_rate + 1 as according to
-    # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
-    causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
-    inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]])
-
-    filter_w = self._GetWeight(theta)
-    return tf.nn.convolution(
-        inputs,
-        filter_w,
-        strides=p.filter_stride,
-        dilations=p.dilation_rate,
-        data_format='NHWC',
-        padding=padding_algorithm)
+    return ComputeExplicitPaddingForCausalConv(p.filter_shape, p.dilation_rate)
 
 
 class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
@@ -548,13 +563,14 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
     return filter_w
 
   def _ApplyConv(self, theta, conv_input):
-    out = self._EvaluateConvKernel(theta, conv_input)
+    out = self._EvaluateConvKernel(theta, conv_input,
+                                   self._MaybeCausalPadding())
     p = self.params
     if p.bias:
       out = tf.nn.bias_add(out, theta.b)
     return out
 
-  def _EvaluateConvKernel(self, theta, inputs):
+  def _EvaluateConvKernel(self, theta, inputs, padding_algorithm):
     """Apply convolution to inputs."""
     p = self.params
     filter_w = self._GetWeight(theta)
@@ -564,7 +580,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
         strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
         dilations=p.dilation_rate,
         data_format='NHWC',
-        padding='SAME')
+        padding=padding_algorithm)
 
 
 class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
@@ -575,27 +591,9 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     p = self.params
     assert p.filter_shape[1] == 1, 'Only 1d causal convolution is supported.'
 
-  def _EvaluateConvKernel(self, theta, inputs):
-    """Apply convolution to inputs."""
+  def _MaybeCausalPadding(self):
     p = self.params
-    assert p.filter_shape[1] == 1, 'Only 1D causal convolutions supported.'
-    # Use VALID padding and shift the inputs to the right to ensure that the
-    # first output only depends on the first input and so on. The output is
-    # the same size as the input, as if the convolution used SAME padding.
-    padding_algorithm = 'VALID'
-    # The effective spatial filter width for dilated convolutions is
-    # (kernel_width - 1) * dilation_rate + 1 as according to
-    # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
-    causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
-    inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]])
-    filter_w = self._GetWeight(theta)
-    return tf.nn.depthwise_conv2d(
-        inputs,
-        filter_w,
-        strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
-        dilations=p.dilation_rate,
-        data_format='NHWC',
-        padding=padding_algorithm)
+    return ComputeExplicitPaddingForCausalConv(p.filter_shape, p.dilation_rate)
 
   def zero_state(self, batch_size):
     """Returns the initial state given the batch size.
@@ -731,22 +729,9 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
 class CausalNormalizedDepthwiseConv2DLayer(NormalizedDepthwiseConv2DLayer):
   """Depthwise conv layer with causal dependency on the time axis."""
 
-  def _EvaluateConvKernel(self, theta, inputs):
-    """Apply convolution to inputs."""
-    # Same as CausalDepthwiseConv2DLayer.
+  def _MaybeCausalPadding(self):
     p = self.params
-    assert p.filter_shape[1] == 1, 'Only 1D causal convolutions supported.'
-    padding_algorithm = 'VALID'
-    causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
-    inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]])
-    filter_w = self._GetWeight(theta)
-    return tf.nn.depthwise_conv2d(
-        inputs,
-        filter_w,
-        strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
-        dilations=p.dilation_rate,
-        data_format='NHWC',
-        padding=padding_algorithm)
+    return ComputeExplicitPaddingForCausalConv(p.filter_shape, p.dilation_rate)
 
 
 class ConvBatchNormLayer(bn_layers.BatchNormLayer):
