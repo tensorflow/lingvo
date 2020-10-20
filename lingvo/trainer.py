@@ -624,7 +624,7 @@ class TrainerTpu(base_runner.BaseRunner):
           # amortizing the cost of the operations. Alternative of running
           # tpu.outside_compilation & using tf.cond is expenseive.
           with tf.control_dependencies(train_loop_op):
-            self._model.ConstructPostTrainingLoop()
+            self._model.ConstructPostTrainingLoop(outfeed_dequeue_op)
             with tf.control_dependencies([self._task.post_training_loop_op]):
               return ([[tf.identity(o) for o in train_loop_op],
                        outfeed_dequeue_op])
