@@ -5200,10 +5200,6 @@ def _UseTfFunction():
   """Whether to use tf.function instead of tf.Defun."""
   if _USE_TF_FUNCTION.stack:
     return _USE_TF_FUNCTION.stack[-1]
-  # TODO(laigd): remove TF version check when 312743821 and 313682500 are in the
-  # release.
-  if tf.compat.v1.__version__ < '2.3.0':
-    return False
   return tf2_enabled()
 
 
