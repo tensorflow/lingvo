@@ -340,15 +340,6 @@
   <span class="k">return</span> <span class="n">to_p</span></div>
 
 
-<div class="viewcode-block" id="SerializeAsString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.SerializeAsString">[docs]</a><span class="k">class</span> <span class="nc">SerializeAsString</span><span class="p">:</span>
-  <span class="sd">&quot;&quot;&quot;Classes inheriting from this will be serialized as their string repr.</span>
-
-<span class="sd">  This affects Params.ToProto/FromProto. An error will be raised when attempting</span>
-<span class="sd">  to deserialize.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">pass</span></div>
-
-
 <div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Stores data for a set of parameters.</span>
 
@@ -602,9 +593,7 @@
     <span class="k">def</span> <span class="nf">_ToParamValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Serializes to HyperparamValue proto.&quot;&quot;&quot;</span>
       <span class="n">param_pb</span> <span class="o">=</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">HyperparamValue</span><span class="p">()</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">SerializeAsString</span><span class="p">):</span>
-        <span class="n">param_pb</span><span class="o">.</span><span class="n">string_repr_val</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">param_val</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">key</span><span class="p">))</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">range</span><span class="p">):</span>
         <span class="c1"># The range function is serialized by explicitely calling it.</span>
@@ -651,7 +640,7 @@
         <span class="c1"># We represent a NoneType by the absence of any of the oneof.</span>
         <span class="k">pass</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unsupported: </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s1"> for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">string_repr_val</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">param_pb</span>
 
     <span class="k">def</span> <span class="nf">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
@@ -718,7 +707,7 @@
         <span class="n">proto_msg</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">val</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">proto_msg</span>
       <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;string_repr_val&#39;</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Cannot deserialize SerializeAsString instance: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Cannot deserialize string_repr_val instance: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                         <span class="n">param_pb</span><span class="o">.</span><span class="n">string_repr_val</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">param_pb</span><span class="p">,</span> <span class="n">which_oneof</span><span class="p">)</span>
