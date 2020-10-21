@@ -15,10 +15,19 @@
 # ==============================================================================
 """BaseModelParams class definition."""
 
+
 from lingvo import datasets
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import hyperparams
+
+
+# Define some type aliases for common types returned by SingleTaskModelParams
+# and MultiTaskModelParams.
+InputParams = hyperparams.InstantiableParams[
+    base_input_generator.BaseSequenceInputGenerator]
+TaskParams = hyperparams.InstantiableParams[base_model.BaseTask]
+ModelParams = hyperparams.InstantiableParams[base_model.BaseModel]
 
 
 class DatasetError(Exception):
@@ -54,26 +63,26 @@ class _BaseModelParams:
 class SingleTaskModelParams(_BaseModelParams):
   """Model Params for a `.SingleTaskModel`."""
 
-  def Train(self):
+  def Train(self) -> InputParams:
     """Returns Params for the training dataset."""
     return base_input_generator.BaseSequenceInputGenerator.Params().Set(
         name='Train')
 
-  def Dev(self):
+  def Dev(self) -> InputParams:
     """Returns Params for the development dataset."""
     return base_input_generator.BaseSequenceInputGenerator.Params().Set(
         name='Dev')
 
-  def Test(self):
+  def Test(self) -> InputParams:
     """Returns Params for the testing dataset."""
     return base_input_generator.BaseSequenceInputGenerator.Params().Set(
         name='Test')
 
-  def Task(self):
+  def Task(self) -> TaskParams:
     """Returns task params."""
     raise NotImplementedError('Abstract method')
 
-  def Model(self):
+  def Model(self) -> ModelParams:
     """Returns model params.
 
     Emulates structure of `MultiTaskModelParams`.
@@ -88,19 +97,19 @@ class SingleTaskModelParams(_BaseModelParams):
 class MultiTaskModelParams(_BaseModelParams):
   """Model Params for a `.MultiTaskModel`."""
 
-  def Train(self):
+  def Train(self) -> InputParams:
     """Returns Params for the training dataset."""
     return hyperparams.Params()
 
-  def Dev(self):
+  def Dev(self) -> InputParams:
     """Returns Params for the development dataset."""
     return hyperparams.Params()
 
-  def Test(self):
+  def Test(self) -> InputParams:
     """Returns Params for the testing dataset."""
     return hyperparams.Params()
 
-  def Model(self):
+  def Model(self) -> ModelParams:
     """Returns model params."""
     raise NotImplementedError('Abstract method')
 
