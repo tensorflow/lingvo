@@ -2849,8 +2849,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
     concat_axis = 1
     if self._transpose_weight_params:
       concat_axis = 0
+    # TODO(shivaniagrawal): rescaling might be expensive for softmax; move
+    # rescaling after concat and Matmul.
     weights = [
-        self.QWeight(theta['weight_%d' % i]) for i in range(p.num_shards)
+        self.AqtWeight(self.QWeight(theta['weight_%d' % i]), feature_axis=-1)
+        for i in range(p.num_shards)
     ]
     new_theta = theta.copy()
     if p.use_bias:
@@ -2863,10 +2866,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
   def _LogitsUsingConcatenatedWeightsHelper(self, theta, inputs):
     p = self.params
     inputs = self.QTensor('inputs', inputs)
-    # TODO(shivaniagrawal): rescaling might be expensive for softmax; move
-    # rescaling after Matmul.
-    wm = self.AqtWeight(theta.wm, feature_axis=-1)
-    wm = self.QWeight(wm)
+    wm = self.QWeight(theta.wm)
 
     if p.use_bias:
       bias = self.QWeight(theta.bias)
