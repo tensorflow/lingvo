@@ -42,7 +42,7 @@ class Builder(batch_major_attention.Builder):
       attention_inputs += ',i.segment_mask'
 
     sub_list = [
-        ('i.vec->after_ln', self._LN('LN', p.model_dim)),
+        ('i.vec->after_ln', self._LN('LN', p.model_dim, use_fused_layernorm=p.use_fused_layernorm)),
         ('{}->after_att,unused_prob'.format(attention_inputs), self._MultiHeadedAtten('atten')),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
