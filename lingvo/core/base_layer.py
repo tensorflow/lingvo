@@ -770,9 +770,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     meta.kwargs.setdefault('default_seed', self.params.random_seed)
     var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
     self._private_vars[name] = var
-    if 'gpu' in var.device.lower():
-      # On GPU, cache a copy of the variable on the specific device to
-      # avoid extraneous sends.
+    if self.cluster.params.worker.gpus_per_replica > 0:
+      # On GPU (which always trains a single step per session.run()), reference
+      # a tensor in FProp to cache it on device and avoid extraneous sends from
+      # reading variables from ps multiple times.
       with tf.device(var.device):
         value = tf.identity(var)
     else:
