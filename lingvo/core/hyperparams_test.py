@@ -450,6 +450,22 @@ tuple : (2, 3)
     with self.assertRaises(TypeError):
       hyperparams.Params.FromProto(proto)
 
+  def testToFromProtoSerializeDicts(self):
+    p = hyperparams.Params()
+    p.Define('dict_serialize_as_dict_vals', {'foo': 'bar'}, '')
+    p.Define('dict_serialize_as_str_repr', {('foo', 'bar'): 'baz'}, '')
+    proto = p.ToProto()
+    # Dicts with str keys are stored as dict_val.
+    self.assertEqual(
+        'bar', proto.items['dict_serialize_as_dict_vals'].dict_val.items['foo']
+        .string_val)
+    # Dicts with non-str keys are stored as string_repr_val.
+    self.assertEqual("{('foo', 'bar'): 'baz'}",
+                     proto.items['dict_serialize_as_str_repr'].string_repr_val)
+    # Params with str_repr_vals cannot be deserialized.
+    with self.assertRaises(TypeError):
+      hyperparams.Params.FromProto(proto)
+
   def testStringEscaping(self):
     p = hyperparams.Params()
     p.Define('bs_end_quote', 'Single\\', '')

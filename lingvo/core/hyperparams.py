@@ -462,7 +462,8 @@ class Params:
             val_cls).__name__ + '/' + val_cls.__name__
         param_pb.named_tuple_val.items.extend(
             [_ToParamValue(f'{key}[{k}]', v) for k, v in items])
-      elif isinstance(val, dict):
+      # Only dicts where all keys are str can be stored as dict_val.
+      elif isinstance(val, dict) and all(isinstance(k, str) for k in val):
         param_pb.dict_val.SetInParent()
         for k, v in val.items():
           param_pb.dict_val.items[k].CopyFrom(_ToParamValue(f'{key}[{k}]', v))
