@@ -918,9 +918,10 @@
     <span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
-    <span class="k">if</span> <span class="s1">&#39;gpu&#39;</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-      <span class="c1"># On GPU, cache a copy of the variable on the specific device to</span>
-      <span class="c1"># avoid extraneous sends.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="c1"># On GPU (which always trains a single step per session.run()), reference</span>
+      <span class="c1"># a tensor in FProp to cache it on device and avoid extraneous sends from</span>
+      <span class="c1"># reading variables from ps multiple times.</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
