@@ -98,7 +98,7 @@ def SetEval(mode):
 
 
 def SetImmediatelyInstantiateVariables(mode):
-  """Returns a cluster with immediately_create_variables option turned on/off.
+  """Returns a cluster with immediately_instantiate_variables option set.
 
   Args:
     mode: True, False or None.
@@ -107,7 +107,7 @@ def SetImmediatelyInstantiateVariables(mode):
     A new Cluster instance.
   """
   return Current().params.Copy().Set(
-      immediately_create_variables=mode).Instantiate()
+      immediately_instantiate_variables=mode).Instantiate()
 
 
 def SetModelSplit(split_id):

@@ -131,7 +131,7 @@ def _BaseLayerInitWrapper(func):  # pylint: disable=invalid-name
 
     if not stack:
       # Outermost layer just finished __init__.
-      if self.cluster.immediately_create_variables:
+      if self.cluster.immediately_instantiate_variables:
         self.InstantiateVariables()
 
   return Wrapper
