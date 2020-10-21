@@ -346,6 +346,7 @@ class ExecutorTpu(base_runner.BaseRunner):
       config_proto = (
           self._tpu_embedding.config_proto
           if self._tpu_embedding is not None else None)
+      sess.reset(self._tf_master)
       for worker in self._cluster.all_worker_names:
         sess.run(
             tf.tpu.initialize_system(embedding_config=config_proto, job=worker))
