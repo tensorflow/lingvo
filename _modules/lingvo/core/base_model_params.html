@@ -163,10 +163,19 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;BaseModelParams class definition.&quot;&quot;&quot;</span>
 
+
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">datasets</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
+
+
+<span class="c1"># Define some type aliases for common types returned by SingleTaskModelParams</span>
+<span class="c1"># and MultiTaskModelParams.</span>
+<span class="n">InputParams</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">[</span>
+    <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">]</span>
+<span class="n">TaskParams</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">[</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">]</span>
+<span class="n">ModelParams</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">[</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseModel</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="DatasetError"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.DatasetError">[docs]</a><span class="k">class</span> <span class="nc">DatasetError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -202,26 +211,26 @@
 <div class="viewcode-block" id="SingleTaskModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModelParams</span><span class="p">(</span><span class="n">_BaseModelParams</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Model Params for a `.SingleTaskModel`.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="SingleTaskModelParams.Train"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleTaskModelParams.Train"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InputParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns Params for the training dataset.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SingleTaskModelParams.Dev"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleTaskModelParams.Dev"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InputParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns Params for the development dataset.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Dev&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SingleTaskModelParams.Test"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleTaskModelParams.Test"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InputParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns Params for the testing dataset.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SingleTaskModelParams.Task"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleTaskModelParams.Task"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TaskParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns task params.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SingleTaskModelParams.Model"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Model">[docs]</a>  <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleTaskModelParams.Model"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Model">[docs]</a>  <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ModelParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns model params.</span>
 
 <span class="sd">    Emulates structure of `MultiTaskModelParams`.</span>
@@ -236,19 +245,19 @@
 <div class="viewcode-block" id="MultiTaskModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskModelParams</span><span class="p">(</span><span class="n">_BaseModelParams</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Model Params for a `.MultiTaskModel`.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="MultiTaskModelParams.Train"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiTaskModelParams.Train"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InputParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns Params for the training dataset.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="MultiTaskModelParams.Dev"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiTaskModelParams.Dev"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InputParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns Params for the development dataset.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="MultiTaskModelParams.Test"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiTaskModelParams.Test"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InputParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns Params for the testing dataset.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="MultiTaskModelParams.Model"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Model">[docs]</a>  <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiTaskModelParams.Model"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Model">[docs]</a>  <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ModelParams</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns model params.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
