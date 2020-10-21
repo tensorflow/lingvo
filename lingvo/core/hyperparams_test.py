@@ -64,7 +64,7 @@ class InstantiableClass:
     self.other = other
 
 
-class SerializeAsStringClass(hyperparams.SerializeAsString):
+class SerializeAsStringClass(object):
   """Used for testing ToProto."""
 
   def __repr__(self):
