@@ -63,7 +63,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   # The sharding config of model parallelim
   DEVICE_MESH_SHAPE = [64, 1]  # prod(DEVICE_MESH_SHAPE) = NUM_DEVICES_PER_SPLIT
   DEVICE_MESH = None
-  DEBUG = True
+  DEBUG = False
 
   def Task(self):
     # tokens per batch per replica (~64 cores)
