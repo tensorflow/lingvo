@@ -51,6 +51,7 @@ from lingvo.core import summary_utils
 import numpy as np
 
 from lingvo import base_runner
+from google.protobuf import text_format
 
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.core.framework import summary_pb2
@@ -255,6 +256,9 @@ class Controller(base_runner.BaseRunner):
     self._WriteToLog(self._model_analysis, self._control_dir,
                      'model_analysis.txt')
     self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')
+    self._WriteToLog(
+        text_format.MessageToString(self.params.ToProto(), as_utf8=True),
+        self._control_dir, 'params.pbtxt')
     tf.io.write_graph(self._graph.as_graph_def(), self._control_dir,
                       'train.pbtxt')
 

@@ -183,6 +183,7 @@ py_library(
         ":model_registry",
         # Implicit network file system dependency.
         "//lingvo:base_runner",
+        # Implicit python proto dependency.
         # Implicit IPython dependency.
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",

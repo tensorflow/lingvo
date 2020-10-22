@@ -164,6 +164,7 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(self._HasFile(train_files, 'tfevents'))
     control_files = tf.io.gfile.glob(logdir + '/control/*')
     self.assertTrue(self._HasFile(control_files, 'params.txt'))
+    self.assertTrue(self._HasFile(control_files, 'params.pbtxt'))
     self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
     self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
     self.assertTrue(self._HasFile(control_files, 'tfevents'))
