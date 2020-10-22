@@ -1690,14 +1690,18 @@ class PoolingLayer(quant_utils.QuantizableLayer):
     super()._CreateLayerVariables()
     self.TrackQTensor('output')
 
-  def OutShape(self, in_shape):
-    """Compute the output shape given the input shape."""
-    p = self.params
+  @classmethod
+  def OutputShape(cls, params, in_shape):
+    p = params
     return _ComputeConvOutputShape(
         in_shape,
         p.window_stride[0],
         p.window_stride[1],
         padding=p.padding_algorithm)
+
+  def OutShape(self, in_shape):
+    """Compute the output shape given the input shape."""
+    return self.OutputShape(self.params, in_shape)
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply pooling to inputs.
