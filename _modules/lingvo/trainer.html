@@ -199,6 +199,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_runner</span>
+<span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
 
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">summary_pb2</span>
@@ -403,6 +404,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span>
                      <span class="s1">&#39;model_analysis.txt&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span>
+        <span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToProto</span><span class="p">(),</span> <span class="n">as_utf8</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span> <span class="s1">&#39;params.pbtxt&#39;</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span>
                       <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
