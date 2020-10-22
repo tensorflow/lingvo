@@ -1629,6 +1629,15 @@ class UniTransformer(base_model.BaseTask):
           tf.reduce_sum(non_padding))
       avg_loss += p.aux_loss_coef * aux_loss
 
+      non_padding_nor_eos = tf.where(
+          tf.equal(input_batch.tgt.labels, 1),
+          tf.zeros_like(non_padding, dtype=non_padding.dtype), non_padding)
+
+      whole_tgt_correct = tf.cast(
+          tf.equal(
+              tf.reduce_sum(acc1 * non_padding, 1),
+              tf.reduce_sum(non_padding, 1)), non_padding.dtype)
+
       # TODO(lepikhin): consider returning
       #   {'loss': (unnormalized per_token_loss, tf.reduce_sum(non_padding))}
       per_step_loss = {
@@ -1639,6 +1648,13 @@ class UniTransformer(base_model.BaseTask):
           'acc1':
               (tf.reduce_sum(acc1 * non_padding) / tf.reduce_sum(non_padding),
                tf.reduce_sum(non_padding)),
+          'acc1_excluding_eos': (tf.reduce_sum(acc1 * non_padding_nor_eos) /
+                                 tf.reduce_sum(non_padding_nor_eos),
+                                 tf.reduce_sum(non_padding_nor_eos)),
+          'whole_tgt_accuracy':
+              (tf.reduce_sum(whole_tgt_correct) /
+               tf.cast(whole_tgt_correct.shape[0], whole_tgt_correct.dtype), 1.0
+              ),
           'mean_xent':
               (tf.reduce_sum(xent * non_padding) / tf.reduce_sum(non_padding),
                tf.reduce_sum(non_padding)),
