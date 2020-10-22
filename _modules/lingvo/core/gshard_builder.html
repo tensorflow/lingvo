@@ -1777,6 +1777,15 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">))</span>
       <span class="n">avg_loss</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">aux_loss_coef</span> <span class="o">*</span> <span class="n">aux_loss</span>
 
+      <span class="n">non_padding_nor_eos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">non_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">non_padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">non_padding</span><span class="p">)</span>
+
+      <span class="n">whole_tgt_correct</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">acc1</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">non_padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
       <span class="c1"># TODO(lepikhin): consider returning</span>
       <span class="c1">#   {&#39;loss&#39;: (unnormalized per_token_loss, tf.reduce_sum(non_padding))}</span>
       <span class="n">per_step_loss</span> <span class="o">=</span> <span class="p">{</span>
@@ -1787,6 +1796,13 @@
           <span class="s1">&#39;acc1&#39;</span><span class="p">:</span>
               <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">acc1</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span>
                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
+          <span class="s1">&#39;acc1_excluding_eos&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">acc1</span> <span class="o">*</span> <span class="n">non_padding_nor_eos</span><span class="p">)</span> <span class="o">/</span>
+                                 <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding_nor_eos</span><span class="p">),</span>
+                                 <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding_nor_eos</span><span class="p">)),</span>
+          <span class="s1">&#39;whole_tgt_accuracy&#39;</span><span class="p">:</span>
+              <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">whole_tgt_correct</span><span class="p">)</span> <span class="o">/</span>
+               <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">whole_tgt_correct</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">whole_tgt_correct</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="mf">1.0</span>
+              <span class="p">),</span>
           <span class="s1">&#39;mean_xent&#39;</span><span class="p">:</span>
               <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">xent</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span>
                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
