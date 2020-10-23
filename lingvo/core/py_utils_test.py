@@ -2794,12 +2794,10 @@ class FocalLossTest(test_utils.TestCase):
     return ans.reshape(shape)
 
   def _testTfFL(self, logits, labels, alpha, gamma):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session() as sess:
       x = tf.placeholder(tf.float32)
       y = tf.placeholder(tf.float32)
       z = py_utils.SigmoidCrossEntropyFocalLoss(x, y, alpha, gamma)
-    with self.session(graph=g) as sess:
       return sess.run(z, feed_dict={x: logits, y: labels})
 
   def testSigmoidCrossEntropyFocalLoss(self):
@@ -2835,23 +2833,19 @@ class FocalLossTest(test_utils.TestCase):
     return ans
 
   def _testTfSCEFLLabelIds(self, logits, labels, alpha, gamma):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session() as sess:
       x = tf.placeholder(tf.float32)
       y = tf.placeholder(tf.int32)
       z = py_utils.SoftmaxCrossEntropyFocalLoss(
           x, label_ids=y, alpha=alpha, gamma=gamma)
-    with self.session(graph=g) as sess:
       return sess.run(z, feed_dict={x: logits, y: labels})
 
   def _testTfSCEFLLabelProbs(self, logits, labels, alpha, gamma):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session() as sess:
       x = tf.placeholder(tf.float32)
       y = tf.placeholder(tf.float32)
       z = py_utils.SoftmaxCrossEntropyFocalLoss(
           x, label_probs=y, alpha=alpha, gamma=gamma)
-    with self.session(graph=g) as sess:
       return sess.run(z, feed_dict={x: logits, y: labels})
 
   def testSoftmaxCrossEntropyFocalLoss(self):
@@ -3163,8 +3157,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
 class IfTest(test_utils.TestCase, parameterized.TestCase):
 
   def testNestedMapInput(self):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session():
 
       def ThenBody(nmap):
         nmap.value -= 1.
@@ -3178,7 +3171,6 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
       true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
       false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
 
-    with self.session(graph=g):
       true_out = self.evaluate(true_out)
       false_out = self.evaluate(false_out)
 
@@ -3186,8 +3178,7 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(1., false_out.value)
 
   def testScalarInput(self):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session():
 
       def ThenBody(value):
         return value - 1.
@@ -3199,7 +3190,6 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
       true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
       false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
 
-    with self.session(graph=g):
       true_out = self.evaluate(true_out)
       false_out = self.evaluate(false_out)
 
@@ -3207,8 +3197,7 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(1., false_out)
 
   def testListInput(self):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session():
 
       def ThenBody(values):
         return values[0] - 1., values[1] + 1.
@@ -3220,19 +3209,86 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
       true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
       false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
 
-    with self.session(graph=g):
       true_out = self.evaluate(true_out)
       false_out = self.evaluate(false_out)
 
     self.assertEqual((-1., 1.), true_out)
     self.assertEqual((1., -1.), false_out)
 
+  def testEmptyInput(self):
+    with self.session():
+
+      def ThenBody():
+        return tf.constant(1)
+
+      def ElseBody():
+        return tf.constant(0)
+
+      inputs = []
+      true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
+      false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
+
+      true_out = self.evaluate(true_out)
+      false_out = self.evaluate(false_out)
+
+    self.assertEqual(1, true_out)
+    self.assertEqual(0, false_out)
+
+  def testCapturedInput(self):
+    with self.session():
+      a = tf.constant(0)
+      b = tf.constant(1)
+
+      def ThenBody():
+        return a + b
+
+      def ElseBody():
+        return a - b
+
+      true_out = py_utils.If(True, [], ThenBody, ElseBody)
+      false_out = py_utils.If(False, [], ThenBody, ElseBody)
+
+      true_out = self.evaluate(true_out)
+      false_out = self.evaluate(false_out)
+
+    self.assertEqual(1, true_out)
+    self.assertEqual(-1, false_out)
+
+  def testCapturedInputsMismatch(self):
+    with self.session():
+      a = tf.constant(0)
+      b = tf.constant(1)
+      c = tf.constant(2)
+
+      def OneCapture():
+        return a
+
+      def TwoCapture():
+        return a - b
+
+      def TwoCaptureReverse():
+        return b - a
+
+      def TwoCapture2():
+        return a + c
+
+      with self.assertRaises(ValueError):
+        py_utils.If(True, [], OneCapture, TwoCapture)
+
+      with self.assertRaises(ValueError):
+        py_utils.If(True, [], TwoCapture, OneCapture)
+
+      with self.assertRaises(ValueError):
+        py_utils.If(True, [], TwoCapture, TwoCapture2)
+
+      with self.assertRaises(ValueError):
+        py_utils.If(True, [], TwoCapture, TwoCaptureReverse)
+
 
 class ForLoopTest(test_utils.TestCase):
 
   def testSimple(self):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session():
 
       # Basel problem. \sum_1 1/i^2 = pi ^ 2 / 6. A slow convergent series.
       def Body(i, state):
@@ -3242,7 +3298,6 @@ class ForLoopTest(test_utils.TestCase):
       state = py_utils.NestedMap(value=tf.constant(0.))
       state = py_utils.ForLoop(Body, 1, 10000, 1, state)
 
-    with self.session(graph=g):
       value = self.evaluate(state.value)
 
     self.assertAllClose(np.pi * np.pi / 6, value, rtol=1e-3)

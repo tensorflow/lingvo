@@ -5434,9 +5434,13 @@ def If(cond, inputs, then_branch, else_branch):
   assert IsCompatible(then_sigs.output_dtypes, else_sigs.output_dtypes), (
       'Outputs of then_branch and else_branch are not compatible: {} vs {}'
       .format(then_sigs.output_dtypes, else_sigs.output_dtypes))
+  if then_sigs.captured_inputs != else_sigs.captured_inputs:
+    raise ValueError('Differing captured inputs in then and else. '
+                     'Ensure the same tensors are captured in the same order.')
+
   ret = tf.If(
       cond=cond,
-      inputs=Flatten(inputs),
+      inputs=Flatten(inputs) + then_sigs.captured_inputs,
       then_branch=then_sigs.func,
       else_branch=else_sigs.func)
   return Pack(then_sigs.output_dtypes, ret)
