@@ -1461,7 +1461,10 @@ class UniTransformer(base_model.BaseTask):
     p.Define('batch_size', None, 'Batch size.')
     p.Define('num_transformer_layers', None,
              'Number of blocks in builder.{Decoder,Encoder}LayerStack.')
-
+    p.Define(
+        'loss_denominator', 0, 'If positive, ignore the value of '
+        'use_tgt_labels_size_as_loss_denominator and set the denominator '
+        'directly.')
     p.Define(
         'use_tgt_labels_size_as_loss_denominator', True,
         'False to use total number of non-padding tokens instead of '
@@ -1567,6 +1570,11 @@ class UniTransformer(base_model.BaseTask):
     non_padding = tf.cast(
         tf.not_equal(input_batch.tgt.segment_ids, 0),
         py_utils.FPropDtype(self.params))
+
+    # Negative target labels now indicate tokens that are to be used as
+    # autoregressive inputs, but not counted in the loss.
+    non_padding *= tf.cast(
+        tf.greater(input_batch.tgt.labels, 0), py_utils.FPropDtype(self.params))
     return non_padding
 
   def ComputeLoss(self, theta, predictions, input_batch):
@@ -1586,7 +1594,7 @@ class UniTransformer(base_model.BaseTask):
         on_value = 1.0 - label_smoothing + off_value
         tf.logging.info({'on_value': on_value, 'off_value': off_value})
         soft_labels = tf.one_hot(
-            input_batch.tgt.labels,
+            tf.maximum(input_batch.tgt.labels, 0),
             vocab_size,
             on_value=on_value,
             off_value=off_value)
@@ -1614,7 +1622,9 @@ class UniTransformer(base_model.BaseTask):
       if self.params.z_loss:
         per_token_z_loss_increment = z_loss_increment * non_padding
 
-      if p.use_tgt_labels_size_as_loss_denominator:
+      if p.loss_denominator:
+        loss_denom = p.loss_denominator
+      elif p.use_tgt_labels_size_as_loss_denominator:
         # E.g. loss is going to be tiny if inputs are not packed and only a
         # fraction of tgt_labels are non-padding.
         loss_denom = tf.reduce_sum(tf.ones_like(non_padding))
