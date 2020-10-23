@@ -5582,9 +5582,13 @@
   <span class="k">assert</span> <span class="n">IsCompatible</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">),</span> <span class="p">(</span>
       <span class="s1">&#39;Outputs of then_branch and else_branch are not compatible: </span><span class="si">{}</span><span class="s1"> vs </span><span class="si">{}</span><span class="s1">&#39;</span>
       <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">))</span>
+  <span class="k">if</span> <span class="n">then_sigs</span><span class="o">.</span><span class="n">captured_inputs</span> <span class="o">!=</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Differing captured inputs in then and else. &#39;</span>
+                     <span class="s1">&#39;Ensure the same tensors are captured in the same order.&#39;</span><span class="p">)</span>
+
   <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
       <span class="n">cond</span><span class="o">=</span><span class="n">cond</span><span class="p">,</span>
-      <span class="n">inputs</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
+      <span class="n">inputs</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">+</span> <span class="n">then_sigs</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">,</span>
       <span class="n">then_branch</span><span class="o">=</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">,</span>
       <span class="n">else_branch</span><span class="o">=</span><span class="n">else_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span></div>
