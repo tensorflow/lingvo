@@ -214,8 +214,11 @@ class DistributedShampoo(optimizer.Optimizer):
         self._global_step, self._start_preconditioning_steps)
     start_steps_f = tf.cast(self._start_preconditioning_steps, tf.float32)
     global_step_f = tf.cast(self._global_step, tf.float32)
-    self._run_nondiagonal_update_warmup = tf.minimum(
-        1.0, tf.maximum((global_step_f - start_steps_f) / start_steps_f, 0.0))
+    if start_preconditioning_steps > 0:
+      self._run_nondiagonal_update_warmup = tf.minimum(
+          1.0, tf.maximum((global_step_f - start_steps_f) / start_steps_f, 0.0))
+    else:
+      self._run_nondiagonal_update_warmup = tf.cast(1.0, tf.float32)
     # Computes statistics every K steps.
     self._statistics_computation_frequency = statistics_computation_frequency
     self._run_statistics_computation = tf.equal(
