@@ -616,7 +616,6 @@ py_test(
     srcs = ["distributed_shampoo_test.py"],
     python_version = "PY3",
     srcs_version = "PY3",
-    tags = ["notap"],  # b/171427251
     deps = [
         ":distributed_shampoo",
         ":test_utils",
