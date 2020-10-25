@@ -593,7 +593,6 @@ class DecodeProgram(BaseProgram):
 
   def BuildTpuSubgraph(self):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
-    py_utils.ResetStepSeed()
     with cluster_factory.SetEval(True):
       self._CompileDecodeFn()
     return None
@@ -691,7 +690,6 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
   def BuildTpuSubgraph(self):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
-    py_utils.ResetStepSeed()
     self.spmd = (
         self.params.spmd or
         self._task_params.input.use_partitioned_infeed_queue)
@@ -831,8 +829,6 @@ class MLPerfTrainDecodeProgram(BaseProgram):
           inputs=[],
           name='train_loop')
       return loop_result
-
-    py_utils.ResetStepSeed()
 
     with cluster_factory.SetImmediatelyInstantiateVariables(False):
       self._decode_model = self._InstantiateTaskModel(self._decode_task_params)

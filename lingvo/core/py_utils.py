@@ -163,6 +163,13 @@ class ThreadLocalStack(threading.local):
     self.stack = []
 
 
+class ThreadLocalDict(threading.local):
+
+  def __init__(self):
+    super().__init__()
+    self.dict = {}
+
+
 def Assert(condition, data, *args, **kwargs):
   if _FromGlobal('enable_asserts'):
     return tf.Assert(condition, data, *args, **kwargs)
@@ -1604,10 +1611,39 @@ def GetVariableName(name):
 
 
 def GenerateSeedFromName(name):
-  """Generate a random seed from a name string."""
+  """Generate a random seed from a name string.
+
+  Args:
+    name: A string.
+
+  Returns:
+    An integer seed in the range [0, 2**31 - 1).
+  """
   md5 = hashlib.md5()
   md5.update(six.ensure_binary(name))
-  return int(md5.hexdigest(), 16) % (2**31 - 1)
+  return np.int64(int(md5.hexdigest(), 16) % (2**31 - 1))
+
+
+def GenerateSeedFromId(obj_id):
+  """Generate a random seed from the id of an object.
+
+  If deterministic execution (i.e. unit test), generate the seed from a fixed
+  unique name instead.
+
+  Args:
+    obj_id: id(object).
+
+  Returns:
+    An integer seed in the range [0, 2**31 - 1).
+  """
+  if tf.get_default_graph().seed is not None:
+    # We are in a program/test which need determistic randomization.
+    with tf.name_scope(''):
+      return GenerateSeedFromName(tf.no_op(name='new_step_seed').name)
+
+  md5 = hashlib.md5()
+  md5.update(np.int64(obj_id))
+  return np.int64(int(md5.hexdigest(), 16) % (2**31 - 1))
 
 
 # To keep track of all the variables ever gets created by the CreateVariable
@@ -3371,28 +3407,22 @@ def DisableVN():
   return VariationalNoiseParams(1.0, False, False)
 
 
+# Step seed keyed by graph.
+_STEP_SEED_DICT = ThreadLocalDict()
+
+
 def GetStepSeed():
   """Gets step_seed."""
-  step_seed_tensors = tf.get_default_graph().get_collection_ref('step_seed')
-  if not step_seed_tensors:
-    ResetStepSeed()
-    return GetStepSeed()
-  elif len(step_seed_tensors) == 1:
-    return step_seed_tensors[0]
-  else:
-    raise ValueError('Multiple tensors in step_seed collection.')
+  key = id(tf.get_default_graph())
+  if key not in _STEP_SEED_DICT.dict:
+    ResetStepSeed(GenerateSeedFromId(key))
+  return _STEP_SEED_DICT.dict[key]
 
 
 def ResetStepSeed(seed=0):
   """Resets step_seed to specified value."""
-  new_step_seed = tf.convert_to_tensor(seed, dtype=tf.int64)
-  step_seed_tensors = tf.get_default_graph().get_collection_ref('step_seed')
-  if len(step_seed_tensors) == 1:
-    step_seed_tensors[0] = new_step_seed
-  elif not step_seed_tensors:
-    tf.add_to_collection('step_seed', new_step_seed)
-  else:
-    raise ValueError('Multiple tensors in step_seed collection.')
+  key = id(tf.get_default_graph())
+  _STEP_SEED_DICT.dict[key] = tf.convert_to_tensor(seed, dtype=tf.int64)
 
 
 def GetIncStepSeed():
@@ -4334,9 +4364,6 @@ def RematerializeFn(fn, *xs):
   Returns:
     `fn(*xs)`
   """
-  initial_step_seed = GetStepSeed()
-  final_step_seed = GenerateSeedFromName(tf.no_op(name='new_step_seed').name)
-
   def Backward(fwd_xs, fwd_ys, d_fwd_ys):
     """The backward function that rematerializes forward outputs."""
     del fwd_ys
@@ -4345,12 +4372,10 @@ def RematerializeFn(fn, *xs):
     # tf.where(tf.math.is_nan(x),
     #          tf.constant(float('nan'), dtype=x.dtype) * tf.ones_like(x),
     #          x)
-    bak_xs = [tf.where(always_true, x, tf.zeros_like(x)) for x in fwd_xs.xs]
+    bak_xs = [tf.where(always_true, x, tf.zeros_like(x)) for x in fwd_xs]
     for dst, src in zip(bak_xs, xs):
       dst.set_shape(src.shape)
-    ResetStepSeed(initial_step_seed)
     ys = fn(*bak_xs)
-    ResetStepSeed(final_step_seed)
     dxs = tf.gradients(ys, bak_xs, grad_ys=d_fwd_ys)
     dxs_final = []
     for dx, x in zip(dxs, bak_xs):
@@ -4359,18 +4384,16 @@ def RematerializeFn(fn, *xs):
       else:
         dxs_final.append(dx)
     assert len(dxs_final) == len(bak_xs)
-    return NestedMap(
-        initial_step_seed=tf.zeros_like(initial_step_seed), xs=dxs_final)
+    return dxs_final
 
   ys_shapes = []
 
   # TODO(huangyp, yonghui): Check Forward doesn't use any stateful random ops.
   def Forward(fwd_xs):
     """Forward function plus sanity checks."""
-    for dst, src in zip(fwd_xs.xs, xs):
+    for dst, src in zip(fwd_xs, xs):
       dst.set_shape(src.shape)
-    ResetStepSeed(fwd_xs.initial_step_seed)
-    ys = fn(*fwd_xs.xs)
+    ys = fn(*fwd_xs)
     # Some sanity check.
     assert not GetExtraInputs()
     assert not GetExtraArgs()
@@ -4384,20 +4407,12 @@ def RematerializeFn(fn, *xs):
       ys_shapes.append(ys.shape)
     return ys
 
-  ys = CallDefun(
-      Forward,
-      NestedMap(initial_step_seed=initial_step_seed, xs=xs),
-      bak=Backward)
+  ys = CallDefun(Forward, args=xs, bak=Backward)
   if isinstance(ys, tuple):
     for y, s in zip(ys, ys_shapes):
       y.set_shape(s)
   else:
     ys.set_shape(ys_shapes[0])
-  # TODO(b/129159299): The ResetStepSeed below is needed to work around this
-  # bug, which is a problem with global tensors being shared by different
-  # inference graphs. It should be replaced with the new step seed value
-  # returned from the Forward function when the bug is fixed.
-  ResetStepSeed(final_step_seed)
   return ys
 
 
@@ -4814,6 +4829,8 @@ def _AssertInputsMatch(op, args, implicit_captures):
 
 def TensorSpecs(nmap, keep_shape=True):
   """Transforms tensors in the input nested structure to TensorSpecs."""
+  if nmap is None:
+    return None
   fn = lambda t: tf.TensorSpec(t.shape if keep_shape else None, t.dtype)
   return Transform(fn, nmap)
 
@@ -5003,11 +5020,6 @@ def _WrapFunction(func=None, input_signature=None):
 
     @tf.function(input_signature=input_signature, autograph=False)
     def Fn(*args):
-      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
-      # avoid it being used as an implicit capture. This is not a desired
-      # behavir, it should take the step seed from parent graph instead.
-      ResetStepSeed()
-
       # Mimic Defun and disable collection sharing.
       graph = tf.get_default_graph()
       # Don't share summaries collection with parent graph (b/168745134).
@@ -5325,16 +5337,62 @@ class DefinedFunction(object):
         current device.
       use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().
     """
+    self._fwd_sig = fwd_sig
+
+    wrapped_fwd_sig = fwd_sig
+    fwd_fn = fwd
+    bak_fn = bak
+
+    graph_random_seed = None
+    if tf.get_default_graph().seed is not None:
+      graph_random_seed = tf.get_default_graph().seed
+
+    # Wrap the forward function to propagate framework tensors like step_seed
+    # and global_step.
+    wrapped_fwd_sig = NestedMap(step_seed=tf.TensorSpec([], tf.int64))
+    if fwd_sig is not None:
+      wrapped_fwd_sig.inputs = fwd_sig
+
+    def ForwardWrapped(wrapped_inputs):
+      if graph_random_seed is not None:
+        tf.random.set_seed(graph_random_seed)
+      ResetStepSeed(wrapped_inputs.step_seed)
+      if 'inputs' in wrapped_inputs:
+        result = fwd(wrapped_inputs.inputs)
+      else:
+        result = fwd()
+      return result
+
+    fwd_fn = ForwardWrapped
+
+    if bak:
+
+      # Wrap the backward function to return zero gradients for framework
+      # tensors like step_seed and global_step.
+      def BackwardWrapped(wrapped_xs, ys, dys):
+        if graph_random_seed is not None:
+          tf.random.set_seed(graph_random_seed)
+        ResetStepSeed(wrapped_xs.step_seed)
+        result = bak(wrapped_xs.inputs, ys, dys)
+        dxs = Transform(tf.zeros_like, wrapped_xs)
+        if isinstance(result, tuple) and len(result) == 2:
+          dxs.inputs, dcapture = result
+          return dxs, dcapture
+        else:
+          dxs.inputs = result
+          return dxs
+
+      bak_fn = BackwardWrapped
+
     if use_tf_function is None:
       use_tf_function = _UseTfFunction()
     fn = _DefineFunction if use_tf_function else _DefineDefun
     self._data = fn(
-        fwd=fwd,
-        fwd_sig=fwd_sig,
-        bak=bak,
+        fwd=fwd_fn,
+        fwd_sig=wrapped_fwd_sig,
+        bak=bak_fn,
         bak_as_function=bak_as_function,
         device=device)
-    self._fwd_sig = fwd_sig
 
   def __call__(self, args=None):
     """Invokes the graph function.
@@ -5348,7 +5406,7 @@ class DefinedFunction(object):
     """
     assert IsCompatible(args,
                         self._fwd_sig), '{} vs {}'.format(args, self._fwd_sig)
-    return self._data.call(args)
+    return self._data.call(self.AddFrameworkInputs(args))
 
   @property
   def func(self):
@@ -5363,6 +5421,23 @@ class DefinedFunction(object):
     always not None.
     """
     return self._data.func
+
+  def AddFrameworkInputs(self, inputs):
+    """Add framework tensors like step_seed and global_step to inputs.
+
+    This is only necessary when using `func`, as wrapping is handled
+    automatically in __call__.
+
+    Args:
+      inputs: inputs to the function.
+
+    Returns:
+      Inputs wrapped with framework tensors suitable for use with `func`.
+    """
+    result = NestedMap(step_seed=GenerateSeedFromId(id(self._data.func)))
+    if inputs is not None:
+      result.inputs = inputs
+    return result
 
   @property
   def output_dtypes(self):
@@ -5384,16 +5459,12 @@ class DefinedFunction(object):
     return self._data.captured_inputs
 
 
-def CallDefun(fwd,
-              args,
-              bak=None,
-              bak_as_function=False,
-              device=None):
+def CallDefun(fwd, args=None, bak=None, bak_as_function=False, device=None):
   """Wraps fwd in a defun with custom gradient bak and calls it with args.
 
   Args:
     fwd: A callable xs: Nested Structure -> ys: Nested Structure.
-    args: A Nested Structure of tf.Tensor.
+    args: A Nested Structure of tf.Tensor or None.
     bak: A callable xs, ys, dys: Nested Structure -> dxs[, dcapture]: Nested
       Structure. The custom backprop function for fwd. bak needs to return
       dcapture if fwd uses any implicitly captured tensors, whose gradients are
@@ -5404,14 +5475,18 @@ def CallDefun(fwd,
   Returns:
     A Nested Structure equivalent to what fwd(args) computes.
   """
-  args = Transform(tf.convert_to_tensor, args)
+  if args is not None:
+    args = Transform(tf.convert_to_tensor, args)
   sigs = Function(
       fwd_sig=TensorSpecs(args),
       bak=bak,
       bak_as_function=bak_as_function,
       device=device)(
           fwd=fwd)
-  return sigs(args)
+  if args is None:
+    return sigs()
+  else:
+    return sigs(args)
 
 
 def If(cond, inputs, then_branch, else_branch):
@@ -5420,7 +5495,7 @@ def If(cond, inputs, then_branch, else_branch):
   Args:
     cond: A scalar `Tensor` that can be converted to boolean.
     inputs: A flattenable representing the input tensors of the if/else
-      statement.
+      statement. Can be None to represent no inputs.
     then_branch: A callable 'inputs' -> flattenable. The returned value should
       be compatible with what 'else_branch' returns.
     else_branch: A callable 'inputs' -> flattenable. The returned value should
@@ -5429,8 +5504,9 @@ def If(cond, inputs, then_branch, else_branch):
   Returns:
     Output returned by the call to either 'then_branch' or 'else_branch'.
   """
-  then_sigs = Function(fwd_sig=TensorSpecs(inputs))(fwd=then_branch)
-  else_sigs = Function(fwd_sig=TensorSpecs(inputs))(fwd=else_branch)
+  fwd_sig = TensorSpecs(inputs)
+  then_sigs = Function(fwd_sig=fwd_sig)(fwd=then_branch)
+  else_sigs = Function(fwd_sig=fwd_sig)(fwd=else_branch)
   assert IsCompatible(then_sigs.output_dtypes, else_sigs.output_dtypes), (
       'Outputs of then_branch and else_branch are not compatible: {} vs {}'
       .format(then_sigs.output_dtypes, else_sigs.output_dtypes))
@@ -5440,7 +5516,8 @@ def If(cond, inputs, then_branch, else_branch):
 
   ret = tf.If(
       cond=cond,
-      inputs=Flatten(inputs) + then_sigs.captured_inputs,
+      inputs=Flatten(then_sigs.AddFrameworkInputs(inputs)) +
+      then_sigs.captured_inputs,
       then_branch=then_sigs.func,
       else_branch=else_sigs.func)
   return Pack(then_sigs.output_dtypes, ret)
@@ -5463,11 +5540,24 @@ def WhileLoop(cond, body, loop_state):
   Returns:
     The final loop state in the same structure as loop_state.
   """
-  cond_sigs = Function(fwd_sig=TensorSpecs(loop_state))(fwd=cond)
-  body_sigs = Function(fwd_sig=TensorSpecs(loop_state))(fwd=body)
+  fwd_sig = TensorSpecs(loop_state)
+  cond_sigs = Function(fwd_sig=fwd_sig)(fwd=cond)
+
+  def BodyWrapped(loop_state):
+    result = body(loop_state)
+    # loop_state is augmented with global tensors inside of DefinedFunction.
+    # WhileLoop needs to return the same structure as the inputs, so we augment
+    # the return value here to match and also propagate the correct step_seed to
+    # the next iteration of the loop.
+    result = cond_sigs.AddFrameworkInputs(result)
+    result.step_seed = GetStepSeed()
+    return result
+
+  body_sigs = Function(fwd_sig=fwd_sig)(fwd=BodyWrapped)
+  wrapped_inputs = body_sigs.AddFrameworkInputs(loop_state)
   new_state = tf.While(
-      input_=Flatten(loop_state), cond=cond_sigs.func, body=body_sigs.func)
-  return Pack(loop_state, new_state)
+      Flatten(wrapped_inputs), cond=cond_sigs.func, body=body_sigs.func)
+  return Pack(wrapped_inputs, new_state).inputs
 
 
 def ForLoop(body, start, limit, delta, loop_state):

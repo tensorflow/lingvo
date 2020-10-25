@@ -464,8 +464,6 @@ class BaseTask(base_layer.BaseLayer):
     """
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      # Always reset step seed at the start of a new global_step.
-      py_utils.ResetStepSeed()
       metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
       self._FPropResult(metrics, per_example)
     return metrics, per_example

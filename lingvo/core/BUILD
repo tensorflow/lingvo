@@ -356,7 +356,9 @@ py_test(
         ":py_utils",
         ":reversible_layers",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -903,6 +905,7 @@ py_library(
     srcs = ["layers_test.py"],
     srcs_version = "PY3",
     deps = [
+        ":bn_layers",
         ":cluster_factory",
         ":gpipe",
         ":layers",
@@ -910,6 +913,7 @@ py_library(
         ":quant_utils",
         ":symbolic",
         ":test_utils",
+        ":tshape",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -1443,7 +1447,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":cluster_factory",
-        ":constants",
         ":py_utils",
         ":sendrecv",
         ":symbolic",

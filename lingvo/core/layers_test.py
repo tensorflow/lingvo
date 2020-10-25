@@ -4479,11 +4479,6 @@ class CategoricalLayerNormTest(test_utils.TestCase):
 class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
   def testDeterministicDropoutLayer(self):
-    params = layers.DeterministicDropoutLayer.Params().Set(keep_prob=0.7)
-    params.name = 'drop'
-    dropout = layers.DeterministicDropoutLayer(params)
-
-    x = tf.ones([4, 6], dtype=tf.float32)
     x_expected = np.array([
         [1, 0, 0, 0, 1, 1],
         [1, 1, 1, 1, 1, 1],
@@ -4492,6 +4487,11 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
     ]) / 0.7
 
     with self.session():
+      params = layers.DeterministicDropoutLayer.Params().Set(
+          name='drop', keep_prob=0.7)
+      dropout = params.Instantiate()
+      x = tf.ones([4, 6], dtype=tf.float32)
+
       tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
@@ -4516,6 +4516,23 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
     # The same seeds in a different session is consistent.
     with self.session():
+      params = layers.DeterministicDropoutLayer.Params().Set(
+          name='drop', keep_prob=0.7)
+      dropout = params.Instantiate()
+      x = tf.ones([4, 6], dtype=tf.float32)
+
+      tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
+      py_utils.ResetStepSeed(seed=5678)
+      x_val = dropout.FPropDefaultTheta(x).eval()
+      self.assertAllClose(x_expected, x_val)
+
+    # The same seeds in a different graph is also consistent.
+    with self.session(graph=tf.Graph()):
+      params = layers.DeterministicDropoutLayer.Params().Set(
+          name='drop', keep_prob=0.7)
+      dropout = params.Instantiate()
+      x = tf.ones([4, 6], dtype=tf.float32)
+
       tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
@@ -4523,9 +4540,8 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
   def testNoiseShapeBroadcastDims(self):
     params = layers.DeterministicDropoutLayer.Params().Set(
-        keep_prob=0.7, noise_shape_broadcast_dims=[-1])
-    params.name = 'drop'
-    dropout = layers.DeterministicDropoutLayer(params)
+        name='drop', keep_prob=0.7, noise_shape_broadcast_dims=[-1])
+    dropout = params.Instantiate()
 
     x = tf.ones([4, 6])
     x_expected = np.array([

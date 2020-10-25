@@ -2379,7 +2379,7 @@ class SequencesToDebugStrings(test_utils.TestCase):
 
 class StepSeedTest(test_utils.TestCase):
 
-  def _testStepSeedHelper(self, sess, step_fn, expected_starting_step_seed):
+  def _testStepSeedHelper(self, sess, step_fn):
     state0 = py_utils.NestedMap(
         input=tf.constant(0, dtype=tf.int64),
         seed_pair=tf.zeros(2, dtype=tf.int64))
@@ -2393,10 +2393,10 @@ class StepSeedTest(test_utils.TestCase):
     accumulated_states = accumulated_states.Pack(
         self.evaluate(accumulated_states.Flatten()))
     self.assertAllEqual(np.arange(10), accumulated_states.input)
-    expected_step_seeds = expected_starting_step_seed + np.arange(10)
-    self.assertAllEqual(
-        np.stack((np.zeros(10), expected_step_seeds), axis=1),
-        accumulated_states.seed_pair)
+    global_steps, step_seeds = zip(*accumulated_states.seed_pair)
+    self.assertAllEqual(np.zeros(10), global_steps)
+    self.assertAllEqual(np.arange(10), step_seeds - step_seeds[0])
+    return step_seeds[0]
 
   def testStepSeed(self):
     p = base_layer.BaseLayer.Params()
@@ -2408,25 +2408,14 @@ class StepSeedTest(test_utils.TestCase):
       return state1, py_utils.NestedMap()
 
     with self.session(graph=tf.Graph()) as sess:
-      self._testStepSeedHelper(sess, RecurrentStep, 0)
-      # Second recurrent inside the same graph has different step_seeds.
-      self._testStepSeedHelper(sess, RecurrentStep, 111107348)
+      step_seed = self._testStepSeedHelper(sess, RecurrentStep)
+      step_seed2 = self._testStepSeedHelper(sess, RecurrentStep)
+      self.assertNotEqual(step_seed, step_seed2)
 
-    # After a reset, the step_seeds are the same even with a slightly
-    # different RecurrentStep function.
-    def RecurrentStep2(theta, state0, inputs):
-      with tf.control_dependencies([tf.no_op()]):
-        return RecurrentStep(theta, state0, inputs)
-
+    # A different graph gives different step seeds.
     with self.session(graph=tf.Graph()) as sess:
-      self._testStepSeedHelper(sess, RecurrentStep2, 0)
-      self._testStepSeedHelper(sess, RecurrentStep2, 111107348)
-
-    with self.session(graph=tf.Graph()) as sess:
-      # But a different name_scope changes it.
-      with tf.name_scope('test'):
-        self._testStepSeedHelper(sess, RecurrentStep2, 0)
-        self._testStepSeedHelper(sess, RecurrentStep2, 1553244033)
+      step_seed3 = self._testStepSeedHelper(sess, RecurrentStep)
+      self.assertNotEqual(step_seed, step_seed3)
 
 
 class WeightParamsTest(test_utils.TestCase):
@@ -3145,14 +3134,6 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
     self.assertIsInstance(
         Fwd.func, function_type if py_utils._UseTfFunction() else defun_type)
 
-  def testWithControlFlowOps(self):
-    with self.session():
-      fwd_sig = tf.TensorSpec([], tf.int32)
-      then_branch = py_utils.Function(fwd_sig)(lambda x: x / 2)
-      else_branch = py_utils.Function(fwd_sig)(lambda x: 3 * x + 1)
-      y = tf.If(True, [2], then_branch.func, else_branch.func)
-      self.assertEqual([1], self.evaluate(y))
-
 
 class IfTest(test_utils.TestCase, parameterized.TestCase):
 
@@ -3224,9 +3205,8 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
       def ElseBody():
         return tf.constant(0)
 
-      inputs = []
-      true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
-      false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
+      true_out = py_utils.If(True, None, ThenBody, ElseBody)
+      false_out = py_utils.If(False, None, ThenBody, ElseBody)
 
       true_out = self.evaluate(true_out)
       false_out = self.evaluate(false_out)
@@ -3245,8 +3225,8 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
       def ElseBody():
         return a - b
 
-      true_out = py_utils.If(True, [], ThenBody, ElseBody)
-      false_out = py_utils.If(False, [], ThenBody, ElseBody)
+      true_out = py_utils.If(True, None, ThenBody, ElseBody)
+      false_out = py_utils.If(False, None, ThenBody, ElseBody)
 
       true_out = self.evaluate(true_out)
       false_out = self.evaluate(false_out)
@@ -3273,16 +3253,16 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
         return a + c
 
       with self.assertRaises(ValueError):
-        py_utils.If(True, [], OneCapture, TwoCapture)
+        py_utils.If(True, None, OneCapture, TwoCapture)
 
       with self.assertRaises(ValueError):
-        py_utils.If(True, [], TwoCapture, OneCapture)
+        py_utils.If(True, None, TwoCapture, OneCapture)
 
       with self.assertRaises(ValueError):
-        py_utils.If(True, [], TwoCapture, TwoCapture2)
+        py_utils.If(True, None, TwoCapture, TwoCapture2)
 
       with self.assertRaises(ValueError):
-        py_utils.If(True, [], TwoCapture, TwoCaptureReverse)
+        py_utils.If(True, None, TwoCapture, TwoCaptureReverse)
 
 
 class ForLoopTest(test_utils.TestCase):
