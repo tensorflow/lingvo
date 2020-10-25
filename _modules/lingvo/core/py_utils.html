@@ -311,6 +311,13 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 
+<div class="viewcode-block" id="ThreadLocalDict"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ThreadLocalDict">[docs]</a><span class="k">class</span> <span class="nc">ThreadLocalDict</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
 <div class="viewcode-block" id="Assert"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Assert">[docs]</a><span class="k">def</span> <span class="nf">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -1752,10 +1759,39 @@
 
 
 <div class="viewcode-block" id="GenerateSeedFromName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GenerateSeedFromName">[docs]</a><span class="k">def</span> <span class="nf">GenerateSeedFromName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Generate a random seed from a name string.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Generate a random seed from a name string.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: A string.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    An integer seed in the range [0, 2**31 - 1).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
   <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-  <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">md5</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">md5</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="GenerateSeedFromId"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GenerateSeedFromId">[docs]</a><span class="k">def</span> <span class="nf">GenerateSeedFromId</span><span class="p">(</span><span class="n">obj_id</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generate a random seed from the id of an object.</span>
+
+<span class="sd">  If deterministic execution (i.e. unit test), generate the seed from a fixed</span>
+<span class="sd">  unique name instead.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    obj_id: id(object).</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    An integer seed in the range [0, 2**31 - 1).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># We are in a program/test which need determistic randomization.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+  <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
+  <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="n">obj_id</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">md5</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div>
 
 
 <span class="c1"># To keep track of all the variables ever gets created by the CreateVariable</span>
@@ -3519,28 +3555,22 @@
   <span class="k">return</span> <span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
 
 
+<span class="c1"># Step seed keyed by graph.</span>
+<span class="n">_STEP_SEED_DICT</span> <span class="o">=</span> <span class="n">ThreadLocalDict</span><span class="p">()</span>
+
+
 <div class="viewcode-block" id="GetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetStepSeed</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Gets step_seed.&quot;&quot;&quot;</span>
-  <span class="n">step_seed_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="s1">&#39;step_seed&#39;</span><span class="p">)</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">step_seed_tensors</span><span class="p">:</span>
-    <span class="n">ResetStepSeed</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">GetStepSeed</span><span class="p">()</span>
-  <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">step_seed_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">step_seed_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Multiple tensors in step_seed collection.&#39;</span><span class="p">)</span></div>
+  <span class="n">key</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
+  <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_STEP_SEED_DICT</span><span class="o">.</span><span class="n">dict</span><span class="p">:</span>
+    <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">GenerateSeedFromId</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">_STEP_SEED_DICT</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="ResetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ResetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">ResetStepSeed</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Resets step_seed to specified value.&quot;&quot;&quot;</span>
-  <span class="n">new_step_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-  <span class="n">step_seed_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="s1">&#39;step_seed&#39;</span><span class="p">)</span>
-  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">step_seed_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-    <span class="n">step_seed_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_step_seed</span>
-  <span class="k">elif</span> <span class="ow">not</span> <span class="n">step_seed_tensors</span><span class="p">:</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="s1">&#39;step_seed&#39;</span><span class="p">,</span> <span class="n">new_step_seed</span><span class="p">)</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Multiple tensors in step_seed collection.&#39;</span><span class="p">)</span></div>
+  <span class="n">key</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
+  <span class="n">_STEP_SEED_DICT</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GetIncStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetIncStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetIncStepSeed</span><span class="p">():</span>
@@ -4482,9 +4512,6 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    `fn(*xs)`</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">initial_step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
-  <span class="n">final_step_seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
   <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">fwd_xs</span><span class="p">,</span> <span class="n">fwd_ys</span><span class="p">,</span> <span class="n">d_fwd_ys</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The backward function that rematerializes forward outputs.&quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">fwd_ys</span>
@@ -4493,12 +4520,10 @@
     <span class="c1"># tf.where(tf.math.is_nan(x),</span>
     <span class="c1">#          tf.constant(float(&#39;nan&#39;), dtype=x.dtype) * tf.ones_like(x),</span>
     <span class="c1">#          x)</span>
-    <span class="n">bak_xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">always_true</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fwd_xs</span><span class="o">.</span><span class="n">xs</span><span class="p">]</span>
+    <span class="n">bak_xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">always_true</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fwd_xs</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bak_xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
       <span class="n">dst</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">initial_step_seed</span><span class="p">)</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">bak_xs</span><span class="p">)</span>
-    <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">final_step_seed</span><span class="p">)</span>
     <span class="n">dxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">bak_xs</span><span class="p">,</span> <span class="n">grad_ys</span><span class="o">=</span><span class="n">d_fwd_ys</span><span class="p">)</span>
     <span class="n">dxs_final</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">dx</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dxs</span><span class="p">,</span> <span class="n">bak_xs</span><span class="p">):</span>
@@ -4507,18 +4532,16 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">dxs_final</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dx</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dxs_final</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">bak_xs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">initial_step_seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">initial_step_seed</span><span class="p">),</span> <span class="n">xs</span><span class="o">=</span><span class="n">dxs_final</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dxs_final</span>
 
   <span class="n">ys_shapes</span> <span class="o">=</span> <span class="p">[]</span>
 
   <span class="c1"># TODO(huangyp, yonghui): Check Forward doesn&#39;t use any stateful random ops.</span>
   <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="n">fwd_xs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Forward function plus sanity checks.&quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fwd_xs</span><span class="o">.</span><span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">dst</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fwd_xs</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
       <span class="n">dst</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">fwd_xs</span><span class="o">.</span><span class="n">initial_step_seed</span><span class="p">)</span>
-    <span class="n">ys</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">fwd_xs</span><span class="o">.</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">fwd_xs</span><span class="p">)</span>
     <span class="c1"># Some sanity check.</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">GetExtraInputs</span><span class="p">()</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">GetExtraArgs</span><span class="p">()</span>
@@ -4532,20 +4555,12 @@
       <span class="n">ys_shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ys</span>
 
-  <span class="n">ys</span> <span class="o">=</span> <span class="n">CallDefun</span><span class="p">(</span>
-      <span class="n">Forward</span><span class="p">,</span>
-      <span class="n">NestedMap</span><span class="p">(</span><span class="n">initial_step_seed</span><span class="o">=</span><span class="n">initial_step_seed</span><span class="p">,</span> <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">),</span>
-      <span class="n">bak</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
+  <span class="n">ys</span> <span class="o">=</span> <span class="n">CallDefun</span><span class="p">(</span><span class="n">Forward</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="n">Backward</span><span class="p">)</span>
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">y</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">ys_shapes</span><span class="p">):</span>
       <span class="n">y</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">ys</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">ys_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-  <span class="c1"># TODO(b/129159299): The ResetStepSeed below is needed to work around this</span>
-  <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
-  <span class="c1"># inference graphs. It should be replaced with the new step seed value</span>
-  <span class="c1"># returned from the Forward function when the bug is fixed.</span>
-  <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">final_step_seed</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">ys</span></div>
 
 
@@ -4962,6 +4977,8 @@
 
 <div class="viewcode-block" id="TensorSpecs"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.TensorSpecs">[docs]</a><span class="k">def</span> <span class="nf">TensorSpecs</span><span class="p">(</span><span class="n">nmap</span><span class="p">,</span> <span class="n">keep_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Transforms tensors in the input nested structure to TensorSpecs.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">nmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">None</span>
   <span class="n">fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span> <span class="k">if</span> <span class="n">keep_shape</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">Transform</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">nmap</span><span class="p">)</span></div>
 
@@ -5151,11 +5168,6 @@
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="n">input_signature</span><span class="p">,</span> <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">Fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-      <span class="c1"># TODO(b/163904067): mimic Defun&#39; behavior and reset the step seed to</span>
-      <span class="c1"># avoid it being used as an implicit capture. This is not a desired</span>
-      <span class="c1"># behavir, it should take the step seed from parent graph instead.</span>
-      <span class="n">ResetStepSeed</span><span class="p">()</span>
-
       <span class="c1"># Mimic Defun and disable collection sharing.</span>
       <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
       <span class="c1"># Don&#39;t share summaries collection with parent graph (b/168745134).</span>
@@ -5473,16 +5485,62 @@
 <span class="sd">        current device.</span>
 <span class="sd">      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
+
+    <span class="n">wrapped_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
+    <span class="n">fwd_fn</span> <span class="o">=</span> <span class="n">fwd</span>
+    <span class="n">bak_fn</span> <span class="o">=</span> <span class="n">bak</span>
+
+    <span class="n">graph_random_seed</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">graph_random_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">seed</span>
+
+    <span class="c1"># Wrap the forward function to propagate framework tensors like step_seed</span>
+    <span class="c1"># and global_step.</span>
+    <span class="n">wrapped_fwd_sig</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">step_seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">fwd_sig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">wrapped_fwd_sig</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">fwd_sig</span>
+
+    <span class="k">def</span> <span class="nf">ForwardWrapped</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">graph_random_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="n">graph_random_seed</span><span class="p">)</span>
+      <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">step_seed</span><span class="p">)</span>
+      <span class="k">if</span> <span class="s1">&#39;inputs&#39;</span> <span class="ow">in</span> <span class="n">wrapped_inputs</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">()</span>
+      <span class="k">return</span> <span class="n">result</span>
+
+    <span class="n">fwd_fn</span> <span class="o">=</span> <span class="n">ForwardWrapped</span>
+
+    <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
+
+      <span class="c1"># Wrap the backward function to return zero gradients for framework</span>
+      <span class="c1"># tensors like step_seed and global_step.</span>
+      <span class="k">def</span> <span class="nf">BackwardWrapped</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">graph_random_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="n">graph_random_seed</span><span class="p">)</span>
+        <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="o">.</span><span class="n">step_seed</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
+        <span class="n">dxs</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">,</span> <span class="n">wrapped_xs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+          <span class="n">dxs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">dcapture</span> <span class="o">=</span> <span class="n">result</span>
+          <span class="k">return</span> <span class="n">dxs</span><span class="p">,</span> <span class="n">dcapture</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">dxs</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">result</span>
+          <span class="k">return</span> <span class="n">dxs</span>
+
+      <span class="n">bak_fn</span> <span class="o">=</span> <span class="n">BackwardWrapped</span>
+
     <span class="k">if</span> <span class="n">use_tf_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">use_tf_function</span> <span class="o">=</span> <span class="n">_UseTfFunction</span><span class="p">()</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span> <span class="k">if</span> <span class="n">use_tf_function</span> <span class="k">else</span> <span class="n">_DefineDefun</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span>
-        <span class="n">fwd</span><span class="o">=</span><span class="n">fwd</span><span class="p">,</span>
-        <span class="n">fwd_sig</span><span class="o">=</span><span class="n">fwd_sig</span><span class="p">,</span>
-        <span class="n">bak</span><span class="o">=</span><span class="n">bak</span><span class="p">,</span>
+        <span class="n">fwd</span><span class="o">=</span><span class="n">fwd_fn</span><span class="p">,</span>
+        <span class="n">fwd_sig</span><span class="o">=</span><span class="n">wrapped_fwd_sig</span><span class="p">,</span>
+        <span class="n">bak</span><span class="o">=</span><span class="n">bak_fn</span><span class="p">,</span>
         <span class="n">bak_as_function</span><span class="o">=</span><span class="n">bak_as_function</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
 
   <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Invokes the graph function.</span>
@@ -5496,7 +5554,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">IsCompatible</span><span class="p">(</span><span class="n">args</span><span class="p">,</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AddFrameworkInputs</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -5511,6 +5569,23 @@
 <span class="sd">    always not None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">func</span>
+
+<div class="viewcode-block" id="DefinedFunction.AddFrameworkInputs"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.DefinedFunction.AddFrameworkInputs">[docs]</a>  <span class="k">def</span> <span class="nf">AddFrameworkInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add framework tensors like step_seed and global_step to inputs.</span>
+
+<span class="sd">    This is only necessary when using `func`, as wrapping is handled</span>
+<span class="sd">    automatically in __call__.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: inputs to the function.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Inputs wrapped with framework tensors suitable for use with `func`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">step_seed</span><span class="o">=</span><span class="n">GenerateSeedFromId</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">func</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">result</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+    <span class="k">return</span> <span class="n">result</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_dtypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -5532,16 +5607,12 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">captured_inputs</span></div>
 
 
-<div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span>
-              <span class="n">args</span><span class="p">,</span>
-              <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-              <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-              <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak and calls it with args.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
-<span class="sd">    args: A Nested Structure of tf.Tensor.</span>
+<span class="sd">    args: A Nested Structure of tf.Tensor or None.</span>
 <span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested</span>
 <span class="sd">      Structure. The custom backprop function for fwd. bak needs to return</span>
 <span class="sd">      dcapture if fwd uses any implicitly captured tensors, whose gradients are</span>
@@ -5552,14 +5623,18 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A Nested Structure equivalent to what fwd(args) computes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">args</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
   <span class="n">sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span>
       <span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
       <span class="n">bak</span><span class="o">=</span><span class="n">bak</span><span class="p">,</span>
       <span class="n">bak_as_function</span><span class="o">=</span><span class="n">bak_as_function</span><span class="p">,</span>
       <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)(</span>
           <span class="n">fwd</span><span class="o">=</span><span class="n">fwd</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">sigs</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
+  <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">sigs</span><span class="p">()</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">sigs</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="If"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.If">[docs]</a><span class="k">def</span> <span class="nf">If</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">then_branch</span><span class="p">,</span> <span class="n">else_branch</span><span class="p">):</span>
@@ -5568,7 +5643,7 @@
 <span class="sd">  Args:</span>
 <span class="sd">    cond: A scalar `Tensor` that can be converted to boolean.</span>
 <span class="sd">    inputs: A flattenable representing the input tensors of the if/else</span>
-<span class="sd">      statement.</span>
+<span class="sd">      statement. Can be None to represent no inputs.</span>
 <span class="sd">    then_branch: A callable &#39;inputs&#39; -&gt; flattenable. The returned value should</span>
 <span class="sd">      be compatible with what &#39;else_branch&#39; returns.</span>
 <span class="sd">    else_branch: A callable &#39;inputs&#39; -&gt; flattenable. The returned value should</span>
@@ -5577,8 +5652,9 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    Output returned by the call to either &#39;then_branch&#39; or &#39;else_branch&#39;.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">then_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">then_branch</span><span class="p">)</span>
-  <span class="n">else_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">else_branch</span><span class="p">)</span>
+  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">TensorSpecs</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+  <span class="n">then_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">fwd_sig</span><span class="p">)(</span><span class="n">fwd</span><span class="o">=</span><span class="n">then_branch</span><span class="p">)</span>
+  <span class="n">else_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">fwd_sig</span><span class="p">)(</span><span class="n">fwd</span><span class="o">=</span><span class="n">else_branch</span><span class="p">)</span>
   <span class="k">assert</span> <span class="n">IsCompatible</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">),</span> <span class="p">(</span>
       <span class="s1">&#39;Outputs of then_branch and else_branch are not compatible: </span><span class="si">{}</span><span class="s1"> vs </span><span class="si">{}</span><span class="s1">&#39;</span>
       <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">else_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">))</span>
@@ -5588,7 +5664,8 @@
 
   <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
       <span class="n">cond</span><span class="o">=</span><span class="n">cond</span><span class="p">,</span>
-      <span class="n">inputs</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">+</span> <span class="n">then_sigs</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">,</span>
+      <span class="n">inputs</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">AddFrameworkInputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span> <span class="o">+</span>
+      <span class="n">then_sigs</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">,</span>
       <span class="n">then_branch</span><span class="o">=</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">,</span>
       <span class="n">else_branch</span><span class="o">=</span><span class="n">else_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">then_sigs</span><span class="o">.</span><span class="n">output_dtypes</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span></div>
@@ -5611,11 +5688,24 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The final loop state in the same structure as loop_state.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">cond_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">loop_state</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">cond</span><span class="p">)</span>
-  <span class="n">body_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">TensorSpecs</span><span class="p">(</span><span class="n">loop_state</span><span class="p">))(</span><span class="n">fwd</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
+  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">TensorSpecs</span><span class="p">(</span><span class="n">loop_state</span><span class="p">)</span>
+  <span class="n">cond_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">fwd_sig</span><span class="p">)(</span><span class="n">fwd</span><span class="o">=</span><span class="n">cond</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">BodyWrapped</span><span class="p">(</span><span class="n">loop_state</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">body</span><span class="p">(</span><span class="n">loop_state</span><span class="p">)</span>
+    <span class="c1"># loop_state is augmented with global tensors inside of DefinedFunction.</span>
+    <span class="c1"># WhileLoop needs to return the same structure as the inputs, so we augment</span>
+    <span class="c1"># the return value here to match and also propagate the correct step_seed to</span>
+    <span class="c1"># the next iteration of the loop.</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">cond_sigs</span><span class="o">.</span><span class="n">AddFrameworkInputs</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+  <span class="n">body_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">fwd_sig</span><span class="p">)(</span><span class="n">fwd</span><span class="o">=</span><span class="n">BodyWrapped</span><span class="p">)</span>
+  <span class="n">wrapped_inputs</span> <span class="o">=</span> <span class="n">body_sigs</span><span class="o">.</span><span class="n">AddFrameworkInputs</span><span class="p">(</span><span class="n">loop_state</span><span class="p">)</span>
   <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
-      <span class="n">input_</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">loop_state</span><span class="p">),</span> <span class="n">cond</span><span class="o">=</span><span class="n">cond_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">loop_state</span><span class="p">,</span> <span class="n">new_state</span><span class="p">)</span></div>
+      <span class="n">Flatten</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">),</span> <span class="n">cond</span><span class="o">=</span><span class="n">cond_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">,</span> <span class="n">new_state</span><span class="p">)</span><span class="o">.</span><span class="n">inputs</span></div>
 
 
 <div class="viewcode-block" id="ForLoop"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ForLoop">[docs]</a><span class="k">def</span> <span class="nf">ForLoop</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">loop_state</span><span class="p">):</span>

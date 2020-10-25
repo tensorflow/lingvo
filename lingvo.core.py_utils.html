@@ -191,6 +191,12 @@ change to Cluster() or an equivalent stack-scoped config object.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_thread._local</span></code></p>
 </dd></dl>
 
+<dl class="py class">
+<dt id="lingvo.core.py_utils.ThreadLocalDict">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ThreadLocalDict</code><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ThreadLocalDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ThreadLocalDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_thread._local</span></code></p>
+</dd></dl>
+
 <dl class="py function">
 <dt id="lingvo.core.py_utils.Assert">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Assert</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">condition</span></em>, <em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Assert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Assert" title="Permalink to this definition">¶</a></dt>
@@ -1172,6 +1178,30 @@ new_name_format will be interpolated using the matched groups.</p>
 <dt id="lingvo.core.py_utils.GenerateSeedFromName">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GenerateSeedFromName</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateSeedFromName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateSeedFromName" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a random seed from a name string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – A string.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An integer seed in the range [0, 2**31 - 1).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils.GenerateSeedFromId">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GenerateSeedFromId</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateSeedFromId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateSeedFromId" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a random seed from the id of an object.</p>
+<p>If deterministic execution (i.e. unit test), generate the seed from a fixed
+unique name instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj_id</strong> – id(object).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An integer seed in the range [0, 2**31 - 1).</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -2889,6 +2919,22 @@ always not None.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.py_utils.DefinedFunction.AddFrameworkInputs">
+<code class="sig-name descname">AddFrameworkInputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DefinedFunction.AddFrameworkInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.DefinedFunction.AddFrameworkInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add framework tensors like step_seed and global_step to inputs.</p>
+<p>This is only necessary when using <a class="reference internal" href="#lingvo.core.py_utils.DefinedFunction.func" title="lingvo.core.py_utils.DefinedFunction.func"><code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code></a>, as wrapping is handled
+automatically in __call__.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>inputs</strong> – inputs to the function.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Inputs wrapped with framework tensors suitable for use with <a class="reference internal" href="#lingvo.core.py_utils.DefinedFunction.func" title="lingvo.core.py_utils.DefinedFunction.func"><code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.py_utils.DefinedFunction.output_dtypes">
 <em class="property">property </em><code class="sig-name descname">output_dtypes</code><a class="headerlink" href="#lingvo.core.py_utils.DefinedFunction.output_dtypes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Output dtypes of the graph function.</p>
@@ -2912,13 +2958,13 @@ the corresponding output dtypes.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.CallDefun">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CallDefun</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak_as_function</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CallDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CallDefun" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CallDefun</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak_as_function</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CallDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CallDefun" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wraps fwd in a defun with custom gradient bak and calls it with args.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fwd</strong> – A callable xs: Nested Structure -&gt; ys: Nested Structure.</p></li>
-<li><p><strong>args</strong> – A Nested Structure of tf.Tensor.</p></li>
+<li><p><strong>args</strong> – A Nested Structure of tf.Tensor or None.</p></li>
 <li><p><strong>bak</strong> – A callable xs, ys, dys: Nested Structure -&gt; dxs[, dcapture]: Nested
 Structure. The custom backprop function for fwd. bak needs to return
 dcapture if fwd uses any implicitly captured tensors, whose gradients are
@@ -2942,7 +2988,7 @@ dcapture.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>cond</strong> – A scalar <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> that can be converted to boolean.</p></li>
 <li><p><strong>inputs</strong> – A flattenable representing the input tensors of the if/else
-statement.</p></li>
+statement. Can be None to represent no inputs.</p></li>
 <li><p><strong>then_branch</strong> – A callable ‘inputs’ -&gt; flattenable. The returned value should
 be compatible with what ‘else_branch’ returns.</p></li>
 <li><p><strong>else_branch</strong> – A callable ‘inputs’ -&gt; flattenable. The returned value should
