@@ -4479,85 +4479,83 @@ class CategoricalLayerNormTest(test_utils.TestCase):
 class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
   def testDeterministicDropoutLayer(self):
-    x_expected = np.array([
-        [1, 0, 0, 0, 1, 1],
-        [1, 1, 1, 1, 1, 1],
-        [1, 0, 0, 1, 1, 0],
-        [1, 0, 0, 1, 1, 1],
-    ]) / 0.7
 
-    with self.session():
+    with self.session(graph=tf.Graph()):
+      tf.random.set_seed(12345)
       params = layers.DeterministicDropoutLayer.Params().Set(
           name='drop', keep_prob=0.7)
       dropout = params.Instantiate()
       x = tf.ones([4, 6], dtype=tf.float32)
 
       tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
-      py_utils.ResetStepSeed(seed=5678)
+      step_seed = py_utils.GetStepSeed().eval()
       x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertAllClose(x_expected, x_val)
-      self.assertEqual(5679, py_utils.GetStepSeed().eval())
+      x_golden = x_val
+      self.assertEqual(step_seed + 1, py_utils.GetStepSeed().eval())
+
+      # Check that x_val is either 0 or 1.0/0.7.
+      self.assertTrue(
+          np.all(
+              np.logical_or(
+                  np.isclose(x_val, 0.0), np.isclose(x_val, 1.0 / 0.7))))
+      # Check that values contain 0 but are not all 0.
+      self.assertTrue(
+          0 < np.sum(np.cast[np.int32](np.isclose(x_val, 0.0))) < x_val.size)
 
       # Different step seed gives different result.
       x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertNotAllClose(x_expected, x_val)
+      self.assertNotAllClose(x_golden, x_val)
+
+    with self.session(graph=tf.Graph()):
+      tf.random.set_seed(12345)
+      params = layers.DeterministicDropoutLayer.Params().Set(
+          name='drop', keep_prob=0.7)
+      dropout = params.Instantiate()
+      x = tf.ones([4, 6], dtype=tf.float32)
 
       # Different global step gives different result
+      self.assertEqual(step_seed, py_utils.GetStepSeed().eval())
       tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1235).eval()
-      py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertNotAllClose(x_expected, x_val)
+      self.assertNotAllClose(x_golden, x_val)
 
-      # The same seeds in the same session is consistent.
-      tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
-      py_utils.ResetStepSeed(seed=5678)
-      x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertAllClose(x_expected, x_val)
-
-    # The same seeds in a different session is consistent.
-    with self.session():
-      params = layers.DeterministicDropoutLayer.Params().Set(
-          name='drop', keep_prob=0.7)
-      dropout = params.Instantiate()
-      x = tf.ones([4, 6], dtype=tf.float32)
-
-      tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
-      py_utils.ResetStepSeed(seed=5678)
-      x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertAllClose(x_expected, x_val)
-
-    # The same seeds in a different graph is also consistent.
+    # The same seeds is consistent.
     with self.session(graph=tf.Graph()):
+      tf.random.set_seed(12345)
       params = layers.DeterministicDropoutLayer.Params().Set(
           name='drop', keep_prob=0.7)
       dropout = params.Instantiate()
       x = tf.ones([4, 6], dtype=tf.float32)
 
+      self.assertEqual(step_seed, py_utils.GetStepSeed().eval())
       tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
-      py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertAllClose(x_expected, x_val)
+      self.assertAllClose(x_golden, x_val)
 
   def testNoiseShapeBroadcastDims(self):
     params = layers.DeterministicDropoutLayer.Params().Set(
         name='drop', keep_prob=0.7, noise_shape_broadcast_dims=[-1])
     dropout = params.Instantiate()
 
-    x = tf.ones([4, 6])
-    x_expected = np.array([
-        [1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-    ]) / 0.7
+    x = tf.ones([6, 6])
 
     with self.session():
       tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
       self.assertEqual(1234, dropout.theta.global_step.eval())
-      py_utils.ResetStepSeed(seed=5678)
+      step_seed = py_utils.GetStepSeed().eval()
       x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertEqual(5679, py_utils.GetStepSeed().eval())
-    self.assertAllClose(x_expected, x_val)
+      self.assertEqual(step_seed + 1, py_utils.GetStepSeed().eval())
+
+    # Check that x_val is either 0 or 1.0/0.7.
+    self.assertTrue(
+        np.all(
+            np.logical_or(np.isclose(x_val, 0.0), np.isclose(x_val,
+                                                             1.0 / 0.7))))
+    # Check that values contain 0 but are not all 0.
+    self.assertTrue(
+        0 < np.sum(np.cast[np.int32](np.isclose(x_val, 0.0))) < x_val.size)
+    # Check that each row has the same value.
+    self.assertAllClose(np.broadcast_to(x_val[:, :1], x_val.shape), x_val)
 
   @parameterized.named_parameters(
       {
