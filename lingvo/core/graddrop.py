@@ -112,7 +112,7 @@ class GradDrop(base_layer.BaseLayer):
       for loss, _ in self._losses:
         per_loss_grad = tf.gradients(loss, self._output_tensor)[0]
         if per_loss_grad is None:
-          tf.logging.warn(
+          tf.logging.warning(
               'Loss %s did not result in a gradient during '
               'GradDrop computation.', loss)
         else:
