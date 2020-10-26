@@ -5199,6 +5199,11 @@ def _DefineFunction(fwd,
 _USE_TF_FUNCTION = ThreadLocalStack()
 
 
+# Constants for propagating framework tensors through Function.
+_FRAMEWORK_TENSOR_GLOBAL_STEP = '_global_step'
+_FRAMEWORK_TENSOR_STEP_SEED = '_step_seed'
+
+
 @contextlib.contextmanager
 def TfFunctionScope(use_tf_function=True):
   _USE_TF_FUNCTION.stack.append(use_tf_function)
@@ -5349,18 +5354,24 @@ class DefinedFunction(object):
 
     # Wrap the forward function to propagate framework tensors like step_seed
     # and global_step.
-    wrapped_fwd_sig = NestedMap(step_seed=tf.TensorSpec([], tf.int64))
+    wrapped_fwd_sig = NestedMap()
+    wrapped_fwd_sig[_FRAMEWORK_TENSOR_STEP_SEED] = tf.TensorSpec([], tf.int64)
+    if GetGlobalStep() is not None:
+      wrapped_fwd_sig[_FRAMEWORK_TENSOR_GLOBAL_STEP] = (
+          tf.TensorSpec([], tf.int64))
     if fwd_sig is not None:
       wrapped_fwd_sig.inputs = fwd_sig
 
     def ForwardWrapped(wrapped_inputs):
       if graph_random_seed is not None:
         tf.random.set_seed(graph_random_seed)
-      ResetStepSeed(wrapped_inputs.step_seed)
-      if 'inputs' in wrapped_inputs:
-        result = fwd(wrapped_inputs.inputs)
-      else:
-        result = fwd()
+      ResetStepSeed(wrapped_inputs[_FRAMEWORK_TENSOR_STEP_SEED])
+      with GlobalStepContext(
+          wrapped_inputs.get(_FRAMEWORK_TENSOR_GLOBAL_STEP, None)):
+        if 'inputs' in wrapped_inputs:
+          result = fwd(wrapped_inputs.inputs)
+        else:
+          result = fwd()
       return result
 
     fwd_fn = ForwardWrapped
@@ -5372,8 +5383,10 @@ class DefinedFunction(object):
       def BackwardWrapped(wrapped_xs, ys, dys):
         if graph_random_seed is not None:
           tf.random.set_seed(graph_random_seed)
-        ResetStepSeed(wrapped_xs.step_seed)
-        result = bak(wrapped_xs.inputs, ys, dys)
+        ResetStepSeed(wrapped_xs[_FRAMEWORK_TENSOR_STEP_SEED])
+        with GlobalStepContext(
+            wrapped_xs.get(_FRAMEWORK_TENSOR_GLOBAL_STEP, None)):
+          result = bak(wrapped_xs.inputs, ys, dys)
         dxs = Transform(tf.zeros_like, wrapped_xs)
         if isinstance(result, tuple) and len(result) == 2:
           dxs.inputs, dcapture = result
@@ -5434,7 +5447,12 @@ class DefinedFunction(object):
     Returns:
       Inputs wrapped with framework tensors suitable for use with `func`.
     """
-    result = NestedMap(step_seed=GenerateSeedFromId(id(self._data.func)))
+    result = NestedMap()
+    result[_FRAMEWORK_TENSOR_STEP_SEED] = (
+        GenerateSeedFromId(id(self._data.func)))
+    global_step = GetGlobalStep()
+    if global_step is not None:
+      result[_FRAMEWORK_TENSOR_GLOBAL_STEP] = global_step
     if inputs is not None:
       result.inputs = inputs
     return result
@@ -5550,7 +5568,7 @@ def WhileLoop(cond, body, loop_state):
     # the return value here to match and also propagate the correct step_seed to
     # the next iteration of the loop.
     result = cond_sigs.AddFrameworkInputs(result)
-    result.step_seed = GetStepSeed()
+    result[_FRAMEWORK_TENSOR_STEP_SEED] = GetStepSeed()
     return result
 
   body_sigs = Function(fwd_sig=fwd_sig)(fwd=BodyWrapped)

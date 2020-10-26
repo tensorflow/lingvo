@@ -323,6 +323,7 @@ image.resize_nearest_neighbor = tf1.image.resize_nearest_neighbor
 initialize_all_tables = tf1.initialize_all_tables
 InteractiveSession = tf1.InteractiveSession
 io.tf_record_iterator = tf1.io.tf_record_iterator
+is_variable_initialized = tf1.is_variable_initialized
 layers = tf1.layers
 local_variables_initializer = tf1.local_variables_initializer
 losses.absolute_difference = tf1.losses.absolute_difference

@@ -113,8 +113,10 @@ def GenericInput(processor, **kwargs):
                                                    py_utils.GetExtraArgs()))
     return flat_output_tmpl + [bucketing_key]
 
-  proc_fn = _FlatOutputProcessor.get_concrete_function(
-      tf.TensorSpec([], tf.int32), tf.TensorSpec([], tf.string))
+  with py_utils.GlobalStepContext(None):
+    # Hide global_step tensor from being captured by _FlatOutputProcessor.
+    proc_fn = _FlatOutputProcessor.get_concrete_function(
+        tf.TensorSpec([], tf.int32), tf.TensorSpec([], tf.string))
 
   out_types = [
       tf.DType(a.type) for a in proc_fn.function_def.signature.output_arg

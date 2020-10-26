@@ -45,7 +45,11 @@ class TestCase(tf.test.TestCase):
     sess = super()._create_session(*args, **kwargs)
     with sess.graph.as_default():
       # Ensure the global_step variable is created in every new session.
-      py_utils.GetOrCreateGlobalStepVar()
+      global_step = py_utils.GetOrCreateGlobalStepVar()
+      sess.run(
+          tf.cond(
+              tf.is_variable_initialized(global_step), tf.no_op,
+              lambda: tf.variables_initializer([global_step])))
     return sess
 
   def SetEval(self, mode):

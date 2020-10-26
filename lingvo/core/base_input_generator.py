@@ -1127,7 +1127,9 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
 
   def _InputBatch(self):
     """Returns a NestedMap containing an input batch."""
-    dataset = self._GetDatasetInternal()
+    with py_utils.GlobalStepContext(None):
+      # Hide global_step tensor from being captured by dataset function.
+      dataset = self._GetDatasetInternal()
     dataset = self._BatchDataset(dataset)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     batch = tf.data.make_one_shot_iterator(dataset).get_next()
