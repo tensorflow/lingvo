@@ -193,7 +193,11 @@
     <span class="n">sess</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_create_session</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
       <span class="c1"># Ensure the global_step variable is created in every new session.</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">is_variable_initialized</span><span class="p">(</span><span class="n">global_step</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">,</span>
+              <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">([</span><span class="n">global_step</span><span class="p">])))</span>
     <span class="k">return</span> <span class="n">sess</span></div>
 
 <div class="viewcode-block" id="TestCase.SetEval"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.SetEval">[docs]</a>  <span class="k">def</span> <span class="nf">SetEval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>

@@ -5347,6 +5347,11 @@
 <span class="n">_USE_TF_FUNCTION</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 
 
+<span class="c1"># Constants for propagating framework tensors through Function.</span>
+<span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span> <span class="o">=</span> <span class="s1">&#39;_global_step&#39;</span>
+<span class="n">_FRAMEWORK_TENSOR_STEP_SEED</span> <span class="o">=</span> <span class="s1">&#39;_step_seed&#39;</span>
+
+
 <div class="viewcode-block" id="TfFunctionScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.TfFunctionScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">TfFunctionScope</span><span class="p">(</span><span class="n">use_tf_function</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="n">_USE_TF_FUNCTION</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">use_tf_function</span><span class="p">)</span>
@@ -5497,18 +5502,24 @@
 
     <span class="c1"># Wrap the forward function to propagate framework tensors like step_seed</span>
     <span class="c1"># and global_step.</span>
-    <span class="n">wrapped_fwd_sig</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">step_seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+    <span class="n">wrapped_fwd_sig</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">wrapped_fwd_sig</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_STEP_SEED</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">GetGlobalStep</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">wrapped_fwd_sig</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">fwd_sig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">wrapped_fwd_sig</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">fwd_sig</span>
 
     <span class="k">def</span> <span class="nf">ForwardWrapped</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">graph_random_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="n">graph_random_seed</span><span class="p">)</span>
-      <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">step_seed</span><span class="p">)</span>
-      <span class="k">if</span> <span class="s1">&#39;inputs&#39;</span> <span class="ow">in</span> <span class="n">wrapped_inputs</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">()</span>
+      <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_STEP_SEED</span><span class="p">])</span>
+      <span class="k">with</span> <span class="n">GlobalStepContext</span><span class="p">(</span>
+          <span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">,</span> <span class="kc">None</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="s1">&#39;inputs&#39;</span> <span class="ow">in</span> <span class="n">wrapped_inputs</span><span class="p">:</span>
+          <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">()</span>
       <span class="k">return</span> <span class="n">result</span>
 
     <span class="n">fwd_fn</span> <span class="o">=</span> <span class="n">ForwardWrapped</span>
@@ -5520,8 +5531,10 @@
       <span class="k">def</span> <span class="nf">BackwardWrapped</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">graph_random_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="n">graph_random_seed</span><span class="p">)</span>
-        <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="o">.</span><span class="n">step_seed</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
+        <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_STEP_SEED</span><span class="p">])</span>
+        <span class="k">with</span> <span class="n">GlobalStepContext</span><span class="p">(</span>
+            <span class="n">wrapped_xs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">,</span> <span class="kc">None</span><span class="p">)):</span>
+          <span class="n">result</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">wrapped_xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
         <span class="n">dxs</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">,</span> <span class="n">wrapped_xs</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
           <span class="n">dxs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">dcapture</span> <span class="o">=</span> <span class="n">result</span>
@@ -5582,7 +5595,12 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Inputs wrapped with framework tensors suitable for use with `func`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">step_seed</span><span class="o">=</span><span class="n">GenerateSeedFromId</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">func</span><span class="p">)))</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">result</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_STEP_SEED</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">GenerateSeedFromId</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">func</span><span class="p">)))</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">GetGlobalStep</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">]</span> <span class="o">=</span> <span class="n">global_step</span>
     <span class="k">if</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">result</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="k">return</span> <span class="n">result</span></div>
@@ -5698,7 +5716,7 @@
     <span class="c1"># the return value here to match and also propagate the correct step_seed to</span>
     <span class="c1"># the next iteration of the loop.</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">cond_sigs</span><span class="o">.</span><span class="n">AddFrameworkInputs</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-    <span class="n">result</span><span class="o">.</span><span class="n">step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
+    <span class="n">result</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_STEP_SEED</span><span class="p">]</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">result</span>
 
   <span class="n">body_sigs</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">fwd_sig</span><span class="p">)(</span><span class="n">fwd</span><span class="o">=</span><span class="n">BodyWrapped</span><span class="p">)</span>

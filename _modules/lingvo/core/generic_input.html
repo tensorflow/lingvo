@@ -261,8 +261,10 @@
                                                    <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">()))</span>
     <span class="k">return</span> <span class="n">flat_output_tmpl</span> <span class="o">+</span> <span class="p">[</span><span class="n">bucketing_key</span><span class="p">]</span>
 
-  <span class="n">proc_fn</span> <span class="o">=</span> <span class="n">_FlatOutputProcessor</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">))</span>
+  <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># Hide global_step tensor from being captured by _FlatOutputProcessor.</span>
+    <span class="n">proc_fn</span> <span class="o">=</span> <span class="n">_FlatOutputProcessor</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">))</span>
 
   <span class="n">out_types</span> <span class="o">=</span> <span class="p">[</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">proc_fn</span><span class="o">.</span><span class="n">function_def</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">output_arg</span>
