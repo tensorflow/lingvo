@@ -4279,7 +4279,7 @@ class Builder(builder.Base):
             convolution_fn=None):
     """[DEPRECATED] A lightweight convolution block as described in.
 
-    Use conv_layer_builder.LConv() instead.
+    Use conv_layers_builder.LConv() instead.
 
     https://arxiv.org/abs/1901.10430
     Corresponding PyTorch Implementation (L587):
