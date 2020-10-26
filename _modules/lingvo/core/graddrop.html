@@ -260,7 +260,7 @@
       <span class="k">for</span> <span class="n">loss</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_losses</span><span class="p">:</span>
         <span class="n">per_loss_grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_tensor</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">per_loss_grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
               <span class="s1">&#39;Loss </span><span class="si">%s</span><span class="s1"> did not result in a gradient during &#39;</span>
               <span class="s1">&#39;GradDrop computation.&#39;</span><span class="p">,</span> <span class="n">loss</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
