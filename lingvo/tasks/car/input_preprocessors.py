@@ -1850,8 +1850,8 @@ class DropPointsOutOfFrustum(Preprocessor):
   frontal field of view of the car can be specified as [-pi/4, pi/4].
 
   This preprocessor expects features to contain the following keys:
-  - lasers.points_xyz of shape [P, 7]
-  - lasers.points_feature of shape [P]
+  - lasers.points_xyz of shape [P, 3]
+  - lasers.points_feature of shape [P, F]
 
   Modifies the following features:
   - lasers.points_xyz removing any points out of frustum.
@@ -2130,7 +2130,7 @@ class RandomDropLaserPoints(Preprocessor):
 
   This preprocessor expects features to contain the following keys:
   - lasers.points_xyz of shape [P, 3]
-  - lasers.points_feature of shape [P, K]
+  - lasers.points_feature of shape [P, F]
 
 
   Modifies the following features:
@@ -2296,7 +2296,7 @@ class RandomBBoxTransform(Preprocessor):
 
   This preprocessor expects features to contain the following keys:
     - lasers.points_xyz of shape [P, 3]
-    - lasers.points_feature of shape [P, K]
+    - lasers.points_feature of shape [P, F]
     - lasers.points_padding of shape [P]
     - labels.bboxes_3d of shape [L, 7]
     - labels.bboxes_3d_mask of shape [L]
@@ -2643,7 +2643,7 @@ class GroundTruthAugmentor(Preprocessor):
   This preprocessor expects features to contain the following keys:
     lasers.points_xyz of shape [P, 3]
 
-    lasers.points_feature of shape [P, K]
+    lasers.points_feature of shape [P, F]
 
     lasers.points_padding of shape [P]
 
@@ -3036,7 +3036,7 @@ class FrustumDropout(Preprocessor):
 
   This preprocessor expects features to contain the following keys:
   - lasers.points_xyz of shape [P, 3]
-  - lasers.points_feature of shape [P, K]
+  - lasers.points_feature of shape [P, F]
 
   Optionally points_padding of shape [P] corresponding to the padding.
   if points_padding is None, then all points are considered valid.
