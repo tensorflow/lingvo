@@ -576,7 +576,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     return tf.clip_by_value(x, min_value, max_value)
 
   def GetState(self, theta):
-    return self._Value(theta.global_step)
+    return self._Value(py_utils.GetGlobalStep())
 
   def ApplyClippingWithState(self, state, x):
     """Applies clipping to x.
@@ -714,7 +714,7 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
       clip_end_step = tf.cast(p.clip_end_step, tf.float32)
       clip_start_step = tf.cast(p.clip_start_step, tf.float32)
       quant_start_step = tf.cast(p.quant_start_step, tf.float32)
-      global_step = tf.cast(theta.global_step, tf.float32)
+      global_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
 
       # Will be negative if before clipping starts.
       clip_ratio = (
@@ -1113,7 +1113,7 @@ class PassiveAsymQDomain(QDomain):
     if p.delay_start_steps != 0 and not self.do_eval:
       if p.delay_start_steps == -1:
         return inputs
-      return tf.where(self.theta.global_step >= p.delay_start_steps, Apply(),
+      return tf.where(py_utils.GetGlobalStep() >= p.delay_start_steps, Apply(),
                       inputs)
     else:
       return Apply()

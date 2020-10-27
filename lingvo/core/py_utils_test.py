@@ -2401,10 +2401,11 @@ class StepSeedTest(test_utils.TestCase):
   def testStepSeed(self):
     p = base_layer.BaseLayer.Params()
 
-    def RecurrentStep(theta, unused_state0, inputs):
+    def RecurrentStep(unused_theta, unused_state0, inputs):
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
-      state1.seed_pair = py_utils.GenerateStepSeedPair(p, theta.global_step)
+      state1.seed_pair = py_utils.GenerateStepSeedPair(p,
+                                                       py_utils.GetGlobalStep())
       return state1, py_utils.NestedMap()
 
     with self.session(graph=tf.Graph()) as sess:

@@ -413,7 +413,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       return x_in
 
     if deterministic:
-      seeds = py_utils.GenerateStepSeedPair(p, theta.global_step)
+      seeds = py_utils.GenerateStepSeedPair(p, py_utils.GetGlobalStep())
       if extra_seed:
         seeds += extra_seed
       return py_utils.DeterministicDropout(x_in, 1.0 - p.dropout_prob, seeds)
@@ -1158,7 +1158,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p = self.params
     if self._max_label_prob > 0:
       misc_zero_state.prev_predicted_ids = tf.reshape(target_ids[:, 0], [bs])
-      step = tf.cast(theta.global_step, tf.float32)
+      step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
       sampling_p = (step - p.prob_decay_start_step) / self._decay_interval
       groundtruth_p = 1 - (self._max_label_prob * sampling_p)
       groundtruth_p = tf.maximum(groundtruth_p, p.min_ground_truth_prob)

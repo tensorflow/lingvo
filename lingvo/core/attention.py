@@ -813,7 +813,7 @@ class AdditiveAttention(BaseAttentionLayer):
                                   source_segment_id, concated_source_vecs,
                                   concated_source_contexts, query_vec,
                                   query_segment_id, per_step_source_padding,
-                                  theta.global_step)
+                                  py_utils.GetGlobalStep())
 
     return ctx_vec, prob, attention_state
 
@@ -1133,7 +1133,7 @@ class DotProductAttention(BaseAttentionLayer):
     ctx_vec, prob = self._ctx_vec(
         ScaleFn(per_dim_scale_var), source_padding, source_segment_id,
         concated_source_vecs, concated_source_contexts, query_vec,
-        query_segment_id, per_step_source_padding, theta.global_step)
+        query_segment_id, per_step_source_padding, py_utils.GetGlobalStep())
     return ctx_vec, prob, attention_state
 
 
@@ -2573,7 +2573,7 @@ class MonotonicAttention(BaseAttentionLayer):
         # Compute pre-sigmoid noise.
         activation_noise = tf.random.stateless_normal(
             py_utils.GetShape(logits),
-            py_utils.GenerateStepSeedPair(p, theta.global_step),
+            py_utils.GenerateStepSeedPair(p, py_utils.GetGlobalStep()),
             dtype=logits.dtype)
         # Compute sigmoid probabilities.
         p_choose_i = tf.nn.sigmoid(logits + self.params.pre_sigmoid_noise *

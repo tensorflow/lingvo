@@ -1000,7 +1000,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
             rnn=theta.cell,
             packed_src=packed_src,
             atten=theta.atten,
-            global_step=theta.global_step),
+            global_step=py_utils.GetGlobalStep()),
         state0=state0,
         inputs=py_utils.NestedMap(
             act=inputs,

@@ -114,7 +114,7 @@ class RevNetLayer(base_layer.BaseLayer):
             py_utils.NestedMap(
                 f_block=dfw,
                 g_block=dgw,
-                global_step=tf.zeros_like(theta.global_step)))
+                global_step=tf.zeros_like(py_utils.GetGlobalStep())))
 
   def FProp(self, theta, inputs, *extra_inputs):
     """Forward pass.

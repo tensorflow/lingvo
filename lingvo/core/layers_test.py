@@ -4292,7 +4292,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
         means.append(net.accumulators.mean_ss.GetValue())
         variances.append(net.accumulators.variance_ss.GetValue())
       post_training_step_updates = net.PostTrainingStepUpdate(
-          net.theta.global_step)
+          py_utils.GetGlobalStep())
 
       self.evaluate(tf.global_variables_initializer())
       _, count_vals, mean_vals, var_vals = self.evaluate(
@@ -4541,7 +4541,7 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session():
       tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1234).eval()
-      self.assertEqual(1234, dropout.theta.global_step.eval())
+      self.assertEqual(1234, py_utils.GetGlobalStep().eval())
       step_seed = py_utils.GetStepSeed().eval()
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertEqual(step_seed + 1, py_utils.GetStepSeed().eval())

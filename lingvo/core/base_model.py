@@ -464,8 +464,9 @@ class BaseTask(base_layer.BaseLayer):
     """
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
-      self._FPropResult(metrics, per_example)
+      with py_utils.GlobalStepContext(self._global_step_var):
+        metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
+        self._FPropResult(metrics, per_example)
     return metrics, per_example
 
   def _FPropTpu(self, theta, input_batch):
@@ -566,7 +567,8 @@ class BaseTask(base_layer.BaseLayer):
     ])
 
   def BProp(self):
-    self._BPropForVariables(self.vars)
+    with py_utils.GlobalStepContext(self._global_step_var):
+      self._BPropForVariables(self.vars)
 
   def _BPropGenTrainOps(self, vmap, metrics=None, add_summary=True):
     """Populates the train_ops dictionary in a backwards pass."""

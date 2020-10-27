@@ -207,8 +207,8 @@ class Learner(base_layer.BaseLayer):
     eval_metrics.update(stats)
     self._var_grads = var_grads
 
-    assert self.theta.global_step is not None, self.theta
-    lr = self.LearningRate(self.theta.global_step)
+    assert py_utils.GetGlobalStep() is not None
+    lr = self.LearningRate(py_utils.GetGlobalStep())
 
     var_update_op = self.optimizer.Apply(lr, var_grads)
     return losses, var_update_op, eval_metrics
