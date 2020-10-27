@@ -304,6 +304,10 @@ class LConvLayer(base_layer.BaseLayer):
       return output, paddings, state1
 
 
+def _AttenCtxIsSet(atten_context):
+  return atten_context is not None and atten_context >= 0
+
+
 class ConformerLayer(base_layer.BaseLayer):
   """Conformer layer as in https://arxiv.org/abs/2005.08100.
 
@@ -331,10 +335,11 @@ class ConformerLayer(base_layer.BaseLayer):
              'Num of heads in multi-head self-attention.')
     p.Define(
         'atten_left_context', None, 'Local self attention left context.'
-        'If None, infinite left context.')
+        'If None or < 0, infinite left context. Notice unlike '
+        'atten_right_context, this includes `self` position.')
     p.Define(
         'atten_right_context', None, 'Local self attention right context.'
-        'If None, infinite right context.')
+        'If None or < 0, infinite right context.')
     p.Define('use_relative_atten', True, 'If using relative attention.')
     p.Define(
         'relative_pos_emb_dim', None,
@@ -387,9 +392,10 @@ class ConformerLayer(base_layer.BaseLayer):
                    dropout_prob=0.):
     assert all([input_dim, atten_num_heads, kernel_size, fflayer_hidden_dim])
 
-    if atten_local_context:
-      assert atten_left_context is None and atten_right_context is None, (
-          'atten_local_context and atten_{left,right}_context can not be set'
+    if _AttenCtxIsSet(atten_local_context):
+      assert not _AttenCtxIsSet(atten_left_context) and not _AttenCtxIsSet(
+          atten_right_context
+      ), ('atten_local_context and atten_{left,right}_context can not be set'
           'at the same time.')
       atten_left_context = atten_local_context + 1  # including self position.
       atten_right_context = atten_local_context
@@ -460,10 +466,12 @@ class ConformerLayer(base_layer.BaseLayer):
       p.relative_pos_emb_dim = p.input_dim
 
     # TODO(jamesqin): add an attention factory in batch_major_attention.
-    if p.atten_left_context is None and p.atten_right_context is None:
+    if not _AttenCtxIsSet(p.atten_left_context) and not _AttenCtxIsSet(
+        p.atten_right_context):
       # No atten context set, each position attends to all positions.
       atten_type = 'global' if not p.use_relative_atten else 'global_relative'
-    elif p.atten_left_context is None and p.atten_right_context == 0:
+    elif not _AttenCtxIsSet(
+        p.atten_left_context) and p.atten_right_context == 0:
       # Left context is infinite, right context is 0.
       assert not p.use_relative_atten, (
           'Relative attention isn\'t supported for causal attention.')

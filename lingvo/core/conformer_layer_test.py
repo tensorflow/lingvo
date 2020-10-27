@@ -124,14 +124,18 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     self.heads = 2
     self.context = 2
 
-  def _GetParams(self):
-    p = conformer_layer.ConformerLayer.CommonParams(
+  def _GetCommonParamsKwargs(self):
+    return dict(
         input_dim=self.dim,
         atten_num_heads=self.heads,
         atten_left_context=self.context + 1,
         atten_right_context=self.context,
         kernel_size=3,
         fflayer_hidden_dim=4 * self.dim)
+
+  def _GetParams(self):
+    kwargs = self._GetCommonParamsKwargs()
+    p = conformer_layer.ConformerLayer.CommonParams(**kwargs)
     p.name = 'conformer_layer'
     return p
 
@@ -184,6 +188,64 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     new_p = base_p.Copy()
     new_p.name = 'new'
     new_p.remat = True
+
+    base_l = base_p.Instantiate()
+    new_l = new_p.Instantiate()
+
+    _, base_grads = self._GetGrad(base_l, inputs, paddings)
+    base_grads = base_l.vars.Pack(base_grads)
+
+    _, new_grads = self._GetGrad(new_l, inputs, paddings)
+    new_grads = new_l.vars.Pack(new_grads)
+
+    assign_op = [
+        tf.assign(dst, src)
+        for (src, dst) in zip(base_l.vars.Flatten(), new_l.vars.Flatten())
+    ]
+    init_op = tf.global_variables_initializer()
+    with self.session() as sess:
+      sess.run(init_op)
+      sess.run(assign_op)
+      base_grads_val = sess.run(base_grads)
+      new_grads_val = sess.run(new_grads)
+
+      for (k, v1), (_, v2) in zip(base_grads_val.FlattenItems(),
+                                  new_grads_val.FlattenItems()):
+        self.assertAllClose(v1, v2, msg=k)
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('NegativeLocalContext', -1),
+      ('NegativeLeftContext', None, -1, None),
+      ('NegativeRightContext', None, None, -1),
+      ('NegativeContext1', -1, None, -1),
+      ('NegativeContext2', None, -1, -1),
+      ('NegativeContext3', -1, -1, None),
+      ('NegativeContext4', -1, None, -1),
+      ('NegativeContext5', -1, -1, -1),
+      ('NegativeContext6', None, None, None),
+  )
+  def testAttenContextParams(self,
+                             local_context=None,
+                             left_context=None,
+                             right_context=None):
+    """Tests atten context cfg params."""
+    inputs, paddings = self._GetInputs()
+    base_p_kwargs = self._GetCommonParamsKwargs()
+    base_p_kwargs['atten_local_context'] = None
+    base_p_kwargs['atten_left_context'] = None
+    base_p_kwargs['atten_right_context'] = None
+    base_p = conformer_layer.ConformerLayer.CommonParams(**base_p_kwargs)
+    base_p.name = 'base'
+    base_p.layer_order = 'conv_before_mhsa'
+
+    new_p_kwargs = self._GetCommonParamsKwargs()
+    new_p_kwargs['atten_local_context'] = local_context
+    new_p_kwargs['atten_left_context'] = left_context
+    new_p_kwargs['atten_right_context'] = right_context
+    new_p = conformer_layer.ConformerLayer.CommonParams(**new_p_kwargs)
+    new_p.name = 'new'
+    new_p.layer_order = 'conv_before_mhsa'
 
     base_l = base_p.Instantiate()
     new_l = new_p.Instantiate()
