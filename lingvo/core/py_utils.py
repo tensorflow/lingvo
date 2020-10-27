@@ -5643,22 +5643,22 @@ def ReadVariable(var_op):
   """Returns the value of the given variable operation.
 
   Args:
-    var_op: The variable's TF `Operation`. It could be one of VarHandleOp,
-      Variable and VariableV2.
+    var_op: the `Operation` object for a VarHandleOp.
+
+  Raises:
+    TypeError: if var_op is not a VarHandleOp.
 
   Returns:
     A `Tensor` containing the value of the variable.
   """
-  if var_op.type == 'VarHandleOp':
-    # Filter out the ReadVariableOps that have control dependencies to avoid
-    # side-effects when the user runs it.
-    filter_fn = lambda op: op.type == 'ReadVariableOp' and not op.control_inputs
-    var_readers = list(filter(filter_fn, var_op.outputs[0].consumers()))
-    assert var_readers
-    return var_readers[0].outputs[0]
-
-  assert var_op.type in ['Variable', 'VariableV2']
-  return var_op.outputs[0]
+  if var_op.type != 'VarHandleOp':
+    raise TypeError('var_op should be a VarHandleOp, got %s' % str(var_op.type))
+  # Filter out the ReadVariableOps that have control dependencies to avoid
+  # side-effects when the user runs it.
+  filter_fn = lambda op: op.type == 'ReadVariableOp' and not op.control_inputs
+  var_readers = list(filter(filter_fn, var_op.outputs[0].consumers()))
+  assert var_readers
+  return var_readers[0].outputs[0]
 
 
 _TPU_SUMMARY_TENSORS_KEY = ('__lingvo_tpu_summary_tensors')
