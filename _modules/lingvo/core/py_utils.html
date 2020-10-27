@@ -5791,22 +5791,22 @@
   <span class="sd">&quot;&quot;&quot;Returns the value of the given variable operation.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    var_op: The variable&#39;s TF `Operation`. It could be one of VarHandleOp,</span>
-<span class="sd">      Variable and VariableV2.</span>
+<span class="sd">    var_op: the `Operation` object for a VarHandleOp.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    TypeError: if var_op is not a VarHandleOp.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A `Tensor` containing the value of the variable.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">var_op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;VarHandleOp&#39;</span><span class="p">:</span>
-    <span class="c1"># Filter out the ReadVariableOps that have control dependencies to avoid</span>
-    <span class="c1"># side-effects when the user runs it.</span>
-    <span class="n">filter_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;ReadVariableOp&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">control_inputs</span>
-    <span class="n">var_readers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">filter_fn</span><span class="p">,</span> <span class="n">var_op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">consumers</span><span class="p">()))</span>
-    <span class="k">assert</span> <span class="n">var_readers</span>
-    <span class="k">return</span> <span class="n">var_readers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-  <span class="k">assert</span> <span class="n">var_op</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Variable&#39;</span><span class="p">,</span> <span class="s1">&#39;VariableV2&#39;</span><span class="p">]</span>
-  <span class="k">return</span> <span class="n">var_op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+  <span class="k">if</span> <span class="n">var_op</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;VarHandleOp&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;var_op should be a VarHandleOp, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">var_op</span><span class="o">.</span><span class="n">type</span><span class="p">))</span>
+  <span class="c1"># Filter out the ReadVariableOps that have control dependencies to avoid</span>
+  <span class="c1"># side-effects when the user runs it.</span>
+  <span class="n">filter_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;ReadVariableOp&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">control_inputs</span>
+  <span class="n">var_readers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">filter_fn</span><span class="p">,</span> <span class="n">var_op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">consumers</span><span class="p">()))</span>
+  <span class="k">assert</span> <span class="n">var_readers</span>
+  <span class="k">return</span> <span class="n">var_readers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <span class="n">_TPU_SUMMARY_TENSORS_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_tpu_summary_tensors&#39;</span><span class="p">)</span>
