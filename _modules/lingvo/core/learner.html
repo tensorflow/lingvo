@@ -355,8 +355,8 @@
     <span class="n">eval_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">var_grads</span>
 
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span>
-    <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 
     <span class="n">var_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">eval_metrics</span></div>

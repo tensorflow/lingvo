@@ -3658,7 +3658,8 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicDropout</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">keep_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span>
-        <span class="n">seeds</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">),</span>
+        <span class="n">seeds</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
+                                            <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()),</span>
         <span class="n">noise_shape</span><span class="o">=</span><span class="n">noise_shape</span><span class="p">)</span></div></div>
 
 
@@ -5038,10 +5039,11 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">p_c</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))),</span>
           <span class="n">ones</span><span class="p">,</span> <span class="n">zeros</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">noise_std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_std</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">noise_std</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+      <span class="n">noise_std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_std</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">noise_std</span><span class="p">,</span>
+                                       <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
       <span class="n">noise</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicVN</span><span class="p">(</span>
           <span class="n">p</span><span class="p">,</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()),</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">p_c</span><span class="p">),</span>
           <span class="n">std</span><span class="o">=</span><span class="n">noise_std</span><span class="p">)</span>
       <span class="n">p_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">p_c</span> <span class="o">+</span> <span class="n">noise</span><span class="p">)</span>
