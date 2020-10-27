@@ -1994,8 +1994,8 @@ features.</p>
 phi values wrap around 2*pi. Thus, a valid range that filters the 90 deg
 frontal field of view of the car can be specified as [-pi/4, pi/4].</p>
 <p>This preprocessor expects features to contain the following keys:
-- lasers.points_xyz of shape [P, 7]
-- lasers.points_feature of shape [P]</p>
+- lasers.points_xyz of shape [P, 3]
+- lasers.points_feature of shape [P, F]</p>
 <p>Modifies the following features:
 - lasers.points_xyz removing any points out of frustum.
 - lasers.points_feature removing any points out of frustum.</p>
@@ -2256,7 +2256,7 @@ features.</p>
 <p>Randomly dropout laser points and the corresponding features.</p>
 <p>This preprocessor expects features to contain the following keys:
 - lasers.points_xyz of shape [P, 3]
-- lasers.points_feature of shape [P, K]</p>
+- lasers.points_feature of shape [P, F]</p>
 <dl class="simple">
 <dt>Modifies the following features:</dt><dd><p>lasers.points_xyz, lasers.points_feature.</p>
 </dd>
@@ -2455,7 +2455,7 @@ features.</p>
 <dl class="simple">
 <dt>This preprocessor expects features to contain the following keys:</dt><dd><ul class="simple">
 <li><p>lasers.points_xyz of shape [P, 3]</p></li>
-<li><p>lasers.points_feature of shape [P, K]</p></li>
+<li><p>lasers.points_feature of shape [P, F]</p></li>
 <li><p>lasers.points_padding of shape [P]</p></li>
 <li><p>labels.bboxes_3d of shape [L, 7]</p></li>
 <li><p>labels.bboxes_3d_mask of shape [L]</p></li>
@@ -2543,7 +2543,7 @@ features.</p>
 <p>Augment bounding box labels and points from a database.</p>
 <dl>
 <dt>This preprocessor expects features to contain the following keys:</dt><dd><p>lasers.points_xyz of shape [P, 3]</p>
-<p>lasers.points_feature of shape [P, K]</p>
+<p>lasers.points_feature of shape [P, F]</p>
 <p>lasers.points_padding of shape [P]</p>
 <p>labels.bboxes_3d of shape [L, 7]</p>
 <p>labels.bboxes_3d_mask of shape [L]</p>
@@ -2648,7 +2648,7 @@ a given value are dropped with probability = 1 - keep_prob.</p>
 of the phi and theta angle filters.</p>
 <p>This preprocessor expects features to contain the following keys:
 - lasers.points_xyz of shape [P, 3]
-- lasers.points_feature of shape [P, K]</p>
+- lasers.points_feature of shape [P, F]</p>
 <p>Optionally points_padding of shape [P] corresponding to the padding.
 if points_padding is None, then all points are considered valid.</p>
 <dl class="simple">
