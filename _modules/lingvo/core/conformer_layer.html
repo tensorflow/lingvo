@@ -452,6 +452,10 @@
       <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state1</span></div></div>
 
 
+<div class="viewcode-block" id="_AttenCtxIsSet"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer._AttenCtxIsSet">[docs]</a><span class="k">def</span> <span class="nf">_AttenCtxIsSet</span><span class="p">(</span><span class="n">atten_context</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">atten_context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atten_context</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
+
+
 <div class="viewcode-block" id="ConformerLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer">[docs]</a><span class="k">class</span> <span class="nc">ConformerLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Conformer layer as in https://arxiv.org/abs/2005.08100.</span>
 
@@ -479,10 +483,11 @@
              <span class="s1">&#39;Num of heads in multi-head self-attention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_left_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Local self attention left context.&#39;</span>
-        <span class="s1">&#39;If None, infinite left context.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;If None or &lt; 0, infinite left context. Notice unlike &#39;</span>
+        <span class="s1">&#39;atten_right_context, this includes `self` position.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_right_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Local self attention right context.&#39;</span>
-        <span class="s1">&#39;If None, infinite right context.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;If None or &lt; 0, infinite right context.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_relative_atten&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If using relative attention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;relative_pos_emb_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -535,9 +540,10 @@
                    <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">atten_num_heads</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">fflayer_hidden_dim</span><span class="p">])</span>
 
-    <span class="k">if</span> <span class="n">atten_local_context</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">atten_left_context</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atten_right_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;atten_local_context and atten_{left,right}_context can not be set&#39;</span>
+    <span class="k">if</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">atten_local_context</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span>
+          <span class="n">atten_right_context</span>
+      <span class="p">),</span> <span class="p">(</span><span class="s1">&#39;atten_local_context and atten_{left,right}_context can not be set&#39;</span>
           <span class="s1">&#39;at the same time.&#39;</span><span class="p">)</span>
       <span class="n">atten_left_context</span> <span class="o">=</span> <span class="n">atten_local_context</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># including self position.</span>
       <span class="n">atten_right_context</span> <span class="o">=</span> <span class="n">atten_local_context</span>
@@ -608,10 +614,12 @@
       <span class="n">p</span><span class="o">.</span><span class="n">relative_pos_emb_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
 
     <span class="c1"># TODO(jamesqin): add an attention factory in batch_major_attention.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span><span class="p">):</span>
       <span class="c1"># No atten context set, each position attends to all positions.</span>
       <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;global&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_relative_atten</span> <span class="k">else</span> <span class="s1">&#39;global_relative&#39;</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="c1"># Left context is infinite, right context is 0.</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_relative_atten</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Relative attention isn</span><span class="se">\&#39;</span><span class="s1">t supported for causal attention.&#39;</span><span class="p">)</span>
