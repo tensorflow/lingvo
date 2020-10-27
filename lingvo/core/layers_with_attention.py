@@ -562,21 +562,23 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     Returns:
       tensor of the same shape with inputs
     """
-    if self.params.pre_layer_norm:
-      inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
-    else:
-      inputs_normalized = inputs
-    if hasattr(self, 'res_proj_layer'):
-      inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
-    h = self.residual_dropout.FProp(
-        theta.residual_dropout,
-        self.fflayer.FProp(theta.fflayer, inputs_normalized,
-                           tf.expand_dims(paddings, -1)))
-    if self.params.add_skip_connection:
-      h = inputs + h * self.params.residual_weight
-    if not self.params.pre_layer_norm:
-      h = self.layer_norm.FProp(theta.layer_norm, h)
-    return h
+    p = self.params
+    with tf.name_scope(p.name):
+      if self.params.pre_layer_norm:
+        inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      else:
+        inputs_normalized = inputs
+      if hasattr(self, 'res_proj_layer'):
+        inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
+      h = self.residual_dropout.FProp(
+          theta.residual_dropout,
+          self.fflayer.FProp(theta.fflayer, inputs_normalized,
+                             tf.expand_dims(paddings, -1)))
+      if self.params.add_skip_connection:
+        h = inputs + h * self.params.residual_weight
+      if not self.params.pre_layer_norm:
+        h = self.layer_norm.FProp(theta.layer_norm, h)
+      return h
 
 
 class TransformerLayer(base_layer.BaseLayer):

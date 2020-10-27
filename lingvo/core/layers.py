@@ -3582,51 +3582,52 @@ class LayerNorm(base_layer.BaseLayer):
       return inputs
 
     p = self.params
-    inputs = py_utils.with_dependencies(
-        [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
+    with tf.name_scope(p.name):
+      inputs = py_utils.with_dependencies(
+          [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
 
-    cur_scale, cur_bias = self._GetScaleAndBias(theta)
+      cur_scale, cur_bias = self._GetScaleAndBias(theta)
 
-    if p.direct_scale:
-      scale = cur_scale
-    else:
-      scale = 1.0 + cur_scale
-
-    if p.use_fused_layernorm:
-      counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
-          inputs, axes=[-1], keepdims=True)
-      mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
-                                               None)
-      # Adding a cast here. Sometimes, inputs/mean/variance/p.epsilon are in
-      # float32 while scale and cur_bias are in bf16.
-      inputs_norm = tf.cast(
-          (inputs - mean) * tf.math.rsqrt(variance + p.epsilon),
-          dtype=scale.dtype)
-      return inputs_norm * scale + cur_bias
-
-    def Normalize(xs):
-      """Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift."""
-      x_shape = py_utils.GetShape(xs.x)
-      inner_dim = x_shape[-1]
-      x_reshaped = tf.reshape(xs.x, [-1, inner_dim])
-      mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
-      variance = tf.reduce_mean(
-          tf.square(x_reshaped - mean), axis=[1], keepdims=True)
-      if variance.dtype == tf.bfloat16:
-        # tf.rsqrt is not implemented for bfloat16, hence we always cast into
-        # tf.float32.
-        x_norm_den_inv = tf.cast(
-            tf.math.rsqrt(tf.cast(variance + p.epsilon, tf.float32)),
-            x_reshaped.dtype)
+      if p.direct_scale:
+        scale = cur_scale
       else:
-        x_norm_den_inv = tf.cast(
-            tf.math.rsqrt(variance + p.epsilon), x_reshaped.dtype)
-      x_norm = (x_reshaped - mean) * x_norm_den_inv
-      x_norm = tf.reshape(x_norm, x_shape)
-      return x_norm * xs.scale + xs.bias
+        scale = 1.0 + cur_scale
 
-    return py_utils.CallDefun(
-        Normalize, py_utils.NestedMap(x=inputs, scale=scale, bias=cur_bias))
+      if p.use_fused_layernorm:
+        counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
+            inputs, axes=[-1], keepdims=True)
+        mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
+                                                 None)
+        # Adding a cast here. Sometimes, inputs/mean/variance/p.epsilon are in
+        # float32 while scale and cur_bias are in bf16.
+        inputs_norm = tf.cast(
+            (inputs - mean) * tf.math.rsqrt(variance + p.epsilon),
+            dtype=scale.dtype)
+        return inputs_norm * scale + cur_bias
+
+      def Normalize(xs):
+        """Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift."""
+        x_shape = py_utils.GetShape(xs.x)
+        inner_dim = x_shape[-1]
+        x_reshaped = tf.reshape(xs.x, [-1, inner_dim])
+        mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
+        variance = tf.reduce_mean(
+            tf.square(x_reshaped - mean), axis=[1], keepdims=True)
+        if variance.dtype == tf.bfloat16:
+          # tf.rsqrt is not implemented for bfloat16, hence we always cast into
+          # tf.float32.
+          x_norm_den_inv = tf.cast(
+              tf.math.rsqrt(tf.cast(variance + p.epsilon, tf.float32)),
+              x_reshaped.dtype)
+        else:
+          x_norm_den_inv = tf.cast(
+              tf.math.rsqrt(variance + p.epsilon), x_reshaped.dtype)
+        x_norm = (x_reshaped - mean) * x_norm_den_inv
+        x_norm = tf.reshape(x_norm, x_shape)
+        return x_norm * xs.scale + xs.bias
+
+      return py_utils.CallDefun(
+          Normalize, py_utils.NestedMap(x=inputs, scale=scale, bias=cur_bias))
 
   @classmethod
   def NumOutputNodes(cls, p):
