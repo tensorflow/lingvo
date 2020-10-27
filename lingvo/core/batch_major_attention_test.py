@@ -1380,9 +1380,9 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
   def testStreamStep(self, testonly_skip_norm_layers=False, stride=1):
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestStreamStepHelper(testonly_skip_norm_layers, stride)
+      self._TestStreamStepHelper(stride)
 
-  def _TestStreamStepHelper(self, testonly_skip_norm_layers, stride):
+  def _TestStreamStepHelper(self, stride):
     batch_size, max_seqlen, input_dim = 2, 32, 4
     hidden_dim, num_heads = 4, 2
     left_context = 3
@@ -1779,6 +1779,123 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
       encoded_extend, encoded_fprop = sess.run(
           [encoded_extend_t, encoded_fprop_t])
       self.assertAllClose(encoded_extend, encoded_fprop)
+
+
+class TransformerAttentionLayerTest(test_utils.TestCase,
+                                    parameterized.TestCase):
+  """Tests for TransformerAttentionLayer."""
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicS4', False, 4),
+      ('SkipNorm', True),
+      ('SkipNormS2', True, 2),
+  )
+  def testStreamStep(self, testonly_skip_norm_layers=False, stride=1):
+    with flagsaver.flagsaver(
+        testonly_skip_norm_layers=testonly_skip_norm_layers):
+      self._TestStreamStepHelper(stride)
+
+  def _TestStreamStepHelper(self, stride):
+    batch_size, max_seqlen, input_dim = 2, 32, 4
+    num_heads = 2
+    left_context = 3
+
+    # Prepares inputs.
+    np.random.seed(None)
+    inputs = np.random.normal(
+        0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=max_seqlen // 2,
+        high=max_seqlen + 1,
+        size=(batch_size,),
+        dtype=np.int32)
+    print(repr(seqlen))
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+
+    # Builds graph.
+    p = attention.TransformerAttentionLayer.CommonParams(
+        input_dim=input_dim,
+        num_heads=num_heads,
+        is_masked=True,
+        left_context=left_context,
+        right_context=0)
+    p.name = 'transformer_atten'
+
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    base_outputs, _ = l.FProp(l.theta, inputs, None, paddings)
+    base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+
+    state = l.zero_state(batch_size)
+    outputs = []
+    assert max_seqlen % stride == 0
+    for i in range(max_seqlen // stride):
+      output, _, state = l.StreamStep(l.theta,
+                                      inputs[:, stride * i:stride * (i + 1), :],
+                                      paddings[:, stride * i:stride * (i + 1)],
+                                      state)
+      outputs.append(output)
+    outputs = tf.concat(outputs, axis=1)
+    outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+
+      expected, actual = sess.run([base_outputs, outputs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+      self.assertEqual(
+          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
+
+  def testStreamStepDropout(self):
+    batch_size, input_dim, num_heads, stride, left_context = 2, 4, 2, 8, 3
+
+    # Prepares inputs.
+    np.random.seed(None)
+    inputs = np.random.normal(0.5, 1, [batch_size, stride, input_dim]).astype(
+        np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=0, high=stride + 1, size=(batch_size,), dtype=np.int32)
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, stride)
+
+    # Builds graph.
+    p = attention.TransformerAttentionLayer.CommonParams(
+        input_dim=input_dim,
+        num_heads=num_heads,
+        is_masked=True,
+        left_context=left_context,
+        right_context=0,
+        dropout_prob=0.5)
+    p.name = 'transformer_atten'
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+    l = p.Instantiate()
+    output, _, _ = l.StreamStep(l.theta, inputs, paddings,
+                                l.zero_state(batch_size))
+    output *= tf.reshape(1. - paddings, [batch_size, stride, 1])
+    init_op = tf.global_variables_initializer()
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+      res = []
+      for _ in range(2):
+        out = sess.run([output])
+        res.append(out)
+      self.assertNotAllClose(res[0], res[1])
 
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):

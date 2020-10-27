@@ -2891,6 +2891,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     output, paddings, atten_state1 = self.atten.StreamStep(
         theta.atten, query_vec, paddings, state0.atten)
 
+    output = self.residual_dropout.FProp(theta.residual_dropout, output)
+
     # Residual connection.
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
