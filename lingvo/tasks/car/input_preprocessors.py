@@ -2321,13 +2321,14 @@ class RandomBBoxTransform(Preprocessor):
              'Standard deviation of translation noise per axis.')
     p.Define(
         'max_scaling', None,
-        'When max_scaling is not none, delta parameters s_x, s_y, s_z are '
-        'drawn from [-max_scaling[i], max_scaling[i]] where i is in [0, 3].')
+        'An optional float list of length 3. When max_scaling is not none, '
+        'delta parameters s_x, s_y, s_z are drawn from '
+        '[-max_scaling[i], max_scaling[i]] where i is in [0, 2].')
     p.Define(
         'max_shearing', None,
-        'When max_shearing is not none, shearing parameters sh_x^y, sh_x^z, '
-        'sh_y^x, sh_y^z, sh_z^x, sh_z^y are drawn from '
-        '[-max_shearing[i], max_shearing[i]], where i is in [0, 5].')
+        'An optional float list of length 6. When max_shearing is not none, '
+        'shearing parameters sh_x^y, sh_x^z, sh_y^x, sh_y^z, sh_z^x, sh_z^y are'
+        'drawn from [-max_shearing[i], max_shearing[i]], where i is in [0, 5].')
     p.Define(
         'max_num_points_per_bbox', 16384,
         'The maximum number of points that fall within a bounding box. '
