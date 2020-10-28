@@ -18,6 +18,7 @@
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import symbolic
@@ -682,6 +683,42 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
     )
     self.assertAllClose([1, 3], py_utils.GetShape(dst.b.b1, 2))
     self.assertAllClose([5, 8], py_utils.GetShape(dst.b.b2, 2))
+
+  @parameterized.parameters(True, False)
+  def testDropoutInRecurrent(self, graph_seed):
+    with self.session() as sess:
+      if graph_seed:
+        tf.random.set_seed(12345)
+      l = lingvo_layers.DeterministicDropoutLayer.Params().Set(
+          name='dropout', keep_prob=0.7).Instantiate()
+      # Input variable.
+      w = tf.get_variable('w', shape=[9, 20], initializer=tf.ones_initializer())
+      sess.run(tf.global_variables_initializer())
+      prev_sum = np.sum(np.isclose(sess.run(w), 0.0))
+
+      def Step(theta, state0, unused_inputs):
+        w = l.FProp(theta.l, state0.w)
+        state1 = py_utils.NestedMap(w=w)
+        return state1, py_utils.NestedMap()
+
+      acc, final = recurrent.Recurrent(
+          theta=py_utils.NestedMap(l=l.theta),
+          state0=py_utils.NestedMap(w=w),
+          inputs=py_utils.NestedMap(x=tf.zeros([4])),
+          cell_fn=Step)
+
+      acc_w = sess.run(acc.w)
+      self.assertLen(acc_w, 4)
+      for acc_w_i in acc_w:
+        next_sum = np.sum(np.isclose(acc_w_i, 0.0))
+        self.assertGreater(next_sum, prev_sum)
+        prev_sum = next_sum
+
+      # Construct loss function such that gradients = final activation.
+      loss = tf.reduce_sum(final.w)
+      grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
+      w_val, grads_val = sess.run([final.w, grads.w.grad])
+      self.assertAllClose(w_val, grads_val)
 
 
 class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):

@@ -1470,6 +1470,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":layers",
         ":py_utils",
         ":recurrent",
         ":symbolic",
