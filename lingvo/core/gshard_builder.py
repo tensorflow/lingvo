@@ -181,8 +181,11 @@ class MoEBuilder(builder.Base):
     fprop_dtype = py_utils.FPropDtype(self.params)
     return self._Fn(name, fn=lambda x: tf.one_hot(x, dim, dtype=fprop_dtype))
 
-  def _Var(self, name, weights):
-    return moe_layers.VarLayer.Params().Set(name=name, weights=weights)
+  def _Var(self, name, weights, shared_var_collection_suffix=None):
+    return moe_layers.VarLayer.Params().Set(
+        name=name,
+        weights=weights,
+        shared_var_collection_suffix=shared_var_collection_suffix)
 
   def _ShardedVar(self, name, weights):
     return moe_layers.ShardedVarLayer.Params().Set(

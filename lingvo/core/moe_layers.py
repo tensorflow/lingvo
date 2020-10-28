@@ -88,8 +88,20 @@ class VarLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('weights', None, '[(name, WeightParams)..] list.')
+    p.Define(
+        'shared_var_collection_suffix', None,
+        'Weights created with collection name ending with '
+        'p.shared_var_collection_suffix are shared.')
     p.name = p.name or 'w'
     return p
+
+  def _get_var_from_collection(self, vp):
+    for collection in vp.collections:
+      if self.params.shared_var_collection_suffix in collection:
+        in_collection = tf.get_collection(collection)
+        if in_collection:
+          return in_collection[0]
+    return None
 
   def __init__(self, params):
     super().__init__(params)
@@ -97,7 +109,12 @@ class VarLayer(base_layer.BaseLayer):
       vp = v.Copy()
       if vp.init is None:
         vp.init = self.params.params_init
-      self.CreateVariable(k, vp)
+      # Skip creation if it's already in some collection
+      if (not self.params.shared_var_collection_suffix or
+          self._get_var_from_collection(vp) is None):
+        self.CreateVariable(k, vp)
+    if self.params.shared_var_collection_suffix:
+      self.InstantiateVariables()
 
   def FProp(self, theta, *args, **kwargs):
 
@@ -110,7 +127,15 @@ class VarLayer(base_layer.BaseLayer):
 
     # TODO(lepikhin): MoEBuilder.Embedding can not use '->emb' rule without
     # returning single element  of list of one element below.
-    retval = [MaybeCastToFPropDtype(theta[k]) for k, _ in self.params.weights]
+    retval = []
+    for k, vp in self.params.weights:
+      # Try to get the variable value from tf.collection.
+      var_value = None
+      if self.params.shared_var_collection_suffix:
+        var_value = self._get_var_from_collection(vp)
+      if var_value is None:
+        var_value = theta[k]
+      retval.append(MaybeCastToFPropDtype(var_value))
     return retval[0] if len(retval) == 1 else retval
 
 

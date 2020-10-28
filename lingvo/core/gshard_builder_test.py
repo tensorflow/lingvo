@@ -28,9 +28,57 @@ tf.flags.DEFINE_integer('num_partitions', 2, 'Number of partitions')
 FLAGS = tf.flags.FLAGS
 
 
+class FakeMoEBuilder(gshard_builder.MoEBuilder):
+
+  def SharedEncBiasWeights(self, name):
+    p = self.params
+    return self._Var(
+        name=name,
+        shared_var_collection_suffix='shared_var',
+        weights=[('bias',
+                  py_utils.WeightParams(
+                      shape=[p.model_dim],
+                      init=py_utils.WeightInit.Constant(1.0),
+                      collections=['_lingvo_enc_bias_gshard_shared_var'],
+                      dtype=p.dtype))])
+
+  def FakeLayer(self, name):
+    """Returns the Softmax layer with optional label smoothing."""
+    return self._Graph(name, ['i'], ['o'],
+                       ('->w', self.SharedEncBiasWeights('w')),
+                       ('i,w->o', self._Fn('add', lambda x, w: x + w)))
+
+
 class MoEBuilderTest(test_utils.TestCase):
 
-  def testDecSelfAttentionState(self):
+  def testSharedEncBiasWeights(self):
+    model_dim = 4
+    key_value_dim = 2
+    num_heads = 2
+    g = tf.Graph()
+    with g.as_default(), self.SetEval(True):
+      _ = py_utils.GetOrCreateGlobalStepVar()  # for DeterministicDropout
+      builder = FakeMoEBuilder.Params().Set(
+          num_devices=FLAGS.num_partitions,
+          dropout_rate=0,
+          model_dim=model_dim,
+          attention_key_value_dim=key_value_dim,
+          attention_num_heads=num_heads)
+      builder = builder.Instantiate()
+      p = builder._Seq('model', builder.FakeLayer('layer0'),
+                       builder.FakeLayer('layer1'))
+      layer = p.Instantiate()
+      all_vars = tf.trainable_variables()
+      tf.logging.info(all_vars)
+      self.assertEqual(1, len(all_vars))
+    with tf.Session(graph=g) as sess, self.SetEval(True):
+      x = tf.ones([model_dim])
+      y = layer.FPropDefaultTheta(x)
+      sess.run(tf.global_variables_initializer())
+      y_val = sess.run(y)
+      self.assertAllEqual([3.] * model_dim, y_val)
+
+  def _testDecSelfAttentionState(self):
     batch_dim = 2
     length_dim = 4
     model_dim = 8
