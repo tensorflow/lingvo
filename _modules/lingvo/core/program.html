@@ -741,6 +741,7 @@
 
 <div class="viewcode-block" id="DecodeProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_CompileDecodeFn</span><span class="p">()</span>
     <span class="k">return</span> <span class="kc">None</span></div>
@@ -838,6 +839,7 @@
 
 <div class="viewcode-block" id="ExperimentalDecodeProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.ExperimentalDecodeProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">spmd</span> <span class="o">=</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">spmd</span> <span class="ow">or</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span><span class="p">)</span>
@@ -977,6 +979,8 @@
           <span class="n">inputs</span><span class="o">=</span><span class="p">[],</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">loop_result</span>
+
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="p">)</span>

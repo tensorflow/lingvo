@@ -759,6 +759,9 @@
       <span class="k">del</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="o">.</span><span class="n">accumulators</span>
       <span class="k">del</span> <span class="n">run</span><span class="o">.</span><span class="n">final_state</span><span class="o">.</span><span class="n">accumulators</span>
 
+    <span class="k">del</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">final_state</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">))</span>
+
     <span class="k">return</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">final_state</span></div></div>
 
 
@@ -918,6 +921,12 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;accumulators is a private state key used by Recurrent.&#39;</span><span class="p">)</span>
     <span class="n">state0</span><span class="o">.</span><span class="n">accumulators</span> <span class="o">=</span> <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">GetAccumulatorValues</span><span class="p">()</span>
 
+  <span class="c1"># _step_seed is used for seeding stateless random ops.</span>
+  <span class="c1"># See py_utils.GenerateStepSeedPair for more details.</span>
+  <span class="k">if</span> <span class="s1">&#39;_step_seed&#39;</span> <span class="ow">in</span> <span class="n">state0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">allow_overwrite</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;_step_seed is a private state key used by Recurrent.&#39;</span><span class="p">)</span>
+  <span class="n">state0</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetStepSeed</span><span class="p">()</span>
+
   <span class="k">return</span> <span class="n">state0</span></div>
 
 
@@ -958,6 +967,41 @@
     <span class="n">dstate0</span><span class="o">.</span><span class="n">accumulators</span> <span class="o">=</span> <span class="n">dstate1_accumulators</span>
     <span class="n">dstate1</span><span class="o">.</span><span class="n">accumulators</span> <span class="o">=</span> <span class="n">dstate1_accumulators</span>
     <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Enable</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span>
+
+  <span class="k">return</span> <span class="n">WrappedCellGradFn</span></div>
+
+
+<div class="viewcode-block" id="_WrapCellFnWithStepSeed"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapCellFnWithStepSeed">[docs]</a><span class="k">def</span> <span class="nf">_WrapCellFnWithStepSeed</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrap a cell_fn to initialize the step seed.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">WrappedCellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The wrapper function.&quot;&quot;&quot;</span>
+    <span class="c1"># The _step_seed state should be transparent to cell_fn.</span>
+    <span class="n">state0_step_seed</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">state0_step_seed</span><span class="p">)</span>
+    <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">state0</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state0_step_seed</span>
+    <span class="n">state1</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetStepSeed</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span>
+
+  <span class="k">return</span> <span class="n">WrappedCellFn</span></div>
+
+
+<div class="viewcode-block" id="_WrapCellGradFnWithStepSeed"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapCellGradFnWithStepSeed">[docs]</a><span class="k">def</span> <span class="nf">_WrapCellGradFnWithStepSeed</span><span class="p">(</span><span class="n">cell_grad</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrap a cell grad function to handle step seed in state.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">WrappedCellGradFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The wrapper function.&quot;&quot;&quot;</span>
+    <span class="c1"># The _step_seed state should be transparent to cell_grad.</span>
+    <span class="n">state0_step_seed</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">)</span>
+    <span class="n">dstep_seed</span> <span class="o">=</span> <span class="n">dstate1</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">state0_step_seed</span><span class="p">)</span>
+    <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span> <span class="o">=</span> <span class="n">cell_grad</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
+                                                    <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span>
+    <span class="n">state0</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state0_step_seed</span>
+    <span class="n">dstate0</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dstep_seed</span>
+    <span class="n">dstate1</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dstep_seed</span>
     <span class="k">return</span> <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span>
 
   <span class="k">return</span> <span class="n">WrappedCellGradFn</span></div>
@@ -1014,6 +1058,7 @@
   <span class="k">if</span> <span class="n">accumulator_layer</span><span class="p">:</span>
     <span class="c1"># Wrap the cell_fn so that it knows how to propagate accumulators.</span>
     <span class="n">cell_fn</span> <span class="o">=</span> <span class="n">_WrapAccumulatorCellFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">)</span>
+  <span class="n">cell_fn</span> <span class="o">=</span> <span class="n">_WrapCellFnWithStepSeed</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">cell_fn</span></div>
 
 
@@ -1022,6 +1067,7 @@
   <span class="k">if</span> <span class="n">accumulator_layer</span><span class="p">:</span>
     <span class="c1"># Wrap the cell_grad so it disables accumulators.</span>
     <span class="n">cell_grad</span> <span class="o">=</span> <span class="n">_WrapAccumulatorCellGradFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">)</span>
+  <span class="n">cell_grad</span> <span class="o">=</span> <span class="n">_WrapCellGradFnWithStepSeed</span><span class="p">(</span><span class="n">cell_grad</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">cell_grad</span></div>
 
 
@@ -1035,7 +1081,6 @@
 
 <div class="viewcode-block" id="_RecurrentSingleTimeStep"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._RecurrentSingleTimeStep">[docs]</a><span class="k">def</span> <span class="nf">_RecurrentSingleTimeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Short-cut for the single timestep without explicit cell_grad case.&quot;&quot;&quot;</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Shortcutting Recurrent call due to single timestep.&#39;</span><span class="p">)</span>
   <span class="c1"># The seqlen length is staticly known as 1. Hence, we just need to</span>
   <span class="c1"># call cell_fn once without putting it into a loop.</span>
   <span class="c1"># Since we are not looping, there is no need to specially manage</span>
@@ -1150,8 +1195,11 @@
 
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;recurrent_cellfn_extras&#39;</span><span class="p">):</span>
     <span class="c1"># Derives &#39;extras&#39; so that we can allocate extras&#39; accumulator.</span>
+    <span class="c1"># Not a real call to cell_fn, so make sure it doesn&#39;t affect step_seed.</span>
+    <span class="n">step_seed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetStepSeed</span><span class="p">()</span>
     <span class="c1"># Make sure not to modify the original state0.</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">actual_extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">(),</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">step_seed</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">extras</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">extras</span> <span class="o">=</span> <span class="n">actual_extras</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
@@ -1176,6 +1224,12 @@
       <span class="n">extras</span><span class="o">=</span><span class="n">extras</span><span class="p">,</span>
       <span class="n">accumulator_layer</span><span class="o">=</span><span class="n">accumulator_layer</span><span class="p">,</span>
       <span class="n">implicit_captures</span><span class="o">=</span><span class="n">implicit_captures</span><span class="p">)</span><span class="o">.</span><span class="n">Compute</span><span class="p">()</span>
+
+  <span class="c1"># TODO(b/129159299): The ResetStepSeed below is needed to work around this</span>
+  <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
+  <span class="c1"># inference graphs. It should be removed once the bug is fixed.</span>
+  <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span></div>
 
@@ -1603,11 +1657,13 @@
     <span class="n">expected_output_by_layers</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">xs</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-      <span class="c1"># Disable accumulators since this is not a real call to cell_fns[i].</span>
-      <span class="c1"># They will be re-enabled in _Recurrent.</span>
+      <span class="c1"># Disable accumulators and step_seed since this is not a real call to</span>
+      <span class="c1"># cell_fns[i]. They will be re-enabled in _Recurrent.&lt;F24&gt;&lt;F25&gt;</span>
       <span class="k">if</span> <span class="n">accumulator_layers</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
         <span class="n">accumulator_layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Disable</span><span class="p">())</span>
+      <span class="n">step_seed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetStepSeed</span><span class="p">()</span>
       <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fns</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">thetas</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">init_states</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">xs</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">step_seed</span><span class="p">)</span>
       <span class="c1"># only dtype and shape is needed.</span>
       <span class="n">xs</span> <span class="o">=</span> <span class="n">cell_outs</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">state1</span><span class="p">)</span>
       <span class="n">expected_output_by_layers</span> <span class="o">+=</span> <span class="p">[</span>
@@ -1725,6 +1781,12 @@
   <span class="c1"># final output does not change its numerical value.</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">devices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">cell_outs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">](</span><span class="n">acc_states</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">anchor</span><span class="p">))</span>
+
+  <span class="c1"># TODO(b/129159299): The ResetStepSeed below is needed to work around this</span>
+  <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
+  <span class="c1"># inference graphs. It should be removed once the bug is fixed.</span>
+  <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">final_states</span></div>
 </pre></div>
