@@ -1578,7 +1578,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       # rid of TfLite Flex ops.
       logits = tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
 
-      very_negative_logits = logits.dtype.max * tf.constant(-0.7, logits.dtype)
+      very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
 
       with tf.name_scope('compute_padding'):
         # Generate local atten mask.
@@ -1590,7 +1590,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         # [Q, T=Q+W-1]
         local_atten_per_step_paddings = tf.where(
             tf.logical_and(cols - rows <= p.left_context - 1, cols - rows >= 0),
-            tf.zeros([q, t]), tf.ones([q, t]))
+            tf.zeros([q, t], py_utils.FPropDtype(p)),
+            tf.ones([q, t], py_utils.FPropDtype(p)))
         # [1, Q, T]
         local_atten_per_step_paddings = tf.expand_dims(
             local_atten_per_step_paddings, 0)
@@ -1603,7 +1604,7 @@ class LocalSelfAttention(MultiHeadedAttention):
             tf.cast(local_atten_per_step_paddings, tf.bool))
         # [B, Q, 1, T]
         final_paddings = tf.expand_dims(
-            tf.cast(final_paddings, tf.float32), axis=2)
+            tf.cast(final_paddings, logits.dtype), axis=2)
 
       # [B, Q, N, T]
       logits = logits * (1 -

@@ -612,7 +612,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     context = tf.zeros(
         shape=[batch_size] +
         [p.filter_shape[0] - 1, p.filter_shape[1], p.filter_shape[2]],
-        dtype=tf.float32)
+        dtype=py_utils.FPropDtype(p))
     return py_utils.NestedMap(context=context)
 
   def StreamStep(self, theta, inputs, paddings, state0):

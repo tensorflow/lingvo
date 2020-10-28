@@ -770,9 +770,9 @@ class GroupNormLayer(base_layer.BaseLayer):
       cache_shape = [batch_size, 1, 1, num_groups, 1]
     else:
       cache_shape = [batch_size, 1, num_groups, 1]
-    cached_sum = tf.zeros(cache_shape)
-    cached_count = tf.zeros(cache_shape)
-    cached_var = tf.zeros(cache_shape)
+    cached_sum = tf.zeros(cache_shape, py_utils.FPropDtype(p))
+    cached_count = tf.zeros(cache_shape, py_utils.FPropDtype(p))
+    cached_var = tf.zeros(cache_shape, py_utils.FPropDtype(p))
     return py_utils.NestedMap(
         cached_sum=cached_sum, cached_count=cached_count, cached_var=cached_var)
 
@@ -893,7 +893,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'cached_sum: %r', cached_sum)
     tf.logging.vlog(1, 'cached_count: %r', cached_count)
 
-    mask = 1.0 - paddings
+    mask = tf.cast(1.0 - paddings, inputs.dtype)
     inputs *= tf.cast(mask, inputs.dtype)
 
     input_rank = py_utils.GetRank(inputs)
