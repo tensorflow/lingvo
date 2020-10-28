@@ -2164,6 +2164,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
     self.CreateChild('input_dropout', dropout_tpl)
 
+    p.trans_decoder_tpl.packed_input = p.packed_input
     params_trans_layers = []
     for i in range(p.num_trans_layers):
       params = p.trans_decoder_tpl.Copy()
