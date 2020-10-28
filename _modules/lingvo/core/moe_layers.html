@@ -236,8 +236,20 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;[(name, WeightParams)..] list.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;shared_var_collection_suffix&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Weights created with collection name ending with &#39;</span>
+        <span class="s1">&#39;p.shared_var_collection_suffix are shared.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;w&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="VarLayer._get_var_from_collection"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.VarLayer._get_var_from_collection">[docs]</a>  <span class="k">def</span> <span class="nf">_get_var_from_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vp</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">collection</span> <span class="ow">in</span> <span class="n">vp</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_var_collection_suffix</span> <span class="ow">in</span> <span class="n">collection</span><span class="p">:</span>
+        <span class="n">in_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">collection</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_collection</span><span class="p">:</span>
+          <span class="k">return</span> <span class="n">in_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
@@ -245,7 +257,12 @@
       <span class="n">vp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">vp</span><span class="o">.</span><span class="n">init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">vp</span><span class="o">.</span><span class="n">init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">params_init</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">vp</span><span class="p">)</span>
+      <span class="c1"># Skip creation if it&#39;s already in some collection</span>
+      <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_var_collection_suffix</span> <span class="ow">or</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_get_var_from_collection</span><span class="p">(</span><span class="n">vp</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">vp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_var_collection_suffix</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
 
 <div class="viewcode-block" id="VarLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.VarLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
@@ -258,7 +275,15 @@
 
     <span class="c1"># TODO(lepikhin): MoEBuilder.Embedding can not use &#39;-&gt;emb&#39; rule without</span>
     <span class="c1"># returning single element  of list of one element below.</span>
-    <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="n">MaybeCastToFPropDtype</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weights</span><span class="p">]</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">vp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
+      <span class="c1"># Try to get the variable value from tf.collection.</span>
+      <span class="n">var_value</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_var_collection_suffix</span><span class="p">:</span>
+        <span class="n">var_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_var_from_collection</span><span class="p">(</span><span class="n">vp</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">var_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">var_value</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+      <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MaybeCastToFPropDtype</span><span class="p">(</span><span class="n">var_value</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">retval</span></div></div>
 
 
