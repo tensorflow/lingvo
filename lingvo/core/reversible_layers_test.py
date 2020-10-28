@@ -88,8 +88,12 @@ class RevNetLayerTest(test_utils.TestCase):
 
       # Computes custom gradients.
       inputs_reconstruct, dinputs, d_theta = revnet_layer.ReverseAndGrad(
-          revnet_layer.theta, outputs,
-          py_utils.NestedMap(split1=dy1, split2=dy2), f_seed, g_seed)
+          revnet_layer.theta,
+          outputs,
+          py_utils.NestedMap(split1=dy1, split2=dy2),
+          f_seed,
+          g_seed,
+      )
 
       self.evaluate(tf.global_variables_initializer())
 
@@ -117,7 +121,7 @@ class RevNetLayerTest(test_utils.TestCase):
 class StackedRevNetLayerTest(test_utils.TestCase, parameterized.TestCase):
   """Test stacked layers."""
 
-  def _SimpleRevNetParams(self, name, dropout, stacked):
+  def _SimpleRevNetParams(self, name, dropout, custom_gradient):
     """Construct a simple 3-layers RevNet."""
     layer_tpl = reversible_layers.RevNetLayer.Params()
     layer_tpl.f_params = layers.FeedForwardNet.Params().Set(
@@ -130,19 +134,44 @@ class StackedRevNetLayerTest(test_utils.TestCase, parameterized.TestCase):
       layer_tpl.g_params.dropout = layers.DeterministicDropoutLayer.Params()
       layer_tpl.g_params.dropout.keep_prob = 0.8
 
-    layers_p = []
+    stacked_p = reversible_layers.StackedRevNetLayer.Params()
+    stacked_p.name = name
+    stacked_p.custom_gradient = custom_gradient
     for idx in range(3):
       layer_p = layer_tpl.Copy()
       layer_p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       layer_p.name = 'layer_{}'.format(idx)
-      layers_p.append(layer_p)
-    if stacked:
-      stacked_p = reversible_layers.StackedRevNetLayer.Params()
-      stacked_p.name = name
-      stacked_p.sub_layer_params = layers_p
-      return stacked_p
-    else:
-      return layers_p
+      stacked_p.sub_layer_params.append(layer_p)
+    return stacked_p
+
+  def _RunModel(self, input_1_val, input_2_val, dropout, custom_grad):
+    self._ClearCachedSession()
+    tf.reset_default_graph()
+    with self.session() as sess:
+      tf.random.set_seed(321)
+      input_1 = tf.placeholder(tf.float32)
+      input_2 = tf.placeholder(tf.float32)
+
+      revnet_params = self._SimpleRevNetParams('revnet', dropout, custom_grad)
+      revnet_params.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      revnet = revnet_params.Instantiate()
+
+      h = revnet.FPropDefaultTheta(
+          py_utils.NestedMap(split1=input_1, split2=input_2))
+
+      dfx = tf.gradients(h.Flatten(), [input_1, input_2])
+      dfw = tf.gradients(
+          h.Flatten(),
+          revnet.theta.Flatten(),
+          unconnected_gradients=tf.UnconnectedGradients.ZERO)
+
+      self.evaluate(tf.global_variables_initializer())
+      dfx_val, dfw_val, h_val = sess.run([dfx, dfw, h],
+                                         feed_dict={
+                                             input_1: input_1_val,
+                                             input_2: input_2_val,
+                                         })
+      return h_val, dfx_val, dfw_val
 
   @parameterized.named_parameters(('nodropout', False), ('dropout', True))
   def testStackedRevNetLayer(self, dropout):
@@ -150,62 +179,12 @@ class StackedRevNetLayerTest(test_utils.TestCase, parameterized.TestCase):
     input_2_val = np.random.normal(size=[5, 3])
     # input_padding_val = np.random.randint(low=0, high=2, size=[5, 1])
 
-    with self.session(graph=tf.Graph()) as sess:
-      tf.random.set_seed(321)
-      input_1 = tf.placeholder(tf.float32)
-      input_2 = tf.placeholder(tf.float32)
+    h, dfx, dfw = self._RunModel(input_1_val, input_2_val, dropout, True)
+    h2, dfx2, dfw2 = self._RunModel(input_1_val, input_2_val, dropout, False)
 
-      stacked_revnet_params = self._SimpleRevNetParams(
-          'revnet', dropout, stacked=True)
-      stacked_revnet = stacked_revnet_params.Instantiate()
-      stacked_outputs, step_seeds = stacked_revnet.FPropDefaultTheta(
-          py_utils.NestedMap(split1=input_1, split2=input_2))
-      stacked_dx = tf.gradients(stacked_outputs.Flatten(), [input_1, input_2])
-      stacked_dw = tf.gradients(
-          stacked_outputs.Flatten(),
-          stacked_revnet.theta.Flatten(),
-          unconnected_gradients=tf.UnconnectedGradients.ZERO)
-
-      self.evaluate(tf.global_variables_initializer())
-      stacked_dx, stacked_dw, stacked_outputs, seeds = sess.run(
-          [stacked_dx, stacked_dw, stacked_outputs, step_seeds],
-          feed_dict={
-              input_1: input_1_val,
-              input_2: input_2_val,
-          })
-
-    with self.session(graph=tf.Graph()) as sess:
-      tf.random.set_seed(321)
-      input_1 = tf.placeholder(tf.float32)
-      input_2 = tf.placeholder(tf.float32)
-
-      split_1, split_2 = input_1, input_2
-      revnet_params = self._SimpleRevNetParams('revnet', dropout, stacked=False)
-      thetas = py_utils.NestedMap(
-          global_step=py_utils.GetGlobalStep(), sub_layers=[])
-      for i, p in enumerate(revnet_params):
-        revnet = p.Instantiate()
-        thetas.sub_layers.append(revnet.theta)
-        py_utils.ResetStepSeed(seeds[i][0])
-        outputs, _, _ = revnet.FPropDefaultTheta(
-            py_utils.NestedMap(split1=split_1, split2=split_2))
-        split_1, split_2 = outputs.split1, outputs.split2
-      dx = tf.gradients(outputs.Flatten(), [input_1, input_2])
-      dw = tf.gradients(
-          outputs.Flatten(),
-          thetas.Flatten(),
-          unconnected_gradients=tf.UnconnectedGradients.ZERO)
-
-      self.evaluate(tf.global_variables_initializer())
-      dx, dw, outputs = sess.run([dx, dw, outputs],
-                                 feed_dict={
-                                     input_1: input_1_val,
-                                     input_2: input_2_val,
-                                 })
-
-    self.assertAllClose(outputs.Flatten(), stacked_outputs.Flatten())
-    self.assertAllClose(dx, stacked_dx)
-    self.assertAllClose(dw, stacked_dw)
+    self.assertAllClose(h, h2)
+    self.assertAllClose(dfx, dfx2)
+    self.assertAllClose(dfw, dfw2)
 
 
 if __name__ == '__main__':

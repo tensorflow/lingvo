@@ -307,8 +307,8 @@ class DecoderTest(test_utils.TestCase):
           [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.536698, 15.0], loss_val)
-      self.assertAllClose([13.76689, 9.883857, 10.964957, 18.434774],
+      self.assertAllClose([3.587372, 15.0], loss_val)
+      self.assertAllClose([14.171288, 9.965696, 10.221684, 19.451914],
                           per_sequence_loss_val)
       self.assertEqual(0, global_steps_val)
 
@@ -319,8 +319,8 @@ class DecoderTest(test_utils.TestCase):
           [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.674377, 15.0], loss_val)
-      self.assertAllClose([14.394408, 10.733829, 11.220065, 18.767351],
+      self.assertAllClose([3.626164, 15.0], loss_val)
+      self.assertAllClose([14.70993, 10.572938, 10.516836, 18.592758],
                           per_sequence_loss_val)
       self.assertEqual(1, global_steps_val)
 

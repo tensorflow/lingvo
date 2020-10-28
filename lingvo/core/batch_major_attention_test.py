@@ -2735,7 +2735,7 @@ class GPipeBatchMajorTransformerLayerTest(test_utils.TestCase,
       actual_layer_output = sess.run(layer_output)
       actual_layer_output = np.reshape(actual_layer_output, (14, 4))
       tf.logging.info(np.array_repr(actual_layer_output))
-      expected_layer_output = [7.315809, 6.472655, -1.9706, -5.183874]
+      expected_layer_output = [7.616176, 8.611565, -0.932456, -4.5797]
       self.assertAllClose(expected_layer_output,
                           np.sum(actual_layer_output, axis=0))
 
@@ -2753,7 +2753,7 @@ class GPipeBatchMajorTransformerLayerTest(test_utils.TestCase,
       actual_layer_output = sess.run(layer_output)
       actual_layer_output = np.reshape(actual_layer_output, (10, 4))
       tf.logging.info(np.array_repr(actual_layer_output))
-      expected_layer_output = [1.942266, 6.604632, 3.20563, 6.358805]
+      expected_layer_output = [2.721037, 5.228053, 2.27512, 6.92945]
       self.assertAllClose(expected_layer_output,
                           np.sum(actual_layer_output, axis=0))
 

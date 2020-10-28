@@ -255,6 +255,7 @@ class BuilderTest(test_utils.TestCase):
       y_val, grads_val = sess.run([y, grads.Transform(tuple)])
       grads_val = grads_val['w'][1]
       self.assertAllClose(y_val, grads_val)
+      self.assertEqual(py_utils.GetStepSeed().eval(), 441070709)
 
   def testFnDefaultMeta(self):
     b = builder.Base.Params()

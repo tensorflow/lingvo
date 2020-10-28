@@ -2410,13 +2410,29 @@ class StepSeedTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       step_seed = self._testStepSeedHelper(sess, RecurrentStep)
+      # Second recurrent inside the same graph has different step_seeds.
       step_seed2 = self._testStepSeedHelper(sess, RecurrentStep)
       self.assertNotEqual(step_seed, step_seed2)
 
-    # A different graph gives different step seeds.
+    # After a reset, the step_seeds are the same even with a slightly
+    # different RecurrentStep function.
+    def RecurrentStep2(theta, state0, inputs):
+      with tf.control_dependencies([tf.no_op()]):
+        return RecurrentStep(theta, state0, inputs)
+
     with self.session(graph=tf.Graph()) as sess:
-      step_seed3 = self._testStepSeedHelper(sess, RecurrentStep)
-      self.assertNotEqual(step_seed, step_seed3)
+      step_seed3 = self._testStepSeedHelper(sess, RecurrentStep2)
+      step_seed4 = self._testStepSeedHelper(sess, RecurrentStep2)
+      self.assertEqual(step_seed, step_seed3)
+      self.assertEqual(step_seed2, step_seed4)
+
+    with self.session(graph=tf.Graph()) as sess:
+      # But a different name_scope changes it.
+      with tf.name_scope('test'):
+        step_seed5 = self._testStepSeedHelper(sess, RecurrentStep2)
+        step_seed6 = self._testStepSeedHelper(sess, RecurrentStep2)
+        self.assertEqual(step_seed, step_seed5)
+        self.assertNotEqual(step_seed2, step_seed6)
 
 
 class WeightParamsTest(test_utils.TestCase):

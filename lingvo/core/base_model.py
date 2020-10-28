@@ -465,6 +465,8 @@ class BaseTask(base_layer.BaseLayer):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       with py_utils.GlobalStepContext(self._global_step_var):
+        # Always reset step seed at the start of a new global_step.
+        py_utils.ResetStepSeed()
         metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
         self._FPropResult(metrics, per_example)
     return metrics, per_example
@@ -1240,7 +1242,7 @@ class MultiTaskModel(BaseModel):
     return self.children[task_name]
 
   def SampleTask(self, global_step):
-    """Sample a task according self.task_schedule.
+    """Returns a sampled task according to self.task_schedule.
 
     `self.task_schedule.cur_probs` will also be updated.
 

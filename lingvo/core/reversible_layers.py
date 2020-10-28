@@ -130,6 +130,7 @@ class RevNetLayer(base_layer.BaseLayer):
       outputs: A NestedMap: .split1 and .split2 corresponding to y1 and y2.
       f_seed: Scalar tensor. The step seed used in forward for the f block.
       g_seed: Scalar tensor. The step seed used in forward for the g block.
+
     """
 
     f_seed = py_utils.GetStepSeed()
@@ -163,6 +164,9 @@ class StackedRevNetLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('sub_layer_params', [], 'A list of RevNetLayer params.')
+    p.Define(
+        'custom_gradient', True, 'If True, use the custom gradient over'
+        'the standard TF gradient. Useful for unit test and benchmarks')
     return p
 
   def __init__(self, params):
@@ -174,6 +178,9 @@ class StackedRevNetLayer(base_layer.BaseLayer):
 
   def FProp(self, theta, inputs, *extra_inputs):
 
+    initial_step_seed = py_utils.GetStepSeed()
+    final_step_seed = py_utils.GenerateSeedFromName(
+        tf.no_op(name='new_step_seed').name)
     num_layers = len(self.sub_layers)
 
     def Bak(inputs, outputs, d_outputs):
@@ -195,20 +202,32 @@ class StackedRevNetLayer(base_layer.BaseLayer):
         # Passes reconstructed inputs to the previous layer.
         output_acts = input_acts
         d_outputs = d_inputs
-      d_theta = py_utils.NestedMap(global_step=tf.zeros_like(theta.global_step))
+      py_utils.ResetStepSeed(final_step_seed)
+      d_theta = py_utils.NestedMap(global_step=tf.zeros_like(initial_step_seed))
       d_theta.sub_layers = list(reversed(d_layer_thetas))
 
       extra_grads = [tf.zeros_like(t) for t in extra_inputs]
-      return [d_theta, d_inputs, extra_grads]
+      return [tf.zeros_like(initial_step_seed), d_theta, d_inputs, extra_grads]
 
     def Fwd(xs):
       """Forward pass."""
-      theta, acts, extra_inputs = xs
+      initial_step_seed, theta, acts, extra_inputs = xs
 
+      py_utils.ResetStepSeed(initial_step_seed)
       layer_step_seeds = []
+
       for layer_theta, layer in zip(theta.sub_layers, self.sub_layers):
         acts, f_seed, g_seed = layer.FProp(layer_theta, acts, *extra_inputs)
         layer_step_seeds += [(f_seed, g_seed)]
       return [acts, layer_step_seeds]
 
-    return py_utils.CallDefun(Fwd, [theta, inputs, extra_inputs], Bak)
+    if self.params.custom_gradient:
+      acts, _ = py_utils.CallDefun(
+          Fwd, [initial_step_seed, theta, inputs, extra_inputs], Bak)
+      py_utils.ResetStepSeed(final_step_seed)
+      return acts
+    else:
+      acts = inputs
+      for layer_theta, layer in zip(theta.sub_layers, self.sub_layers):
+        acts, _, _ = layer.FProp(layer_theta, acts, *extra_inputs)
+      return acts
