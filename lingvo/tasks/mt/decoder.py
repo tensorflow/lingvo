@@ -486,14 +486,19 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    assert p.emb.vocab_size == p.softmax.num_classes
+    if p.softmax.cls == layers.SharedSoftmaxLayer:
+      self._share_sm_emb = True
+    else:
+      self._share_sm_emb = False
 
     if p.cc_schedule is None:
       self.cc_schedule = None
     else:
       self.CreateChild('cc_schedule', p.cc_schedule)
 
-    self.CreateChild('emb', p.emb)
+    if not self._share_sm_emb:
+      assert p.emb.vocab_size == p.softmax.num_classes
+      self.CreateChild('emb', p.emb)
 
     p.attention.dtype = p.dtype
     p.attention.source_dim = p.source_dim
@@ -547,6 +552,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
     p.softmax.dtype = p.dtype
     if p.feed_attention_context_vec_to_softmax:
+      assert not self._share_sm_emb
       p.softmax.input_dim = p.rnn_cell_dim + p.attention.source_dim
     else:
       p.softmax.input_dim = p.rnn_cell_dim
@@ -559,10 +565,18 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       else:
         emb_device = ''
       with tf.device(emb_device):
-        self.emb.InstantiateVariables()
+        if not self._share_sm_emb:
+          self.emb.InstantiateVariables()
         self.frnn_with_atten.InstantiateVariables()
         for frnn in self.frnn:
           frnn.InstantiateVariables()
+
+    if self._share_sm_emb:
+      # Taking shared emb/softmax layer out of the decoder variable scope so
+      # that it can also be shared by encoder if needed.
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.softmax.InstantiateVariables()
+
     super()._CreateChildrenVariables()
 
   def ApplyDropout(self, x_in):
@@ -619,8 +633,13 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         emb_device = self.cluster.WorkerDeviceInModelSplit(0)
       else:
         emb_device = ''
+
+      if self._share_sm_emb:
+        inputs = self.softmax.EmbLookup(theta.softmax, target_ids)
+
       with tf.device(emb_device):
-        inputs = self.emb.EmbLookup(theta.emb, target_ids)
+        if not self._share_sm_emb:
+          inputs = self.emb.EmbLookup(theta.emb, target_ids)
         inputs = self.ApplyClipping(theta, inputs)
         summary_utils.histogram('input_emb', inputs)
         inputs = self.ApplyDropout(inputs)
@@ -908,7 +927,10 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     prev_atten_probs = states['atten_probs']
     prev_atten_states = states['atten_states']
     step_paddings = tf.zeros(py_utils.GetShape(step_ids), dtype=p.dtype)
-    embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))
+    if self._share_sm_emb:
+      embs = self.softmax.EmbLookup(theta.softmax, tf.reshape(step_ids, [-1]))
+    else:
+      embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))
     embs = self.ApplyClipping(theta, embs)
     atten_context, atten_probs, rnn_states, step_out, atten_states = (
         self._DecodeStep(theta, encoder_outputs, embs, step_paddings,
