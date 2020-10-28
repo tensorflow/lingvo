@@ -579,7 +579,6 @@ class MoEBuilder(builder.Base):
     def _Softmax(x):
       # if p.attention_extra_logit is None:
       #   return tf.nn.softmax(x)
-      # import ipdb; ipdb.set_trace()  # pyformat: disable
       return tf.math.exp(_LogSoftmax(x))
 
     return self._Graph(
@@ -778,6 +777,16 @@ class MoEBuilder(builder.Base):
     """
     p = self.params
     fprop_dtype = py_utils.FPropDtype(self.params)
+    collections = None
+    if p.relative_attention_type == 'bias_shared':
+      # Collection name is used as a unique ID to retrieve the shared variable.
+      #
+      # This name must be different for SelfAttentionRelativeBias (Encoder), and
+      # must have a suffix matching shared_var_collection_suffix, e.g.
+      # 'shared_var'.
+      collections = ['_dec_self_attention_shared_var']
+    else:
+      assert p.relative_attention_type == 'bias', p.relative_attention_type
 
     def _Notvisible(
         segment_id,
@@ -886,7 +895,7 @@ class MoEBuilder(builder.Base):
             'aux_loss',
         ],
         ('->wq,wk,wv,wo', self._AttentionWeights('w')),
-        ('->relative_bias_weights', self._RelativeAttentionBiasWeights('wrb')),
+        ('->relative_bias_weights', self._RelativeAttentionBiasWeights('wrb', collections)),
         ('inputs,wq->q', self._ComputeQKV('q')),
         ('inputs,wk->k', self._ComputeQKV('k')),
         ('inputs,wv->v', self._ComputeQKV('v')),
@@ -903,15 +912,23 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
-  def _RelativeAttentionBiasWeights(self, name):
+  def _RelativeAttentionBiasWeights(self, name, collections=None):
     """Helper for '->rb' Graph edge."""
     p = self.params
+
+    shared_var_collection_suffix = None
+    if collections is not None and collections:
+      shared_var_collection_suffix = 'shared_var'
     rb_stddev = (p.attention_num_heads * p.relative_attention_num_buckets)**-0.5
     rb_tpl = py_utils.WeightParams(
         shape=[p.attention_num_heads, p.relative_attention_num_buckets],
         dtype=self.params.dtype,
+        collections=collections,
         init=py_utils.WeightInit.Gaussian(rb_stddev))
-    return self._Var(name=name, weights=[('wrb', rb_tpl)])
+    return self._Var(
+        name=name,
+        weights=[('wrb', rb_tpl)],
+        shared_var_collection_suffix=shared_var_collection_suffix)
 
   def _zero_aux_loss(self, name):  # pylint: disable=invalid-name
     return self._Fn(name,
