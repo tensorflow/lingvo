@@ -60,3 +60,11 @@ Inside the docker bash, launch the 128B parameter model with logdir ${LOGDIR}:
 
     bazel run -c opt //lingvo:trainer -- --mode=sync --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 --ps_replicas=16 --cluster_placer_in_executor=true --job=executor_tpu
 
+## GShard under the hood.
+Everything in GShard starts with a registered model class. We bundle the model hyperparameters in a python class, for example, synthetic_packed_input.DenseLm128B8x8. The Task() function defines hyperparameters for model architecture as well as training parameters like learning rates et al. The Train() and Test() functions specify the input configs.
+
+GShard provides flexibility to divide a tensor or a variable along multiple axises. In DenseLm128B8x8, there are two sharding hyperparameters defining how tensors and variables are sharded across devices. First, NUM_DEVICES_PER_SPLIT defines the number of TPUV3 cores used for this model. That also defines the maximum number of partitions. DEVICE_MESH_SHAPE is a tuple of two integeres (s0, s1), each of which defines the number of partitions along some dimension of a tensor or variable. The product of s0 and s1 should be equal to NUM_DEVICES_PER_SPLIT. In transformer, tensors/variables are partitioned across NUM_DEVICES_PER_SPLIT devices:
+
+* The projection weight in feedforward layer with shape (M, H). M is the model dimension and H is the hidden dimension. The projection weigth will be divided into s0 partitions along the M axis and s1 partitions along the H axis.
+* The projection weight in the attention layer with shape (M, D, N). N is the number heads and D is key-value projection dimension per head. The weight matrix will be divided into s0 partitions along the M axis and s1 partitions along the N axis.
+* Activation Tensors with shape (B, S, M) where B is the batch size and S is the sequence length. Those activation tensors will be devided into s0 partitions along the B axis and s1 partitions along the M axis.

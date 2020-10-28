@@ -44,10 +44,6 @@ class SyntheticTrain(base_input_generator.BaseInputGenerator):
 
 class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   """DenseBuilder-based LM Template."""
-  DEVICE_MESH_SHAPE = [1, 64]
-
-  # The number of data replicas.
-  DATA_PARALLELISM = 1
   # Batch size per replica = BATCH_DIM_PER_DEVICE * NUM_DEVICES_PER_SPLIT
   BATCH_DIM_PER_DEVICE = 0.0625
   NUM_DEVICES_PER_SPLIT = 64  # number of devices per data replica.
