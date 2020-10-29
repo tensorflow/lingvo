@@ -3593,7 +3593,11 @@
              <span class="s1">&#39;If true, apply layer normalization to the final output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, each training example may pack multiple sequences.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm. &#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;layernorm_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Template for the &#39;</span>
+        <span class="s1">&#39;LayerNorm layers. use_fused_layernorm param above overrides the &#39;</span>
+        <span class="s1">&#39;layernorm_tpl.use_fused_layernorm for compatibility.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;splits&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;None or a list of layer indices. If None, all layers &#39;</span>
         <span class="s1">&#39;are placed on the same and only one partition. Else, len(splits) is &#39;</span>
@@ -3648,7 +3652,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;x_layers&#39;</span><span class="p">,</span> <span class="n">layer_params</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">:</span>
-      <span class="n">final_ln_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">final_ln_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">layernorm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mdl_dim</span><span class="p">,</span> <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span> <span class="n">final_ln_p</span><span class="p">)</span>
 
@@ -4265,7 +4269,10 @@
              <span class="s1">&#39;Whether to support packed input&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enable_per_dim_scale&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether using per_dim_scale or scaling by a constant factor.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm. &#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layernorm_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Template for the &#39;</span>
+             <span class="s1">&#39;LayerNorm layers. use_fused_layernorm param above overrides the &#39;</span>
+             <span class="s1">&#39;layernorm_tpl.use_fused_layernorm for compatibility.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use bias for projection layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_layer_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;If specified, the normalization layer template.&#39;</span><span class="p">)</span>
@@ -4289,6 +4296,15 @@
 <div class="viewcode-block" id="Builder._Add"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Add">[docs]</a>  <span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">residual_weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">ResidualAddLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
                                          <span class="n">residual_weight</span><span class="o">=</span><span class="n">residual_weight</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._DefaultLN"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._DefaultLN">[docs]</a>  <span class="k">def</span> <span class="nf">_DefaultLN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Layer norm with default params.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">layernorm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._ExpandDims"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._ExpandDims">[docs]</a>  <span class="k">def</span> <span class="nf">_ExpandDims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
@@ -4352,8 +4368,7 @@
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_feedforward&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
              <span class="s1">&#39;feedforward&#39;</span><span class="p">,</span>
-             <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
-                      <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">),</span>  <span class="c1"># LN with default params.</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias01&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_activation_fn</span><span class="p">),</span>
@@ -4460,8 +4475,7 @@
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;pre_conv&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
              <span class="s1">&#39;pre_conv&#39;</span><span class="p">,</span>
-             <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
-                      <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Glu</span><span class="p">(</span><span class="s1">&#39;glu&#39;</span><span class="p">),</span>
@@ -4567,8 +4581,7 @@
 
     <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_ln&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;LN&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
-                  <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;LN&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;after_ln-&gt;strided_query&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;query_after_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;after_att,prob&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attention_inputs</span><span class="p">),</span>
@@ -4703,7 +4716,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">ff_list</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">split_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>

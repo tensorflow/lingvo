@@ -3681,7 +3681,7 @@
         <span class="s1">&#39;without a +1.0.  Var is initialized to 1.0 instead. This makes &#39;</span>
         <span class="s1">&#39;the layer weight-compatible with the implementation in &#39;</span>
         <span class="s1">&#39;contrib.layers.&#39;</span><span class="p">)</span>
-
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_defun&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use CallDefun for normalization.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3774,8 +3774,10 @@
         <span class="n">x_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_norm</span><span class="p">,</span> <span class="n">x_shape</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="n">xs</span><span class="o">.</span><span class="n">scale</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">bias</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_defun</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span>
-          <span class="n">Normalize</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">cur_bias</span><span class="p">))</span></div>
+          <span class="n">Normalize</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">cur_bias</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">cur_bias</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="LayerNorm.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
