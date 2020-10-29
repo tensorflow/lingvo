@@ -163,6 +163,7 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;An experimental new unified TPU executor.&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">multiprocessing.dummy</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
@@ -500,9 +501,19 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="n">config_proto</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">worker</span><span class="p">))</span>
 
       <span class="c1"># Initialize the variables first, if needed.</span>
+      <span class="n">compile_fns</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
         <span class="n">program</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-        <span class="n">program</span><span class="o">.</span><span class="n">Compile</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+        <span class="n">compile_fns</span> <span class="o">+=</span> <span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">Compile</span><span class="p">]</span>
+
+      <span class="c1"># Run the compiles in parallel.</span>
+      <span class="n">threadpool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">dummy</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">compile_fns</span><span class="p">))</span>
+      <span class="n">futures</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Compiling </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">compile_fns</span><span class="p">)</span><span class="si">}</span><span class="s1"> programs in parallel.&#39;</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">compile_fns</span><span class="p">:</span>
+        <span class="n">futures</span> <span class="o">+=</span> <span class="p">[</span><span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))]</span>
+      <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">:</span>
+        <span class="n">future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
