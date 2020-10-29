@@ -15,6 +15,7 @@
 # ==============================================================================
 """An experimental new unified TPU executor."""
 
+import multiprocessing.dummy
 import os
 
 from lingvo import compat as tf
@@ -352,9 +353,19 @@ class ExecutorTpu(base_runner.BaseRunner):
             tf.tpu.initialize_system(embedding_config=config_proto, job=worker))
 
       # Initialize the variables first, if needed.
+      compile_fns = []
       for program in self._programs:
         program.RestoreIfNeeded(sess)
-        program.Compile(sess)
+        compile_fns += [program.Compile]
+
+      # Run the compiles in parallel.
+      threadpool = multiprocessing.dummy.Pool(len(compile_fns))
+      futures = []
+      tf.logging.info(f'Compiling {len(compile_fns)} programs in parallel.')
+      for fn in compile_fns:
+        futures += [threadpool.apply_async(fn, args=(sess,))]
+      for future in futures:
+        future.wait()
 
       sess.run(self._initialize_tables)
       sess.run(self._initialize_local_vars)
