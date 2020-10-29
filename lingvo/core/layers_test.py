@@ -4313,15 +4313,41 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     self.assertNear(0.997750, moving_vars[1], err=1.0e-6)
 
 
-class LayerNormTest(test_utils.TestCase):
+class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testLayerNormFProp(self):
-    with self.session(use_gpu=True):
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'gpu',
+      },
+      {
+          'testcase_name': 'nogpu',
+          'use_gpu': False
+      },
+      {
+          'testcase_name': 'fused_ln',
+          'use_gpu': False,
+          'use_fused_layernorm': True,
+          'atol': 5e-5,
+      },
+      {
+          'testcase_name': 'no_defun',
+          'use_gpu': False,
+          'use_defun': False,
+      },
+  )
+  def testLayerNormFProp(self,
+                         use_gpu=True,
+                         use_fused_layernorm=False,
+                         use_defun=True,
+                         atol=None):
+    with self.session(use_gpu=use_gpu):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.LayerNorm.Params()
       p.name = 'ln'
       p.input_dim = 3
+      p.use_fused_layernorm = use_fused_layernorm
+      p.use_defun = use_defun
       layer_norm = layers.LayerNorm(p)
       npy_input = np.random.normal(1.0, 0.5,
                                    [2, 4, 4, p.input_dim]).astype('float32')
@@ -4339,7 +4365,10 @@ class LayerNormTest(test_utils.TestCase):
       mean = npy_input.mean(-1, keepdims=True)
       variance = np.mean(np.square(npy_input - mean), -1, keepdims=True)
       npy_output = (npy_input - mean) / np.sqrt(variance + p.epsilon)
-      self.assertAllClose(sym_output, npy_output)
+      if atol is None:
+        self.assertAllClose(sym_output, npy_output)
+      else:
+        self.assertAllClose(sym_output, npy_output, atol=atol)
 
   def testLayerNormFPropDirectScale(self):
     with self.session(use_gpu=True):
@@ -4383,7 +4412,7 @@ class LayerNormTest(test_utils.TestCase):
       loss = tf.reduce_sum(output)
 
       all_vars = tf.trainable_variables()
-      self.assertEqual(2, len(all_vars))
+      self.assertLen(all_vars, 2)
 
       grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())

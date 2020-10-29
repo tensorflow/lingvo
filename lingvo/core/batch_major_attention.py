@@ -3445,7 +3445,11 @@ class StackedTransformerLayers(base_layer.BaseLayer):
              'If true, apply layer normalization to the final output.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
-    p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm. ')
+    p.Define(
+        'layernorm_tpl', layers.LayerNorm.Params(), 'Template for the '
+        'LayerNorm layers. use_fused_layernorm param above overrides the '
+        'layernorm_tpl.use_fused_layernorm for compatibility.')
     p.Define(
         'splits', None, 'None or a list of layer indices. If None, all layers '
         'are placed on the same and only one partition. Else, len(splits) is '
@@ -3500,7 +3504,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     self.CreateChildren('x_layers', layer_params)
 
     if p.final_layer_norm:
-      final_ln_p = layers.LayerNorm.Params().Set(
+      final_ln_p = p.layernorm_tpl.Copy().Set(
           input_dim=p.mdl_dim, use_fused_layernorm=p.use_fused_layernorm)
       self.CreateChild('final_ln', final_ln_p)
 
@@ -4117,7 +4121,10 @@ class Builder(builder.Base):
              'Whether to support packed input')
     p.Define('enable_per_dim_scale', True,
              'Whether using per_dim_scale or scaling by a constant factor.')
-    p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm. ')
+    p.Define('layernorm_tpl', layers.LayerNorm.Params(), 'Template for the '
+             'LayerNorm layers. use_fused_layernorm param above overrides the '
+             'layernorm_tpl.use_fused_layernorm for compatibility.')
     p.Define('use_bias', True, 'Whether to use bias for projection layer.')
     p.Define('norm_layer_tpl', None,
              'If specified, the normalization layer template.')
@@ -4141,6 +4148,15 @@ class Builder(builder.Base):
   def _Add(self, name, residual_weight=1.0):
     return ResidualAddLayer.Params().Set(name=name,
                                          residual_weight=residual_weight)
+
+  def _DefaultLN(self, name):
+    """Layer norm with default params."""
+    p = self.params
+    return p.layernorm_tpl.Copy().Set(
+        name=name,
+        input_dim=p.model_dim,
+        use_fused_layernorm=p.use_fused_layernorm,
+        fprop_dtype=p.fprop_dtype)
 
   def _ExpandDims(self, name):
     return self._Fn(name,
@@ -4204,8 +4220,7 @@ class Builder(builder.Base):
         ('i.vec->after_feedforward',
          self._Seq(
              'feedforward',
-             self._LN('ln', p.model_dim,
-                      use_fused_layernorm=p.use_fused_layernorm),
+             self._DefaultLN('ln'),  # LN with default params.
              self._Linear('linear01', p.model_dim, ff_hidden_dim),
              self._Bias('bias01', ff_hidden_dim),
              self._Activation('act', p.ff_activation_fn),
@@ -4312,8 +4327,7 @@ class Builder(builder.Base):
         ('i.vec->pre_conv',
          self._Seq(
              'pre_conv',
-             self._LN('ln', p.model_dim,
-                      use_fused_layernorm=p.use_fused_layernorm),
+             self._DefaultLN('ln'),
              self._Linear('linear', p.model_dim, p.model_dim * 2),
              self._Bias('bias', p.model_dim * 2),
              self._Glu('glu'),
@@ -4419,8 +4433,7 @@ class Builder(builder.Base):
 
     sub_list = [
         ('i.vec->after_ln',
-         self._LN('LN', p.model_dim,
-                  use_fused_layernorm=p.use_fused_layernorm)),
+         self._DefaultLN('LN')),
         ('after_ln->strided_query',
          self._Stride('query_after_stride', stride, first_n)),
         ('{}->after_att,prob'.format(attention_inputs),
@@ -4555,7 +4568,7 @@ class LmBuilder(Builder):
     p = self.params
 
     ff_list = [
-        self._LN('ln', p.model_dim, use_fused_layernorm=p.use_fused_layernorm),
+        self._DefaultLN('ln'),
         self._Linear('linear01', p.model_dim, p.ff_hidden_dim, split_dim=1)
     ]
     if p.use_bias:

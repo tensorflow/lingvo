@@ -3533,7 +3533,7 @@ class LayerNorm(base_layer.BaseLayer):
         'without a +1.0.  Var is initialized to 1.0 instead. This makes '
         'the layer weight-compatible with the implementation in '
         'contrib.layers.')
-
+    p.Define('use_defun', True, 'Whether to use CallDefun for normalization.')
     return p
 
   def __init__(self, params):
@@ -3626,8 +3626,10 @@ class LayerNorm(base_layer.BaseLayer):
         x_norm = tf.reshape(x_norm, x_shape)
         return x_norm * xs.scale + xs.bias
 
+    if p.use_defun:
       return py_utils.CallDefun(
           Normalize, py_utils.NestedMap(x=inputs, scale=scale, bias=cur_bias))
+    return Normalize(py_utils.NestedMap(x=inputs, scale=scale, bias=cur_bias))
 
   @classmethod
   def NumOutputNodes(cls, p):
