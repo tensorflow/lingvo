@@ -650,7 +650,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
           strides=(1, 1, 1, 1),
           dilations=(1, 1),
           data_format='NHWC',
-          padding=[[0, 0]] * 4)
+          padding='VALID')
 
       new_context = inputs[:, -(p.filter_shape[0] - 1):, :, :]
       return outputs, paddings, py_utils.NestedMap(context=new_context)

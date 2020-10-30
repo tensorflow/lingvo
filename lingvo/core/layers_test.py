@@ -467,8 +467,10 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       ('Stride2', 2),
       ('Stride2Group1', 2, 1),
       ('Stride4', 4),
+      ('TfLiteCompatible', 1, 2, True),
   )
-  def testStreamStep(self, stride=1, num_groups=2):
+  def testStreamStep(self, stride=1, num_groups=2, tflite_compatible=False):
+    py_utils.FLAGS.tflite_compatible = tflite_compatible
     batch, max_seqlen, input_dim = 2, 16, 4
     p = bn_layers.GroupNormLayer.Params().Set(
         name='gn',

@@ -1518,9 +1518,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     ], py_utils.FPropDtype(p))
     value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
-    paddings = tf.ones([batch_size, p.left_context - 1], py_utils.FPropDtype(p))
-    return py_utils.NestedMap(
-        key=key_state, value=value_state, paddings=paddings)
+    masks = tf.zeros([batch_size, p.left_context - 1], py_utils.FPropDtype(p))
+    return py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
 
   def StreamStep(self, theta, query_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
@@ -1570,12 +1569,10 @@ class LocalSelfAttention(MultiHeadedAttention):
       value = tf.concat(
           [state0.value, self.value.FProp(theta.value, query_vec)], axis=1)
       # [B, T=Q+W-1]. 1s are masked positions.
-      state_paddings = tf.concat([state0.paddings, paddings], axis=1)
+      state_paddings = tf.concat([1 - state0.masks, paddings], axis=1)
       t = py_utils.GetShape(state_paddings)[1]
 
       # [B, Q, N, T]
-      # TODO(wildstone): Replaces the einsum ops used below with matmul to get
-      # rid of TfLite Flex ops.
       logits = tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
 
       very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
@@ -1622,7 +1619,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       state1 = py_utils.NestedMap(
           key=key[:, -(p.left_context - 1):, :, :],
           value=value[:, -(p.left_context - 1):, :, :],
-          paddings=state_paddings[:, -(p.left_context - 1):])
+          masks=1 - state_paddings[:, -(p.left_context - 1):])
       return output, paddings, state1
 
   @classmethod

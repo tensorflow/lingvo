@@ -927,8 +927,20 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'count_v: %r', count_v)
 
     mean = sum_v / count_v
-    sum_vv = tf.reduce_sum(
-        (inputs - mean)**2 * mask, reduce_over_dims, keepdims=True)
+    if py_utils.FLAGS.tflite_compatible:
+      # TfLite doesn't support broadcasting with 5D tensors.
+      inputs_shape = py_utils.GetShape(inputs)
+      if len(inputs_shape) == 4:
+        tiled_mean = tf.tile(mean, [1, 1, 1, inputs_shape[3]])
+      else:
+        tiled_mean = tf.tile(mean, [1, 1, inputs_shape[2], 1, inputs_shape[4]])
+      sum_vv = tf.reduce_sum(
+          tf.math.square(inputs - tiled_mean) * mask,
+          reduce_over_dims,
+          keepdims=True)
+    else:
+      sum_vv = tf.reduce_sum(
+          (inputs - mean)**2 * mask, reduce_over_dims, keepdims=True)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
     sum_vv += cached_var
 
