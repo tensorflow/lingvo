@@ -19,6 +19,7 @@ from lingvo import model_registry
 from lingvo.core import base_input_generator
 from lingvo.core import base_model_params
 from lingvo.core import gshard_builder
+from lingvo.core import moe_layers
 from lingvo.core import optimizer
 from lingvo.core import program
 from lingvo.core import py_utils
@@ -137,15 +138,20 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
     return p
 
 
-# total params: 137,702,416,384
+# Total params: 137,702,416,384.
+# Expect ~ 3.7k tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \
+# --ps_replicas=8 --cluster_placer_in_executor=true --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B8x8(DenseLmTemplate):
   """128B params LM model with 2D split."""
   NUM_DEVICES_PER_SPLIT = 128
+  BATCH_DIM_PER_DEVICE = 0.125
   NUM_TRANSFORMER_LAYERS = 64  # 64 blocks of [DecSelfAttention, DenseReluDense]
   DEVICE_MESH_SHAPE = [8, 16]
-  DEVICE_MESH = np.reshape(
-      np.arange(0, np.product(DEVICE_MESH_SHAPE)), DEVICE_MESH_SHAPE)
+  DEVICE_MESH = moe_layers.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [8, 8, 2])
 
   def Task(self):
     p = super().Task()
@@ -158,3 +164,32 @@ class DenseLm128B8x8(DenseLmTemplate):
     # partitioned.
     p.builder.logits_split = [0, 1, -1]
     return p
+
+
+# Expect ~ 3.7k tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B16x16 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
+# --ps_replicas=32 --cluster_placer_in_executor=true --job=executor_tpu
+@model_registry.RegisterSingleTaskModel
+class DenseLm128B16x16(DenseLm128B8x8):
+  """128B params LM model with 2D split on v3-512."""
+  NUM_DEVICES_PER_SPLIT = 512
+  BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 128
+  DEVICE_MESH_SHAPE = [16, 32]
+  DEVICE_MESH = moe_layers.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [16, 16, 2])
+
+
+# Expect ~ 62k tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B32x32 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
+# --ps_replicas=128 --cluster_placer_in_executor=true --job=executor_tpu
+@model_registry.RegisterSingleTaskModel
+class DenseLm128B32x32(DenseLm128B8x8):
+  """128B params LM model with 2D split on v3-2048."""
+  NUM_DEVICES_PER_SPLIT = 2048
+  BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 512
+  DEVICE_MESH_SHAPE = [32, 64]
+  DEVICE_MESH = np.reshape(
+      np.arange(0, np.product(DEVICE_MESH_SHAPE)), DEVICE_MESH_SHAPE)

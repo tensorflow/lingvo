@@ -26,6 +26,7 @@ py_library(
         "//lingvo/core:base_model_params",
         "//lingvo/core:gshard_builder",
         "//lingvo/core:layers",
+        "//lingvo/core:moe_layers",
         "//lingvo/core:optimizer",
         "//lingvo/core:program_lib",
         "//lingvo/core:py_utils",

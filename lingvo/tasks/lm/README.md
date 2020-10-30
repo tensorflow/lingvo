@@ -51,14 +51,16 @@ On the Compute Engine VM terminal:
 ### Data Prep
 The current setup assumed a synthetic input. We will provide more examples using real data soon.
 
-## Launching the training job on a 8x8 Cloud TPU V3.
+## Launching the training job on a Cloud TPU V3-128.
 First launch lingvo on docker:
 
     sudo docker run --rm -it -v /home/$(whoami)/lingvo:/tmp/lingvo -e TPU_NAME=${TPU_NAME} --name lingvo tensorflow:lingvo_dev_lm bash
 
 Inside the docker bash, launch the 128B parameter model with logdir ${LOGDIR}:
 
-    bazel run -c opt //lingvo:trainer -- --mode=sync --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 --ps_replicas=16 --cluster_placer_in_executor=true --job=executor_tpu
+    bazel run -c opt //lingvo:trainer -- --mode=sync --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 --ps_replicas=8 --cluster_placer_in_executor=true --job=executor_tpu
+
+where worker_split_size should be the number of TPU cores used and ps_replicas should be the number of TPU hosts.
 
 ## GShard under the hood.
 Everything in GShard starts with a registered model class. We bundle the model hyperparameters in a python class, for example, synthetic_packed_input.DenseLm128B8x8. The Task() function defines hyperparameters for model architecture as well as training parameters like learning rates et al. The Train() and Test() functions specify the input configs.
