@@ -36,6 +36,12 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('output_dim', 3, 'Depth of the output.')
     return p
 
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self.CreateAqtWeight(
+        'aqt_w', shape=[p.input_dim, p.output_dim], feature_axis=-1)
+
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
@@ -64,7 +70,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
 
     # TODO(shivaniagrawal): change this to ToAqtWeight and FromAqtWeight.
     w = self.AqtWeight(
-        w, feature_axis=-1, expected_scale_shape=(1, p.output_dim))
+        'aqt_w', w, feature_axis=-1, expected_scale_shape=(1, p.output_dim))
 
     inputs = self.QTensor('inputs', inputs)
 

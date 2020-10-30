@@ -127,6 +127,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     p = self.params
 
     self._tracked_tensors = dict()  # tracked t_name -> (QDomain)
+    self._aqt_weights = dict()  # aqt w_name -> (Qdomain)
     self._qstate = None  # t_name -> Tensor
 
     # Instantiate quantization domains.
@@ -214,6 +215,24 @@ class QuantizableLayer(base_layer.BaseLayer):
       if qd:
         qd.CreateTensor(t_name)
 
+  def CreateAqtWeight(self, w_name, shape, feature_axis, domain='weight'):
+    """Creates Quantized weights for later use.
+
+    Weight that will later be quantized must be created first, preferably
+    in _CreateLayerVariables().
+
+    Args:
+      w_name: Positional parameters are taken to be QTensor names to create.
+      shape: Can contain an explicit 'domain'. Written this way due to python2
+        limitations
+      feature_axis: axis corresponding to output channel/feature for weights.
+      domain: Custom domain to match (defaults to 'weight').
+    """
+    qd = self.GetQDomain(domain)
+    self._aqt_weights[w_name] = qd
+    if qd:
+      qd.CreateTensorWithShape(w_name, shape, feature_axis)
+
   def QTensor(self, t_name, t, eval_only=False):
     """Quantizes a general tensor input/output in one step.
 
@@ -223,6 +242,7 @@ class QuantizableLayer(base_layer.BaseLayer):
       t_name: Previously created QTensor t_name to quantize to.
       t: Tensor to quantize.
       eval_only: Whether to only apply quantization pressure at eval time.
+
     Returns:
       The tensor, quantized.
     """
@@ -281,70 +301,85 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self.GetQDomain(domain)
     return qd.QuantizeWeight(w) if qd else w
 
-  def AqtWeight(self,
-                w,
-                feature_axis,
-                expected_scale_shape=None,
-                domain='weight'):
+  def AqtWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
     """AQT Quantized weight FQ style.
 
     This is analogous to QWeight; either AqtWeight or QWeight should be identity
     for alll domains. AqtQDomain additionally supports per channel quantization.
 
+    w_name must have been previously created via CreateAqtWeight.
+
     Args:
+      w_name: Previously created w_name QWeight to quantize weight.
       w: The weight tensor.
       feature_axis: axis corresponding to output channel/feature for weights.
       expected_scale_shape: Optional shape to verify if scale shape is as
         expected. Defaults to None.
-      domain: Custom domain to match (defaults to 'weight').
 
     Returns:
       Quantized weights.
     """
-    qd = self.GetQDomain(domain)
+    assert w_name in self._aqt_weights, (
+        ('Call to AqtWeight without first calling CreateAqtWeight: %s '
+         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+    qd = self._aqt_weights[w_name]
+    if not qd:
+      return w
     return qd.AqtWeight(
-        w, feature_axis=feature_axis,
-        expected_scale_shape=expected_scale_shape) if qd else w
+        w_name,
+        w,
+        feature_axis=feature_axis,
+        expected_scale_shape=expected_scale_shape)
 
-  def ToAqtWeight(self,
-                  w,
-                  feature_axis,
-                  expected_scale_shape=None,
-                  domain='weight'):
+  def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
     """Quantized integer weight AQT style.
 
     This only scales, rounds and clips; resulting quantized weight would be
     either integer ot integer emulated in float.
 
+    w_name must have been previously created via CreateAqtWeight.
+
     Args:
+      w_name: Previously created w_name QWeight to quantize weight.
       w: The weight tensor.
       feature_axis: axis corresponding to output channel/feature for weights.
       expected_scale_shape: Optional shape to verify if scale shape is expected.
         Defaults to None.
-      domain: Custom domain to match (defaults to 'weight' or 'default').
 
     Returns:
       Quantized weights.
     """
-    qd = self.GetQDomain(domain)
+    assert w_name in self._aqt_weights, (
+        ('Call to ToAqtWeight without first calling CreateAqtWeight: %s '
+         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+    qd = self._aqt_weights[w_name]
+    if not qd:
+      return w
     return qd.ToAqtWeight(
-        w, feature_axis=feature_axis,
-        expected_scale_shape=expected_scale_shape) if qd else w
+        w_name,
+        w,
+        feature_axis=feature_axis,
+        expected_scale_shape=expected_scale_shape)
 
-  def FromAqtWeight(self, w, domain='weight'):
+  def FromAqtWeight(self, w_name, w):
     """Rescales a AQT style quantized weight.
 
     Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.
 
+    w_name must have been previously created via CreateAqtWeight.
+
     Args:
+      w_name: Previously created w_name QWeight to quantize weight.
       w: The weight tensor.
-      domain: Custom domain to match (defaults to 'weight' or 'default').
 
     Returns:
       Rescaled weights.
     """
-    qd = self.GetQDomain(domain)
-    return qd.FromAqtWeight(w) if qd else w
+    assert w_name in self._aqt_weights, (
+        ('Call to FromAqtWeight without first calling CreateAqtWeight: %s '
+         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+    qd = self._aqt_weights[w_name]
+    return qd.FromAqtWeight(w_name, w) if qd else w
 
   def GetQDomain(self, domain):
     """Gets the QDomain matching a given domain name.
@@ -860,60 +895,51 @@ class QDomain(base_layer.BaseLayer):
     """
     return w
 
-  def AqtWeight(self,
-                w,
-                *,
-                feature_axis,
-                expected_scale_shape,
-                domain='weight'):
+  def AqtWeight(self, w_name, w, feature_axis, expected_scale_shape):
     """AQT Quantized weight FQ style .
 
     Args:
+      w_name: weight name.
       w: The weight tensor.
       feature_axis: axis corresponding to output channel/feature for weights.
       expected_scale_shape: Optional shape to verify if scale shape is expected.
-      domain: Custom domain to match (defaults to 'weight' or 'default').
 
     Returns:
       Quantized weights.
     """
-    del feature_axis, expected_scale_shape
+    del feature_axis, expected_scale_shape, w_name
     return w
 
-  def ToAqtWeight(self,
-                  w,
-                  *,
-                  feature_axis,
-                  expected_scale_shape,
-                  domain='weight'):
+  def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape):
     """Quantized weight AQT style.
 
     Refer to quantizable_layer.ToAqtWeight.
 
     Args:
+      w_name: weight name.
       w: The weight tensor.
       feature_axis: axis corresponding to output channel/feature for weights.
       expected_scale_shape: Optional shape to verify if scale shape is expected.
-      domain: Custom domain to match (defaults to 'weight' or 'default').
 
     Returns:
       Quantized weights.
     """
-    del feature_axis, expected_scale_shape
+    del feature_axis, expected_scale_shape, w_name
     return w
 
-  def FromAqtWeight(self, w, domain='weight'):
+  def FromAqtWeight(self, w_name, w):
     """Rescales a AQT quantized weight.
 
     Refer to quantizable_layer.FromAqtWeight.
 
     Args:
+      w_name: weight name.
       w: The weight tensor.
-      domain: Custom domain to match (defaults to 'weight' or 'default').
 
     Returns:
       Rescaled weights.
     """
+    del w_name
     return w
 
   def QuantizeConstantRange(self, t, min_value, max_value):
@@ -949,6 +975,16 @@ class QDomain(base_layer.BaseLayer):
 
     Args:
       t_name: Unique name (within layer) for this tensor.
+    """
+    pass
+
+  def CreateTensorWithShape(self, t_name, shape, feature_axis):
+    """Creates a QTensor with t_name and given shape.
+
+    Args:
+      t_name: Unique name (within layer) for this tensor.
+      shape: Expected shape of the tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
     """
     pass
 

@@ -911,6 +911,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
+    self.CreateAqtWeight(
+        'projection_aqt', shape=[p.input_dim, p.output_dim], feature_axis=-1)
 
   def _GetBlockedMatMulInputOutputMultipliers(self):
     """Get number of input and output blocks."""
@@ -1067,7 +1069,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
             dtype=inputs.dtype)
       w, b = self._GetWeights(theta, inputs, paddings)
-      w = self.AqtWeight(w, feature_axis=-1)
+      w = self.AqtWeight('projection_aqt', w, feature_axis=-1)
       w = self.QWeight(w)
 
       if p.affine_last:
@@ -2084,6 +2086,9 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     assert self._fprop_mode in valid_fprop_modes, (
         'fprop_mode must be one of %r' % valid_fprop_modes)
 
+    _, weight_shape = self._GetWeightShape()
+    self.CreateAqtWeight('emb_aqt', shape=weight_shape, feature_axis=-1)
+
   def _FpropImpl(self, embs, ids_vec):
     """The embedding lookup implementation."""
     p = self.params
@@ -2297,10 +2302,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     ], ids)
     flat_ids = tf.reshape(ids, [-1])
     wm = self.QWeight(theta.wm)
-    wm = self.ToAqtWeight(wm, feature_axis=-1)
+    wm = self.ToAqtWeight('emb_aqt', wm, feature_axis=-1)
     embs_result = self._FpropImpl(wm, flat_ids)
 
-    embs_result = self.FromAqtWeight(embs_result)
+    embs_result = self.FromAqtWeight('emb_aqt', embs_result)
 
     if p.vn.global_vn or p.vn.per_step_vn:
       p.vn.seed = p.random_seed
@@ -2777,6 +2782,10 @@ class SimpleFullSoftmax(SoftmaxLayer):
     if not p.use_bias:
       assert p.num_sampled == 0, 'Sampled softmax requires bias.'
 
+    if p.num_shards == 1:
+      self.CreateAqtWeight(
+          'softmax_aqt', shape=[p.input_dim, p.num_classes], feature_axis=-1)
+
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
@@ -2871,7 +2880,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
     p = self.params
     inputs = self.QTensor('inputs', inputs)
     wm = self.QWeight(theta.wm)
-    wm = self.AqtWeight(wm, feature_axis=-1)
+    if p.num_shards == 1:
+      wm = self.AqtWeight('softmax_aqt', wm, feature_axis=-1)
     if p.use_bias:
       bias = self.QWeight(theta.bias)
 

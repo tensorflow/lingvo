@@ -1151,6 +1151,13 @@ class LayerNormalizedLSTMCell(RNNCell):
       self.CreateChild('cc_schedule', params.cc_schedule)
 
     self._timestep = -1
+    self.CreateAqtWeight(
+        'rnn_aqt',
+        shape=[
+            params.num_input_nodes + params.num_output_nodes,
+            4 * params.num_output_nodes
+        ],
+        feature_axis=-1)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -1218,7 +1225,7 @@ class LayerNormalizedLSTMCell(RNNCell):
   def _Mix(self, theta, state0, inputs):
     if not isinstance(inputs.act, list):
       raise ValueError('Input activations must be of list type!')
-    wm = self.AqtWeight(theta.wm, feature_axis=-1)
+    wm = self.AqtWeight('rnn_aqt', theta.wm, feature_axis=-1)
     return py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), wm)
 
   def _Gates(self, xmw, theta, state0, inputs):
