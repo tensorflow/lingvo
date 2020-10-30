@@ -339,6 +339,25 @@ python2 limitations.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight">
+<code class="sig-name descname">CreateAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w_name</span></em>, <em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">domain</span><span class="o">=</span><span class="default_value">'weight'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.CreateAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates Quantized weights for later use.</p>
+<p>Weight that will later be quantized must be created first, preferably
+in _CreateLayerVariables().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – Positional parameters are taken to be QTensor names to create.</p></li>
+<li><p><strong>shape</strong> – Can contain an explicit ‘domain’. Written this way due to python2
+limitations</p></li>
+<li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
+<li><p><strong>domain</strong> – Custom domain to match (defaults to ‘weight’).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.quant_utils.QuantizableLayer.QTensor">
 <code class="sig-name descname">QTensor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t_name</span></em>, <em class="sig-param"><span class="n">t</span></em>, <em class="sig-param"><span class="n">eval_only</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QTensor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a general tensor input/output in one step.</p>
@@ -417,18 +436,19 @@ previously quantized.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QuantizableLayer.AqtWeight">
-<code class="sig-name descname">AqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">domain</span><span class="o">=</span><span class="default_value">'weight'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.AqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.AqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w_name</span></em>, <em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.AqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.AqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>AQT Quantized weight FQ style.</p>
 <p>This is analogous to QWeight; either AqtWeight or QWeight should be identity
 for alll domains. AqtQDomain additionally supports per channel quantization.</p>
+<p>w_name must have been previously created via CreateAqtWeight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – Previously created w_name QWeight to quantize weight.</p></li>
 <li><p><strong>w</strong> – The weight tensor.</p></li>
 <li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
 <li><p><strong>expected_scale_shape</strong> – Optional shape to verify if scale shape is as
 expected. Defaults to None.</p></li>
-<li><p><strong>domain</strong> – Custom domain to match (defaults to ‘weight’).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -439,18 +459,19 @@ expected. Defaults to None.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight">
-<code class="sig-name descname">ToAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">domain</span><span class="o">=</span><span class="default_value">'weight'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ToAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w_name</span></em>, <em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantized integer weight AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized weight would be
 either integer ot integer emulated in float.</p>
+<p>w_name must have been previously created via CreateAqtWeight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – Previously created w_name QWeight to quantize weight.</p></li>
 <li><p><strong>w</strong> – The weight tensor.</p></li>
 <li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
 <li><p><strong>expected_scale_shape</strong> – Optional shape to verify if scale shape is expected.
 Defaults to None.</p></li>
-<li><p><strong>domain</strong> – Custom domain to match (defaults to ‘weight’ or ‘default’).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -461,14 +482,15 @@ Defaults to None.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">
-<code class="sig-name descname">FromAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">domain</span><span class="o">=</span><span class="default_value">'weight'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FromAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w_name</span></em>, <em class="sig-param"><span class="n">w</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales a AQT style quantized weight.</p>
 <p>Uses the same scale used by <a class="reference internal" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ToAqtWeight</span></code></a> and apply its inverse to rescale.</p>
+<p>w_name must have been previously created via CreateAqtWeight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – Previously created w_name QWeight to quantize weight.</p></li>
 <li><p><strong>w</strong> – The weight tensor.</p></li>
-<li><p><strong>domain</strong> – Custom domain to match (defaults to ‘weight’ or ‘default’).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -981,15 +1003,15 @@ if None.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QDomain.AqtWeight">
-<code class="sig-name descname">AqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span></em>, <em class="sig-param"><span class="n">domain</span><span class="o">=</span><span class="default_value">'weight'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.AqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.AqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w_name</span></em>, <em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.AqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.AqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>AQT Quantized weight FQ style .</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – weight name.</p></li>
 <li><p><strong>w</strong> – The weight tensor.</p></li>
 <li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
 <li><p><strong>expected_scale_shape</strong> – Optional shape to verify if scale shape is expected.</p></li>
-<li><p><strong>domain</strong> – Custom domain to match (defaults to ‘weight’ or ‘default’).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1000,16 +1022,16 @@ if None.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QDomain.ToAqtWeight">
-<code class="sig-name descname">ToAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span></em>, <em class="sig-param"><span class="n">domain</span><span class="o">=</span><span class="default_value">'weight'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ToAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w_name</span></em>, <em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em>, <em class="sig-param"><span class="n">expected_scale_shape</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantized weight AQT style.</p>
 <p>Refer to quantizable_layer.ToAqtWeight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – weight name.</p></li>
 <li><p><strong>w</strong> – The weight tensor.</p></li>
 <li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
 <li><p><strong>expected_scale_shape</strong> – Optional shape to verify if scale shape is expected.</p></li>
-<li><p><strong>domain</strong> – Custom domain to match (defaults to ‘weight’ or ‘default’).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1020,14 +1042,14 @@ if None.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QDomain.FromAqtWeight">
-<code class="sig-name descname">FromAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">domain</span><span class="o">=</span><span class="default_value">'weight'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FromAqtWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w_name</span></em>, <em class="sig-param"><span class="n">w</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales a AQT quantized weight.</p>
 <p>Refer to quantizable_layer.FromAqtWeight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – weight name.</p></li>
 <li><p><strong>w</strong> – The weight tensor.</p></li>
-<li><p><strong>domain</strong> – Custom domain to match (defaults to ‘weight’ or ‘default’).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1081,6 +1103,21 @@ range that we do not deviate from.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>t_name</strong> – Unique name (within layer) for this tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.quant_utils.QDomain.CreateTensorWithShape">
+<code class="sig-name descname">CreateTensorWithShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t_name</span></em>, <em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">feature_axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.CreateTensorWithShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.CreateTensorWithShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a QTensor with t_name and given shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t_name</strong> – Unique name (within layer) for this tensor.</p></li>
+<li><p><strong>shape</strong> – Expected shape of the tensor.</p></li>
+<li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

@@ -1399,6 +1399,19 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+        <span class="s1">&#39;query_proj_aqt&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+        <span class="s1">&#39;source_proj_aqt&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+        <span class="s1">&#39;ctx_pre_proj_aqt&#39;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">context_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
+        <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+        <span class="s1">&#39;ctx_post_proj_aqt&#39;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">],</span>
+        <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
 <div class="viewcode-block" id="MultiHeadedAttention._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1534,7 +1547,8 @@
         <span class="n">source_vec_depth</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init__0b&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_source_proj</span><span class="p">:</span>
-          <span class="n">w_source_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">source_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+          <span class="n">w_source_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span>
+              <span class="s1">&#39;source_proj_aqt&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">source_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
           <span class="n">w_source_proj</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">w_source_proj</span><span class="p">)</span>
           <span class="n">source_projected</span> <span class="o">=</span> <span class="p">(</span>
               <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
@@ -1561,7 +1575,8 @@
         <span class="n">source_contexts_reshaped</span> <span class="o">=</span> <span class="n">source_projected</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_pre_proj</span><span class="p">:</span>
-          <span class="n">w_ctx_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+          <span class="n">w_ctx_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span>
+              <span class="s1">&#39;ctx_pre_proj_aqt&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
           <span class="n">w_ctx_proj</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">w_ctx_proj</span><span class="p">)</span>
 
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
@@ -1776,7 +1791,8 @@
     <span class="n">query_vec_projected_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">static_inner_atten_dim</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_query_proj</span><span class="p">:</span>
-      <span class="n">w_query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">w_query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span>
+          <span class="s1">&#39;query_proj_aqt&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">query_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">w_query_proj</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">w_query_proj</span><span class="p">)</span>
       <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
           <span class="n">query_vec</span><span class="p">,</span> <span class="n">w_query_proj</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">)</span>
@@ -1829,7 +1845,8 @@
             <span class="s1">&#39;atten_idx is None, this means there is no need to select &#39;</span>
             <span class="s1">&#39;different post projections, and p.num_post_proj is supposed to be &#39;</span>
             <span class="s1">&#39;1. However you set p.num_post_proj=</span><span class="si">%s</span><span class="s1"> .&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span><span class="p">)</span>
-        <span class="n">w_ctx_post_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">w_ctx_post_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span>
+            <span class="s1">&#39;ctx_post_proj_aqt&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">w_ctx_post_proj</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">w_ctx_post_proj</span><span class="p">)</span>
         <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
             <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">w_ctx_post_proj</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">)</span>

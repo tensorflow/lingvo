@@ -184,6 +184,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+        <span class="s1">&#39;aqt_w&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
 <div class="viewcode-block" id="SampleQuantizedProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.quant_test_lib.html#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -212,7 +218,7 @@
 
     <span class="c1"># TODO(shivaniagrawal): change this to ToAqtWeight and FromAqtWeight.</span>
     <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span>
-        <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">))</span>
+        <span class="s1">&#39;aqt_w&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">))</span>
 
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 

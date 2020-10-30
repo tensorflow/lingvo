@@ -275,6 +275,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># tracked t_name -&gt; (QDomain)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># aqt w_name -&gt; (Qdomain)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_qstate</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># t_name -&gt; Tensor</span>
 
     <span class="c1"># Instantiate quantization domains.</span>
@@ -362,6 +363,24 @@
       <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
         <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="QuantizableLayer.CreateAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">CreateAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates Quantized weights for later use.</span>
+
+<span class="sd">    Weight that will later be quantized must be created first, preferably</span>
+<span class="sd">    in _CreateLayerVariables().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      w_name: Positional parameters are taken to be QTensor names to create.</span>
+<span class="sd">      shape: Can contain an explicit &#39;domain&#39;. Written this way due to python2</span>
+<span class="sd">        limitations</span>
+<span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
+<span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39;).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">qd</span>
+    <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
+      <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensorWithShape</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="QuantizableLayer.QTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QTensor">[docs]</a>  <span class="k">def</span> <span class="nf">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes a general tensor input/output in one step.</span>
 
@@ -371,6 +390,7 @@
 <span class="sd">      t_name: Previously created QTensor t_name to quantize to.</span>
 <span class="sd">      t: Tensor to quantize.</span>
 <span class="sd">      eval_only: Whether to only apply quantization pressure at eval time.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">      The tensor, quantized.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -429,70 +449,85 @@
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeWeight</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">w</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.AqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.AqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">AqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                <span class="n">w</span><span class="p">,</span>
-                <span class="n">feature_axis</span><span class="p">,</span>
-                <span class="n">expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizableLayer.AqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.AqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">AqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;AQT Quantized weight FQ style.</span>
 
 <span class="sd">    This is analogous to QWeight; either AqtWeight or QWeight should be identity</span>
 <span class="sd">    for alll domains. AqtQDomain additionally supports per channel quantization.</span>
 
+<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+
 <span class="sd">    Args:</span>
+<span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
 <span class="sd">      w: The weight tensor.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">      expected_scale_shape: Optional shape to verify if scale shape is as</span>
 <span class="sd">        expected. Defaults to None.</span>
-<span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39;).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s1">&#39;Call to AqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
+         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">w</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span>
-        <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">,</span>
-        <span class="n">expected_scale_shape</span><span class="o">=</span><span class="n">expected_scale_shape</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">w</span></div>
+        <span class="n">w_name</span><span class="p">,</span>
+        <span class="n">w</span><span class="p">,</span>
+        <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">,</span>
+        <span class="n">expected_scale_shape</span><span class="o">=</span><span class="n">expected_scale_shape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.ToAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                  <span class="n">w</span><span class="p">,</span>
-                  <span class="n">feature_axis</span><span class="p">,</span>
-                  <span class="n">expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizableLayer.ToAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantized integer weight AQT style.</span>
 
 <span class="sd">    This only scales, rounds and clips; resulting quantized weight would be</span>
 <span class="sd">    either integer ot integer emulated in float.</span>
 
+<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+
 <span class="sd">    Args:</span>
+<span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
 <span class="sd">      w: The weight tensor.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">      expected_scale_shape: Optional shape to verify if scale shape is expected.</span>
 <span class="sd">        Defaults to None.</span>
-<span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39; or &#39;default&#39;).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s1">&#39;Call to ToAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
+         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">w</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span>
-        <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">,</span>
-        <span class="n">expected_scale_shape</span><span class="o">=</span><span class="n">expected_scale_shape</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">w</span></div>
+        <span class="n">w_name</span><span class="p">,</span>
+        <span class="n">w</span><span class="p">,</span>
+        <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">,</span>
+        <span class="n">expected_scale_shape</span><span class="o">=</span><span class="n">expected_scale_shape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizableLayer.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Rescales a AQT style quantized weight.</span>
 
 <span class="sd">    Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.</span>
 
+<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+
 <span class="sd">    Args:</span>
+<span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
 <span class="sd">      w: The weight tensor.</span>
-<span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39; or &#39;default&#39;).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Rescaled weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">w</span></div>
+    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s1">&#39;Call to FromAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
+         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">w</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.GetQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.GetQDomain">[docs]</a>  <span class="k">def</span> <span class="nf">GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the QDomain matching a given domain name.</span>
@@ -1008,60 +1043,51 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">w</span></div>
 
-<div class="viewcode-block" id="QDomain.AqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.AqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">AqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                <span class="n">w</span><span class="p">,</span>
-                <span class="o">*</span><span class="p">,</span>
-                <span class="n">feature_axis</span><span class="p">,</span>
-                <span class="n">expected_scale_shape</span><span class="p">,</span>
-                <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="QDomain.AqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.AqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">AqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;AQT Quantized weight FQ style .</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      w_name: weight name.</span>
 <span class="sd">      w: The weight tensor.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">      expected_scale_shape: Optional shape to verify if scale shape is expected.</span>
-<span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39; or &#39;default&#39;).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">del</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span>
+    <span class="k">del</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="p">,</span> <span class="n">w_name</span>
     <span class="k">return</span> <span class="n">w</span></div>
 
-<div class="viewcode-block" id="QDomain.ToAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.ToAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                  <span class="n">w</span><span class="p">,</span>
-                  <span class="o">*</span><span class="p">,</span>
-                  <span class="n">feature_axis</span><span class="p">,</span>
-                  <span class="n">expected_scale_shape</span><span class="p">,</span>
-                  <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="QDomain.ToAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.ToAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantized weight AQT style.</span>
 
 <span class="sd">    Refer to quantizable_layer.ToAqtWeight.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      w_name: weight name.</span>
 <span class="sd">      w: The weight tensor.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">      expected_scale_shape: Optional shape to verify if scale shape is expected.</span>
-<span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39; or &#39;default&#39;).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">del</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span>
+    <span class="k">del</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="p">,</span> <span class="n">w_name</span>
     <span class="k">return</span> <span class="n">w</span></div>
 
-<div class="viewcode-block" id="QDomain.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="QDomain.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Rescales a AQT quantized weight.</span>
 
 <span class="sd">    Refer to quantizable_layer.FromAqtWeight.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      w_name: weight name.</span>
 <span class="sd">      w: The weight tensor.</span>
-<span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39; or &#39;default&#39;).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Rescaled weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">w_name</span>
     <span class="k">return</span> <span class="n">w</span></div>
 
 <div class="viewcode-block" id="QDomain.QuantizeConstantRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QuantizeConstantRange">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeConstantRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">):</span>
@@ -1097,6 +1123,16 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      t_name: Unique name (within layer) for this tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="QDomain.CreateTensorWithShape"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.CreateTensorWithShape">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTensorWithShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a QTensor with t_name and given shape.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      t_name: Unique name (within layer) for this tensor.</span>
+<span class="sd">      shape: Expected shape of the tensor.</span>
+<span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
