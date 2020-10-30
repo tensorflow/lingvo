@@ -24,6 +24,10 @@ from lingvo.core import py_utils
 import numpy as np
 
 
+def _ToInt32(t):
+  return tf.cast(t, tf.int32)
+
+
 class MoEBuilder(builder.Base):
   """Mixture-of-Experts Builder.
 
@@ -230,6 +234,15 @@ class MoEBuilder(builder.Base):
         ('one_hot_ids->one_hot_ids_split', self.Split('one_hot_ids_split')),
         ('emb,one_hot_ids_split->outputs',
          self._Fn('einsum', fn=lambda w, x: tf.einsum('VH,BLV->BLH', w, x))))
+
+  def SoftmaxWeight(self, name, vocab_dim):
+    return self._Var(
+        name=name,
+        weights=[('softmax_weight',
+                  py_utils.WeightParams(
+                      init=py_utils.WeightInit.Gaussian(),
+                      dtype=self.params.dtype,
+                      shape=[self.params.model_dim, vocab_dim]))])
 
   def Mask(self):
 
@@ -753,6 +766,139 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
+  def _RelativePositionBucket(self, relative_position, bidirectional=False):
+    p = self.params
+    fprop_dtype = py_utils.FPropDtype(self.params)
+
+    num_buckets = p.relative_attention_num_buckets
+    max_distance = tf.cast(p.relative_attention_max_distance, fprop_dtype)
+    ret = 0
+    n = -relative_position
+    if bidirectional:
+      num_buckets //= 2
+      ret += _ToInt32(tf.less(n, 0)) * num_buckets
+      n = tf.math.abs(n)
+    else:
+      n = tf.maximum(n, 0)
+    # now n is in the range [0, inf)
+    max_exact = num_buckets // 2
+    is_small = tf.less(n, max_exact)
+    # should be component-wise tf.math.log
+    val_if_large = max_exact + _ToInt32(
+        tf.math.log(tf.cast(n, fprop_dtype) / max_exact) /
+        tf.math.log(max_distance / max_exact) * (num_buckets - max_exact))
+    val_if_large = tf.math.minimum(val_if_large, num_buckets - 1)
+    ret += tf.where(is_small, n, val_if_large)
+    return ret
+
+  # When training query_segment_pos = key_segment_pos, of shape [batch, time].
+  # When decoding query_segment_pos is [batch, beam_size]
+  # but key_segment_pos is [batch, memory_size] (because of k_pos StateLayer).
+  def _AddRelativeBias(self,
+                       bias,
+                       query_segment_pos,
+                       key_segment_pos,
+                       relative_bias_weights,
+                       bidirectional=False):
+    p = self.params
+    fprop_dtype = py_utils.FPropDtype(self.params)
+
+    if p.relative_attention_use_universal_1d_position:
+      assert (int(key_segment_pos.shape[-1]) == int(
+          query_segment_pos.shape[-1])), (key_segment_pos.shape,
+                                          query_segment_pos.shape)
+      len_dim = key_segment_pos.shape.as_list()[-1]
+      key_segment_pos = query_segment_pos = tf.expand_dims(
+          tf.range(len_dim), axis=0)
+
+    # Relative position is defined in such a way that when query is in the
+    # future relative to the key, the value of relative position is negative.
+    relative_position = (
+        tf.expand_dims(key_segment_pos, -2) -
+        tf.expand_dims(query_segment_pos, -1))
+    relative_bucket = self._RelativePositionBucket(relative_position,
+                                                   bidirectional)
+
+    relative_bucket_one_hot = tf.one_hot(
+        relative_bucket, p.relative_attention_num_buckets, dtype=fprop_dtype)
+    # relative_bucket_one_hot:
+    # ..LJX - [batch?, length, memory_length, num_buckets]
+    #
+    # relative_bias_weights:
+    # HX - [num_heads, num_buckets]
+    #
+    # relative_bias_inc:
+    # [batch?, length, heads, memory_length]
+    relative_bias_inc = tf.einsum('HX,...LJX->...LHJ', relative_bias_weights,
+                                  relative_bucket_one_hot)
+    if relative_bias_inc.shape.ndims == 3:
+      assert p.relative_attention_use_universal_1d_position
+      relative_bias_inc = tf.expand_dims(relative_bias_inc, 0)
+
+    # Eventually we add bias to BLHM [batch, length, heads, memory_length]
+    # logits tensor, so we make 'heads' dim next to last.
+
+    return tf.expand_dims(bias, -2) + relative_bias_inc
+
+  def _EncoderAddRelativeBias(self, bias, segment_pos, relative_bias_weights):
+    query_segment_pos, key_segment_pos = segment_pos, segment_pos
+    bidirectional = True  # Encoder attention bias is always bidirectional.
+    return self._AddRelativeBias(bias, query_segment_pos, key_segment_pos,
+                                 relative_bias_weights, bidirectional)
+
+  def SelfAttentionRelativeBias(self, name):
+    """TransformerEncoder SelfAttention with relative Attention Bias."""
+    p = self.params
+    collections = None
+    if p.relative_attention_type == 'bias_shared':
+      # Collection name is used as a unique ID to retrieve the shared variable.
+      #
+      # This name must be different for SelfAttentionRelativeBias (Encoder), and
+      # must have a suffix matching shared_var_collection_suffix, e.g.
+      # 'shared_var'.
+      collections = ['_self_attention_shared_var']
+    else:
+      assert p.relative_attention_type == 'bias', p.relative_attention_type
+
+    def _Notvisible(x):
+      a, b = tf.expand_dims(x, -1), tf.expand_dims(x, -2)
+      return tf.cast(
+          tf.math.logical_or(
+              tf.not_equal(a, b),
+              # also ignoring segment_id=0
+              tf.math.logical_not(
+                  tf.math.logical_or(tf.cast(a, tf.bool), tf.cast(b,
+                                                                  tf.bool)))),
+          py_utils.FPropDtype(p))
+
+    # pyformat: disable
+    return self._Graph(
+        name,
+        [
+            'inputs',
+            'segment_id',
+            'segment_pos'
+        ], [
+            'outputs',
+            'aux_loss'
+        ],
+        ('->wq,wk,wv,wo', self._AttentionWeights('w')),
+        ('->relative_bias_weights',
+         self._RelativeAttentionBiasWeights('wrb', collections)),
+        ('segment_id->segment_bias',
+         self._Fn('bias',
+                  fn=lambda x: _Notvisible(x) * (-1e+09),
+                  fn_out=lambda x: x + x[-1])),
+        ('segment_bias,segment_pos,relative_bias_weights->bias',
+         self._Fn('relative_bias', fn=self._EncoderAddRelativeBias)),
+        ('inputs,wq->q', self._ComputeQKV('q')),
+        ('inputs,wk->k', self._ComputeQKV('k')),
+        ('inputs,wv->v', self._ComputeQKV('v')),
+        ('q,k,v,bias->o', self.Attention('attention')),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+        ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
+    # pyformat: enable
+
   def DecSelfAttentionRelativeBias(self, name):
     """DecSelfAttention with relative Attention Bias.
 
@@ -806,77 +952,8 @@ class MoEBuilder(builder.Base):
                           tf.cast(a, tf.bool), tf.cast(b, tf.bool))))),
           fprop_dtype)
 
-    def _ToInt32(t):
-      return tf.cast(t, tf.int32)
-
-    def _ToFloat(t):
-      return tf.cast(t, fprop_dtype)
-
-    def _RelativePositionBucket(relative_position, bidirectional=False):
-      num_buckets = p.relative_attention_num_buckets
-      max_distance = _ToFloat(p.relative_attention_max_distance)
-      ret = 0
-      n = -relative_position
-      if bidirectional:
-        num_buckets //= 2
-        ret += _ToInt32(tf.less(n, 0)) * num_buckets
-        n = tf.math.abs(n)
-      else:
-        n = tf.maximum(n, 0)
-      # now n is in the range [0, inf)
-      max_exact = num_buckets // 2
-      is_small = tf.less(n, max_exact)
-      # should be component-wise tf.math.log
-      val_if_large = max_exact + _ToInt32(
-          tf.math.log(_ToFloat(n) / max_exact) /
-          tf.math.log(max_distance / max_exact) * (num_buckets - max_exact))
-      val_if_large = tf.math.minimum(val_if_large, num_buckets - 1)
-      ret += tf.where(is_small, n, val_if_large)
-      return ret
-
     def _ComputeBias(segment_id, segment_pos):
       return _Notvisible(segment_id, segment_pos) * (-1e+09)
-
-    # When training query_segment_pos = key_segment_pos, of shape [batch, time].
-    # When decoding query_segment_pos is [batch, beam_size]
-    # but key_segment_pos is [batch, memory_size] (because of k_pos StateLayer).
-    def _AddRelativeBias(bias, query_segment_pos, key_segment_pos,
-                         relative_bias_weights):
-      if p.relative_attention_use_universal_1d_position:
-        assert (int(key_segment_pos.shape[-1]) == int(
-            query_segment_pos.shape[-1])), (key_segment_pos.shape,
-                                            query_segment_pos.shape)
-        len_dim = key_segment_pos.shape.as_list()[-1]
-        key_segment_pos = query_segment_pos = tf.expand_dims(
-            tf.range(len_dim), axis=0)
-
-      # Relative position is defined in such a way that when query is in the
-      # future relative to the key, the value of relative position is negative.
-      relative_position = (
-          tf.expand_dims(key_segment_pos, -2) -
-          tf.expand_dims(query_segment_pos, -1))
-      relative_bucket = _RelativePositionBucket(relative_position)
-
-      relative_bucket_one_hot = tf.one_hot(
-          relative_bucket, p.relative_attention_num_buckets, dtype=fprop_dtype)
-      # relative_bucket_one_hot:
-      # ..LJX - [batch?, length, memory_length, num_buckets]
-      #
-      # relative_bias_weights:
-      # HX - [num_heads, num_buckets]
-      #
-      # relative_bias_inc:
-      # [batch?, length, heads, memory_length]
-      relative_bias_inc = tf.einsum('HX,...LJX->...LHJ', relative_bias_weights,
-                                    relative_bucket_one_hot)
-      if relative_bias_inc.shape.ndims == 3:
-        assert p.relative_attention_use_universal_1d_position
-        relative_bias_inc = tf.expand_dims(relative_bias_inc, 0)
-
-      # Eventually we add bias to BLHM [batch, length, heads, memory_length]
-      # logits tensor, so we make 'heads' dim next to last.
-
-      return tf.expand_dims(bias, -2) + relative_bias_inc
 
     state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
 
@@ -906,7 +983,8 @@ class MoEBuilder(builder.Base):
         ('segment_id,segment_pos->qq_bias', self._Fn('bias', fn=_ComputeBias)),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
         ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
-         self._Fn('relative_bias', fn=_AddRelativeBias)),
+         # Decoder _AddRelativeBias always has bidirectional=False.
+         self._Fn('relative_bias', fn=self._AddRelativeBias)),
         ('q,k_full,v_full,qhk_bias->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
@@ -916,6 +994,8 @@ class MoEBuilder(builder.Base):
     """Helper for '->rb' Graph edge."""
     p = self.params
 
+    if collections is not None:
+      name += collections[0]
     shared_var_collection_suffix = None
     if collections is not None and collections:
       shared_var_collection_suffix = 'shared_var'
