@@ -229,6 +229,55 @@
       <span class="n">use_sharding_op</span><span class="o">=</span><span class="n">use_sharding_op</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="ZigzagOrderOnDeviceMesh"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.ZigzagOrderOnDeviceMesh">[docs]</a><span class="k">def</span> <span class="nf">ZigzagOrderOnDeviceMesh</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">zigzag_mesh_dim</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Permutes device_mesh to form zigzag order along zigzag_mesh_dim.&quot;&quot;&quot;</span>
+  <span class="c1"># Where there is no wrap-around links along one edge, we might</span>
+  <span class="c1"># reduce all-reduce latency along that edge by permuting the device order:</span>
+  <span class="c1"># instead of</span>
+  <span class="c1">#   0 - 1 - 2 - 3 - 4 - 5 - 6 - 7</span>
+  <span class="c1">#   |                           |</span>
+  <span class="c1">#   +---------------------------+</span>
+  <span class="c1"># it will be</span>
+  <span class="c1">#   +-------+-------+-------+</span>
+  <span class="c1">#   |       |       |       |</span>
+  <span class="c1">#   0 - 7   1   6   2   5   3 - 4</span>
+  <span class="c1">#       |       |       |       |</span>
+  <span class="c1">#       +-------+-------+-------+</span>
+  <span class="n">xpose_dims</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+  <span class="n">xpose_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">zigzag_mesh_dim</span>
+  <span class="n">xpose_dims</span><span class="p">[</span><span class="n">zigzag_mesh_dim</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">xpose_dims</span><span class="p">)</span>
+  <span class="n">permuted_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="n">zigzag_i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">&lt;</span> <span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="p">(</span>
+        <span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">permuted_mesh</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">device_mesh</span><span class="p">[</span><span class="n">zigzag_i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">permuted_mesh</span><span class="p">,</span> <span class="n">xpose_dims</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetNonPod2dMesh"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.GetNonPod2dMesh">[docs]</a><span class="k">def</span> <span class="nf">GetNonPod2dMesh</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">,</span> <span class="n">physical_mesh_shape</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a 2D device mesh on slices smaller than a pod.&quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">physical_mesh_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+  <span class="k">if</span> <span class="n">device_mesh_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">physical_mesh_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">physical_mesh_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s1">&#39;This only works when device_mesh_shape == [physical_mesh_shape[0], &#39;</span>
+        <span class="s1">&#39; physical_mesh_shape[1] * physical_mesh_shape[2]]. &#39;</span>
+        <span class="s1">&#39;If device_mesh_shape is [32, 16] where physical_mesh_shape is &#39;</span>
+        <span class="s1">&#39; [16, 16, 2]. we can transpose the result of this function &#39;</span>
+        <span class="s1">&#39;GetNonPod2dMesh([16, 32], [16, 16, 2]).&#39;</span><span class="p">)</span>
+  <span class="c1"># Form a ring on inner mesh dim.</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">)),</span> <span class="n">physical_mesh_shape</span><span class="p">)</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">device_mesh</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">device_mesh</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="c1"># Next line: reshape back to mesh shape</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">device_mesh_shape</span><span class="p">)</span>
+  <span class="c1"># Next line: zigzag on outer mesh dim (8). It doesn&#39;t have wrap link, either.</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">ZigzagOrderOnDeviceMesh</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">zigzag_mesh_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">device_mesh</span></div>
+
+
 <div class="viewcode-block" id="VarLayer"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.VarLayer">[docs]</a><span class="k">class</span> <span class="nc">VarLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Container for variables.&quot;&quot;&quot;</span>
 
