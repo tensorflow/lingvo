@@ -169,6 +169,11 @@
   <div class="section" id="module-lingvo.core.gshard_builder">
 <span id="lingvo-core-gshard-builder-module"></span><h1>lingvo.core.gshard_builder module<a class="headerlink" href="#module-lingvo.core.gshard_builder" title="Permalink to this headline">¶</a></h1>
 <p>GShard Builder. To be used with xla_sharding + SPMD.</p>
+<dl class="py function">
+<dt id="lingvo.core.gshard_builder._ToInt32">
+<code class="sig-prename descclassname">lingvo.core.gshard_builder.</code><code class="sig-name descname">_ToInt32</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#_ToInt32"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder._ToInt32" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py class">
 <dt id="lingvo.core.gshard_builder.MoEBuilder">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_builder.</code><code class="sig-name descname">MoEBuilder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder" title="Permalink to this definition">¶</a></dt>
@@ -282,6 +287,11 @@ XlaShardingBuilder.</p>
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.Embedding">
 <code class="sig-name descname">Embedding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">vocab_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Embedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Embedding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder.SoftmaxWeight">
+<code class="sig-name descname">SoftmaxWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">vocab_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SoftmaxWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SoftmaxWeight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -416,6 +426,27 @@ params.self.params.attention_key_value_dim.</p>
 <dd class="field-even"><p>layer params for TransformerDecoder SelfAttention.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket">
+<code class="sig-name descname">_RelativePositionBucket</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">relative_position</span></em>, <em class="sig-param"><span class="n">bidirectional</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._RelativePositionBucket"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._AddRelativeBias">
+<code class="sig-name descname">_AddRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bias</span></em>, <em class="sig-param"><span class="n">query_segment_pos</span></em>, <em class="sig-param"><span class="n">key_segment_pos</span></em>, <em class="sig-param"><span class="n">relative_bias_weights</span></em>, <em class="sig-param"><span class="n">bidirectional</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AddRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AddRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._EncoderAddRelativeBias">
+<code class="sig-name descname">_EncoderAddRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bias</span></em>, <em class="sig-param"><span class="n">segment_pos</span></em>, <em class="sig-param"><span class="n">relative_bias_weights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EncoderAddRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncoderAddRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias">
+<code class="sig-name descname">SelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dd><p>TransformerEncoder SelfAttention with relative Attention Bias.</p>
 </dd></dl>
 
 <dl class="py method">

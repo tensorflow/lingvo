@@ -172,6 +172,10 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
+<div class="viewcode-block" id="_ToInt32"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder._ToInt32">[docs]</a><span class="k">def</span> <span class="nf">_ToInt32</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="MoEBuilder"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder">[docs]</a><span class="k">class</span> <span class="nc">MoEBuilder</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Mixture-of-Experts Builder.</span>
 
@@ -378,6 +382,15 @@
         <span class="p">(</span><span class="s1">&#39;one_hot_ids-&gt;one_hot_ids_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;one_hot_ids_split&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;emb,one_hot_ids_split-&gt;outputs&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;einsum&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;VH,BLV-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">))))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.SoftmaxWeight"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SoftmaxWeight">[docs]</a>  <span class="k">def</span> <span class="nf">SoftmaxWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;softmax_weight&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">]))])</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.Mask"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Mask">[docs]</a>  <span class="k">def</span> <span class="nf">Mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
@@ -901,6 +914,139 @@
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
 
+<div class="viewcode-block" id="MoEBuilder._RelativePositionBucket"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket">[docs]</a>  <span class="k">def</span> <span class="nf">_RelativePositionBucket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relative_position</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">num_buckets</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span>
+    <span class="n">max_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">relative_attention_max_distance</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="o">-</span><span class="n">relative_position</span>
+    <span class="k">if</span> <span class="n">bidirectional</span><span class="p">:</span>
+      <span class="n">num_buckets</span> <span class="o">//=</span> <span class="mi">2</span>
+      <span class="n">ret</span> <span class="o">+=</span> <span class="n">_ToInt32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">*</span> <span class="n">num_buckets</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># now n is in the range [0, inf)</span>
+    <span class="n">max_exact</span> <span class="o">=</span> <span class="n">num_buckets</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">is_small</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">max_exact</span><span class="p">)</span>
+    <span class="c1"># should be component-wise tf.math.log</span>
+    <span class="n">val_if_large</span> <span class="o">=</span> <span class="n">max_exact</span> <span class="o">+</span> <span class="n">_ToInt32</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span> <span class="o">/</span> <span class="n">max_exact</span><span class="p">)</span> <span class="o">/</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">max_distance</span> <span class="o">/</span> <span class="n">max_exact</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_buckets</span> <span class="o">-</span> <span class="n">max_exact</span><span class="p">))</span>
+    <span class="n">val_if_large</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">val_if_large</span><span class="p">,</span> <span class="n">num_buckets</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_small</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">val_if_large</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+  <span class="c1"># When training query_segment_pos = key_segment_pos, of shape [batch, time].</span>
+  <span class="c1"># When decoding query_segment_pos is [batch, beam_size]</span>
+  <span class="c1"># but key_segment_pos is [batch, memory_size] (because of k_pos StateLayer).</span>
+<div class="viewcode-block" id="MoEBuilder._AddRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._AddRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">_AddRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">bias</span><span class="p">,</span>
+                       <span class="n">query_segment_pos</span><span class="p">,</span>
+                       <span class="n">key_segment_pos</span><span class="p">,</span>
+                       <span class="n">relative_bias_weights</span><span class="p">,</span>
+                       <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span>
+          <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                          <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">len_dim</span> <span class="o">=</span> <span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">key_segment_pos</span> <span class="o">=</span> <span class="n">query_segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">len_dim</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Relative position is defined in such a way that when query is in the</span>
+    <span class="c1"># future relative to the key, the value of relative position is negative.</span>
+    <span class="n">relative_position</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">key_segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">query_segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">relative_bucket</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RelativePositionBucket</span><span class="p">(</span><span class="n">relative_position</span><span class="p">,</span>
+                                                   <span class="n">bidirectional</span><span class="p">)</span>
+
+    <span class="n">relative_bucket_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+        <span class="n">relative_bucket</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="c1"># relative_bucket_one_hot:</span>
+    <span class="c1"># ..LJX - [batch?, length, memory_length, num_buckets]</span>
+    <span class="c1">#</span>
+    <span class="c1"># relative_bias_weights:</span>
+    <span class="c1"># HX - [num_heads, num_buckets]</span>
+    <span class="c1">#</span>
+    <span class="c1"># relative_bias_inc:</span>
+    <span class="c1"># [batch?, length, heads, memory_length]</span>
+    <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HX,...LJX-&gt;...LHJ&#39;</span><span class="p">,</span> <span class="n">relative_bias_weights</span><span class="p">,</span>
+                                  <span class="n">relative_bucket_one_hot</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">relative_bias_inc</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span>
+      <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">relative_bias_inc</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Eventually we add bias to BLHM [batch, length, heads, memory_length]</span>
+    <span class="c1"># logits tensor, so we make &#39;heads&#39; dim next to last.</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">relative_bias_inc</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._EncoderAddRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._EncoderAddRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">_EncoderAddRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">,</span> <span class="n">relative_bias_weights</span><span class="p">):</span>
+    <span class="n">query_segment_pos</span><span class="p">,</span> <span class="n">key_segment_pos</span> <span class="o">=</span> <span class="n">segment_pos</span><span class="p">,</span> <span class="n">segment_pos</span>
+    <span class="n">bidirectional</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Encoder attention bias is always bidirectional.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddRelativeBias</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">query_segment_pos</span><span class="p">,</span> <span class="n">key_segment_pos</span><span class="p">,</span>
+                                 <span class="n">relative_bias_weights</span><span class="p">,</span> <span class="n">bidirectional</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.SelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TransformerEncoder SelfAttention with relative Attention Bias.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">collections</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias_shared&#39;</span><span class="p">:</span>
+      <span class="c1"># Collection name is used as a unique ID to retrieve the shared variable.</span>
+      <span class="c1">#</span>
+      <span class="c1"># This name must be different for SelfAttentionRelativeBias (Encoder), and</span>
+      <span class="c1"># must have a suffix matching shared_var_collection_suffix, e.g.</span>
+      <span class="c1"># &#39;shared_var&#39;.</span>
+      <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_self_attention_shared_var&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span>
+
+    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
+              <span class="c1"># also ignoring segment_id=0</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span>
+                                                                  <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)))),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;segment_pos&#39;</span>
+        <span class="p">],</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_bias&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
+                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
+                  <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_bias,segment_pos,relative_bias_weights-&gt;bias&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_EncoderAddRelativeBias</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wk-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,wv-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k,v,bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
 <div class="viewcode-block" id="MoEBuilder.DecSelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DecSelfAttention with relative Attention Bias.</span>
 
@@ -954,77 +1100,8 @@
                           <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))))),</span>
           <span class="n">fprop_dtype</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_ToInt32</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_ToFloat</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_RelativePositionBucket</span><span class="p">(</span><span class="n">relative_position</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-      <span class="n">num_buckets</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span>
-      <span class="n">max_distance</span> <span class="o">=</span> <span class="n">_ToFloat</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">relative_attention_max_distance</span><span class="p">)</span>
-      <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span>
-      <span class="n">n</span> <span class="o">=</span> <span class="o">-</span><span class="n">relative_position</span>
-      <span class="k">if</span> <span class="n">bidirectional</span><span class="p">:</span>
-        <span class="n">num_buckets</span> <span class="o">//=</span> <span class="mi">2</span>
-        <span class="n">ret</span> <span class="o">+=</span> <span class="n">_ToInt32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">*</span> <span class="n">num_buckets</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-      <span class="c1"># now n is in the range [0, inf)</span>
-      <span class="n">max_exact</span> <span class="o">=</span> <span class="n">num_buckets</span> <span class="o">//</span> <span class="mi">2</span>
-      <span class="n">is_small</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">max_exact</span><span class="p">)</span>
-      <span class="c1"># should be component-wise tf.math.log</span>
-      <span class="n">val_if_large</span> <span class="o">=</span> <span class="n">max_exact</span> <span class="o">+</span> <span class="n">_ToInt32</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">_ToFloat</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="n">max_exact</span><span class="p">)</span> <span class="o">/</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">max_distance</span> <span class="o">/</span> <span class="n">max_exact</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_buckets</span> <span class="o">-</span> <span class="n">max_exact</span><span class="p">))</span>
-      <span class="n">val_if_large</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">val_if_large</span><span class="p">,</span> <span class="n">num_buckets</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-      <span class="n">ret</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_small</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">val_if_large</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">ret</span>
-
     <span class="k">def</span> <span class="nf">_ComputeBias</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">)</span>
-
-    <span class="c1"># When training query_segment_pos = key_segment_pos, of shape [batch, time].</span>
-    <span class="c1"># When decoding query_segment_pos is [batch, beam_size]</span>
-    <span class="c1"># but key_segment_pos is [batch, memory_size] (because of k_pos StateLayer).</span>
-    <span class="k">def</span> <span class="nf">_AddRelativeBias</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">query_segment_pos</span><span class="p">,</span> <span class="n">key_segment_pos</span><span class="p">,</span>
-                         <span class="n">relative_bias_weights</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-                                            <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="n">len_dim</span> <span class="o">=</span> <span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">key_segment_pos</span> <span class="o">=</span> <span class="n">query_segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">len_dim</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-      <span class="c1"># Relative position is defined in such a way that when query is in the</span>
-      <span class="c1"># future relative to the key, the value of relative position is negative.</span>
-      <span class="n">relative_position</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">key_segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">query_segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-      <span class="n">relative_bucket</span> <span class="o">=</span> <span class="n">_RelativePositionBucket</span><span class="p">(</span><span class="n">relative_position</span><span class="p">)</span>
-
-      <span class="n">relative_bucket_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
-          <span class="n">relative_bucket</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_num_buckets</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
-      <span class="c1"># relative_bucket_one_hot:</span>
-      <span class="c1"># ..LJX - [batch?, length, memory_length, num_buckets]</span>
-      <span class="c1">#</span>
-      <span class="c1"># relative_bias_weights:</span>
-      <span class="c1"># HX - [num_heads, num_buckets]</span>
-      <span class="c1">#</span>
-      <span class="c1"># relative_bias_inc:</span>
-      <span class="c1"># [batch?, length, heads, memory_length]</span>
-      <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HX,...LJX-&gt;...LHJ&#39;</span><span class="p">,</span> <span class="n">relative_bias_weights</span><span class="p">,</span>
-                                    <span class="n">relative_bucket_one_hot</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">relative_bias_inc</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span>
-        <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">relative_bias_inc</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-
-      <span class="c1"># Eventually we add bias to BLHM [batch, length, heads, memory_length]</span>
-      <span class="c1"># logits tensor, so we make &#39;heads&#39; dim next to last.</span>
-
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">relative_bias_inc</span>
 
     <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
 
@@ -1054,7 +1131,8 @@
         <span class="p">(</span><span class="s1">&#39;segment_id,segment_pos-&gt;qq_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ComputeBias</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;qk_bias,segment_pos,key_segment_pos,relative_bias_weights-&gt;qhk_bias&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_AddRelativeBias</span><span class="p">)),</span>
+         <span class="c1"># Decoder _AddRelativeBias always has bidirectional=False.</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AddRelativeBias</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,qhk_bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
@@ -1064,6 +1142,8 @@
     <span class="sd">&quot;&quot;&quot;Helper for &#39;-&gt;rb&#39; Graph edge.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
+    <span class="k">if</span> <span class="n">collections</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">name</span> <span class="o">+=</span> <span class="n">collections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">shared_var_collection_suffix</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">collections</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">collections</span><span class="p">:</span>
       <span class="n">shared_var_collection_suffix</span> <span class="o">=</span> <span class="s1">&#39;shared_var&#39;</span>
