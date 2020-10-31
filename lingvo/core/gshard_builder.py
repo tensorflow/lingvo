@@ -242,7 +242,7 @@ class MoEBuilder(builder.Base):
                   py_utils.WeightParams(
                       init=py_utils.WeightInit.Gaussian(),
                       dtype=self.params.dtype,
-                      shape=[self.params.model_dim, vocab_dim]))])
+                      shape=[vocab_dim, self.params.model_dim]))])
 
   def Mask(self):
 
