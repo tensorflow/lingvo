@@ -178,8 +178,16 @@
 <div class="viewcode-block" id="SyntheticTrain"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.SyntheticTrain">[docs]</a><span class="k">class</span> <span class="nc">SyntheticTrain</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Generated synthetic data with packed_input lm formats.&quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="SyntheticTrain.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.SyntheticTrain.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params for input generators.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seq_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of tokens in one example&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
 <div class="viewcode-block" id="SyntheticTrain._InputBatch"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.SyntheticTrain._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">targets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1024</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">seq_len</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">input_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -187,7 +195,7 @@
     <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">targets</span>
     <span class="n">input_batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1024</span><span class="p">)))</span>
+        <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">input_batch</span></div></div>
 
 
@@ -270,6 +278,7 @@
 <div class="viewcode-block" id="DenseLmTemplate.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">SyntheticTrain</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">NUM_DEVICES_PER_SPLIT</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SEQUENCE_LENGTH</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="DenseLmTemplate.ProgramSchedule"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.ProgramSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -295,6 +304,7 @@
 <div class="viewcode-block" id="DenseLm128B8x8"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B8x8">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm128B8x8</span><span class="p">(</span><span class="n">DenseLmTemplate</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;128B params LM model with 2D split.&quot;&quot;&quot;</span>
+  <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
   <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">128</span>
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.125</span>
   <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">64</span>  <span class="c1"># 64 blocks of [DecSelfAttention, DenseReluDense]</span>
@@ -314,7 +324,7 @@
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
-<span class="c1"># Expect ~ 3.7k tokens/sec</span>
+<span class="c1"># Expect ~ 18k tokens/sec</span>
 <span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
 <span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B16x16 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \</span>
@@ -322,10 +332,28 @@
 <div class="viewcode-block" id="DenseLm128B16x16"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B16x16">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm128B16x16</span><span class="p">(</span><span class="n">DenseLm128B8x8</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;128B params LM model with 2D split on v3-512.&quot;&quot;&quot;</span>
+  <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
   <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">512</span>
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.25</span>  <span class="c1"># Total batch size 128</span>
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
   <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span></div>
+
+
+<span class="c1"># Total params: 1,100,041,175,040.</span>
+<span class="c1"># Expect ~ 1.4k tokens/sec</span>
+<span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
+<span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm1T16x16 \</span>
+<span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \</span>
+<span class="c1"># --ps_replicas=32 --cluster_placer_in_executor=true --job=executor_tpu</span>
+<div class="viewcode-block" id="DenseLm1T16x16"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm1T16x16">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DenseLm1T16x16</span><span class="p">(</span><span class="n">DenseLm128B16x16</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;1T params LM model with 2D split on v3-512.&quot;&quot;&quot;</span>
+  <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">512</span>
+  <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.03125</span>  <span class="c1"># Total batch size 16</span>
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">128</span>
+  <span class="n">HIDDEN_DIM</span> <span class="o">=</span> <span class="mi">131072</span>
+  <span class="n">MODEL_DIM</span> <span class="o">=</span> <span class="mi">16384</span>
+  <span class="n">NUM_HEADS</span> <span class="o">=</span> <span class="mi">256</span></div>
 
 
 <span class="c1"># Expect ~ 62k tokens/sec</span>
@@ -336,6 +364,7 @@
 <div class="viewcode-block" id="DenseLm128B32x32"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B32x32">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm128B32x32</span><span class="p">(</span><span class="n">DenseLm128B8x8</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;128B params LM model with 2D split on v3-2048.&quot;&quot;&quot;</span>
+  <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
   <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">2048</span>
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.25</span>  <span class="c1"># Total batch size 512</span>
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">]</span>
