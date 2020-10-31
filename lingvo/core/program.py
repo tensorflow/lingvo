@@ -398,6 +398,7 @@ class TrainProgram(BaseProgram):
     self.tpu_ops = (_ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
         self._model)
+    tf.logging.info('Total params=%d', self._total_num_params)
     try:
       with tf.io.gfile.GFile(
           os.path.join(self._program_dir, 'model_analysis.txt'), 'w') as f:

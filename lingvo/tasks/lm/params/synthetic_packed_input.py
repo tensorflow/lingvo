@@ -30,8 +30,16 @@ import numpy as np
 class SyntheticTrain(base_input_generator.BaseInputGenerator):
   """Generated synthetic data with packed_input lm formats."""
 
+  @classmethod
+  def Params(cls):
+    """Defaults params for input generators."""
+    p = super().Params()
+    p.Define('seq_len', 0, 'Number of tokens in one example')
+    return p
+
   def _InputBatch(self):
-    targets = tf.ones([self.params.batch_size, 1024], dtype=tf.int32)
+    seq_len = self.params.seq_len
+    targets = tf.ones([self.params.batch_size, seq_len], dtype=tf.int32)
     input_batch = py_utils.NestedMap()
     input_batch.tgt = py_utils.NestedMap()
     input_batch.tgt.ids = tf.roll(targets, 1, axis=1)
@@ -39,7 +47,7 @@ class SyntheticTrain(base_input_generator.BaseInputGenerator):
     input_batch.tgt.segment_ids = tf.minimum(targets, 1)
     input_batch.tgt.segment_pos = targets
     input_batch = input_batch.Transform(
-        lambda t: tf.ensure_shape(t, (self.params.batch_size, 1024)))
+        lambda t: tf.ensure_shape(t, (self.params.batch_size, seq_len)))
     return input_batch
 
 
@@ -122,6 +130,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   def Train(self):
     p = SyntheticTrain.Params()
     p.batch_size = int(self.BATCH_DIM_PER_DEVICE * self.NUM_DEVICES_PER_SPLIT)
+    p.seq_len = self.SEQUENCE_LENGTH
     return p
 
   def ProgramSchedule(self):
@@ -147,6 +156,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B8x8(DenseLmTemplate):
   """128B params LM model with 2D split."""
+  SEQUENCE_LENGTH = 1024
   NUM_DEVICES_PER_SPLIT = 128
   BATCH_DIM_PER_DEVICE = 0.125
   NUM_TRANSFORMER_LAYERS = 64  # 64 blocks of [DecSelfAttention, DenseReluDense]
@@ -166,7 +176,7 @@ class DenseLm128B8x8(DenseLmTemplate):
     return p
 
 
-# Expect ~ 3.7k tokens/sec
+# Expect ~ 18k tokens/sec
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
@@ -174,10 +184,28 @@ class DenseLm128B8x8(DenseLmTemplate):
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B16x16(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-512."""
+  SEQUENCE_LENGTH = 1024
   NUM_DEVICES_PER_SPLIT = 512
   BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 128
   DEVICE_MESH_SHAPE = [16, 32]
   DEVICE_MESH = moe_layers.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [16, 16, 2])
+
+
+# Total params: 1,100,041,175,040.
+# Expect ~ 1.4k tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr --model=lm.synthetic_packed_input.DenseLm1T16x16 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
+# --ps_replicas=32 --cluster_placer_in_executor=true --job=executor_tpu
+@model_registry.RegisterSingleTaskModel
+class DenseLm1T16x16(DenseLm128B16x16):
+  """1T params LM model with 2D split on v3-512."""
+  SEQUENCE_LENGTH = 512
+  BATCH_DIM_PER_DEVICE = 0.03125  # Total batch size 16
+  NUM_TRANSFORMER_LAYERS = 128
+  HIDDEN_DIM = 131072
+  MODEL_DIM = 16384
+  NUM_HEADS = 256
 
 
 # Expect ~ 62k tokens/sec
@@ -188,6 +216,7 @@ class DenseLm128B16x16(DenseLm128B8x8):
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B32x32(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-2048."""
+  SEQUENCE_LENGTH = 1024
   NUM_DEVICES_PER_SPLIT = 2048
   BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 512
   DEVICE_MESH_SHAPE = [32, 64]

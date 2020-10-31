@@ -32,7 +32,8 @@ class ModelsTest(models_test_helper.BaseModelsTest):
     self.assertTrue(issubclass(p.cls, base_model.SingleTaskModel))
 
 
-ModelsTest.CreateTestMethodsForAllRegisteredModels(model_registry)
+ModelsTest.CreateTestMethodsForAllRegisteredModels(
+    model_registry, exclude_prefixes=['lm.synthetic_packed_input.'])
 
 
 if __name__ == '__main__':
