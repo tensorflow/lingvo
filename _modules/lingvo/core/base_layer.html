@@ -863,7 +863,7 @@
 <span class="sd">          self.CreateVariable(</span>
 <span class="sd">            name=&#39;weight&#39;,</span>
 <span class="sd">            var_params=py_utils.WeightParams(shape=[100, 100]),</span>
-<span class="sd">            theta_fn=self.AddGlobalVN)</span>
+<span class="sd">            theta_fn=self.AddVN)</span>
 
 <span class="sd">    In some contexts, eg. TPU training, variables may not be created immediately</span>
 <span class="sd">    but rather the creation request will be cached and created later via a call</span>
@@ -1016,8 +1016,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">theta_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta_value</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_extra_theta</span><span class="p">[</span><span class="n">theta_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta_value</span></div>
 
-<div class="viewcode-block" id="BaseLayer.AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.AddGlobalVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+<div class="viewcode-block" id="BaseLayer.AddVN"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.AddVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseLayer.CreateChild"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateChild">[docs]</a>  <span class="k">def</span> <span class="nf">CreateChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a sub layer.</span>

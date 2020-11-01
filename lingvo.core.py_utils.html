@@ -1912,21 +1912,21 @@ weight is a float and each metrics is a dict with str keys and
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.py_utils._AddVN">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_AddVN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">step</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_AddVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._AddVN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper method to add variational noise to weights by params.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.py_utils.AddGlobalVN">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">AddGlobalVN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">weights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#AddGlobalVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.AddGlobalVN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds variational noise to weights if specified by params.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.py_utils.AddPerStepVN">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">AddPerStepVN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">weights</span></em>, <em class="sig-param"><span class="n">step</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#AddPerStepVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.AddPerStepVN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adds per-step variational noise to weights if specified by params.</p>
+<dt id="lingvo.core.py_utils.AddVN">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">AddVN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">per_step</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#AddVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.AddVN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add variational noise to x.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – Layer params, with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">vn</span></code> subparam containing <a class="reference internal" href="#lingvo.core.py_utils.VariationalNoiseParams" title="lingvo.core.py_utils.VariationalNoiseParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VariationalNoiseParams</span></code></a>.</p></li>
+<li><p><strong>x</strong> – Input to add variational noise to.</p></li>
+<li><p><strong>per_step</strong> – Whether to add per_step noise.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The input with variational noise added according to params.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
