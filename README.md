@@ -54,7 +54,9 @@ Details for older releases are unavailable.
 
 #### HEAD
 
-None yet.
+*   **General**
+    *   py_utils.AddGlobalVN and py_utils.AddPerStepVN have been combined into
+        py_utils.AddVN.
 
 #### 0.8.2
 

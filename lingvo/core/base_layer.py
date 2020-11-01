@@ -715,7 +715,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
           self.CreateVariable(
             name='weight',
             var_params=py_utils.WeightParams(shape=[100, 100]),
-            theta_fn=self.AddGlobalVN)
+            theta_fn=self.AddVN)
 
     In some contexts, eg. TPU training, variables may not be created immediately
     but rather the creation request will be cached and created later via a call
@@ -868,8 +868,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._private_theta[theta_name] = theta_value
     self._extra_theta[theta_name] = theta_value
 
-  def AddGlobalVN(self, value):
-    return py_utils.AddGlobalVN(self.params, value)
+  def AddVN(self, value):
+    return py_utils.AddVN(self.params, value)
 
   def CreateChild(self, name, params):
     """Create a sub layer.

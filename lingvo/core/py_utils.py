@@ -3337,36 +3337,42 @@ def CombineMetrics(loss_metric_weight_pairs):
   return result
 
 
-def _AddVN(p, x, step=None):
-  """Helper method to add variational noise to weights by params."""
-  assert p.vn.scale is not None
-  seed = p.vn.seed
-  if seed and step:
-    seed += step * 203984
-  if p.vn.deterministic:
-    step = GetGlobalStep() if step is None else step
-    noises = DeterministicVN(
-        p, GenerateStepSeedPair(p, step), tf.shape(x), mean=0.0, std=1.0)
+def AddVN(p, x, per_step=False):
+  """Add variational noise to x.
+
+  Args:
+    p: Layer params, with a `vn` subparam containing `VariationalNoiseParams`.
+    x: Input to add variational noise to.
+    per_step: Whether to add per_step noise.
+
+  Returns:
+    The input with variational noise added according to params.
+  """
+  if per_step:
+    if not p.vn.per_step_vn:
+      return x
   else:
+    if not p.vn.global_vn:
+      return x
+
+  if p.vn.scale is None:
+    raise ValueError('VN scale must be set.')
+
+  if p.vn.deterministic:
+    seeds = GenerateStepSeedPair(p, GetGlobalStep())
+    if not p.vn.per_step_vn:
+      # First element of seeds is global step.
+      seeds = tf.stack([tf.zeros_like(seeds[0]), seeds[1]])
+    noises = DeterministicVN(p, seeds, tf.shape(x), mean=0.0, std=1.0)
+  else:
+    seed = p.vn.seed
+    if seed and p.vn.per_step_vn:
+      # TODO(b/171767456): Fix per_step_vn.
+      # seed += GetGlobalStep() * 203984
+      pass
     noises = tf.random.normal(tf.shape(x), stddev=1.0, seed=seed, dtype=x.dtype)
   noises = tf.cast(p.vn.scale, x.dtype) * noises
   return x + noises
-
-
-def AddGlobalVN(params, weights):
-  """Adds variational noise to weights if specified by params."""
-  p = params
-  if p.vn.global_vn:
-    weights = _AddVN(p, weights)
-  return weights
-
-
-def AddPerStepVN(params, weights, step=None):
-  """Adds per-step variational noise to weights if specified by params."""
-  p = params
-  if p.vn.per_step_vn:
-    weights = _AddVN(p, weights, step)
-  return weights
 
 
 def VariationalNoiseParams(scale,

@@ -2634,7 +2634,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, 1.56561, embs_sum.eval())
+      test_utils.CompareToGoldenSingleFloat(self, -7.113163, embs_sum.eval())
 
 
 class EmbeddingLayerTest(test_utils.TestCase):

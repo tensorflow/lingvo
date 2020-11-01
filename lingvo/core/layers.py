@@ -16,6 +16,7 @@
 """Common layers."""
 
 import copy
+import functools
 import math
 import numbers
 import lingvo.compat as tf
@@ -995,8 +996,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
       def MaskWeightFn(weight):
         return tf.multiply(
-            self.AddGlobalVN(weight), getattr(self.vars, mask_var_name),
-            'masked_w')
+            self.AddVN(weight), getattr(self.vars, mask_var_name), 'masked_w')
 
       self.CreateVariable(weights_var_name, w_pc, theta_fn=MaskWeightFn)
       pruning_utils.AddToPruningCollections(
@@ -1927,8 +1927,7 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
     embs = tf.nn.embedding_lookup(theta.emb_var, tf.reshape(ids, [-1]))
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
-    if p.vn.global_vn or p.vn.per_step_vn:
-      embs = py_utils.AddGlobalVN(p, embs)
+    embs = py_utils.AddVN(p, embs)
     out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
     return tf.reshape(embs, out_shape)
 
@@ -2027,8 +2026,7 @@ class EmbeddingLayer(base_layer.BaseLayer):
     embs = tf.nn.embedding_lookup(theta.wm, tf.reshape(ids, [-1]))
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
-    if p.vn.global_vn or p.vn.per_step_vn:
-      embs = py_utils.AddGlobalVN(p, embs)
+    embs = py_utils.AddVN(p, embs)
     out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
     return tf.reshape(embs, out_shape)
 
@@ -2252,8 +2250,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           'threshold', threshold_pc, theta_fn=None, trainable=False)
 
       def MaskWeightFn(weight):
-        return tf.multiply(
-            self.AddGlobalVN(weight), self.vars.mask, 'masked_weights')
+        return tf.multiply(self.AddVN(weight), self.vars.mask, 'masked_weights')
 
       self.CreateVariable('wm', pc, theta_fn=MaskWeightFn)
       pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
@@ -2306,10 +2303,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     embs_result = self._FpropImpl(wm, flat_ids)
 
     embs_result = self.FromAqtWeight('emb_aqt', embs_result)
-
-    if p.vn.global_vn or p.vn.per_step_vn:
-      p.vn.seed = p.random_seed
-      embs_result = py_utils.AddGlobalVN(p, embs_result)
+    embs_result = py_utils.AddVN(p, embs_result)
 
     if p.scale_sqrt_depth:
       embs_result *= p.embedding_dim**0.5
@@ -2824,19 +2818,22 @@ class SimpleFullSoftmax(SoftmaxLayer):
         self.CreateVariable(
             threshold_var_name, threshold_pc, theta_fn=None, trainable=False)
 
-        def MaskWeightFn(weight):
+        def MaskWeightFn(mask_var_name, weight):
           return tf.multiply(
-              self.AddGlobalVN(weight), getattr(self.vars, mask_var_name),
+              self.AddVN(weight), getattr(self.vars, mask_var_name),
               'masked_weights')
 
-        self.CreateVariable(weights_var_name, pc, theta_fn=MaskWeightFn)
+        self.CreateVariable(
+            weights_var_name,
+            pc,
+            theta_fn=functools.partial(MaskWeightFn, mask_var_name))
         pruning_utils.AddToPruningCollections(
             getattr(self.vars, weights_var_name),
             getattr(self.vars, mask_var_name),
             getattr(self.vars, threshold_var_name))
 
       else:
-        self.CreateVariable(weights_var_name, pc, self.AddGlobalVN)
+        self.CreateVariable(weights_var_name, pc, self.AddVN)
 
     pc = py_utils.WeightParams(
         shape=[num_classes_per_shard],
@@ -2845,7 +2842,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         collections=[self.__class__.__name__ + '_vars'])
     if p.use_bias:
       for i in range(p.num_shards):
-        self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
+        self.CreateVariable('bias_%d' % i, pc, self.AddVN)
 
     self.TrackQTensor('inputs')
     self.TrackQTensor('logits', domain='logits')
@@ -2868,12 +2865,13 @@ class SimpleFullSoftmax(SoftmaxLayer):
     new_theta = theta.copy()
     if p.use_bias:
       biases = [self.QWeight(theta['bias_%d' % i]) for i in range(p.num_shards)]
-      new_theta.bias = py_utils.AddPerStepVN(p, tf.concat(biases, axis=0))
+      new_theta.bias = py_utils.AddVN(
+          p, tf.concat(biases, axis=0), per_step=True)
     if p.num_shards == 1:
-      new_theta.wm = py_utils.AddPerStepVN(p, weights[0])
+      new_theta.wm = py_utils.AddVN(p, weights[0], per_step=True)
     else:
-      new_theta.wm = py_utils.AddPerStepVN(p,
-                                           tf.concat(weights, axis=concat_axis))
+      new_theta.wm = py_utils.AddVN(
+          p, tf.concat(weights, axis=concat_axis), per_step=True)
     return new_theta
 
   def _LogitsUsingConcatenatedWeightsHelper(self, theta, inputs):
@@ -3377,8 +3375,7 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
     embs = tf.nn.embedding_lookup(emb_vars, tf.reshape(ids, [-1]))
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
-    if p.vn.global_vn or p.vn.per_step_vn:
-      embs = py_utils.AddGlobalVN(p, embs)
+    embs = py_utils.AddVN(p, embs)
     out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
     return tf.reshape(embs, out_shape)
 
