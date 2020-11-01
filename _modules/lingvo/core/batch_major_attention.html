@@ -1734,10 +1734,8 @@
 
       <span class="k">def</span> <span class="nf">get_next_state</span><span class="p">(</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
-          <span class="n">next_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-              <span class="p">[</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
           <span class="c1"># [B, S, N * H]</span>
-          <span class="n">next_state</span> <span class="o">=</span> <span class="n">next_state</span><span class="p">[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:,</span> <span class="p">:]</span>
+          <span class="n">next_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:,</span> <span class="p">:]</span>
           <span class="c1"># [B, S, N, H]</span>
           <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">next_state</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1746,10 +1744,23 @@
           <span class="n">outputs</span> <span class="o">=</span> <span class="n">next_state</span>
         <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">next_state</span>
 
-      <span class="c1"># [B, Q, N, H]</span>
-      <span class="n">incr_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
-      <span class="c1"># [B, Q, N, H]</span>
-      <span class="n">incr_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+        <span class="c1"># [B, Q, N * H]</span>
+        <span class="n">incr_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s1">&#39;DH,BTD-&gt;BTH&#39;</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">h</span><span class="p">]),</span>
+            <span class="n">query_vec</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># [B, Q, N * H]</span>
+        <span class="n">incr_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s1">&#39;DH,BTD-&gt;BTH&#39;</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">h</span><span class="p">]),</span>
+            <span class="n">query_vec</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># [B, Q, N, H]</span>
+        <span class="n">incr_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+        <span class="c1"># [B, Q, N, H]</span>
+        <span class="n">incr_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+
       <span class="c1"># [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.</span>
       <span class="n">key</span><span class="p">,</span> <span class="n">next_key</span> <span class="o">=</span> <span class="n">get_next_state</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">incr_key</span><span class="p">)</span>
       <span class="c1"># [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.</span>
