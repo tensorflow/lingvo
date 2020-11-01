@@ -1793,5 +1793,5 @@ class UniTransformer(base_model.BaseTask):
       for key, per_step_values in per_step.items():
         # Each per_step_values is an aggregation of outfeed tensor over
         # iterations_per_loop steps.
-        tf.logging.info('Step = {}, {} = {}'.format(global_step + t, key,
-                                                    per_step_values[t]))
+        tf.logging.info('Step = {}, {} = {}'.format(
+            global_step + t - iterations_per_loop, key, per_step_values[t]))
