@@ -170,7 +170,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">batch_major_attention</span> <span class="k">as</span> <span class="n">attention_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span> <span class="k">as</span> <span class="n">hparams_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -281,7 +281,7 @@
       <span class="c1"># If causal, switch to causal depthwise conv.</span>
       <span class="n">depthwise_conv_p</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">CausalDepthwiseConv2DLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
-      <span class="n">hyperparams</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">depthwise_conv_tpl</span><span class="p">,</span> <span class="n">depthwise_conv_p</span><span class="p">)</span>
+      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">depthwise_conv_tpl</span><span class="p">,</span> <span class="n">depthwise_conv_p</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">depthwise_conv_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">depthwise_conv_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="c1"># 1d depthwise conv with channel_mulitplier = 1</span>
@@ -628,22 +628,35 @@
       <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;local_relative&#39;</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_relative_atten</span> <span class="k">else</span> <span class="s1">&#39;local&#39;</span>
 
     <span class="k">if</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;global_relative&#39;</span><span class="p">:</span>
-      <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">attention_lib</span><span class="o">.</span><span class="n">MultiHeadedAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
               <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">relative_pos_emb_dim</span><span class="p">))</span>
+      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="s1">&#39;rel_pos_emb_dim&#39;</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;local_relative&#39;</span><span class="p">:</span>
-      <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">,</span>
           <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span><span class="p">,</span>
           <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">relative_pos_emb_dim</span><span class="p">)</span>
+      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span>
+          <span class="n">atten_tpl</span><span class="p">,</span>
+          <span class="n">skip</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="s1">&#39;right_context&#39;</span><span class="p">,</span> <span class="s1">&#39;rel_pos_emb_dim&#39;</span><span class="p">])</span>
     <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;local&#39;</span><span class="p">:</span>
-      <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">,</span>
           <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span><span class="p">)</span>
+      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span>
+          <span class="n">atten_tpl</span><span class="p">,</span>
+          <span class="n">skip</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="s1">&#39;right_context&#39;</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># No op for &#39;global&#39; atten</span>
       <span class="k">assert</span> <span class="n">atten_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="s1">&#39;global_causal&#39;</span><span class="p">),</span> <span class="p">(</span>
-          <span class="sa">f</span><span class="s1">&#39;Unknown atten_type </span><span class="si">{</span><span class="n">atten_type</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+          <span class="sa">f</span><span class="s1">&#39;Unknown atten_type </span><span class="si">{</span><span class="n">atten_type</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span><span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">)</span>
+    <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">atten_tpl</span></div>
 
 <div class="viewcode-block" id="ConformerLayer._SelfAtten"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._SelfAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_SelfAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="n">inputs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>

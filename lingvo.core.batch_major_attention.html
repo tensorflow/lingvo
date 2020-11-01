@@ -1113,13 +1113,15 @@ updated_value_vec: [T, B, N, H].</p>
 <dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing
-- key: [B, left_context-1, N, H].
-- value: [B, left_context-1, N, H].
-- paddings : [B, left_context-1]. A 0/1 Tensor where 1s are masked out
-positions.</p>
-<p>Note p.left_context includes self position, thus only left_context -1
-positions are needed in the state.</p>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing</p>
+<ul class="simple">
+<li><p>key: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
+[…, N * H] if p.use_3d_recurrent_state.</p></li>
+<li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
+[…, N * H] if p.use_3d_recurrent_state.</p></li>
+<li><p>paddings : [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+Tensor where 1s are masked out positions.</p></li>
+</ul>
 </p>
 </dd>
 </dl>
@@ -1301,13 +1303,15 @@ updated_value_vec: [T, B, N, H].</p>
 <dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing
-- key: [B, left_context-1, N, H].
-- value: [B, left_context-1, N, H].
-- paddings : [B, left_context-1]. A 0/1 Tensor where 1s are masked out
-positions.</p>
-<p>Note p.left_context includes self position, thus only left_context -1
-positions are needed in the state.</p>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing</p>
+<ul class="simple">
+<li><p>key: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
+[…, N * H] if p.use_3d_recurrent_state.</p></li>
+<li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
+[…, N * H] if p.use_3d_recurrent_state.</p></li>
+<li><p>paddings : [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+Tensor where 1s are masked out positions.</p></li>
+</ul>
 </p>
 </dd>
 </dl>
@@ -1873,8 +1877,8 @@ its children layers.</p></li>
 <li><p><strong>aux_vec</strong> – [source_batch, source_time, dim].</p></li>
 <li><p><strong>aux_paddings</strong> – [source_batch, source_time].</p></li>
 <li><p><strong>per_step_padding_override</strong> – [target_batch, target_time, target_time].</p></li>
-<li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time]</p></li>
-<li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time]</p></li>
+<li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time].</p></li>
+<li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time].</p></li>
 </ul>
 </dd>
 </dl>
@@ -2112,23 +2116,29 @@ its children layers.</p></li>
 <li><p><strong>query_vec</strong> – [target_batch, 1, dim].</p></li>
 <li><p><strong>aux_vec</strong> – [source_batch, source_time, dim]</p></li>
 <li><p><strong>aux_paddings</strong> – [source_batch, source_time]</p></li>
-<li><p><strong>cached_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors which are the
+<li><p><strong>cached_states</strong> – <p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors which are the
 results of previous attentions, used for fast decoding.
 cached_states.x_layers is a list corresponding to self.x_layers, where
-each element is a NestedMap with attention keys and values:
-“key”   - [target_time, target_batch, num_heads, dim_per_head].
-“value” - [target_time, target_batch, num_heads, dim_per_head].</p></li>
+each element is a NestedMap with attention keys and values:</p>
+<ul>
+<li><p>key: [target_time, target_batch, num_heads, dim_per_head].</p></li>
+<li><p>value: [target_time, target_batch, num_heads, dim_per_head].</p></li>
+</ul>
+</p></li>
 <li><p><strong>time_step</strong> – A scalar, the current decode step, 0-based.</p></li>
 <li><p><strong>use_short_seq_opt</strong> – A bool, whether using short sequence optimization.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The last decoder layer output of shape [target_batch, 1, dim].
+<dd class="field-even"><p><p>The last decoder layer output of shape [target_batch, 1, dim].
 updated_states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing the updated states.
 updated_states.x_layers is a list corresponding to self.x_layers, where
-each element is a NestedMap with attention keys and values:
-“key”   - [target_time, target_batch, num_heads, dim_per_head].
-“value” - [target_time, target_batch, num_heads, dim_per_head].</p>
+each element is a NestedMap with attention keys and values:</p>
+<ul class="simple">
+<li><p>key: [target_time, target_batch, num_heads, dim_per_head].</p></li>
+<li><p>value: [target_time, target_batch, num_heads, dim_per_head].</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>cur_output</p>
@@ -2198,8 +2208,8 @@ its children layers.</p></li>
 <li><p><strong>aux_vec</strong> – [source_batch, source_time, dim].</p></li>
 <li><p><strong>aux_paddings</strong> – [source_batch, source_time].</p></li>
 <li><p><strong>per_step_padding_override</strong> – [target_batch, target_time, target_time].</p></li>
-<li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time]</p></li>
-<li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time]</p></li>
+<li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time].</p></li>
+<li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time].</p></li>
 </ul>
 </dd>
 </dl>
@@ -2317,8 +2327,8 @@ its children layers.</p></li>
 <li><p><strong>aux_vec</strong> – [source_batch, source_time, dim].</p></li>
 <li><p><strong>aux_paddings</strong> – [source_batch, source_time].</p></li>
 <li><p><strong>per_step_padding_override</strong> – [target_batch, target_time, target_time].</p></li>
-<li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time]</p></li>
-<li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time]</p></li>
+<li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time].</p></li>
+<li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time].</p></li>
 </ul>
 </dd>
 </dl>

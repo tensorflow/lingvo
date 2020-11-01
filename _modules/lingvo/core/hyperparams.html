@@ -322,13 +322,17 @@
 <span class="sd">  Args:</span>
 <span class="sd">    from_p: Source params to copy from.</span>
 <span class="sd">    to_p: Destination params to copy to.</span>
-<span class="sd">    skip: If not None, a list of strings of param names to skip. Automatically</span>
-<span class="sd">      skips InstantiableParams&#39; &#39;cls&#39; parameter.</span>
+<span class="sd">    skip: A string, a list of strings or None. Param names to skip.</span>
+<span class="sd">      Automatically skips InstantiableParams&#39; &#39;cls&#39; parameter.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The updated to_p.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="ow">or</span> <span class="p">[]</span>
+  <span class="c1"># Normalize.</span>
+  <span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="k">if</span> <span class="n">skip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">skip</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="n">skip</span> <span class="o">=</span> <span class="p">[</span><span class="n">skip</span><span class="p">]</span>
+
   <span class="n">skip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">from_p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
     <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">skip</span><span class="p">:</span>
