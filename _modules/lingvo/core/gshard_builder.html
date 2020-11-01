@@ -1941,8 +1941,8 @@
       <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">per_step_values</span> <span class="ow">in</span> <span class="n">per_step</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="c1"># Each per_step_values is an aggregation of outfeed tensor over</span>
         <span class="c1"># iterations_per_loop steps.</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Step = </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1"> = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">global_step</span> <span class="o">+</span> <span class="n">t</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
-                                                    <span class="n">per_step_values</span><span class="p">[</span><span class="n">t</span><span class="p">]))</span></div></div>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Step = </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1"> = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">global_step</span> <span class="o">+</span> <span class="n">t</span> <span class="o">-</span> <span class="n">iterations_per_loop</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">per_step_values</span><span class="p">[</span><span class="n">t</span><span class="p">]))</span></div></div>
 </pre></div>
 
            </div>
