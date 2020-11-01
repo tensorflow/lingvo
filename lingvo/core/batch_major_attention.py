@@ -1586,10 +1586,8 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       def get_next_state(recur_state, inputs):  # pylint:disable=invalid-name
         if p.use_3d_recurrent_state:
-          next_state = tf.concat(
-              [recur_state, tf.reshape(inputs, [b, q, -1])], axis=1)
           # [B, S, N * H]
-          next_state = next_state[:, -s:, :]
+          next_state = tf.concat([recur_state, inputs], axis=1)[:, -s:, :]
           # [B, S, N, H]
           outputs = tf.reshape(next_state, [b, s, n, h])
         else:
@@ -1598,10 +1596,23 @@ class LocalSelfAttention(MultiHeadedAttention):
           outputs = next_state
         return outputs, next_state
 
-      # [B, Q, N, H]
-      incr_key = self.key.FProp(theta.key, query_vec)
-      # [B, Q, N, H]
-      incr_value = self.value.FProp(theta.value, query_vec)
+      if p.use_3d_recurrent_state:
+        # [B, Q, N * H]
+        incr_key = tf.einsum(
+            'DH,BTD->BTH',
+            tf.reshape(theta.key.w, [self.key.params.input_dim, n * h]),
+            query_vec) + tf.reshape(theta.key.b, [-1])
+        # [B, Q, N * H]
+        incr_value = tf.einsum(
+            'DH,BTD->BTH',
+            tf.reshape(theta.value.w, [self.value.params.input_dim, n * h]),
+            query_vec) + tf.reshape(theta.value.b, [-1])
+      else:
+        # [B, Q, N, H]
+        incr_key = self.key.FProp(theta.key, query_vec)
+        # [B, Q, N, H]
+        incr_value = self.value.FProp(theta.value, query_vec)
+
       # [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.
       key, next_key = get_next_state(state0.key, incr_key)
       # [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.
