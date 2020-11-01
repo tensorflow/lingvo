@@ -174,13 +174,17 @@ def CopyFieldsTo(from_p, to_p, skip=None):
   Args:
     from_p: Source params to copy from.
     to_p: Destination params to copy to.
-    skip: If not None, a list of strings of param names to skip. Automatically
-      skips InstantiableParams' 'cls' parameter.
+    skip: A string, a list of strings or None. Param names to skip.
+      Automatically skips InstantiableParams' 'cls' parameter.
 
   Returns:
     The updated to_p.
   """
-  skip = skip or []
+  # Normalize.
+  skip = skip if skip is not None else []
+  if not isinstance(skip, list):
+    skip = [skip]
+
   skip.append('cls')
   for n, p in from_p.IterParams():
     if n in skip:

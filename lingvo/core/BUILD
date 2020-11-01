@@ -98,7 +98,6 @@ py_library(
         ":py_utils",
         ":symbolic",
         ":tshape",
-        # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
     ],
 )
@@ -187,6 +186,9 @@ py_library(
     srcs = ["conformer_layer.py"],
     srcs_version = "PY3",
     deps = [
+        ":hyperparams",
+        ":py_utils",
+        ":recurrent",
         "//lingvo:compat",
         "//lingvo/core:activations",
         "//lingvo/core:base_layer",
@@ -286,10 +288,14 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":attention",
         ":attention_util",
+        ":base_layer",
         ":batch_major_attention",
+        ":hyperparams",
         ":py_utils",
         ":test_utils",
+        # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.

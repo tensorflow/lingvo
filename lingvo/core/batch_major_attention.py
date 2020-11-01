@@ -1248,6 +1248,16 @@ class LocalSelfAttention(MultiHeadedAttention):
         'left_context', None, 'Number of left positions to attend '
         '(including current position).')
     p.Define('right_context', 0, 'Number of right positions to attend.')
+
+    # The following are for streaming inference only.
+    p.Define(
+        'inference_step_max_length', 1, 'Max inference step length.'
+        'Used for efficient sunn inference on tpu.')
+    p.Define(
+        'use_3d_recurrent_state', False,
+        'If True, recurrent state for streaming inference is [B, T, N*H] '
+        'instead of [B, T, N, H]. This is for performance optimization '
+        'and does not change math.')
     return p
 
   def __init__(self, params):
@@ -1501,24 +1511,29 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     Returns:
       A `.NestedMap` object containing
-      - key: [B, left_context-1, N, H].
-      - value: [B, left_context-1, N, H].
-      - paddings : [B, left_context-1]. A 0/1 Tensor where 1s are masked out
-      positions.
 
-      Note p.left_context includes self position, thus only left_context -1
-      positions are needed in the state.
+      - key: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
+        [..., N * H] if p.use_3d_recurrent_state.
+      - value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
+        [..., N * H] if p.use_3d_recurrent_state.
+      - paddings : [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+        Tensor where 1s are masked out positions.
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
     assert p.right_context == 0, 'StreamStep does not support look-ahead'
 
-    key_state = tf.zeros([
-        batch_size, p.left_context - 1, p.num_heads, p.hidden_dim // p.num_heads
-    ], py_utils.FPropDtype(p))
+    context_len = p.inference_step_max_length + p.left_context - 1
+    if not p.use_3d_recurrent_state:
+      key_state = tf.zeros(
+          [batch_size, context_len, p.num_heads, p.hidden_dim // p.num_heads],
+          py_utils.FPropDtype(p))
+    else:
+      key_state = tf.zeros([batch_size, context_len, p.hidden_dim],
+                           py_utils.FPropDtype(p))
     value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
-    masks = tf.zeros([batch_size, p.left_context - 1], py_utils.FPropDtype(p))
+    masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
     return py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
 
   def StreamStep(self, theta, query_vec, paddings, state0):
@@ -1539,20 +1554,28 @@ class LocalSelfAttention(MultiHeadedAttention):
       state1: Updated state of the same structure as state0.
     """
     p = self.params
-    with tf.name_scope(f'{p.name}/StreamStep'):
-      # Sanity checks.
-      assert p.enable_value_proj, 'Value projection must be enabled.'
-      assert p.right_context == 0, ('StreamStep() does not support look ahead.')
-      state0.key = py_utils.HasShape(
-          state0.key,
-          [-1, p.left_context - 1, p.num_heads, p.hidden_dim // p.num_heads])
-      state0.value = py_utils.HasShape(state0.value,
-                                       py_utils.GetShape(state0.key))
-      b, _, _, h = py_utils.GetShape(state0.key, 4)
-      query_vec = py_utils.HasShape(query_vec, [b, -1, p.input_dim])
-      q = py_utils.GetShape(query_vec)[1]
-      paddings = py_utils.HasShape(paddings, [b, q])
+    # Sanity checks.
+    assert p.enable_value_proj, 'Value projection must be enabled.'
+    assert p.right_context == 0, ('StreamStep() does not support look ahead.')
 
+    n, h = p.num_heads, p.hidden_dim // p.num_heads
+    s = p.inference_step_max_length + p.left_context - 1
+    b, q = py_utils.GetShape(query_vec, 2)
+    assert q is not None, 'query_vec.shape[1] must be static.'
+    assert q <= p.inference_step_max_length, (
+        f'q: {q} should be less than p.inference_step_max_length: '
+        f'{p.inference_step_max_length}')
+
+    query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
+    paddings = py_utils.HasShape(paddings, [b, q])
+    if not p.use_3d_recurrent_state:
+      state0.key = py_utils.HasShape(state0.key, [b, s, n, h])
+    else:
+      state0.key = py_utils.HasShape(state0.key, [b, s, n * h])
+    state0.value = py_utils.HasShape(state0.value,
+                                     py_utils.GetShape(state0.key))
+
+    with tf.name_scope(f'{p.name}/StreamStep'):
       # query projection.
       # [B, Q, N, H]
       query_proj = self.query.FProp(theta.query, query_vec)
@@ -1561,16 +1584,32 @@ class LocalSelfAttention(MultiHeadedAttention):
       else:
         query_proj *= h**-0.5
 
-      # key, value, mask.
-      # [B, T=Q+W-1, N, H] where W = left_context.
-      key = tf.concat(
-          [state0.key, self.key.FProp(theta.key, query_vec)], axis=1)
-      # [B, T=Q+W-1, N, H]
-      value = tf.concat(
-          [state0.value, self.value.FProp(theta.value, query_vec)], axis=1)
-      # [B, T=Q+W-1]. 1s are masked positions.
-      state_paddings = tf.concat([1 - state0.masks, paddings], axis=1)
-      t = py_utils.GetShape(state_paddings)[1]
+      def get_next_state(recur_state, inputs):  # pylint:disable=invalid-name
+        if p.use_3d_recurrent_state:
+          next_state = tf.concat(
+              [recur_state, tf.reshape(inputs, [b, q, -1])], axis=1)
+          # [B, S, N * H]
+          next_state = next_state[:, -s:, :]
+          # [B, S, N, H]
+          outputs = tf.reshape(next_state, [b, s, n, h])
+        else:
+          # [B, S, N, H]
+          next_state = tf.concat([recur_state, inputs], axis=1)[:, -s:, :, :]
+          outputs = next_state
+        return outputs, next_state
+
+      # [B, Q, N, H]
+      incr_key = self.key.FProp(theta.key, query_vec)
+      # [B, Q, N, H]
+      incr_value = self.value.FProp(theta.value, query_vec)
+      # [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.
+      key, next_key = get_next_state(state0.key, incr_key)
+      # [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.
+      value, next_value = get_next_state(state0.value, incr_value)
+
+      # paddings
+      # [B, S]. 1s are masked positions.
+      state_paddings = tf.concat([1 - state0.masks, paddings], axis=1)[:, -s:]
 
       # [B, Q, N, T]
       logits = tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
@@ -1581,45 +1620,46 @@ class LocalSelfAttention(MultiHeadedAttention):
         # Generate local atten mask.
         # [Q, 1]
         rows = tf.expand_dims(tf.range(q), -1)
-        # [1, T]
-        cols = tf.expand_dims(tf.range(t), 0)
+        # [1, S]
+        cols = tf.expand_dims(tf.range(s), 0)
         # 1s are masked positions.
-        # [Q, T=Q+W-1]
+        # [Q, S]
+        distance = cols - rows
+        shifted_distance = distance - (p.inference_step_max_length - q)
         local_atten_per_step_paddings = tf.where(
-            tf.logical_and(cols - rows <= p.left_context - 1, cols - rows >= 0),
-            tf.zeros([q, t], py_utils.FPropDtype(p)),
-            tf.ones([q, t], py_utils.FPropDtype(p)))
-        # [1, Q, T]
+            tf.logical_and(shifted_distance <= p.left_context - 1,
+                           shifted_distance >= 0),
+            tf.zeros([q, s], py_utils.FPropDtype(p)),
+            tf.ones([q, s], py_utils.FPropDtype(p)))
+        # [1, Q, S]
         local_atten_per_step_paddings = tf.expand_dims(
             local_atten_per_step_paddings, 0)
-        # [B, 1, T]
+        # [B, 1, S]
         expanded_state_paddings = tf.expand_dims(state_paddings, 1)
 
-        # [B, Q, T]
+        # [B, Q, S]
         final_paddings = tf.logical_or(
             tf.cast(expanded_state_paddings, tf.bool),
             tf.cast(local_atten_per_step_paddings, tf.bool))
-        # [B, Q, 1, T]
+        # [B, Q, 1, S]
         final_paddings = tf.expand_dims(
             tf.cast(final_paddings, logits.dtype), axis=2)
 
-      # [B, Q, N, T]
+      # [B, Q, N, S]
       logits = logits * (1 -
                          final_paddings) + very_negative_logits * final_paddings
-      # [B, Q, N, T]
+      # [B, Q, N, S]
       posteriors = py_utils.Softmax(
           logits, axis=-1, extra_logit=p.atten_extra_logit)
       # [B, Q, N, H]
-      output = tf.einsum('BQNT,BTNH->BQNH', posteriors, value)
+      output = tf.einsum('BQNS,BSNH->BQNH', posteriors, value)
 
       # Post projection.
-      # [B,Q,D]
+      # [B, Q, D]
       output = self.post.FProp(self.theta.post, output)
 
       state1 = py_utils.NestedMap(
-          key=key[:, -(p.left_context - 1):, :, :],
-          value=value[:, -(p.left_context - 1):, :, :],
-          masks=1 - state_paddings[:, -(p.left_context - 1):])
+          key=next_key, value=next_value, masks=1 - state_paddings)
       return output, paddings, state1
 
   @classmethod
@@ -2587,6 +2627,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   def _InitAttentionParams(self, atten_tpl):
     """Returns an initialized transformer attention parameters."""
     p = self.params
+
     # Make sure atten_tpl and num_heads are scalars or lists of same size
     def _RaiseTypeError():
       raise ValueError('num_heads and atten_tpl should both be lists '
@@ -3106,8 +3147,8 @@ class TransformerLayer(base_layer.BaseLayer):
       aux_vec:      [source_batch, source_time, dim].
       aux_paddings: [source_batch, source_time].
       per_step_padding_override: [target_batch, target_time, target_time].
-      segment_mask:     [target_batch, 1, target_time, target_time]
-      aux_segment_mask: [source_batch, 1, target_time, source_time]
+      segment_mask:     [target_batch, 1, target_time, target_time].
+      aux_segment_mask: [source_batch, 1, target_time, source_time].
 
     target_batch can be a multiple of source_batch, where samples in
     target_batch are arranged in the order of [m, source_batch] where m =
@@ -3590,8 +3631,10 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         results of previous attentions, used for fast decoding.
         cached_states.x_layers is a list corresponding to self.x_layers, where
         each element is a NestedMap with attention keys and values:
-        "key"   - [target_time, target_batch, num_heads, dim_per_head].
-        "value" - [target_time, target_batch, num_heads, dim_per_head].
+
+        - key: [target_time, target_batch, num_heads, dim_per_head].
+        - value: [target_time, target_batch, num_heads, dim_per_head].
+
       time_step: A scalar, the current decode step, 0-based.
       use_short_seq_opt: A bool, whether using short sequence optimization.
 
@@ -3600,8 +3643,9 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       updated_states: A `.NestedMap` object containing the updated states.
       updated_states.x_layers is a list corresponding to self.x_layers, where
       each element is a NestedMap with attention keys and values:
-      "key"   - [target_time, target_batch, num_heads, dim_per_head].
-      "value" - [target_time, target_batch, num_heads, dim_per_head].
+
+      - key: [target_time, target_batch, num_heads, dim_per_head].
+      - value: [target_time, target_batch, num_heads, dim_per_head].
     """
     p = self.params
     with tf.name_scope(p.name):

@@ -1373,16 +1373,27 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('Basic',),
-      ('BasicS4', False, 4),
+      ('Basic3d', False, 1, 1, True),
+      ('BasicS4', False, 4, 4),
+      ('BasicS4L8', False, 4, 8),
+      ('BasicS4L83d', False, 4, 8, True),
       ('SkipNorm', True),
-      ('SkipNormS2', True, 2),
+      ('SkipNormS2', True, 2, 2),
+      ('SkipNormS2L3', True, 2, 3),
+      ('SkipNormS2L33d', True, 2, 3, True),
   )
-  def testStreamStep(self, testonly_skip_norm_layers=False, stride=1):
+  def testStreamStep(self,
+                     testonly_skip_norm_layers=False,
+                     stride=1,
+                     inference_step_max_length=1,
+                     use_3d_recurrent_state=False):
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestStreamStepHelper(stride)
+      self._TestStreamStepHelper(stride, inference_step_max_length,
+                                 use_3d_recurrent_state)
 
-  def _TestStreamStepHelper(self, stride):
+  def _TestStreamStepHelper(self, stride, inference_step_max_length,
+                            use_3d_recurrent_state):
     batch_size, max_seqlen, input_dim = 2, 32, 4
     hidden_dim, num_heads = 4, 2
     left_context = 3
@@ -1411,6 +1422,8 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
         hidden_dim=hidden_dim,
         left_context=left_context,
         right_context=0)
+    p.use_3d_recurrent_state = use_3d_recurrent_state
+    p.inference_step_max_length = inference_step_max_length
 
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
     l = p.Instantiate()
@@ -1787,16 +1800,21 @@ class TransformerAttentionLayerTest(test_utils.TestCase,
 
   @parameterized.named_parameters(
       ('Basic',),
-      ('BasicS4', False, 4),
+      ('BasicS4', False, 4, 4),
+      ('BasicS4L8', False, 4, 8),
       ('SkipNorm', True),
-      ('SkipNormS2', True, 2),
+      ('SkipNormS2', True, 2, 2),
+      ('SkipNormS2L3', True, 2, 3),
   )
-  def testStreamStep(self, testonly_skip_norm_layers=False, stride=1):
+  def testStreamStep(self,
+                     testonly_skip_norm_layers=False,
+                     stride=1,
+                     inference_step_max_length=1):
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestStreamStepHelper(stride)
+      self._TestStreamStepHelper(stride, inference_step_max_length)
 
-  def _TestStreamStepHelper(self, stride):
+  def _TestStreamStepHelper(self, stride, inference_step_max_length):
     batch_size, max_seqlen, input_dim = 2, 32, 4
     num_heads = 2
     left_context = 3
@@ -1825,8 +1843,9 @@ class TransformerAttentionLayerTest(test_utils.TestCase,
         left_context=left_context,
         right_context=0)
     p.name = 'transformer_atten'
-
+    p.atten_tpl.inference_step_max_length = inference_step_max_length
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
     l = p.Instantiate()
     init_op = tf.global_variables_initializer()
 
@@ -1881,6 +1900,7 @@ class TransformerAttentionLayerTest(test_utils.TestCase,
         right_context=0,
         dropout_prob=0.5)
     p.name = 'transformer_atten'
+    p.atten_tpl.inference_step_max_length = stride
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
     l = p.Instantiate()

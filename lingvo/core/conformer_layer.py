@@ -22,7 +22,7 @@ from lingvo.core import base_layer
 from lingvo.core import batch_major_attention as attention_lib
 from lingvo.core import bn_layers
 from lingvo.core import conv_layers_with_time_padding
-from lingvo.core import hyperparams
+from lingvo.core import hyperparams as hparams_lib
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
@@ -133,7 +133,7 @@ class LConvLayer(base_layer.BaseLayer):
       # If causal, switch to causal depthwise conv.
       depthwise_conv_p = (
           conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.Params())
-      hyperparams.CopyFieldsTo(p.depthwise_conv_tpl, depthwise_conv_p)
+      hparams_lib.CopyFieldsTo(p.depthwise_conv_tpl, depthwise_conv_p)
     else:
       depthwise_conv_p = p.depthwise_conv_tpl.Copy()
     # 1d depthwise conv with channel_mulitplier = 1
@@ -480,22 +480,35 @@ class ConformerLayer(base_layer.BaseLayer):
       atten_type = 'local_relative' if p.use_relative_atten else 'local'
 
     if atten_type == 'global_relative':
-      trans_atten_p.atten_tpl = (
+      atten_tpl = (
           attention_lib.MultiHeadedAttentionXL.Params().Set(
               rel_pos_emb_dim=p.relative_pos_emb_dim))
+      hparams_lib.CopyFieldsTo(
+          p.trans_atten_tpl.atten_tpl, atten_tpl, skip='rel_pos_emb_dim')
     elif atten_type == 'local_relative':
-      trans_atten_p.atten_tpl = attention_lib.LocalSelfAttentionXL.Params().Set(
+      atten_tpl = attention_lib.LocalSelfAttentionXL.Params().Set(
           left_context=p.atten_left_context,
           right_context=p.atten_right_context,
           rel_pos_emb_dim=p.relative_pos_emb_dim)
+      hparams_lib.CopyFieldsTo(
+          p.trans_atten_tpl.atten_tpl,
+          atten_tpl,
+          skip=['left_context', 'right_context', 'rel_pos_emb_dim'])
     elif atten_type == 'local':
-      trans_atten_p.atten_tpl = attention_lib.LocalSelfAttention.Params().Set(
+      atten_tpl = attention_lib.LocalSelfAttention.Params().Set(
           left_context=p.atten_left_context,
           right_context=p.atten_right_context)
+      hparams_lib.CopyFieldsTo(
+          p.trans_atten_tpl.atten_tpl,
+          atten_tpl,
+          skip=['left_context', 'right_context'])
     else:
       # No op for 'global' atten
       assert atten_type in ('global', 'global_causal'), (
           f'Unknown atten_type {atten_type}')
+      atten_tpl = attention_lib.MultiHeadedAttention.Params()
+      hparams_lib.CopyFieldsTo(trans_atten_p.atten_tpl, atten_tpl)
+    trans_atten_p.atten_tpl = atten_tpl
 
   def _SelfAtten(self, theta, inputs, paddings):
     inputs, _ = self.trans_atten.FProp(
