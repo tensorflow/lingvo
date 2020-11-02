@@ -1119,8 +1119,11 @@ updated_value_vec: [T, B, N, H].</p>
 […, N * H] if p.use_3d_recurrent_state.</p></li>
 <li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
 […, N * H] if p.use_3d_recurrent_state.</p></li>
-<li><p>paddings : [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-Tensor where 1s are masked out positions.</p></li>
+<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+Tensor where 0s are masked out positions.</p></li>
+<li><p>tail: [B, 1], currently only effective if use_3d_recurrent_state is
+True, the tail pointer to key, value and paddings circular buffers.
+Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 </ul>
 </p>
 </dd>
@@ -1309,8 +1312,11 @@ updated_value_vec: [T, B, N, H].</p>
 […, N * H] if p.use_3d_recurrent_state.</p></li>
 <li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
 […, N * H] if p.use_3d_recurrent_state.</p></li>
-<li><p>paddings : [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-Tensor where 1s are masked out positions.</p></li>
+<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+Tensor where 0s are masked out positions.</p></li>
+<li><p>tail: [B, 1], currently only effective if use_3d_recurrent_state is
+True, the tail pointer to key, value and paddings circular buffers.
+Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 </ul>
 </p>
 </dd>

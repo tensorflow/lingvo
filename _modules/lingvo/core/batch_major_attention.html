@@ -1664,8 +1664,11 @@
 <span class="sd">        [..., N * H] if p.use_3d_recurrent_state.</span>
 <span class="sd">      - value: [B, p.inference_step_max_length + p.left_context - 1, N, H or</span>
 <span class="sd">        [..., N * H] if p.use_3d_recurrent_state.</span>
-<span class="sd">      - paddings : [B, p.inference_step_max_length + p.left_context-1]. A 0/1</span>
-<span class="sd">        Tensor where 1s are masked out positions.</span>
+<span class="sd">      - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1</span>
+<span class="sd">        Tensor where 0s are masked out positions.</span>
+<span class="sd">      - tail: [B, 1], currently only effective if use_3d_recurrent_state is</span>
+<span class="sd">        True, the tail pointer to key, value and paddings circular buffers.</span>
+<span class="sd">        Value range is [0, p.inference_step_max_length + p.left_context - 1).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">,</span> <span class="s1">&#39;Value projection must be enabled.&#39;</span>
@@ -1682,7 +1685,9 @@
     <span class="n">value_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">key_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="c1"># At the beginning, all positions are masked out.</span>
     <span class="n">masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">context_len</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">)</span></div>
+    <span class="n">tail</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">,</span> <span class="n">tail</span><span class="o">=</span><span class="n">tail</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
@@ -1732,10 +1737,28 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">query_proj</span> <span class="o">*=</span> <span class="n">h</span><span class="o">**-</span><span class="mf">0.5</span>
 
+      <span class="k">def</span> <span class="nf">get_update_indices</span><span class="p">():</span>  <span class="c1"># pylint:disable=invalid-name</span>
+        <span class="c1"># The following computes locations to update in the circular buffer.</span>
+        <span class="c1"># [b, 1]</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># [b, q]</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
+        <span class="c1"># [1, q]</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># [b, q]</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># [b, q]</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">cols</span> <span class="o">+</span> <span class="n">state0</span><span class="o">.</span><span class="n">tail</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="c1"># [b, q, 2]</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)],</span>
+                         <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+      <span class="n">indices</span> <span class="o">=</span> <span class="n">get_update_indices</span><span class="p">()</span>
+
       <span class="k">def</span> <span class="nf">get_next_state</span><span class="p">(</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
-          <span class="c1"># [B, S, N * H]</span>
-          <span class="n">next_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:,</span> <span class="p">:]</span>
+          <span class="n">next_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
           <span class="c1"># [B, S, N, H]</span>
           <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">next_state</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1765,10 +1788,16 @@
       <span class="n">key</span><span class="p">,</span> <span class="n">next_key</span> <span class="o">=</span> <span class="n">get_next_state</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">incr_key</span><span class="p">)</span>
       <span class="c1"># [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.</span>
       <span class="n">value</span><span class="p">,</span> <span class="n">next_value</span> <span class="o">=</span> <span class="n">get_next_state</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">incr_value</span><span class="p">)</span>
+      <span class="c1"># [B, 1]</span>
+      <span class="n">next_tail</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">tail</span> <span class="o">+</span> <span class="n">q</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
       <span class="c1"># paddings</span>
       <span class="c1"># [B, S]. 1s are masked positions.</span>
-      <span class="n">state_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+        <span class="n">new_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span>
+                                                <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:]</span>
 
       <span class="c1"># [B, Q, N, T]</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQNH,BTNH-&gt;BQNT&#39;</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
@@ -1783,22 +1812,32 @@
         <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># 1s are masked positions.</span>
         <span class="c1"># [Q, S]</span>
-        <span class="n">distance</span> <span class="o">=</span> <span class="n">cols</span> <span class="o">-</span> <span class="n">rows</span>
-        <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">cols</span> <span class="o">-</span> <span class="n">rows</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+          <span class="c1"># [B, 1]</span>
+          <span class="n">head</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">tail</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">s</span><span class="p">)</span>
+          <span class="c1"># [B, Q, S]</span>
+          <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># [Q, S]</span>
+          <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span>
+        <span class="c1"># [B, Q, S] or [Q, S]</span>
         <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">shifted_distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
                            <span class="n">shifted_distance</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">s</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">s</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
-        <span class="c1"># [1, Q, S]</span>
-        <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-            <span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">shifted_distance</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">shifted_distance</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
+        <span class="c1"># [1, Q, S] or [B, Q, S]</span>
+        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">local_atten_per_step_paddings</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+          <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+              <span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># [B, 1, S]</span>
-        <span class="n">expanded_state_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">state_paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">expanded_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">new_masks</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># [B, Q, S]</span>
         <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">expanded_state_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">expanded_masks</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
         <span class="c1"># [B, Q, 1, S]</span>
         <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
@@ -1818,7 +1857,7 @@
       <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
 
       <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">key</span><span class="o">=</span><span class="n">next_key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">next_value</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">state_paddings</span><span class="p">)</span>
+          <span class="n">key</span><span class="o">=</span><span class="n">next_key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">next_value</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">new_masks</span><span class="p">,</span> <span class="n">tail</span><span class="o">=</span><span class="n">next_tail</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state1</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
