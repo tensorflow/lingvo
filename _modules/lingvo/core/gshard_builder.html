@@ -388,9 +388,10 @@
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;softmax_weight&#39;</span><span class="p">,</span>
                   <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">vocab_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))])</span></div>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">]))])</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.Mask"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Mask">[docs]</a>  <span class="k">def</span> <span class="nf">Mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
@@ -1430,6 +1431,8 @@
 
 <div class="viewcode-block" id="DenseBuilder._AdjustMSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._AdjustMSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_AdjustMSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">m_dim</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Adjusts split annotation according to model_dim_reshape_segments.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">split</span>
     <span class="n">new_split</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
@@ -1490,6 +1493,8 @@
 <div class="viewcode-block" id="DenseBuilder._MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span>
+    <span class="k">if</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
     <span class="k">if</span> <span class="n">device_mesh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">x</span>
