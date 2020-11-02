@@ -240,9 +240,10 @@ class MoEBuilder(builder.Base):
         name=name,
         weights=[('softmax_weight',
                   py_utils.WeightParams(
-                      init=py_utils.WeightInit.Gaussian(),
+                      init=py_utils.WeightInit.Uniform(
+                          (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
-                      shape=[vocab_dim, self.params.model_dim]))])
+                      shape=[self.params.model_dim, vocab_dim]))])
 
   def Mask(self):
 
@@ -1282,6 +1283,8 @@ class DenseBuilder(MoEBuilder):
 
   def _AdjustMSplit(self, split, m_dim):
     """Adjusts split annotation according to model_dim_reshape_segments."""
+    if split is None:
+      return None
     if self.params.model_dim_reshape_segments is None:
       return split
     new_split = list(split)
@@ -1342,6 +1345,8 @@ class DenseBuilder(MoEBuilder):
   def _MeshSplit(self, x, tensor_split_dims_mapping):
     p = self.params
     device_mesh = p.device_mesh
+    if tensor_split_dims_mapping is None:
+      return x
     if device_mesh is None:
       if not p.device_mesh_shape:
         return x
