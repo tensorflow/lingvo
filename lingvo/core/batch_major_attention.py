@@ -1516,8 +1516,11 @@ class LocalSelfAttention(MultiHeadedAttention):
         [..., N * H] if p.use_3d_recurrent_state.
       - value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
         [..., N * H] if p.use_3d_recurrent_state.
-      - paddings : [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-        Tensor where 1s are masked out positions.
+      - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+        Tensor where 0s are masked out positions.
+      - tail: [B, 1], currently only effective if use_3d_recurrent_state is
+        True, the tail pointer to key, value and paddings circular buffers.
+        Value range is [0, p.inference_step_max_length + p.left_context - 1).
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
@@ -1534,7 +1537,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
     masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
-    return py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
+    tail = tf.zeros([batch_size, 1], tf.int32)
+    return py_utils.NestedMap(
+        key=key_state, value=value_state, masks=masks, tail=tail)
 
   def StreamStep(self, theta, query_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
@@ -1584,10 +1589,28 @@ class LocalSelfAttention(MultiHeadedAttention):
       else:
         query_proj *= h**-0.5
 
+      def get_update_indices():  # pylint:disable=invalid-name
+        # The following computes locations to update in the circular buffer.
+        # [b, 1]
+        rows = tf.expand_dims(tf.range(b), -1)
+        # [b, q]
+        rows = tf.tile(rows, [1, q])
+        # [1, q]
+        cols = tf.expand_dims(tf.range(q), 0)
+        # [b, q]
+        cols = tf.tile(cols, [b, 1])
+        # [b, q]
+        cols = tf.math.floormod(cols + state0.tail, s)
+        # [b, q, 2]
+        return tf.concat([tf.expand_dims(rows, -1),
+                          tf.expand_dims(cols, -1)],
+                         axis=-1)
+
+      indices = get_update_indices()
+
       def get_next_state(recur_state, inputs):  # pylint:disable=invalid-name
         if p.use_3d_recurrent_state:
-          # [B, S, N * H]
-          next_state = tf.concat([recur_state, inputs], axis=1)[:, -s:, :]
+          next_state = tf.tensor_scatter_nd_update(recur_state, indices, inputs)
           # [B, S, N, H]
           outputs = tf.reshape(next_state, [b, s, n, h])
         else:
@@ -1617,10 +1640,16 @@ class LocalSelfAttention(MultiHeadedAttention):
       key, next_key = get_next_state(state0.key, incr_key)
       # [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.
       value, next_value = get_next_state(state0.value, incr_value)
+      # [B, 1]
+      next_tail = tf.math.floormod(state0.tail + q, s)
 
       # paddings
       # [B, S]. 1s are masked positions.
-      state_paddings = tf.concat([1 - state0.masks, paddings], axis=1)[:, -s:]
+      if p.use_3d_recurrent_state:
+        new_masks = tf.tensor_scatter_nd_update(state0.masks, indices,
+                                                1 - paddings)
+      else:
+        new_masks = tf.concat([state0.masks, 1 - paddings], axis=1)[:, -s:]
 
       # [B, Q, N, T]
       logits = tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
@@ -1635,22 +1664,32 @@ class LocalSelfAttention(MultiHeadedAttention):
         cols = tf.expand_dims(tf.range(s), 0)
         # 1s are masked positions.
         # [Q, S]
-        distance = cols - rows
-        shifted_distance = distance - (p.inference_step_max_length - q)
+        distance = tf.math.floormod(cols - rows, s)
+        if p.use_3d_recurrent_state:
+          # [B, 1]
+          head = tf.math.floormod(state0.tail - (p.left_context - 1), s)
+          # [B, Q, S]
+          shifted_distance = tf.math.floormod(
+              tf.expand_dims(distance, 0) - tf.expand_dims(head, -1), s)
+        else:
+          # [Q, S]
+          shifted_distance = distance - (p.inference_step_max_length - q)
+        # [B, Q, S] or [Q, S]
         local_atten_per_step_paddings = tf.where(
             tf.logical_and(shifted_distance <= p.left_context - 1,
                            shifted_distance >= 0),
-            tf.zeros([q, s], py_utils.FPropDtype(p)),
-            tf.ones([q, s], py_utils.FPropDtype(p)))
-        # [1, Q, S]
-        local_atten_per_step_paddings = tf.expand_dims(
-            local_atten_per_step_paddings, 0)
+            tf.zeros_like(shifted_distance, py_utils.FPropDtype(p)),
+            tf.ones_like(shifted_distance, py_utils.FPropDtype(p)))
+        # [1, Q, S] or [B, Q, S]
+        if py_utils.GetRank(local_atten_per_step_paddings) < 3:
+          local_atten_per_step_paddings = tf.expand_dims(
+              local_atten_per_step_paddings, 0)
         # [B, 1, S]
-        expanded_state_paddings = tf.expand_dims(state_paddings, 1)
+        expanded_masks = tf.expand_dims(new_masks, 1)
 
         # [B, Q, S]
         final_paddings = tf.logical_or(
-            tf.cast(expanded_state_paddings, tf.bool),
+            tf.cast(1 - expanded_masks, tf.bool),
             tf.cast(local_atten_per_step_paddings, tf.bool))
         # [B, Q, 1, S]
         final_paddings = tf.expand_dims(
@@ -1670,7 +1709,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       output = self.post.FProp(self.theta.post, output)
 
       state1 = py_utils.NestedMap(
-          key=next_key, value=next_value, masks=1 - state_paddings)
+          key=next_key, value=next_value, masks=new_masks, tail=next_tail)
       return output, paddings, state1
 
   @classmethod
