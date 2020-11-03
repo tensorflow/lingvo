@@ -605,3 +605,21 @@ class ConformerLayer(base_layer.BaseLayer):
       state1 = py_utils.NestedMap(
           lconv_state=lconv_state1, atten_state=atten_state1)
       return outputs, paddings, state1
+
+
+def ApplyGshard(conformer_tpl,
+                atten_num_partitions=None,
+                ffn_num_partitions=None,
+                ffn_split_dims=None):
+  """Applies gshard on conformer params."""
+  # Not all attention class supports gshard. If not, errors would be throw here.
+  conformer_tpl.trans_atten_tpl.atten_tpl.xla_num_partitions = (
+      atten_num_partitions)
+  # TODO(jamesqin): support residual_proj xla sharding too.
+  conformer_tpl.fflayer_start_tpl.fflayer_tpl.Set(
+      proj_xla_num_partitions=ffn_num_partitions,
+      proj_xla_split_dim=ffn_split_dims)
+  conformer_tpl.fflayer_end_tpl.fflayer_tpl.Set(
+      proj_xla_num_partitions=ffn_num_partitions,
+      proj_xla_split_dim=ffn_split_dims)
+  return conformer_tpl

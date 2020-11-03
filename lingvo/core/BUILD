@@ -796,6 +796,7 @@ py_library(
         ":computation_cost",
         ":constants",
         ":conv_layers_with_time_padding",
+        ":moe_layers",
         ":pruning_utils",
         ":py_utils",
         ":quant_utils",

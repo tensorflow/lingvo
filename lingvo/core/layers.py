@@ -26,6 +26,7 @@ from lingvo.core import bn_layers
 from lingvo.core import builder_layers
 from lingvo.core import computation_cost
 from lingvo.core import conv_layers_with_time_padding
+from lingvo.core import moe_layers
 from lingvo.core import pruning_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -878,6 +879,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'multiplications. This allows for weight updates to be paralellized'
         ' across the cores for Shampoo optimizer.')
     p.Define('block_dim', 1024, 'Dimension of the block')
+    p.Define('xla_num_partitions', None, 'Number of Gshard partitions.')
+    p.Define('xla_split_dim', None, 'Which dim to g-shard.')
     return p
 
   def __init__(self, params):
@@ -887,6 +890,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
     assert p.activation == 'NONE' or activations.IsSupported(p.activation)
+    if p.xla_num_partitions:
+      assert p.xla_split_dim is not None
+
     if p.batch_norm is None:
       raise RuntimeError(
           'ProjectionLayer.batch_norm not set explicitly for %s' % self.path)
@@ -1125,8 +1131,17 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       disabled.
     """
     p = self.params
+    if p.xla_num_partitions:
+      theta.w = moe_layers.Split(
+          theta.w, p.xla_split_dim, p.xla_num_partitions, use_sharding_op=True)
     w = theta.w
-    b = theta.b if p.has_bias else None
+    if p.has_bias:
+      if p.xla_num_partitions:
+        theta.b = moe_layers.Split(
+            theta.b, 0, p.xla_num_partitions, use_sharding_op=True)
+      b = theta.b
+    else:
+      b = None
     if p.use_blocked_matmul:
       w = self._GetBlockedWeightMatrix(w)
       if p.weight_norm:
@@ -1325,6 +1340,9 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     p.Define(
         'bn_fold_weights', None, 'Force folding the batch normalization '
         'weights in the projection layer.')
+    p.Define('proj_xla_num_partitions', [],
+             'Gshard number of partitions for the proj layers.')
+    p.Define('proj_xla_split_dim', [], 'Gshard split dims for the proj layers.')
     return p
 
   def __init__(self, params):
@@ -1367,6 +1385,13 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     else:
       params_dropout_layers = [params_dropout_layers] * num_layers
 
+    if not p.proj_xla_num_partitions:
+      p.proj_xla_num_partitions = [None] * num_layers
+    if not p.proj_xla_split_dim:
+      p.proj_xla_split_dim = [None] * num_layers
+    assert len(p.proj_xla_num_partitions) == num_layers
+    assert len(p.proj_xla_split_dim) == num_layers
+
     # Residual connections work better in the form of:
     #   y = x + Affine(Activation(BatchNorm(x)))
     params_fc_layers = []
@@ -1383,6 +1408,8 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
           input_dim=in_dim,
           output_dim=proj_out_dim,
           bn_fold_weights=p.bn_fold_weights,
+          xla_num_partitions=p.proj_xla_num_partitions[i],
+          xla_split_dim=p.proj_xla_split_dim[i],
           name=name)
       params_fc_layers.append(params_i)
       in_dim = out_dim
