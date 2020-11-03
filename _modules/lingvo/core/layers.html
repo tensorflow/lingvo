@@ -174,6 +174,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">computation_cost</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">moe_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">pruning_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
@@ -1026,6 +1027,8 @@
         <span class="s1">&#39;multiplications. This allows for weight updates to be paralellized&#39;</span>
         <span class="s1">&#39; across the cores for Shampoo optimizer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Dimension of the block&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of Gshard partitions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_split_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Which dim to g-shard.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1035,6 +1038,9 @@
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">activations</span><span class="o">.</span><span class="n">IsSupported</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_split_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
           <span class="s1">&#39;ProjectionLayer.batch_norm not set explicitly for </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
@@ -1273,8 +1279,17 @@
 <span class="sd">      disabled.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_split_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
-    <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">:</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBlockedWeightMatrix</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
@@ -1473,6 +1488,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bn_fold_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Force folding the batch normalization &#39;</span>
         <span class="s1">&#39;weights in the projection layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;proj_xla_num_partitions&#39;</span><span class="p">,</span> <span class="p">[],</span>
+             <span class="s1">&#39;Gshard number of partitions for the proj layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;proj_xla_split_dim&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Gshard split dims for the proj layers.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1515,6 +1533,13 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">params_dropout_layers</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+
     <span class="c1"># Residual connections work better in the form of:</span>
     <span class="c1">#   y = x + Affine(Activation(BatchNorm(x)))</span>
     <span class="n">params_fc_layers</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1531,6 +1556,8 @@
           <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
           <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
           <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
+          <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">xla_split_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
       <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
       <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
