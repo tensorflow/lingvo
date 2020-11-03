@@ -1062,6 +1062,29 @@ Y.&nbsp;Jia, R.&nbsp;J. Weiss, F.&nbsp;Biadsy, W.&nbsp;Macherey, M.&nbsp;Johnson
 </tr>
 </table>
 
+## Speech enhancement
+
+<!-- This document was automatically generated with bibtex2html 1.99
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+
+
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="ding2020textual">1</a>]
+</td>
+<td class="bibtexitem">
+S.&nbsp;Ding, Y.&nbsp;Jia, K.&nbsp;Hu, and Q.&nbsp;Wang, &ldquo;Textual echo cancellation,&rdquo; 2020.
+[&nbsp;<a href="https://google.github.io/speaker-id/publications/TEC/">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2008.06006">pdf</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+
 ## Optimization
 
 <!-- This document was automatically generated with bibtex2html 1.99

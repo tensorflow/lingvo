@@ -32,6 +32,7 @@ for topic in \
     'Language understanding' \
     'Speech synthesis' \
     'Speech translation' \
+    'Speech enhancement' \
     'Optimization';  do
   echo -e "\n\n## ${topic}"
   bib2bib -c "annote='${topic}'" publications.bib \
