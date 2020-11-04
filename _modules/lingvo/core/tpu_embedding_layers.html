@@ -411,7 +411,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">LearningRateFn</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
-      <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+        <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
       <span class="n">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="s1">&#39;tpu_embedding_lr/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">lr</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">lr</span>
 
