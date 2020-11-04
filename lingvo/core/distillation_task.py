@@ -138,8 +138,7 @@ class DistillationTask(base_model.BaseTask):
       distillation_loss['distillation_loss'] = distillation_loss['loss']
       per_example.update(distill_per_example)
 
-    distillation_loss_weight = self.distillation_loss_weight.FProp(
-        theta.distillation_loss_weight, self.global_step)
+    distillation_loss_weight = self.distillation_loss_weight.Value()
     metrics = py_utils.CombineMetrics([
         (groundtruth_loss, 1 - distillation_loss_weight),
         (distillation_loss, distillation_loss_weight),

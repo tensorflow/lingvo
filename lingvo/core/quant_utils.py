@@ -474,9 +474,6 @@ class QuantizableLayer(base_layer.BaseLayer):
 class BaseClippingCapSchedule(base_layer.BaseLayer):
   """Base class for clipping cap schedules."""
 
-  def __init__(self, params):
-    super().__init__(params)
-
   @property
   def is_quantized(self):
     return False
@@ -611,7 +608,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     return tf.clip_by_value(x, min_value, max_value)
 
   def GetState(self, theta):
-    return self._Value(py_utils.GetGlobalStep())
+    return self._Value()
 
   def ApplyClippingWithState(self, state, x):
     """Applies clipping to x.
@@ -635,12 +632,12 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     """
     return (-self.params.end_cap, self.params.end_cap)
 
-  def _Value(self, current_step):
+  def _Value(self):
     """Returns the current clipping cap."""
     p = self.params
     start_step = tf.cast(p.start_step, tf.float32)
     end_step = tf.cast(p.end_step, tf.float32)
-    current_step = tf.cast(current_step, tf.float32)
+    current_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
     steps_ratio = (
         tf.minimum(end_step - start_step, current_step - start_step)/
         (end_step - start_step))
@@ -651,8 +648,8 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
                 p.start_step), lambda: tf.cast(p.start_cap, tf.float32),
         lambda: tf.cast(rmax_tensor, tf.float32))
 
-  def PostTrainingStepUpdate(self, global_step):
-    summary_utils.scalar('cap', self._Value(global_step))
+  def PostTrainingStepUpdate(self, unused_global_step):
+    summary_utils.scalar('cap', self._Value())
     return tf.no_op()
 
 

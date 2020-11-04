@@ -978,6 +978,7 @@ py_test(
     deps = [
         ":cluster_factory",
         ":early_stop",
+        ":py_utils",
         ":schedule",
         ":test_utils",
         "//lingvo:compat",

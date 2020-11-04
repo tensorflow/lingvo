@@ -36,11 +36,8 @@ class BaseSchedule(base_layer.BaseLayer):
     super().__init__(params)
     self.SetVariableFree()
 
-  def Value(self, current_step=None):
+  def Value(self):
     """Returns the current learning rate schedule value.
-
-    Args:
-      current_step: The current global step value.
 
     Returns:
       Returns the current learning rate schedule value given the
@@ -48,9 +45,7 @@ class BaseSchedule(base_layer.BaseLayer):
       multiplied by the returned schedule value is used as the
       effective learning rate.
     """
-    if current_step is None:
-      current_step = self.global_step
-    return self.FPropDefaultTheta(current_step)
+    raise NotImplementedError()
 
 
 class Constant(BaseSchedule):
@@ -62,8 +57,7 @@ class Constant(BaseSchedule):
     p.Define('value', 1., 'The constant value.')
     return p
 
-  def FProp(self, theta, current_step):
-    del theta, current_step
+  def Value(self):
     return tf.constant(self.params.value, self.params.dtype)
 
 
@@ -82,10 +76,10 @@ class PiecewiseConstantSchedule(BaseSchedule):
     p.Define('values', None, 'Values in each interval.')
     return p
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     p = self.params
-    return py_utils.PiecewiseConstant(current_step, p.boundaries, p.values,
-                                      p.dtype)
+    return py_utils.PiecewiseConstant(py_utils.GetGlobalStep(), p.boundaries,
+                                      p.values, p.dtype)
 
 
 class ContinuousSchedule(BaseSchedule):
@@ -111,9 +105,9 @@ class ContinuousSchedule(BaseSchedule):
                p.half_life_steps * math.log(p.min) / math.log(0.5), p.min))
     self.CreateChild('exp', q)
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     """Returns the current learning rate decay."""
-    return self.params.initial_value * self.exp.Value(current_step)
+    return self.params.initial_value * self.exp.Value()
 
 
 class PolynomialSchedule(BaseSchedule):
@@ -134,37 +128,30 @@ class PolynomialSchedule(BaseSchedule):
              '"limit".')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def Value(self):
+    p = self.params
+    x = tf.cast(py_utils.GetGlobalStep(), dtype=p.dtype)
+    x0, y0 = p.start
+    x1, y1 = p.limit
 
-    def Polynomial(x):
-      """Polynomial function of x."""
-      p = self.params
-      x0, y0 = p.start
-      x1, y1 = p.limit
+    if x0 >= x1:
+      raise ValueError(f'{x0} must be < {x1}')
 
-      assert x0 < x1, '%s must be < %s' % (x0, x1)
+    x0 = tf.cast(x0, dtype=x.dtype)
+    x1 = tf.cast(x1, dtype=x.dtype)
+    y0 = tf.cast(y0, dtype=x.dtype)
+    y1 = tf.cast(y1, dtype=x.dtype)
 
-      x0 = tf.cast(x0, dtype=x.dtype)
-      x1 = tf.cast(x1, dtype=x.dtype)
-      y0 = tf.cast(y0, dtype=x.dtype)
-      y1 = tf.cast(y1, dtype=x.dtype)
+    ratio = (x - x0) / (x1 - x0)
+    if p.origin == 'start':
+      f_x = ratio**p.power
+    elif p.origin == 'limit':
+      f_x = 1 - (1 - ratio)**p.power
+    else:
+      raise ValueError('Invalid parameter origin: %s' % p.origin)
 
-      ratio = (x - x0) / (x1 - x0)
-      if p.origin == 'start':
-        f_x = ratio**p.power
-      elif p.origin == 'limit':
-        f_x = 1 - (1 - ratio)**p.power
-      else:
-        raise ValueError('Invalid parameter origin: %s' % p.origin)
-      y = y0 + f_x * (y1 - y0)
-      return tf.where(x < x0, y0, tf.where(x >= x1, y1, y))
-
-    self._polynomial = Polynomial
-
-  def FProp(self, theta, current_step):
-    return py_utils.CallDefun(self._polynomial,
-                              tf.cast(current_step, dtype=self.params.dtype))
+    y = y0 + f_x * (y1 - y0)
+    return tf.where(x < x0, y0, tf.where(x >= x1, y1, y))
 
 
 class LinearSchedule(PolynomialSchedule):
@@ -177,8 +164,7 @@ class LinearSchedule(PolynomialSchedule):
 
   @classmethod
   def Params(cls):
-    p = super().Params().Set(power=1)
-    return p
+    return super().Params().Set(power=1)
 
 
 class AnnealingSchedule(BaseSchedule):
@@ -202,14 +188,10 @@ class AnnealingSchedule(BaseSchedule):
     assert p.lower_bound
     assert p.factor and 0 < p.factor <= 1
 
-    def Fn(x):
-      return tf.math.maximum(tf.pow(p.factor, x), p.lower_bound)
-
-    self._aneal = Fn
-
-  def FProp(self, theta, current_step):
-    return py_utils.CallDefun(self._aneal,
-                              tf.cast(current_step, dtype=self.params.dtype))
+  def Value(self):
+    p = self.params
+    x = tf.cast(py_utils.GetGlobalStep(), dtype=p.dtype)
+    return tf.math.maximum(tf.pow(p.factor, x), p.lower_bound)
 
 
 class ExponentialSchedule(BaseSchedule):
@@ -240,14 +222,8 @@ class ExponentialSchedule(BaseSchedule):
         LinearSchedule.Params().Set(
             start=(x0, math.log(y0)), limit=(x1, math.log(y1))))
 
-    def Exp(x):
-      return tf.exp(self.linear.Value(x))
-
-    self._exp = Exp
-
-  def FProp(self, theta, current_step):
-    return py_utils.CallDefun(self._exp,
-                              tf.cast(current_step, dtype=self.params.dtype))
+  def Value(self):
+    return tf.exp(self.linear.Value())
 
 
 class StepwiseExponentialSchedule(BaseSchedule):
@@ -260,10 +236,12 @@ class StepwiseExponentialSchedule(BaseSchedule):
     p.Define('num_steps_per_decay', 1000, 'Number of steps between decays.')
     return p
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     p = self.params
     num_decays = tf.floor(
-        tf.div(tf.cast(current_step, tf.float32), float(p.num_steps_per_decay)))
+        tf.div(
+            tf.cast(py_utils.GetGlobalStep(), tf.float32),
+            float(p.num_steps_per_decay)))
     return tf.pow(p.decay, num_decays)
 
 
@@ -282,15 +260,9 @@ class CombinedMinimumSchedule(BaseSchedule):
     p = self.params
     self.CreateChildren('schedules', p.schedules)
 
-    def Combined(x):
-      ys = [s.Value(x) for s in self.schedules]
-      return tf.reduce_min(tf.stack(ys), axis=0)
-
-    self._combined = Combined
-
-  def FProp(self, theta, current_step):
-    return py_utils.CallDefun(self._combined,
-                              tf.convert_to_tensor(current_step))
+  def Value(self):
+    ys = [s.Value() for s in self.schedules]
+    return tf.reduce_min(tf.stack(ys), axis=0)
 
 
 class TransformerSchedule(BaseSchedule):
@@ -310,10 +282,10 @@ class TransformerSchedule(BaseSchedule):
              'decay_end-th step.')
     return p
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     """Returns the current learning rate decay."""
     p = self.params
-    current_step = tf.cast(current_step, tf.float32)
+    current_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
     warmup_steps = tf.cast(p.warmup_steps * p.worker_replicas, tf.float32)
     if p.decay_end is not None:
       current_step = tf.where(current_step < p.decay_end, current_step,
@@ -336,10 +308,10 @@ class TransformerMLPerfSchedule(BaseSchedule):
         'layers and all Transformer layers.')
     return p
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     """Returns the current learning rate decay."""
     p = self.params
-    current_step = tf.cast(current_step, tf.float32)
+    current_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
     warmup_steps = tf.cast(p.warmup_steps, tf.float32)
     linear_warmup = tf.minimum(1.0, current_step / warmup_steps)
     rsqrt_decay = tf.math.rsqrt(tf.maximum(current_step, warmup_steps))
@@ -372,12 +344,12 @@ class TransformerScheduleNoWarmUp(BaseSchedule):
     tf.logging.info('Peak lr: %f', (self.params.decay_start *
                                     self.params.worker_replicas)**-0.5)
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     """Returns the current learning rate decay."""
     params = self.params
     warmup_steps = tf.cast(params.decay_start * params.worker_replicas,
                            tf.float32)
-    current_step = tf.cast(current_step, tf.float32)
+    current_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
     if params.decay_end is not None:
       current_step = tf.where(current_step < params.decay_end, current_step,
                               tf.cast(params.decay_end, tf.float32))
@@ -458,8 +430,8 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(BaseSchedule):
     self.CreateChild('combine',
                      CombinedMinimumSchedule.Params().Set(schedules=schedules))
 
-  def FProp(self, theta, current_step):
-    return self.combine.Value(current_step)
+  def Value(self):
+    return self.combine.Value()
 
 
 class LinearRampupExponentialDecay(
@@ -526,10 +498,10 @@ class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseSchedule):
       self._num_replicas = my_cluster.num_splits_per_client
     assert self._num_replicas > 0
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     """Returns the current learning rate decay."""
     p = self.params
-    current_step = tf.cast(current_step, tf.float32)
+    current_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
     warmup_steps = tf.cast(
         p.warmup_examples / (p.batch_size * self._num_replicas), tf.float32)
     return tf.minimum((current_step + 1) * warmup_steps**-1.5,
@@ -593,8 +565,8 @@ class LinearRampupPiecewiseConstantSchedule(BaseSchedule):
     self.CreateChild('combine',
                      CombinedMinimumSchedule.Params().Set(schedules=schedules))
 
-  def FProp(self, theta, current_step):
-    return self.combine.Value(current_step)
+  def Value(self):
+    return self.combine.Value()
 
 
 class LinearRampupCosineSchedule(BaseSchedule):
@@ -643,8 +615,8 @@ class LinearRampupCosineSchedule(BaseSchedule):
     self.CreateChild('combine',
                      CombinedMinimumSchedule.Params().Set(schedules=schedules))
 
-  def FProp(self, theta, current_step):
-    return self.combine.Value(current_step)
+  def Value(self):
+    return self.combine.Value()
 
 
 class DevBasedSchedule(BaseSchedule):
@@ -704,7 +676,7 @@ class DevBasedSchedule(BaseSchedule):
       self._best_step = ops.best_step(self._metric_history.hist_file,
                                       p.tolerance)
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     p = self.params
     with tf.name_scope(p.name):
 
@@ -747,7 +719,7 @@ class CosineSchedule(BaseSchedule):
     p.Define('total_steps', 0, 'Number of steps to reach full decay.')
     return p
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     p = self.params
     assert p.total_steps > 0
     assert p.initial_value > p.final_value
@@ -755,7 +727,7 @@ class CosineSchedule(BaseSchedule):
       decay_gap = p.initial_value - p.final_value
       return p.final_value + 0.5 * decay_gap * (1 + tf.cos(math.pi * tf.minimum(
           1.0,
-          tf.cast(current_step, tf.float32) / p.total_steps)))
+          tf.cast(py_utils.GetGlobalStep(), tf.float32) / p.total_steps)))
 
 
 class PiecewiseSchedule(BaseSchedule):
@@ -771,7 +743,7 @@ class PiecewiseSchedule(BaseSchedule):
         'schedules[i] starts at boundaries[i-1] (inclusive) and ends at '
         'boundaries[i] (exclusive). '
         'The *relative* step in each interval will be passed to the '
-        'sub-schedule for FProp.')
+        'sub-schedule for Value.')
     return p
 
   def __init__(self, params):
@@ -787,17 +759,17 @@ class PiecewiseSchedule(BaseSchedule):
                        (len(p.schedules), len(p.boundaries)))
     self.CreateChildren('schedules', p.schedules)
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     p = self.params
-    current_step = tf.cast(current_step, tf.int64)
+    current_step = tf.cast(py_utils.GetGlobalStep(), tf.int64)
     interval_starts = [0] + p.boundaries
     values = []
-    for interval_start, schedule, schedule_theta in zip(
-        interval_starts, self.schedules, theta.schedules):
+    for interval_start, schedule in zip(interval_starts, self.schedules):
       relative_step = tf.maximum(
           tf.cast(0, current_step.dtype),
           current_step - tf.cast(interval_start, current_step.dtype))
-      values.append(schedule.FProp(schedule_theta, relative_step))
+      with py_utils.GlobalStepContext(relative_step):
+        values.append(schedule.Value())
 
     return py_utils.PiecewiseConstant(current_step, p.boundaries, values,
                                       values[0].dtype)
@@ -813,9 +785,9 @@ class SqrtDecay(BaseSchedule):
     p.Define('multiplier', 1.0, 'Multiplier.')
     return p
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     p = self.params
-    step_num = tf.cast(current_step, tf.float32)
+    step_num = tf.cast(py_utils.GetGlobalStep(), tf.float32)
     learning_rate = tf.math.rsqrt(tf.maximum(step_num, p.warmup_steps))
     learning_rate *= p.multiplier
     return learning_rate
@@ -846,10 +818,10 @@ class CycleSchedule(BaseSchedule):
     self._period = boundaries[-1]
     self._boundaries = boundaries[1:-1]
 
-  def FProp(self, theta, current_step):
+  def Value(self):
     values = []
-    for schedule, schedule_theta in zip(self.schedules, theta.schedules):
-      values.append(schedule.FProp(schedule_theta, current_step))
-    relative_step = tf.math.mod(current_step, self._period)
+    for schedule in self.schedules:
+      values.append(schedule.Value())
+    relative_step = tf.math.mod(py_utils.GetGlobalStep(), self._period)
     return py_utils.PiecewiseConstant(relative_step, self._boundaries, values,
                                       values[0].dtype)

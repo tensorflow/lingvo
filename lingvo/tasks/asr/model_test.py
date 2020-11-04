@@ -344,8 +344,10 @@ class AsrModelTest(test_utils.TestCase):
       tp.lr_schedule.boundaries = [300000, 400000, 500000]
       tp.lr_schedule.values = [1.0, 0.1, 0.01, 0.001]
       lrs = tp.lr_schedule.Instantiate()
-      steps = [299999, 300001, 399999, 400001, 499999, 500001]
-      fetches = [lrs.Value(_) for _ in steps]
+      fetches = []
+      for step in [299999, 300001, 399999, 400001, 499999, 500001]:
+        with py_utils.GlobalStepContext(step):
+          fetches.append(lrs.Value())
       values = self.evaluate(fetches)
       self.assertAllClose([1.0, 0.1, 0.1, 0.01, 0.01, 0.001], values)
 

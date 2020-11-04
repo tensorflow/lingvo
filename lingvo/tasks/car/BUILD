@@ -368,6 +368,7 @@ py_test(
         ":lr_util",
         ":pillars",
         "//lingvo:compat",
+        "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
     ],
 )

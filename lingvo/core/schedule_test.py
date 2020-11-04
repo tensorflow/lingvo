@@ -20,6 +20,7 @@ import os
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
+from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import test_utils
 
@@ -31,14 +32,16 @@ class LearningRateScheduleTest(test_utils.TestCase):
       p = schedule.Constant.Params().Set(value=5)
       lrs = p.Instantiate()
       for x in [0, 10, 100, 1000000]:
-        self.assertAllClose(lrs.Value(x).eval(), 5.0)
+        with py_utils.GlobalStepContext(x):
+          self.assertAllClose(lrs.Value().eval(), 5.0)
 
   def testConstantOne(self):
     with self.session(use_gpu=False):
       p = schedule.ConstantOne.Params()
       lrs = p.Instantiate()
       for x in [0, 10, 100, 1000000]:
-        self.assertAllClose(lrs.Value(x).eval(), 1.0)
+        with py_utils.GlobalStepContext(x):
+          self.assertAllClose(lrs.Value().eval(), 1.0)
 
   def testPiecewiseConstant(self):
     cls = schedule.PiecewiseConstantSchedule
@@ -48,8 +51,9 @@ class LearningRateScheduleTest(test_utils.TestCase):
       x_ins = [tf.constant(x) for x in [299999, 399999, 499999, 599999]]
       outs = []
       for x in x_ins:
-        lrs = cls.Params().Set(boundaries=bs, values=vs).Instantiate()
-        outs.append(lrs.Value(x).eval())
+        with py_utils.GlobalStepContext(x):
+          lrs = cls.Params().Set(boundaries=bs, values=vs).Instantiate()
+          outs.append(lrs.Value().eval())
       self.assertAllClose([1.0, 0.1, 0.01, 0.001], outs)
 
   def testContinuousSchedule(self):
@@ -59,24 +63,34 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.min = 0.1
     decay = p.Instantiate()
     with self.session():
-      self.assertAllClose(decay.Value(0).eval(), 1.0)
-      self.assertAllClose(decay.Value(500).eval(), 1.0)
-      self.assertAllClose(decay.Value(1000).eval(), 1.0)
-      self.assertAllClose(decay.Value(1100).eval(), 0.5)
-      self.assertAllClose(decay.Value(1200).eval(), 0.25)
-      self.assertAllClose(decay.Value(1300).eval(), 0.125)
-      self.assertAllClose(decay.Value(1400).eval(), 0.1)
-      self.assertAllClose(decay.Value(2000).eval(), 0.1)
+      with py_utils.GlobalStepContext(0):
+        self.assertAllClose(decay.Value().eval(), 1.0)
+      with py_utils.GlobalStepContext(500):
+        self.assertAllClose(decay.Value().eval(), 1.0)
+      with py_utils.GlobalStepContext(1000):
+        self.assertAllClose(decay.Value().eval(), 1.0)
+      with py_utils.GlobalStepContext(1100):
+        self.assertAllClose(decay.Value().eval(), 0.5)
+      with py_utils.GlobalStepContext(1200):
+        self.assertAllClose(decay.Value().eval(), 0.25)
+      with py_utils.GlobalStepContext(1300):
+        self.assertAllClose(decay.Value().eval(), 0.125)
+      with py_utils.GlobalStepContext(1400):
+        self.assertAllClose(decay.Value().eval(), 0.1)
+      with py_utils.GlobalStepContext(2000):
+        self.assertAllClose(decay.Value().eval(), 0.1)
 
       # Tests that the decay consistently decreases by half per 100
       # steps.
       for step in range(1000, 1200, 25):
-        self.assertGreater(
-            decay.Value(step).eval(),
-            decay.Value(step + 10).eval())
-        self.assertAllClose(
-            decay.Value(step).eval(),
-            decay.Value(step + 100).eval() * 2.)
+        with py_utils.GlobalStepContext(step):
+          a = decay.Value().eval()
+        with py_utils.GlobalStepContext(step + 10):
+          b = decay.Value().eval()
+        with py_utils.GlobalStepContext(step + 100):
+          c = decay.Value().eval()
+        self.assertGreater(a, b)
+        self.assertAllClose(a, c * 2.)
 
   def testContinuousSchedule_CanOverrideStart(self):
     p = schedule.ContinuousSchedule.Params()
@@ -85,11 +99,16 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.half_life_steps = 100
     decay = p.Instantiate()
     with self.session():
-      self.assertAllClose(decay.Value(0).eval(), 2.0)
-      self.assertAllClose(decay.Value(1000).eval(), 2.0)
-      self.assertAllClose(decay.Value(1100).eval(), 1.0)
-      self.assertAllClose(decay.Value(1200).eval(), 0.5)
-      self.assertAllClose(decay.Value(1300).eval(), 0.25)
+      with py_utils.GlobalStepContext(0):
+        self.assertAllClose(decay.Value().eval(), 2.0)
+      with py_utils.GlobalStepContext(1000):
+        self.assertAllClose(decay.Value().eval(), 2.0)
+      with py_utils.GlobalStepContext(1100):
+        self.assertAllClose(decay.Value().eval(), 1.0)
+      with py_utils.GlobalStepContext(1200):
+        self.assertAllClose(decay.Value().eval(), 0.5)
+      with py_utils.GlobalStepContext(1300):
+        self.assertAllClose(decay.Value().eval(), 0.25)
 
   def testStepwiseExponentialSchedule(self):
     p = schedule.StepwiseExponentialSchedule.Params()
@@ -97,11 +116,16 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.num_steps_per_decay = 1000
     decay = p.Instantiate()
     with self.session():
-      self.assertAllClose(decay.Value(0).eval(), 1.0)
-      self.assertAllClose(decay.Value(999).eval(), 1.0)
-      self.assertAllClose(decay.Value(1000).eval(), 0.5)
-      self.assertAllClose(decay.Value(1999).eval(), 0.5)
-      self.assertAllClose(decay.Value(2000).eval(), 0.25)
+      with py_utils.GlobalStepContext(0):
+        self.assertAllClose(decay.Value().eval(), 1.0)
+      with py_utils.GlobalStepContext(999):
+        self.assertAllClose(decay.Value().eval(), 1.0)
+      with py_utils.GlobalStepContext(1000):
+        self.assertAllClose(decay.Value().eval(), 0.5)
+      with py_utils.GlobalStepContext(1999):
+        self.assertAllClose(decay.Value().eval(), 0.5)
+      with py_utils.GlobalStepContext(2000):
+        self.assertAllClose(decay.Value().eval(), 0.25)
 
   def testTransformerSchedule(self):
     p = schedule.TransformerSchedule.Params()
@@ -109,29 +133,36 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.model_dim = 512
     lrs = p.Instantiate()
     with self.session():
-      print(lrs.Value(0).eval())
-      print(lrs.Value(1000).eval())
-      print(lrs.Value(2000).eval())
-      print(lrs.Value(3000).eval())
-      print(lrs.Value(4000).eval())
-      print(lrs.Value(4500).eval())
-      print(lrs.Value(5000).eval())
-      self.assertAllClose(lrs.Value(0).eval(), 1.74693e-07)
-      self.assertAllClose(lrs.Value(1000).eval(), 0.000174867)
-      self.assertAllClose(lrs.Value(2000).eval(), 0.00034956)
-      self.assertAllClose(lrs.Value(3000).eval(), 0.000524253)
-      self.assertAllClose(lrs.Value(4000).eval(), 0.000698684)
-      self.assertAllClose(lrs.Value(4500).eval(), 0.000658735)
-      self.assertAllClose(lrs.Value(5000).eval(), 0.000624937)
+      expected = [
+          1.74693e-07, 0.000174867, 0.00034956, 0.000524253, 0.000698684,
+          0.000658735, 0.000624937
+      ]
+      values = []
+      for step in (0, 1000, 2000, 3000, 4000, 4500, 5000):
+        with py_utils.GlobalStepContext(step):
+          values.append(lrs.Value().eval())
+      tf.logging.info('%r' % expected)
+      self.assertAllClose(expected, values)
+
       # Tests that the schedule peaks at 4000 steps.
-      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(3990).eval())
-      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(4010).eval())
+      with py_utils.GlobalStepContext(3990):
+        a = lrs.Value().eval()
+      with py_utils.GlobalStepContext(4000):
+        b = lrs.Value().eval()
+      with py_utils.GlobalStepContext(4010):
+        c = lrs.Value().eval()
+      self.assertGreater(b, a)
+      self.assertGreater(b, c)
 
       # Tests that the schedule increases linearly before 4000 steps.
       for step in range(300, 4000, 200):
-        self.assertAllClose(
-            lrs.Value(step).eval() * 2.,
-            lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
+        with py_utils.GlobalStepContext(step - 10):
+          a = lrs.Value().eval()
+        with py_utils.GlobalStepContext(step):
+          b = lrs.Value().eval()
+        with py_utils.GlobalStepContext(step + 10):
+          c = lrs.Value().eval()
+        self.assertAllClose(b * 2., a + c)
 
   def testTransformerScheduleWithDecayEnd(self):
     p = schedule.TransformerSchedule.Params()
@@ -140,28 +171,42 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.decay_end = 5000
     lrs = p.Instantiate()
     with self.session():
-      self.assertAllClose(lrs.Value(0).eval(), 1.74693e-07)
-      self.assertAllClose(lrs.Value(3000).eval(), 0.000524253)
-      self.assertAllClose(lrs.Value(5000).eval(), 0.000624937)
+      with py_utils.GlobalStepContext(0):
+        self.assertAllClose(lrs.Value().eval(), 1.74693e-07)
+      with py_utils.GlobalStepContext(3000):
+        self.assertAllClose(lrs.Value().eval(), 0.000524253)
+      with py_utils.GlobalStepContext(5000):
+        self.assertAllClose(lrs.Value().eval(), 0.000624937)
 
       # Tests that the schedule peaks at 4000 steps.
-      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(3990).eval())
-      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(4010).eval())
+      with py_utils.GlobalStepContext(3990):
+        a = lrs.Value().eval()
+      with py_utils.GlobalStepContext(4000):
+        b = lrs.Value().eval()
+      with py_utils.GlobalStepContext(4010):
+        c = lrs.Value().eval()
+      self.assertGreater(b, a)
+      self.assertGreater(b, c)
 
       # Tests that the schedule increases linearly before 4000 steps.
       for step in range(300, 4000, 200):
-        self.assertAllClose(
-            lrs.Value(step).eval() * 2.,
-            lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
+        with py_utils.GlobalStepContext(step - 10):
+          a = lrs.Value().eval()
+        with py_utils.GlobalStepContext(step):
+          b = lrs.Value().eval()
+        with py_utils.GlobalStepContext(step + 10):
+          c = lrs.Value().eval()
+        self.assertAllClose(b * 2., a + c)
 
-      print(lrs.Value(4999).eval())
-      print(lrs.Value(5000).eval())
-      print(lrs.Value(5001).eval())
-      print(lrs.Value(6000).eval())
       # Tests that the schedule is fixed after decay end steps.
-      self.assertGreater(lrs.Value(4999).eval(), lrs.Value(5000).eval())
-      self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(5001).eval())
-      self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(6000).eval())
+      with py_utils.GlobalStepContext(5000):
+        a = lrs.Value().eval()
+      with py_utils.GlobalStepContext(4999):
+        self.assertGreater(lrs.Value().eval(), a)
+      with py_utils.GlobalStepContext(5001):
+        self.assertAllClose(lrs.Value().eval(), a)
+      with py_utils.GlobalStepContext(6000):
+        self.assertAllClose(lrs.Value().eval(), a)
 
   def testTransformerScheduleNoWarmUp(self):
     params = schedule.TransformerScheduleNoWarmUp.Params().Set(
@@ -175,25 +220,30 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session():
 
       # Tests that the schedule is flat up until 4000 steps.
-      self.assertAllClose(lrs.Value(0).eval(), 0.000698684)
-      self.assertAllClose(lrs.Value(1000).eval(), 0.000698684)
-      self.assertAllClose(lrs.Value(2000).eval(), 0.000698684)
-      self.assertAllClose(lrs.Value(3000).eval(), 0.000698684)
-      self.assertAllClose(lrs.Value(4000).eval(), 0.000698684)
-      self.assertAllClose(lrs.Value(4500).eval(), 0.000658735)
-      self.assertAllClose(lrs.Value(5000).eval(), 0.000624937)
+      for step in (0, 1000, 2000, 3000, 4000):
+        with py_utils.GlobalStepContext(step):
+          self.assertAllClose(lrs.Value().eval(), 0.000698684)
+      with py_utils.GlobalStepContext(4500):
+        self.assertAllClose(lrs.Value().eval(), 0.000658735)
+      with py_utils.GlobalStepContext(5000):
+        self.assertAllClose(lrs.Value().eval(), 0.000624937)
 
       # Test that the schedule is identical with transformer-lr after 4k steps
-      self.assertAllClose(base_lrs.Value(4000).eval(), lrs.Value(4000).eval())
-      self.assertAllClose(base_lrs.Value(4010).eval(), lrs.Value(4010).eval())
-      self.assertAllClose(base_lrs.Value(5000).eval(), lrs.Value(5000).eval())
+      for step in (4000, 4010, 5000):
+        with py_utils.GlobalStepContext(step):
+          self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
+          self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
+          self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
 
   def testPolynomialLRSchedule(self):
     p = schedule.PolynomialSchedule.Params().Set(
         power=2, start=(0, 0.), limit=(20000, 2.))
     with self.session():
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in [0, 10000, 20000]]
+      pts = []
+      for step in (0, 10000, 20000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -201,14 +251,18 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [10000, 0.5],  # 2 * (0.5 ** 2)
               [20000, 2.0],
           ])
-      self.assertEqual(len(lrs.Value(42).shape), 0)
+      with py_utils.GlobalStepContext(42):
+        self.assertEqual(len(lrs.Value().shape), 0)
 
   def testPolynomialLimitOriginLRSchedule(self):
     p = schedule.PolynomialSchedule.Params().Set(
         power=2, start=(0, 0.), limit=(20000, 2.), origin='limit')
     with self.session():
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in [0, 5000, 10000, 15000, 20000]]
+      pts = []
+      for step in (0, 5000, 10000, 15000, 20000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -218,7 +272,8 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [15000, 1.875],  # 2 * (1 - (1 - 0.75) ** 2)
               [20000, 2.0],
           ])
-      self.assertEqual(len(lrs.Value(42).shape), 0)
+      with py_utils.GlobalStepContext(42):
+        self.assertEqual(len(lrs.Value().shape), 0)
 
   def testCombinedLRSchedule(self):
     p = schedule.CombinedMinimumSchedule.Params().Set(schedules=[
@@ -231,7 +286,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     ])
     with self.session():
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
+      pts = []
+      for step in range(0, 10000000, 1000000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -257,7 +315,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
+      pts = []
+      for step in range(0, 10000000, 1000000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -287,7 +348,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
+      pts = []
+      for step in range(0, 10000000, 1000000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -317,7 +381,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
+      pts = []
+      for step in range(0, 10000000, 1000000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -350,7 +417,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8, split_size=4):
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
+      pts = []
+      for step in range(0, 10000000, 1000000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       # Values are copied from
       # testLinearRampupExponentialDecayScaledByNumSplitScheduleWithCap.
       self.assertAllClose(
@@ -378,7 +448,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
+      pts = []
+      for step in range(0, 10000000, 1000000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -403,7 +476,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 6000000, 1000000)]
+      pts = []
+      for step in range(0, 6000000, 1000000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -422,11 +498,16 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=10):
       lrs = p.Instantiate()
-      self.assertAllClose(lrs.Value(-1).eval(), 0.0)
-      self.assertAllClose(lrs.Value(49).eval(), 0.05)
-      self.assertAllClose(lrs.Value(99).eval(), 0.1)
-      self.assertAllClose(lrs.Value(399).eval(), 0.05)
-      self.assertAllClose(lrs.Value(1599).eval(), 0.025)
+      with py_utils.GlobalStepContext(-1):
+        self.assertAllClose(lrs.Value().eval(), 0.0)
+      with py_utils.GlobalStepContext(49):
+        self.assertAllClose(lrs.Value().eval(), 0.05)
+      with py_utils.GlobalStepContext(99):
+        self.assertAllClose(lrs.Value().eval(), 0.1)
+      with py_utils.GlobalStepContext(399):
+        self.assertAllClose(lrs.Value().eval(), 0.05)
+      with py_utils.GlobalStepContext(1599):
+        self.assertAllClose(lrs.Value().eval(), 0.025)
 
   def testDevBasedSchedule(self):
     logdir = tf.test.get_temp_dir()
@@ -444,33 +525,34 @@ class LearningRateScheduleTest(test_utils.TestCase):
     mh.params.local_filesystem = True
     with self.session():
       self.evaluate(tf.global_variables_initializer())
-      mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 1, 10.0)
-      # best = 1
-      self.assertAllClose(lrs.Value(0).eval(), 1.0)
+      with py_utils.GlobalStepContext(0):
+        mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 1, 10.0)
+        # best = 1
+        self.assertAllClose(lrs.Value().eval(), 1.0)
 
-      mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 2, 5.0)
-      # best = 2
-      self.assertAllClose(lrs.Value(0).eval(), 1.0)
+        mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 2, 5.0)
+        # best = 2
+        self.assertAllClose(lrs.Value().eval(), 1.0)
 
-      mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 5, 4.0)
-      # best = 2, out of window
-      self.assertAllClose(lrs.Value(0).eval(), 0.5)
+        mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 5, 4.0)
+        # best = 2, out of window
+        self.assertAllClose(lrs.Value().eval(), 0.5)
 
-      mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 6, 4.0)
-      # best = 2, ref = 5, in window
-      self.assertAllClose(lrs.Value(0).eval(), 0.5)
+        mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 6, 4.0)
+        # best = 2, ref = 5, in window
+        self.assertAllClose(lrs.Value().eval(), 0.5)
 
-      mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 9, 4.0)
-      # best = 2, ref = 5, out of window
-      self.assertAllClose(lrs.Value(0).eval(), 0.25)
+        mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 9, 4.0)
+        # best = 2, ref = 5, out of window
+        self.assertAllClose(lrs.Value().eval(), 0.25)
 
-      mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 10, 3.9)
-      # best = 10
-      self.assertAllClose(lrs.Value(0).eval(), 0.25)
+        mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 10, 3.9)
+        # best = 10
+        self.assertAllClose(lrs.Value().eval(), 0.25)
 
-      mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 13, 3.0)
-      # best = 10, out of window, min factor
-      self.assertAllClose(lrs.Value(0).eval(), 0.20)
+        mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 13, 3.0)
+        # best = 10, out of window, min factor
+        self.assertAllClose(lrs.Value().eval(), 0.20)
 
   def testLinearRampupPiecewiseConstantSchedule(self):
     p = schedule.LinearRampupPiecewiseConstantSchedule.Params().Set(
@@ -480,7 +562,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', tpus=8):
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 15, 1)]
+      pts = []
+      for step in range(0, 15, 1):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
 
       self.assertAllClose(
           pts, [[0, 0.0], [1, 1.6], [2, 3.2], [3, 4.8], [4, 6.4], [5, 8.0],
@@ -492,7 +577,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
         initial_value=3.0, final_value=1.0, total_steps=400000)
     with self.session():
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 600000, 100000)]
+      pts = []
+      for step in range(0, 600000, 100000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -514,8 +602,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     with self.session():
       lrs = p.Instantiate()
 
-      pts = [[i, lrs.Value(i).eval()]
-             for i in [0, 100, 200, 100000, 200000, 300000, 400000]]
+      pts = []
+      for step in [0, 100, 200, 100000, 200000, 300000, 400000]:
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -537,7 +627,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
         boundaries=[20000], schedules=[p0, p1])
     with self.session():
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 70000, 10000)]
+      pts = []
+      for step in range(0, 70000, 10000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(
           pts,
           [
@@ -556,7 +649,10 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p = schedule.CycleSchedule.Params().Set(schedules=[p0, p1], steps=[4, 1])
     with self.session():
       lrs = p.Instantiate()
-      pts = [[i, lrs.Value(i).eval()] for i in [0, 1, 4, 5, 998, 999, 1000]]
+      pts = []
+      for step in [0, 1, 4, 5, 998, 999, 1000]:
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
       self.assertAllClose(pts, [
           [0, 0.0],
           [1, 1.0 / 1000.0],
@@ -570,14 +666,20 @@ class LearningRateScheduleTest(test_utils.TestCase):
   def testAnnealingSchedule(self):
     p = schedule.AnnealingSchedule.Params().Set(
         init=1, lower_bound=0.5, factor=0.8)
-    l = p.Instantiate()
-    step = tf.placeholder(tf.int32, shape=[])
-    y = l.Value(step)
+    lrs = p.Instantiate()
 
-    with self.session() as sess:
-      xs = range(5)
-      ys = [sess.run(y, feed_dict={step: x}) for x in xs]
-      self.assertAllClose(ys, [1.0, 0.8, 0.640, 0.512, 0.5])
+    with self.session():
+      pts = []
+      for step in range(5):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
+      self.assertAllClose(pts, [
+          [0, 1.0],
+          [1, 0.8],
+          [2, 0.640],
+          [3, 0.512],
+          [4, 0.5],
+      ])
 
 
 if __name__ == '__main__':

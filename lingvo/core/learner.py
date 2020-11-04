@@ -169,9 +169,9 @@ class Learner(base_layer.BaseLayer):
     """
     return self.optimizer.ApplyPostTrainingLoop(global_step)
 
-  def LearningRate(self, step):
+  def LearningRate(self):
     p = self.params
-    lrs = self.lr_schedule.Value(step)
+    lrs = self.lr_schedule.Value()
     lrs.set_shape([])
     self._AddEvalMetric('lr_schedule', lrs, tf.constant(1.0))
     return p.learning_rate * lrs
@@ -208,7 +208,7 @@ class Learner(base_layer.BaseLayer):
     self._var_grads = var_grads
 
     assert py_utils.GetGlobalStep() is not None
-    lr = self.LearningRate(py_utils.GetGlobalStep())
+    lr = self.LearningRate()
 
     var_update_op = self.optimizer.Apply(lr, var_grads)
     return losses, var_update_op, eval_metrics

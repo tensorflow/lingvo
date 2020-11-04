@@ -4928,8 +4928,7 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
           tf.greater_equal(p_c, tf.constant(0.0, dtype=py_utils.FPropDtype(p))),
           ones, zeros)
     else:
-      noise_std = self.noise_std.FProp(theta.noise_std,
-                                       py_utils.GetGlobalStep())
+      noise_std = self.noise_std.Value()
       noise = py_utils.DeterministicVN(
           p,
           py_utils.GenerateStepSeedPair(p, py_utils.GetGlobalStep()),

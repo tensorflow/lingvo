@@ -16,6 +16,7 @@
 """Tests for lr_util."""
 
 from lingvo import compat as tf
+from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import kitti_input_generator
 from lingvo.tasks.car import lr_util
@@ -48,13 +49,17 @@ class LrUtilTest(test_utils.TestCase):
     schedule_layer = p.train.lr_schedule.Instantiate()
     with self.session():
       # Linear ramp up.
-      self.assertLess(self.evaluate(schedule_layer.Value(8)), 1.)
+      with py_utils.GlobalStepContext(8):
+        self.assertLess(self.evaluate(schedule_layer.Value()), 1.)
       # Peak learning rate.
-      self.assertEqual(self.evaluate(schedule_layer.Value(16)), 1.)
+      with py_utils.GlobalStepContext(16):
+        self.assertEqual(self.evaluate(schedule_layer.Value()), 1.)
       # Still at peak learning rate.
-      self.assertEqual(self.evaluate(schedule_layer.Value(24)), 1.)
+      with py_utils.GlobalStepContext(24):
+        self.assertEqual(self.evaluate(schedule_layer.Value()), 1.)
       # Exponential ramp down.
-      self.assertLess(self.evaluate(schedule_layer.Value(48)), 1.)
+      with py_utils.GlobalStepContext(48):
+        self.assertLess(self.evaluate(schedule_layer.Value()), 1.)
 
   def testExponentialWithoutLinearRamp(self):
     p = self._testParams()
@@ -63,9 +68,11 @@ class LrUtilTest(test_utils.TestCase):
     schedule_layer = p.train.lr_schedule.Instantiate()
     with self.session():
       # Peak learning rate at 0.
-      self.assertEqual(self.evaluate(schedule_layer.Value(0)), 1.)
+      with py_utils.GlobalStepContext(0):
+        self.assertEqual(self.evaluate(schedule_layer.Value()), 1.)
       # Exponential ramp down within first epoch.
-      self.assertLess(self.evaluate(schedule_layer.Value(4)), 1.)
+      with py_utils.GlobalStepContext(4):
+        self.assertLess(self.evaluate(schedule_layer.Value()), 1.)
 
 
 if __name__ == '__main__':

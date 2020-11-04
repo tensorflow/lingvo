@@ -263,7 +263,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     self.CreateChild('schedule', p.lr_schedule)
 
     def LearningRateFn(step):
-      lr = self.schedule.Value(step) * p.learning_rate
+      with py_utils.GlobalStepContext(step):
+        lr = self.schedule.Value() * p.learning_rate
       _AddTpuEmbeddingSummaryTensor('tpu_embedding_lr/{}'.format(p.name), lr)
       return lr
 

@@ -57,6 +57,8 @@ Details for older releases are unavailable.
 *   **General**
     *   py_utils.AddGlobalVN and py_utils.AddPerStepVN have been combined into
         py_utils.AddVN.
+    *   BaseSchedule().Value() no longer takes a step arg.
+    *   Classes deriving from BaseSchedule should implement Value() not FProp().
 
 #### 0.8.2
 
