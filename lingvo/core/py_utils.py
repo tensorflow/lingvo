@@ -2609,14 +2609,13 @@ def ComputeGradientsSimple(loss_or_activations,
       gate_gradients=gate_gradients)
 
 
-def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding, step):
+def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding):
   """Returns a TpuEmbedding SendGradient op.
 
   Args:
    loss: The loss to backprop from.
    activation_dict: String feature -> embedding activations dict.
    tpu_embedding: TPUEmbedding instance.
-   step: Current step.
   """
 
   # Scale the loss to account for the full batch size.
@@ -2627,7 +2626,7 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding, step):
   feature_to_gradient_dict = py_collections.OrderedDict(
       zip(list(activation_dict.keys()), grads))
   send_gradient_op = tpu_embedding.generate_send_gradients_op(
-      feature_to_gradient_dict, step=step)
+      feature_to_gradient_dict, step=GetGlobalStep())
   return send_gradient_op
 
 
@@ -3440,7 +3439,7 @@ def GetIncStepSeed():
   return step_seed
 
 
-def GenerateStepSeedPair(p, global_step, op_seed=None):
+def GenerateStepSeedPair(p, op_seed=None):
   """Generates a seed pair for deterministic random operations in ...
 
   functional loops.
@@ -3454,7 +3453,6 @@ def GenerateStepSeedPair(p, global_step, op_seed=None):
   Args:
     p: A hyperparams.Params object, containing keys 'random_seed' and
       'is_inference'.
-    global_step: The global step.
     op_seed: An additional operation-level seed to apply.
 
   Returns:
@@ -3474,7 +3472,7 @@ def GenerateStepSeedPair(p, global_step, op_seed=None):
     # inference if the graph is exported with random_seed=None as a workaround.
     return tf.random.uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
 
-  global_step = tf.cast(global_step, seed_dtype)
+  global_step = tf.cast(GetGlobalStep(), seed_dtype)
   step_seed = tf.cast(GetIncStepSeed(), seed_dtype)
   seeds = tf.stack([global_step, step_seed])
 
@@ -5472,7 +5470,7 @@ class DefinedFunction(object):
     result = NestedMap()
     global_step = GetGlobalStep()
     if global_step is not None:
-      result[_FRAMEWORK_TENSOR_GLOBAL_STEP] = global_step
+      result[_FRAMEWORK_TENSOR_GLOBAL_STEP] = tf.cast(global_step, tf.int64)
     if inputs is not None:
       result.inputs = inputs
     return result

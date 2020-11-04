@@ -2404,8 +2404,7 @@ class StepSeedTest(test_utils.TestCase):
     def RecurrentStep(unused_theta, unused_state0, inputs):
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
-      state1.seed_pair = py_utils.GenerateStepSeedPair(p,
-                                                       py_utils.GetGlobalStep())
+      state1.seed_pair = py_utils.GenerateStepSeedPair(p)
       return state1, py_utils.NestedMap()
 
     with self.session(graph=tf.Graph()) as sess:

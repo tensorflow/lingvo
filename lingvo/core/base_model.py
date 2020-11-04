@@ -337,8 +337,7 @@ class BaseTask(base_layer.BaseLayer):
     self._UpdateVnConfig()
 
   def InstantiateVariables(self):
-    with py_utils.GlobalStepContext(
-        tf.identity(self._global_step_var, name='global_step_tensor')):
+    with py_utils.GlobalStepContext(self._global_step_var):
       super().InstantiateVariables()
 
   def _SetLearnerFromLegacyParams(self, tp):
@@ -563,10 +562,9 @@ class BaseTask(base_layer.BaseLayer):
     Args:
       outfeed: a dict of tensors dequeued from TPU outfeed queue.
     """
-    self._post_training_loop_op = tf.group(*[
-        opt.ApplyPostTrainingLoop(self._global_step_var)
-        for opt in self.learners
-    ])
+    with py_utils.GlobalStepContext(self._global_step_var):
+      self._post_training_loop_op = tf.group(
+          *[opt.ApplyPostTrainingLoop() for opt in self.learners])
 
   def BProp(self):
     with py_utils.GlobalStepContext(self._global_step_var):
@@ -612,7 +610,7 @@ class BaseTask(base_layer.BaseLayer):
     ]
     # Post training step update.
     with tf.control_dependencies(var_update_ops):
-      post_step_op = self.PostTrainingStepUpdate(self.global_step)
+      post_step_op = self.PostTrainingStepUpdate()
 
     train_ops = {}
     with tf.control_dependencies([post_step_op]):
@@ -640,8 +638,7 @@ class BaseTask(base_layer.BaseLayer):
       tpu_embedding_activations_dict = tpu_embedding_activations[0]
       tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
       tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
-          self.loss, tpu_embedding_activations_dict, tpu_embedding,
-          self.global_step)
+          self.loss, tpu_embedding_activations_dict, tpu_embedding)
       train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
 
       tpu_embedding_summary_tensors = tf.get_collection(
@@ -862,7 +859,7 @@ class BaseTask(base_layer.BaseLayer):
         p.vn = py_utils.VariationalNoiseParams(None, False, False)
       else:
         # vn.scale is dependent on global_step.
-        p.vn.scale = tf.cast(self.global_step > tp.vn_start_step,
+        p.vn.scale = tf.cast(self._global_step_var > tp.vn_start_step,
                              py_utils.FPropDtype(p)) * tp.vn_std
 
   def _GetMaskUpdateOp(self):
@@ -875,7 +872,7 @@ class BaseTask(base_layer.BaseLayer):
       pruning_hparams = pruning.get_pruning_hparams().override_from_dict(
           tp.pruning_hparams_dict)
       pruning_obj = pruning.Pruning(
-          pruning_hparams, global_step=self.global_step)
+          pruning_hparams, global_step=py_utils.GetGlobalStep())
       if self.cluster.add_summary:
         pruning_obj.add_pruning_summaries()
       mask_update_op = pruning_obj.conditional_mask_update_op()

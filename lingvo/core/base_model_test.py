@@ -481,7 +481,7 @@ class PostTrainingTask(base_model.BaseTask):
         'counter2',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
 
-  def PostTrainingStepUpdate(self, global_step):
+  def PostTrainingStepUpdate(self):
     # We expect the training step to be done, so capture
     # the value of counter1 into counter2.
     return tf.assign(self.vars.counter2, self.vars.counter1)

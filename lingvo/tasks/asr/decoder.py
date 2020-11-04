@@ -413,7 +413,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       return x_in
 
     if deterministic:
-      seeds = py_utils.GenerateStepSeedPair(p, py_utils.GetGlobalStep())
+      seeds = py_utils.GenerateStepSeedPair(p)
       if extra_seed:
         seeds += extra_seed
       return py_utils.DeterministicDropout(x_in, 1.0 - p.dropout_prob, seeds)

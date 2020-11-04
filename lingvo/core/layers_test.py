@@ -595,11 +595,11 @@ class ConvLayerTest(test_utils.TestCase):
       conv2_variables = [v.name for v in conv2.variables]
       conv2_submodules = [ModuleName(v) for v in conv2.submodules]
       expected_conv1_vars = [
-          'global_step:0', 'conv1/w/var:0', 'conv1/moving_mean/var:0',
+          'conv1/w/var:0', 'conv1/moving_mean/var:0',
           'conv1/moving_variance/var:0', 'conv1/beta/var:0', 'conv1/gamma/var:0'
       ]
       expected_conv2_vars = [
-          'global_step:0', 'conv2/w/var:0', 'conv2/moving_mean/var:0',
+          'conv2/w/var:0', 'conv2/moving_mean/var:0',
           'conv2/moving_variance/var:0', 'conv2/beta/var:0', 'conv2/gamma/var:0'
       ]
       expected_conv1_modules = ['bbf_BatchNormLayer_conv1']
@@ -4204,7 +4204,8 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     bn_layer.accumulators.counts.Update(0.0)
     bn_layer.accumulators.mean_ss.Update([1.0, 1.0])
     bn_layer.accumulators.variance_ss.Update([5.0, 5.0])
-    bn_updates = bn_layer.PostTrainingStepUpdate(tf.constant(100))
+    with py_utils.GlobalStepContext(tf.constant(100)):
+      bn_updates = bn_layer.PostTrainingStepUpdate()
 
     with self.session(use_gpu=True):
       self.evaluate(tf.global_variables_initializer())
@@ -4293,8 +4294,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
         counts.append(net.accumulators.counts.GetValue())
         means.append(net.accumulators.mean_ss.GetValue())
         variances.append(net.accumulators.variance_ss.GetValue())
-      post_training_step_updates = net.PostTrainingStepUpdate(
-          py_utils.GetGlobalStep())
+      post_training_step_updates = net.PostTrainingStepUpdate()
 
       self.evaluate(tf.global_variables_initializer())
       _, count_vals, mean_vals, var_vals = self.evaluate(

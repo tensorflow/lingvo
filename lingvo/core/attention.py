@@ -38,7 +38,7 @@ def _ConditionalCallDefun(cond, f, inputs):
   return py_utils.CallDefun(f, inputs)
 
 
-def _ApplyAttentionDropout(params, x, global_step):
+def _ApplyAttentionDropout(params, x):
   """Apply attention dropout according to the given parameters.
 
   If `params.atten_dropout_deterministic` is set to True, the dropout will be
@@ -47,7 +47,6 @@ def _ApplyAttentionDropout(params, x, global_step):
   Args:
     params: The parameters of attention layer.
     x: A float Tensor on which to apply dropout.
-    global_step: Required for deterministic dropout.
 
   Returns:
     A Tensor with the same shape as `x`.
@@ -56,7 +55,7 @@ def _ApplyAttentionDropout(params, x, global_step):
     return x
 
   if params.atten_dropout_deterministic:
-    seeds = py_utils.GenerateStepSeedPair(params, global_step)
+    seeds = py_utils.GenerateStepSeedPair(params)
     return py_utils.DeterministicDropout(x, 1.0 - params.atten_dropout_prob,
                                          seeds)
   else:
@@ -511,7 +510,7 @@ class AdditiveAttention(BaseAttentionLayer):
     # Adds the atten function into the graph's library.
     def Atten(v, w, source_padding, source_segment_id, concated_source_vecs,
               concated_source_contexts, query_vec, query_segment_id,
-              per_step_source_padding, global_step):
+              per_step_source_padding):
       """Computes the attention context vector.
 
       Args:
@@ -524,7 +523,6 @@ class AdditiveAttention(BaseAttentionLayer):
         query_vec: [target_batch, query_dim]
         query_segment_id: [target_batch]
         per_step_source_padding: [target_batch, source_length]
-        global_step: Required for deterministic dropout.
       Note: concated_source_vecs are the vectors that are used to compute the
         attention score between the query_vec and each concated_source_vec. The
         concated_source_contexts are the vectors that compose the result. The
@@ -562,7 +560,7 @@ class AdditiveAttention(BaseAttentionLayer):
 
       # Apply dropout to weights if applicable.
       if not self.do_eval:
-        probs = _ApplyAttentionDropout(p, probs, global_step)
+        probs = _ApplyAttentionDropout(p, probs)
 
       # Reshape probs to be of shape
       # [target_batch/source_batch, source_batch, source_length]
@@ -585,8 +583,8 @@ class AdditiveAttention(BaseAttentionLayer):
     # The source batch size equals to the target batch size.
     def AttenSameBatchSize(v, w, source_padding, source_segment_id,
                            concated_source_vecs, concated_source_contexts,
-                           query_vec, query_segment_id, per_step_source_padding,
-                           global_step):
+                           query_vec, query_segment_id,
+                           per_step_source_padding):
       """Computes the attention context vector.
 
       Args:
@@ -599,7 +597,6 @@ class AdditiveAttention(BaseAttentionLayer):
         query_vec: [b, query_dim]
         query_segment_id: [b]
         per_step_source_padding: [b, sl]
-        global_step: Required for deterministic dropout.
 
       Returns:
         attention context vectors and probabilities.
@@ -607,7 +604,6 @@ class AdditiveAttention(BaseAttentionLayer):
       # TODO(jiaye): support dropout
       if p.atten_dropout_prob != 0:
         raise NotImplementedError('dropout is not supported')
-      del global_step
 
       # [b, hidden_dim]
       query_vec = py_utils.Matmul(query_vec, w)
@@ -812,8 +808,7 @@ class AdditiveAttention(BaseAttentionLayer):
     ctx_vec, prob = self._ctx_vec(hidden, query, source_padding,
                                   source_segment_id, concated_source_vecs,
                                   concated_source_contexts, query_vec,
-                                  query_segment_id, per_step_source_padding,
-                                  py_utils.GetGlobalStep())
+                                  query_segment_id, per_step_source_padding)
 
     return ctx_vec, prob, attention_state
 
@@ -939,7 +934,7 @@ class DotProductAttention(BaseAttentionLayer):
 
     def Atten(per_dim_scale, source_padding, source_segment_id,
               concated_source_vecs, concated_source_contexts, query_vec,
-              query_segment_id, per_step_source_padding, global_step):
+              query_segment_id, per_step_source_padding):
       """Main attention function.
 
       Args:
@@ -951,7 +946,6 @@ class DotProductAttention(BaseAttentionLayer):
         query_vec:                [target_batch, source_dim].
         query_segment_id:         [target_batch].
         per_step_source_padding:  [target_batch, source_length]
-        global_step:              Required for deterministic dropout.
       Note: concated_source_vecs are the vectors that are used to compute the
         attention score between the query_vec and each concated_source_vec. The
         concated_source_contexts are the vectors that compose the result. The
@@ -994,7 +988,7 @@ class DotProductAttention(BaseAttentionLayer):
 
       # Apply dropout to weights if applicable.
       if not self.do_eval:
-        probs = _ApplyAttentionDropout(p, probs, global_step)
+        probs = _ApplyAttentionDropout(p, probs)
 
       # Weight each frame with the probability and sum them.
       # [source_batch, n, time] * [source_batch, time, context_dim]
@@ -1133,7 +1127,7 @@ class DotProductAttention(BaseAttentionLayer):
     ctx_vec, prob = self._ctx_vec(
         ScaleFn(per_dim_scale_var), source_padding, source_segment_id,
         concated_source_vecs, concated_source_contexts, query_vec,
-        query_segment_id, per_step_source_padding, py_utils.GetGlobalStep())
+        query_segment_id, per_step_source_padding)
     return ctx_vec, prob, attention_state
 
 
@@ -2590,7 +2584,7 @@ class MonotonicAttention(BaseAttentionLayer):
         # Compute pre-sigmoid noise.
         activation_noise = tf.random.stateless_normal(
             py_utils.GetShape(logits),
-            py_utils.GenerateStepSeedPair(p, py_utils.GetGlobalStep()),
+            py_utils.GenerateStepSeedPair(p),
             dtype=logits.dtype)
         # Compute sigmoid probabilities.
         p_choose_i = tf.nn.sigmoid(logits + self.params.pre_sigmoid_noise *

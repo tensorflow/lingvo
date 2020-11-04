@@ -3544,8 +3544,7 @@ class DeterministicDropoutLayer(DropoutLayer):
     return py_utils.DeterministicDropout(
         inputs,
         keep_prob=self.params.keep_prob,
-        seeds=py_utils.GenerateStepSeedPair(self.params,
-                                            py_utils.GetGlobalStep()),
+        seeds=py_utils.GenerateStepSeedPair(self.params),
         noise_shape=noise_shape)
 
 
@@ -4930,10 +4929,7 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
     else:
       noise_std = self.noise_std.Value()
       noise = py_utils.DeterministicVN(
-          p,
-          py_utils.GenerateStepSeedPair(p, py_utils.GetGlobalStep()),
-          tf.shape(p_c),
-          std=noise_std)
+          p, py_utils.GenerateStepSeedPair(p), tf.shape(p_c), std=noise_std)
       p_c = tf.nn.sigmoid(p_c + noise)
     return p_c
 

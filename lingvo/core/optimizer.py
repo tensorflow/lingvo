@@ -94,11 +94,8 @@ class Base(base_layer.BaseLayer):
       self.AddSummary(lr, optimizer, var_grad)
     return var_update_op
 
-  def ApplyPostTrainingLoop(self, global_step):
+  def ApplyPostTrainingLoop(self):
     """Applies any computation to run after each tpu trainining loop.
-
-    Args:
-      global_step: Global step variable.
 
     Returns:
       Ops to run after training loop ends.
@@ -222,18 +219,14 @@ class CompositeOptimizer(Base):
         var_update_op = _Apply()
     return var_update_op
 
-  def ApplyPostTrainingLoop(self, global_step):
-    """Apply any computation to run after each tpu training loop for each optimizer.
-
-    Args:
-      global_step: Global step variable.
+  def ApplyPostTrainingLoop(self):
+    """Apply computation to run after each tpu training loop for each optimizer.
 
     Returns:
       Ops to run after training loop ends.
     """
     post_training_ops = [
-        opt.ApplyPostTrainingLoop(global_step)
-        for _, opt in self._optimizer_map.items()
+        opt.ApplyPostTrainingLoop() for _, opt in self._optimizer_map.items()
     ]
     return tf.group(*post_training_ops)
 
@@ -426,7 +419,7 @@ class Accumulator(Base):
       self.AddSummary(lr, self.GetOptimizer(lr), var_grad)
     return tf.cond(
         tf.equal(
-            tf.math.floormod(self.global_step, p.accum_steps),
+            tf.math.floormod(py_utils.GetGlobalStep(), p.accum_steps),
             p.accum_steps - 1), _ApplyAndReset, lambda: tf.group(tf.no_op()))
 
   def GetOptimizer(self, lr):
@@ -488,7 +481,7 @@ class DistributedShampoo(Base):
         second_moment_averaging=params.second_moment_averaging,
         max_any_dim=params.max_any_dim,
         block_size=params.block_size,
-        global_step=self.global_step)
+        global_step=py_utils.GetGlobalStep())
 
   def Apply(self, lr, var_grad):
     """Applies the gradient to the variable.
@@ -519,17 +512,14 @@ class DistributedShampoo(Base):
       self.AddSummary(lr, self._optimizer, var_grad)
     return var_update_op
 
-  def ApplyPostTrainingLoop(self, global_step):
+  def ApplyPostTrainingLoop(self):
     """Applies any computation to run after each tpu trainining loop.
-
-    Args:
-      global_step: Global step variable.
 
     Returns:
       Ops to run after training loop ends.
     """
     invoke_async_ops = self._optimizer.invoke_async_preconditioner_computation(
-        tf.cast(global_step, tf.int32))
+        tf.cast(py_utils.GetGlobalStep(), tf.int32))
     assign_ops = self._optimizer.assign_preconditioner_to_host_vars()
     return tf.group(*[invoke_async_ops, assign_ops])
 

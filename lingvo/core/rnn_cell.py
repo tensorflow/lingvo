@@ -864,12 +864,12 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     r.set_shape(state0.r.shape)
     return py_utils.NestedMap(m=new_m, c=new_c, r=r)
 
-  def PostTrainingStepUpdate(self, global_step):
+  def PostTrainingStepUpdate(self):
     """Update the global_step value."""
     p = self.params
     with tf.name_scope(p.name):
       summary_utils.scalar('step_counter', self.vars.lstm_step_counter)
-    return self.vars.lstm_step_counter.assign(tf.cast(global_step, tf.int64))
+    return self.vars.lstm_step_counter.assign(py_utils.GetGlobalStep())
 
 
 class QuantizedLSTMCell(RNNCell):

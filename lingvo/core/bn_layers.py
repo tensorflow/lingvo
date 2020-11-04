@@ -571,7 +571,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     self.RegisterAccumulator('mean_ss', AddingAccumulator([dim], p.dtype))
     self.RegisterAccumulator('variance_ss', AddingAccumulator([dim], p.dtype))
 
-  def PostTrainingStepUpdate(self, global_step):
+  def PostTrainingStepUpdate(self):
     """Updates moving_mean, moving_variance after each training step."""
     p = self.params
     # Get sufficient stats that accumulates over microbatches.

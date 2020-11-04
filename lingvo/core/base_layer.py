@@ -482,13 +482,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """Returns children layers of this layer in a `.NestedMap`."""
     return self._private_children
 
-  @property
-  def global_step(self):
-    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
-      raise ValueError(
-          'Cannot access global_step before InstantiateVariables().')
-    return self._global_step
-
   def __getattr__(self, name):
     """Returns the child layer of the given name."""
     if name == '_private_children':
@@ -810,11 +803,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     stack_size = len(_CREATE_VARIABLES_STACK.stack)
     _CREATE_VARIABLES_STACK.stack.append(self)
     try:
-      self._global_step = py_utils.GetGlobalStep()
       self._CreateChildrenVariables()
 
       if not self._is_variable_free:
-        self.AddExtraTheta('global_step', self._global_step)
         with self._SelfVariableScope():
           for name, meta in list(self._variables_to_create.items()):
             self._CreateVariableInternal(name, meta)
@@ -980,17 +971,14 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     for k in self.theta.keys():
       assert k in self.vars or k in self._extra_theta
 
-  def PostTrainingStepUpdate(self, global_step):
+  def PostTrainingStepUpdate(self):
     """Returns a TF op which will be invoked at each training step.
 
     Subclasses of `BaseLayer` can implement this method. The method should
     return a TF op to be invoked during training after gradients are applied.
-
-    Args:
-      global_step: the global step.
     """
     update_ops = [
-        child.PostTrainingStepUpdate(global_step)
+        child.PostTrainingStepUpdate()
         for child in self._private_children.Flatten()
     ]
     return tf.group(*update_ops)

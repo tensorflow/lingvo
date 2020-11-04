@@ -89,7 +89,8 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
       init_minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
       print('Initial Minmax vars:', init_minmax_vars)
       # Record.
-      self.evaluate([l.PostTrainingStepUpdate(16)])
+      with py_utils.GlobalStepContext(16):
+        self.evaluate([l.PostTrainingStepUpdate()])
       minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
       print('Minmax vars:', minmax_vars)
 

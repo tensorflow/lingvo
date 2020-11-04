@@ -111,10 +111,7 @@ class RevNetLayer(base_layer.BaseLayer):
 
     return (py_utils.NestedMap(split1=x1, split2=x2),
             py_utils.NestedMap(split1=dz1, split2=dx2),
-            py_utils.NestedMap(
-                f_block=dfw,
-                g_block=dgw,
-                global_step=tf.zeros_like(py_utils.GetGlobalStep())))
+            py_utils.NestedMap(f_block=dfw, g_block=dgw))
 
   def FProp(self, theta, inputs, *extra_inputs):
     """Forward pass.
@@ -203,7 +200,7 @@ class StackedRevNetLayer(base_layer.BaseLayer):
         output_acts = input_acts
         d_outputs = d_inputs
       py_utils.ResetStepSeed(final_step_seed)
-      d_theta = py_utils.NestedMap(global_step=tf.zeros_like(initial_step_seed))
+      d_theta = py_utils.NestedMap()
       d_theta.sub_layers = list(reversed(d_layer_thetas))
 
       extra_grads = [tf.zeros_like(t) for t in extra_inputs]

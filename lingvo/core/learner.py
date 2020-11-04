@@ -158,16 +158,13 @@ class Learner(base_layer.BaseLayer):
 
     return vmap.Filter(VariableFilter)
 
-  def ApplyPostTrainingLoop(self, global_step):
+  def ApplyPostTrainingLoop(self):
     """Applies any computation to run after each tpu trainining loop.
-
-    Args:
-      global_step: Global step variable.
 
     Returns:
       Ops to run after training loop ends.
     """
-    return self.optimizer.ApplyPostTrainingLoop(global_step)
+    return self.optimizer.ApplyPostTrainingLoop()
 
   def LearningRate(self):
     p = self.params

@@ -648,7 +648,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
                 p.start_step), lambda: tf.cast(p.start_cap, tf.float32),
         lambda: tf.cast(rmax_tensor, tf.float32))
 
-  def PostTrainingStepUpdate(self, unused_global_step):
+  def PostTrainingStepUpdate(self):
     summary_utils.scalar('cap', self._Value())
     return tf.no_op()
 
@@ -1265,8 +1265,8 @@ class PassiveAsymQDomain(QDomain):
     batch_max = tf.maximum(tf.reduce_max(ts), 0.0)
     return (tf.stop_gradient(batch_min), tf.stop_gradient(batch_max))
 
-  def PostTrainingStepUpdate(self, global_step):
-    ops = [super().PostTrainingStepUpdate(global_step)]
+  def PostTrainingStepUpdate(self):
+    ops = [super().PostTrainingStepUpdate()]
     for t_name in self._t_names:
       ops.extend(self._RecordTensor(t_name))
       self._SummarizeTensor(t_name)
