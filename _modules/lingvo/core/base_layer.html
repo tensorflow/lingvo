@@ -630,13 +630,6 @@
     <span class="sd">&quot;&quot;&quot;Returns children layers of this layer in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span>
 
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;Cannot access global_step before InstantiateVariables().&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span>
-
   <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the child layer of the given name.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_private_children&#39;</span><span class="p">:</span>
@@ -958,11 +951,9 @@
     <span class="n">stack_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span>
     <span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
 
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SelfVariableScope</span><span class="p">():</span>
           <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariableInternal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
@@ -1128,17 +1119,14 @@
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
       <span class="k">assert</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_theta</span></div>
 
-<div class="viewcode-block" id="BaseLayer.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseLayer.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a TF op which will be invoked at each training step.</span>
 
 <span class="sd">    Subclasses of `BaseLayer` can implement this method. The method should</span>
 <span class="sd">    return a TF op to be invoked during training after gradients are applied.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      global_step: the global step.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">update_ops</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">child</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="n">child</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="p">]</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">update_ops</span><span class="p">)</span></div></div>

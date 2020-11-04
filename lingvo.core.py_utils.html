@@ -1549,7 +1549,7 @@ the loading rules.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.ComputeTpuEmbeddingGradients">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeTpuEmbeddingGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">activation_dict</span></em>, <em class="sig-param"><span class="n">tpu_embedding</span></em>, <em class="sig-param"><span class="n">step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeTpuEmbeddingGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeTpuEmbeddingGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeTpuEmbeddingGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">activation_dict</span></em>, <em class="sig-param"><span class="n">tpu_embedding</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeTpuEmbeddingGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeTpuEmbeddingGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a TpuEmbedding SendGradient op.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1557,7 +1557,6 @@ the loading rules.</p></li>
 <li><p><strong>loss</strong> – The loss to backprop from.</p></li>
 <li><p><strong>activation_dict</strong> – String feature -&gt; embedding activations dict.</p></li>
 <li><p><strong>tpu_embedding</strong> – TPUEmbedding instance.</p></li>
-<li><p><strong>step</strong> – Current step.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1965,7 +1964,7 @@ weight is a float and each metrics is a dict with str keys and
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.GenerateStepSeedPair">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GenerateStepSeedPair</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">op_seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateStepSeedPair"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateStepSeedPair" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GenerateStepSeedPair</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">op_seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateStepSeedPair"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateStepSeedPair" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates a seed pair for deterministic random operations in …</p>
 <p>functional loops.</p>
 <p>This function retrieves a unique seed pair on each call, based off the current
@@ -1978,7 +1977,6 @@ global step in the model’s FProp and works transparently through recurrent.py.
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>p</strong> – A hyperparams.Params object, containing keys ‘random_seed’ and
 ‘is_inference’.</p></li>
-<li><p><strong>global_step</strong> – The global step.</p></li>
 <li><p><strong>op_seed</strong> – An additional operation-level seed to apply.</p></li>
 </ul>
 </dd>

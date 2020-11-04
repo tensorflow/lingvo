@@ -242,11 +242,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
 
-<div class="viewcode-block" id="Base.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+<div class="viewcode-block" id="Base.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies any computation to run after each tpu trainining loop.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      global_step: Global step variable.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Ops to run after training loop ends.</span>
@@ -370,18 +367,14 @@
         <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
 
-<div class="viewcode-block" id="CompositeOptimizer.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Apply any computation to run after each tpu training loop for each optimizer.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      global_step: Global step variable.</span>
+<div class="viewcode-block" id="CompositeOptimizer.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply computation to run after each tpu training loop for each optimizer.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Ops to run after training loop ends.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">post_training_ops</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">]</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">post_training_ops</span><span class="p">)</span></div></div>
 
@@ -574,7 +567,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">),</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">),</span>
             <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">_ApplyAndReset</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()))</span></div>
 
 <div class="viewcode-block" id="Accumulator.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
@@ -636,7 +629,7 @@
         <span class="n">second_moment_averaging</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">second_moment_averaging</span><span class="p">,</span>
         <span class="n">max_any_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">max_any_dim</span><span class="p">,</span>
         <span class="n">block_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">block_size</span><span class="p">,</span>
-        <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span></div>
+        <span class="n">global_step</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="DistributedShampoo.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>
@@ -667,17 +660,14 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
 
-<div class="viewcode-block" id="DistributedShampoo.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+<div class="viewcode-block" id="DistributedShampoo.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies any computation to run after each tpu trainining loop.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      global_step: Global step variable.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Ops to run after training loop ends.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">invoke_async_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">invoke_async_preconditioner_computation</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
     <span class="n">assign_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">assign_preconditioner_to_host_vars</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">invoke_async_ops</span><span class="p">,</span> <span class="n">assign_ops</span><span class="p">])</span></div>
 

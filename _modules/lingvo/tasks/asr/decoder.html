@@ -561,7 +561,7 @@
       <span class="k">return</span> <span class="n">x_in</span>
 
     <span class="k">if</span> <span class="n">deterministic</span><span class="p">:</span>
-      <span class="n">seeds</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+      <span class="n">seeds</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">extra_seed</span><span class="p">:</span>
         <span class="n">seeds</span> <span class="o">+=</span> <span class="n">extra_seed</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicDropout</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">seeds</span><span class="p">)</span>

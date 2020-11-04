@@ -853,7 +853,7 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
         <span class="n">filter_w</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicDropout</span><span class="p">(</span>
             <span class="n">filter_w</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropconnect_prob</span><span class="p">,</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()))</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">filter_w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
             <span class="n">filter_w</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropconnect_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>

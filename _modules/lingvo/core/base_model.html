@@ -485,8 +485,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BaseTask.InstantiateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.InstantiateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">InstantiateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;global_step_tensor&#39;</span><span class="p">)):</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
       <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseTask._SetLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams">[docs]</a>  <span class="k">def</span> <span class="nf">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
@@ -711,10 +710,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">      outfeed: a dict of tensors dequeued from TPU outfeed queue.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_post_training_loop_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="p">[</span>
-        <span class="n">opt</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">learners</span>
-    <span class="p">])</span></div>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_post_training_loop_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+          <span class="o">*</span><span class="p">[</span><span class="n">opt</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">()</span> <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">learners</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="BaseTask.BProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
@@ -760,7 +758,7 @@
     <span class="p">]</span>
     <span class="c1"># Post training step update.</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">var_update_ops</span><span class="p">):</span>
-      <span class="n">post_step_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+      <span class="n">post_step_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">()</span>
 
     <span class="n">train_ops</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">post_step_op</span><span class="p">]):</span>
@@ -788,8 +786,7 @@
       <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">tpu_embedding_send_gradient_op</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeTpuEmbeddingGradients</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">)</span>
       <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;tpu_embedding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_send_gradient_op</span>
 
       <span class="n">tpu_embedding_summary_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
@@ -1010,7 +1007,7 @@
         <span class="n">p</span><span class="o">.</span><span class="n">vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># vn.scale is dependent on global_step.</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span> <span class="o">&gt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_start_step</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">&gt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_start_step</span><span class="p">,</span>
                              <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">*</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span></div>
 
 <div class="viewcode-block" id="BaseTask._GetMaskUpdateOp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._GetMaskUpdateOp">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMaskUpdateOp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1023,7 +1020,7 @@
       <span class="n">pruning_hparams</span> <span class="o">=</span> <span class="n">pruning</span><span class="o">.</span><span class="n">get_pruning_hparams</span><span class="p">()</span><span class="o">.</span><span class="n">override_from_dict</span><span class="p">(</span>
           <span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">)</span>
       <span class="n">pruning_obj</span> <span class="o">=</span> <span class="n">pruning</span><span class="o">.</span><span class="n">Pruning</span><span class="p">(</span>
-          <span class="n">pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+          <span class="n">pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
         <span class="n">pruning_obj</span><span class="o">.</span><span class="n">add_pruning_summaries</span><span class="p">()</span>
       <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">pruning_obj</span><span class="o">.</span><span class="n">conditional_mask_update_op</span><span class="p">()</span>

@@ -2757,14 +2757,13 @@
       <span class="n">gate_gradients</span><span class="o">=</span><span class="n">gate_gradients</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ComputeTpuEmbeddingGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeTpuEmbeddingGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeTpuEmbeddingGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">activation_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+<div class="viewcode-block" id="ComputeTpuEmbeddingGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeTpuEmbeddingGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeTpuEmbeddingGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">activation_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a TpuEmbedding SendGradient op.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">   loss: The loss to backprop from.</span>
 <span class="sd">   activation_dict: String feature -&gt; embedding activations dict.</span>
 <span class="sd">   tpu_embedding: TPUEmbedding instance.</span>
-<span class="sd">   step: Current step.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="c1"># Scale the loss to account for the full batch size.</span>
@@ -2775,7 +2774,7 @@
   <span class="n">feature_to_gradient_dict</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
       <span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">grads</span><span class="p">))</span>
   <span class="n">send_gradient_op</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
-      <span class="n">feature_to_gradient_dict</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">)</span>
+      <span class="n">feature_to_gradient_dict</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">GetGlobalStep</span><span class="p">())</span>
   <span class="k">return</span> <span class="n">send_gradient_op</span></div>
 
 
@@ -3588,7 +3587,7 @@
   <span class="k">return</span> <span class="n">step_seed</span></div>
 
 
-<div class="viewcode-block" id="GenerateStepSeedPair"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GenerateStepSeedPair">[docs]</a><span class="k">def</span> <span class="nf">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">op_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GenerateStepSeedPair"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GenerateStepSeedPair">[docs]</a><span class="k">def</span> <span class="nf">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">op_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Generates a seed pair for deterministic random operations in ...</span>
 
 <span class="sd">  functional loops.</span>
@@ -3602,7 +3601,6 @@
 <span class="sd">  Args:</span>
 <span class="sd">    p: A hyperparams.Params object, containing keys &#39;random_seed&#39; and</span>
 <span class="sd">      &#39;is_inference&#39;.</span>
-<span class="sd">    global_step: The global step.</span>
 <span class="sd">    op_seed: An additional operation-level seed to apply.</span>
 
 <span class="sd">  Returns:</span>
@@ -3622,7 +3620,7 @@
     <span class="c1"># inference if the graph is exported with random_seed=None as a workaround.</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">seed_dtype</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">seed_dtype</span><span class="p">)</span>
 
-  <span class="n">global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">seed_dtype</span><span class="p">)</span>
+  <span class="n">global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="n">seed_dtype</span><span class="p">)</span>
   <span class="n">step_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">GetIncStepSeed</span><span class="p">(),</span> <span class="n">seed_dtype</span><span class="p">)</span>
   <span class="n">seeds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">global_step</span><span class="p">,</span> <span class="n">step_seed</span><span class="p">])</span>
 
@@ -5620,7 +5618,7 @@
     <span class="n">result</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">GetGlobalStep</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">result</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">]</span> <span class="o">=</span> <span class="n">global_step</span>
+      <span class="n">result</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">result</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="k">return</span> <span class="n">result</span></div>
