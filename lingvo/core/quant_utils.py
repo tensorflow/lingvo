@@ -301,6 +301,11 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self.GetQDomain(domain)
     return qd.QuantizeWeight(w) if qd else w
 
+  # TODO(shivaniagrawal): This helper function is not being used anywhere. We
+  # are keeping here since it is fast-and easy way to assert model quality
+  # after AQT weights quantization. But note that using it is likely to be less
+  # performant than using ToAqt and FromAqt around matmul
+  # (compare existing code).
   def AqtWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
     """AQT Quantized weight FQ style.
 
@@ -361,8 +366,8 @@ class QuantizableLayer(base_layer.BaseLayer):
         feature_axis=feature_axis,
         expected_scale_shape=expected_scale_shape)
 
-  def FromAqtWeight(self, w_name, w):
-    """Rescales a AQT style quantized weight.
+  def FromAqtWeight(self, w_name, out, feature_axis):
+    """Rescales the output corresponding to AQT style quantized matmul's weight.
 
     Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.
 
@@ -370,16 +375,19 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     Args:
       w_name: Previously created w_name QWeight to quantize weight.
-      w: The weight tensor.
+      out: The tensor to rescale.
+      feature_axis: axis corresponding to output channel/feature for quantized
+        weight in ToAqtWeight. None would correspond to per layer quantization.
 
     Returns:
-      Rescaled weights.
+      Rescaled output.
     """
     assert w_name in self._aqt_weights, (
         ('Call to FromAqtWeight without first calling CreateAqtWeight: %s '
          '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
     qd = self._aqt_weights[w_name]
-    return qd.FromAqtWeight(w_name, w) if qd else w
+    return qd.FromAqtWeight(
+        w_name, out, feature_axis=feature_axis) if qd else out
 
   def GetQDomain(self, domain):
     """Gets the QDomain matching a given domain name.
@@ -924,20 +932,22 @@ class QDomain(base_layer.BaseLayer):
     del feature_axis, expected_scale_shape, w_name
     return w
 
-  def FromAqtWeight(self, w_name, w):
-    """Rescales a AQT quantized weight.
+  def FromAqtWeight(self, w_name, out, feature_axis):
+    """Rescales the output corresponding to AQT quantized matmuls' weight.
 
     Refer to quantizable_layer.FromAqtWeight.
 
     Args:
       w_name: weight name.
-      w: The weight tensor.
+      out: The tensor to rescale.
+      feature_axis: axis corresponding to output channel/feature for quantized
+        weight in ToAqtWeight.
 
     Returns:
-      Rescaled weights.
+      Rescaled output.
     """
     del w_name
-    return w
+    return out
 
   def QuantizeConstantRange(self, t, min_value, max_value):
     """Quantizes a true-constant range that is not used for arithmetic.

@@ -1075,7 +1075,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
             dtype=inputs.dtype)
       w, b = self._GetWeights(theta, inputs, paddings)
-      w = self.AqtWeight('projection_aqt', w, feature_axis=-1)
       w = self.QWeight(w)
 
       if p.affine_last:
@@ -1203,14 +1202,21 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p = self.params
 
     if not p.use_blocked_matmul:
+      w = self.ToAqtWeight('projection_aqt', w, feature_axis=-1)
       if p.use_einsum:
         out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
       else:
         out = py_utils.Matmul(
             tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
+      out = self.FromAqtWeight('projection_aqt', out, feature_axis=-1)
     else:
       x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
+      # TODO(shivaniagrawal): There are the following dimmensions: bn, nmk, the
+      # the correct thing to do here might be scaling on every m and every k,
+      # while we are doing every k only.
+      w = self.ToAqtWeight('projection_aqt', w, feature_axis=-1)
       out = tf.einsum('bn,nmk->bmk', x, w)
+      out = self.FromAqtWeight('projection_aqt', out, feature_axis=-1)
       # Create an output layer [b, num_outputs].
       bsz = py_utils.GetShape(out)[0]
       out = tf.reshape(out, [bsz, -1])
@@ -2329,7 +2335,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     wm = self.ToAqtWeight('emb_aqt', wm, feature_axis=-1)
     embs_result = self._FpropImpl(wm, flat_ids)
 
-    embs_result = self.FromAqtWeight('emb_aqt', embs_result)
+    embs_result = self.FromAqtWeight('emb_aqt', embs_result, feature_axis=-1)
     embs_result = py_utils.AddVN(p, embs_result)
 
     if p.scale_sqrt_depth:
@@ -2906,19 +2912,35 @@ class SimpleFullSoftmax(SoftmaxLayer):
     inputs = self.QTensor('inputs', inputs)
     wm = self.QWeight(theta.wm)
     if p.num_shards == 1:
-      wm = self.AqtWeight('softmax_aqt', wm, feature_axis=-1)
+      if self._transpose_weight_params:
+        # TODO(shivaniagrawal): having two transpose is expensive, we should
+        # optimize this by allowing feature axis to other that last axis.
+        # For this particular case num_classes is the first dimension, transpose
+        # of weight would make it last dimension; we scale on the axis
+        # corresponding to num_classes.
+        wm = tf.transpose(
+            self.ToAqtWeight('softmax_aqt', tf.transpose(wm), feature_axis=-1))
+      else:
+        wm = self.ToAqtWeight('softmax_aqt', wm, feature_axis=-1)
+
+      logits = py_utils.Matmul(
+          inputs, wm, transpose_b=self._transpose_weight_params)
+
+      # We used weight's output_dimension, i.e. p.num_classes as feature axis
+      # while quantizing weight.
+      logits = self.FromAqtWeight('softmax_aqt', logits, feature_axis=-1)
+
+    else:
+      logits = py_utils.Matmul(
+          inputs, wm, transpose_b=self._transpose_weight_params)
+
     if p.use_bias:
       bias = self.QWeight(theta.bias)
 
       # x * w + b
       # Note that theta.wm and theta.bias are transformed to concated/clipped
       # by caller.
-      logits = tf.nn.bias_add(
-          py_utils.Matmul(
-              inputs, wm, transpose_b=self._transpose_weight_params), bias)
-    else:
-      logits = py_utils.Matmul(
-          inputs, wm, transpose_b=self._transpose_weight_params)
+      logits = tf.nn.bias_add(logits, bias)
 
     # Clip logits by range.
     # Note that this is generally not used in conjunction with quantization and

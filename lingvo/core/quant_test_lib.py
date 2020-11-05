@@ -69,7 +69,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     w = fns.qweight(theta.w)
 
     # TODO(shivaniagrawal): change this to ToAqtWeight and FromAqtWeight.
-    w = self.AqtWeight(
+    w = self.ToAqtWeight(
         'aqt_w', w, feature_axis=-1, expected_scale_shape=(1, p.output_dim))
 
     inputs = self.QTensor('inputs', inputs)
@@ -78,6 +78,8 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     # automatically track the output against the qtensor 'transformed'.
     out = fns.qmatmul(
         tf.reshape(inputs, [-1, p.input_dim]), w, qt='transformed')
+    out = self.FromAqtWeight('aqt_w', out, feature_axis=-1)
+
     out = tf.reshape(out, tf.concat([tf.shape(inputs)[:-1], [p.output_dim]], 0))
 
     # Decorate outputs of simple activation functions with their corresponding
