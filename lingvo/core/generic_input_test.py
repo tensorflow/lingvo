@@ -325,6 +325,49 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       for i in range(10):
         self.evaluate(input_batch)
 
+  @parameterized.named_parameters(('BatchOnce', 4, 1), ('BatchTwice', 5, 2))
+  def testNestedGenericInput(self, inner_batch_limit, outer_batch_limit):
+    # Generate records using an inner GenericInput, and post-process them using
+    # an outer one.
+    # Test that the generated records are complete and contain no duplicates
+
+    def _process(record):
+      del record
+      # Construct the inner GenericInput.
+      batch = run_basic_graph(
+          use_nested_map=True, bucket_batch_limit=inner_batch_limit)
+      batch.num += 1
+      return batch, 1
+
+    input_batch, _ = generic_input.GenericInput(
+        file_pattern='iota:',
+        processor=_process,
+        bucket_upper_bound=[1],
+        bucket_batch_limit=[outer_batch_limit])
+
+    with self.session():
+      global_batch = inner_batch_limit * outer_batch_limit
+      record_seen = set()
+      # Iterate the inputs for exactly one epoch.
+      for i in range(100 // global_batch):
+        ans_input_batch = self.evaluate(input_batch)
+        for record_array in ans_input_batch.record:
+          for s in record_array:
+            # There should not be duplicates since GenericInput is stateful.
+            assert s not in record_seen
+            record_seen.add(s)
+        self.assertEqual(ans_input_batch.source_id.shape,
+                         (outer_batch_limit, inner_batch_limit))
+        self.assertEqual(ans_input_batch.record.shape,
+                         (outer_batch_limit, inner_batch_limit))
+        self.assertEqual(ans_input_batch.num.shape,
+                         (outer_batch_limit, inner_batch_limit, 2))
+        ans_vals = ans_input_batch.num
+        self.assertAllEqual(
+            np.square(ans_vals[:, :, 0] - 1), ans_vals[:, :, 1] - 1)
+      for i in range(100):
+        self.assertIn(('%08d' % i).encode('utf-8'), record_seen)
+
 
 class GenericInputOpBenchmark(tf.test.Benchmark):
 
