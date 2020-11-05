@@ -2573,7 +2573,11 @@
 <span class="sd">    The global_step variable, or a new created one if it does not exist.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">GetGlobalVariableScope</span><span class="p">(),</span> <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">()</span></div>
+    <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="LogMultiLines"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.LogMultiLines">[docs]</a><span class="k">def</span> <span class="nf">LogMultiLines</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
