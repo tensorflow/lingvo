@@ -2425,7 +2425,11 @@ def GetOrCreateGlobalStepVar():
     The global_step variable, or a new created one if it does not exist.
   """
   with tf.variable_scope(GetGlobalVariableScope(), use_resource=True):
-    return tf.train.get_or_create_global_step()
+    if _FromGlobal('pin_vars_to_cpu'):
+      with tf.device('/cpu:0'):
+        return tf.train.get_or_create_global_step()
+    else:
+      return tf.train.get_or_create_global_step()
 
 
 def LogMultiLines(label, lines):
