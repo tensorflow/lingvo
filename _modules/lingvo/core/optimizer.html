@@ -174,6 +174,10 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+
 
 <div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all optimizers.&quot;&quot;&quot;</span>
@@ -1152,6 +1156,127 @@
 
 <div class="viewcode-block" id="XLAShardingAdafactor.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactor.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;adafactor_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GradientAggregationOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer">[docs]</a><span class="k">class</span> <span class="nc">GradientAggregationOptimizer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Optimizer wrapper providing deferred gradient application.</span>
+
+<span class="sd">  Large hardware configurations are in high-demand, and difficult to come by.</span>
+<span class="sd">  This class enables simulating execution on large hardware configurations, by</span>
+<span class="sd">  accumulating gradients across multiple batches. A few caveats apply:</span>
+
+<span class="sd">  * Batch statistics (e.g. batch norm) will continue to be based on the</span>
+<span class="sd">  &quot;micro-batch&quot; size.</span>
+
+<span class="sd">  * This effectively trades off computation/time: simulating a large cluster on</span>
+<span class="sd">  a single core will take an excessive amount of time.</span>
+
+<span class="sd">  N.B. Learning rate schedules may need to be adjusted in addition to using</span>
+<span class="sd">  this optimizer. Schedules should either be scaled down by the relative batch</span>
+<span class="sd">  size, or use a schedule based on the number of examples to be consistent</span>
+<span class="sd">  across different batch sizes.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">opt</span><span class="p">,</span>
+               <span class="n">num_micro_batches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+               <span class="n">apply_crs_to_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span> <span class="o">=</span> <span class="n">opt</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_micro_batches</span> <span class="o">=</span> <span class="n">num_micro_batches</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_apply_crs_to_grad</span> <span class="o">=</span> <span class="n">apply_crs_to_grad</span>
+
+<div class="viewcode-block" id="GradientAggregationOptimizer._create_slots"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer._create_slots">[docs]</a>  <span class="k">def</span> <span class="nf">_create_slots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_initializer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;update_count&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">_zeros_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;grad_accum&#39;</span><span class="p">,</span> <span class="s1">&#39;GradientAccumulator&#39;</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
+
+<div class="viewcode-block" id="GradientAggregationOptimizer.compute_gradients"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer.compute_gradients">[docs]</a>  <span class="k">def</span> <span class="nf">compute_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">var_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">compute_gradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">var_list</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GradientAggregationOptimizer.apply_gradients"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer.apply_gradients">[docs]</a>  <span class="k">def</span> <span class="nf">apply_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grads_and_vars</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_micro_batches</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">apply_gradients</span><span class="p">(</span><span class="n">grads_and_vars</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">global_step</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_create_slots</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">grads_and_vars</span><span class="p">])</span>
+
+    <span class="n">accums</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">variables</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">grads_and_vars</span><span class="p">:</span>
+      <span class="n">accum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;grad_accum&#39;</span><span class="p">)</span>
+      <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="c1"># pytype: disable=attribute-error</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
+        <span class="n">scaled_grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">(</span>
+            <span class="n">g</span><span class="o">.</span><span class="n">values</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_micro_batches</span><span class="p">,</span>
+            <span class="n">g</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+            <span class="n">dense_shape</span><span class="o">=</span><span class="n">g</span><span class="o">.</span><span class="n">dense_shape</span><span class="p">)</span>
+        <span class="n">accum_tensor</span> <span class="o">=</span> <span class="n">accum</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
+        <span class="n">xla_sharding</span><span class="o">.</span><span class="n">copy_sharding</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">accum_tensor</span><span class="p">)</span>
+        <span class="n">accums</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">accum</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accum_tensor</span> <span class="o">+</span> <span class="n">scaled_grad</span><span class="p">))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">accum_tensor</span> <span class="o">=</span> <span class="n">accum</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
+        <span class="n">xla_sharding</span><span class="o">.</span><span class="n">copy_sharding</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">accum_tensor</span><span class="p">)</span>
+        <span class="n">accums</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">accum</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accum_tensor</span> <span class="o">+</span> <span class="n">g</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_micro_batches</span><span class="p">))</span>
+      <span class="c1"># pytype: enable=attribute-error</span>
+
+    <span class="k">def</span> <span class="nf">_ApplyAndReset</span><span class="p">():</span>
+      <span class="n">normalized_accums</span> <span class="o">=</span> <span class="n">accums</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_crs_to_grad</span><span class="p">:</span>
+        <span class="n">normalized_accums</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">accum</span><span class="o">.</span><span class="n">read_value</span><span class="p">())</span> <span class="k">for</span> <span class="n">accum</span> <span class="ow">in</span> <span class="n">accums</span>
+        <span class="p">]</span>
+      <span class="n">apply_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">apply_gradients</span><span class="p">(</span>
+          <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">normalized_accums</span><span class="p">,</span> <span class="n">variables</span><span class="p">)))</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">apply_op</span><span class="p">]):</span>
+        <span class="n">zero_op</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accum</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">accum</span><span class="p">))</span> <span class="k">for</span> <span class="n">accum</span> <span class="ow">in</span> <span class="n">accums</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">zero_op</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_Accum</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+
+    <span class="n">accum_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_micro_batches</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">_ApplyAndReset</span><span class="p">,</span>  <span class="c1"># Apply the accumulated gradients and reset.</span>
+        <span class="n">_Accum</span><span class="p">)</span>  <span class="c1"># Accumulate gradients.</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">accums</span><span class="p">)]):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">accum_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_counter</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="GradientAggregationOptimizer.get_slot"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer.get_slot">[docs]</a>  <span class="k">def</span> <span class="nf">get_slot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GradientAggregationOptimizer.get_slot_names"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer.get_slot_names">[docs]</a>  <span class="k">def</span> <span class="nf">get_slot_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">get_slot_names</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GradientAggregationOptimizer.variables"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer.variables">[docs]</a>  <span class="k">def</span> <span class="nf">variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">variables</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="XLAShardingAdafactorAccuGrad"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactorAccuGrad">[docs]</a><span class="k">class</span> <span class="nc">XLAShardingAdafactorAccuGrad</span><span class="p">(</span><span class="n">XLAShardingAdafactor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adafactor optimizer that does gradient accumulation over N steps.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="XLAShardingAdafactorAccuGrad.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactorAccuGrad.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_micro_batches&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of accumulated batches.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">params</span></div>
+
+<div class="viewcode-block" id="XLAShardingAdafactorAccuGrad.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactorAccuGrad.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying gradient aggregation.&#39;</span><span class="p">)</span>
+      <span class="n">optimizer</span> <span class="o">=</span> <span class="n">GradientAggregationOptimizer</span><span class="p">(</span>
+          <span class="n">optimizer</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">num_micro_batches</span><span class="p">,</span> <span class="n">apply_crs_to_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cached_opt</span> <span class="o">=</span> <span class="n">optimizer</span>
+    <span class="k">return</span> <span class="n">optimizer</span></div></div>
 </pre></div>
 
            </div>
