@@ -217,7 +217,7 @@
     <span class="n">w</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
 
     <span class="c1"># TODO(shivaniagrawal): change this to ToAqtWeight and FromAqtWeight.</span>
-    <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AqtWeight</span><span class="p">(</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span>
         <span class="s1">&#39;aqt_w&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">))</span>
 
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
@@ -226,6 +226,8 @@
     <span class="c1"># automatically track the output against the qtensor &#39;transformed&#39;.</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]),</span> <span class="n">w</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;transformed&#39;</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;aqt_w&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]],</span> <span class="mi">0</span><span class="p">))</span>
 
     <span class="c1"># Decorate outputs of simple activation functions with their corresponding</span>
