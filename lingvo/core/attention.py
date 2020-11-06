@@ -1063,7 +1063,7 @@ class DotProductAttention(BaseAttentionLayer):
   def ZeroAttentionState(self, source_length, decoder_batch_size):
     p = self.params
     # No states to keep track of currently.
-    return tf.zeros([decoder_batch_size, 1], dtype=p.dtype)
+    return tf.zeros([decoder_batch_size, 1], dtype=py_utils.FPropDtype(p))
 
   def ComputeContextVectorWithSource(self,
                                      theta,
@@ -1575,7 +1575,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     zero_att_state = _RecursiveReshape(zero_att_state, [decoder_batch_size, -1])
     nested_map_zero_att_state = py_utils.NestedMap(inner=zero_att_state)
     if self.params.attention_head_prob_index >= 0:
-      selected_prob_head = tf.zeros([decoder_batch_size, source_length])
+      selected_prob_head = tf.zeros([decoder_batch_size, source_length],
+                                    dtype=py_utils.FPropDtype(self.params))
       nested_map_zero_att_state[
           'selected_attention_head_probs'] = selected_prob_head
     return nested_map_zero_att_state

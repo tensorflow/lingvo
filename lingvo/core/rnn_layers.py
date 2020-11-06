@@ -894,7 +894,13 @@ class FRNNWithAttention(base_layer.BaseLayer):
 
   def reset_atten_state(self, theta, state, inputs):
     state.atten = inputs.reset_mask * state.atten
-    state.atten_state = inputs.reset_mask * state.atten_state
+    if isinstance(state.atten_state, py_utils.NestedMap):
+      if 'inner' not in state.atten_state:
+        raise ValueError('Unknown .atten_state, expecting field "inner": '
+                         f'{state.atten_state}')
+      state.atten_state.inner = inputs.reset_mask * state.atten_state.inner
+    else:
+      state.atten_state = inputs.reset_mask * state.atten_state
     state.atten_probs = inputs.reset_mask * state.atten_probs
     return state
 
