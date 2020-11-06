@@ -979,7 +979,8 @@
     <span class="k">return</span> <span class="kc">False</span></div>
 
 
-<span class="n">_NAME_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;[A-Za-z_][A-Za-z0-9_]*&#39;</span><span class="p">)</span>
+<span class="n">_NAME_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[A-Za-z_][A-Za-z0-9_]*&#39;</span><span class="p">)</span>
+<span class="n">_SQUARE_BRACKET_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="NestedMap"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap">[docs]</a><span class="k">class</span> <span class="nc">NestedMap</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
@@ -1070,6 +1071,15 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">)):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid NestedMap key </span><span class="se">\&#39;</span><span class="si">{}</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span></div>
 
+<div class="viewcode-block" id="NestedMap.SquareBracketIndex"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.SquareBracketIndex">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">SquareBracketIndex</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extracts the name and the index from the indexed key (e.g., k[0]).&quot;&quot;&quot;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">_SQUARE_BRACKET_PATTERN</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span></div>
+
 <div class="viewcode-block" id="NestedMap.GetItem"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.GetItem">[docs]</a>  <span class="k">def</span> <span class="nf">GetItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the value for the nested `key`.</span>
 
@@ -1117,34 +1127,60 @@
       <span class="k">return</span> <span class="n">default</span></div>
 
 <div class="viewcode-block" id="NestedMap.Set"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Sets the value for a nested key.</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Sets the value for a nested key.</span>
 
-<span class="sd">    Note that indexing lists is not supported, names with underscores will be</span>
-<span class="sd">    considered as one key.</span>
+<span class="sd">    There is limited support for indexing lists when square bracket indexing is</span>
+<span class="sd">    used, e.g., key[0], key[1], etc. Names with underscores will be considered</span>
+<span class="sd">    as one key. When key[idx] is set, all of the values with indices before idx</span>
+<span class="sd">    must be already set. E.g., setting key=&#39;a[2]&#39; to value=42 when</span>
+<span class="sd">    key=&#39;a&#39; wasn&#39;t referenced before will throw a ValueError. Setting key=&#39;a[0]&#39;</span>
+<span class="sd">    will not.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      key: str of the form</span>
-<span class="sd">        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.</span>
+<span class="sd">      key: str of the form key_part1.key_part2...key_partN where each key_part</span>
+<span class="sd">        is of the form `[A-Za-z_][A-Za-z0-9_]*` or</span>
+<span class="sd">        `[A-Za-z_][A-Za-z0-9_]*\[\d+\]`</span>
 <span class="sd">      value: The value to insert.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">      ValueError if a sub key is not a NestedMap or dict.</span>
+<span class="sd">      ValueError if a sub key is not a NestedMap or dict or idx &gt; list length</span>
+<span class="sd">      for key=&#39;key[idx]&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span>
     <span class="n">sub_keys</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sub_keys</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>  <span class="c1"># CheckKey allows k to be of form k[\d+]</span>
+      <span class="n">k</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SquareBracketIndex</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># this is key with index pointing to a list item.</span>
+        <span class="c1"># create a list if not there yet.</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>
+          <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error while setting key </span><span class="si">{}</span><span class="s1">. The value under </span><span class="si">{}</span><span class="s1"> is a&#39;</span>
+                           <span class="s1">&#39; list and the index </span><span class="si">{}</span><span class="s1"> is greater than the len=</span><span class="si">{}</span><span class="s1"> &#39;</span>
+                           <span class="s1">&#39;of this list&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">])))</span>
+        <span class="k">elif</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
+          <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="kc">None</span><span class="p">])</span>  <span class="c1"># this None will be overwritten right away.</span>
+
       <span class="c1"># We have reached the terminal node, set the value.</span>
       <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sub_keys</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>
-          <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>
+            <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+          <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+          <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)):</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error while setting key </span><span class="si">{}</span><span class="s1">. Sub key &quot;</span><span class="si">{}</span><span class="s1">&quot; is of type&#39;</span>
                            <span class="s1">&#39; </span><span class="si">{}</span><span class="s1"> but must be a dict or NestedMap.&#39;</span>
-                           <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">])))</span>
-        <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
+                           <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">current</span><span class="p">)))</span></div>
 
 <div class="viewcode-block" id="NestedMap._RecursiveMap"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap._RecursiveMap">[docs]</a>  <span class="k">def</span> <span class="nf">_RecursiveMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Traverse recursively into lists, dicts, and NestedMaps applying `fn`.</span>

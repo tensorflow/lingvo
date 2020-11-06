@@ -661,6 +661,12 @@ error if dynamic shape checks fail.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.py_utils.NestedMap.SquareBracketIndex">
+<em class="property">static </em><code class="sig-name descname">SquareBracketIndex</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.SquareBracketIndex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.SquareBracketIndex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the name and the index from the indexed key (e.g., k[0]).</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.py_utils.NestedMap.GetItem">
 <code class="sig-name descname">GetItem</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.GetItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.GetItem" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the value for the nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code>.</p>
@@ -704,18 +710,26 @@ considered as one key.</p>
 <dt id="lingvo.core.py_utils.NestedMap.Set">
 <code class="sig-name descname">Set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Set" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the value for a nested key.</p>
-<p>Note that indexing lists is not supported, names with underscores will be
-considered as one key.</p>
+<p>There is limited support for indexing lists when square bracket indexing is
+used, e.g., key[0], key[1], etc. Names with underscores will be considered
+as one key. When key[idx] is set, all of the values with indices before idx
+must be already set. E.g., setting key=’a[2]’ to value=42 when
+key=’a’ wasn’t referenced before will throw a ValueError. Setting key=’a[0]’
+will not.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>key</strong> – str of the form
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.</span></code>.</p></li>
+<li><p><strong>key</strong> – str of the form key_part1.key_part2…key_partN where each key_part
+is of the form <code class="xref py py-obj docutils literal notranslate"><span class="pre">[A-Za-z_][A-Za-z0-9_]*</span></code> or
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">[A-Za-z_][A-Za-z0-9_]*[d+]</span></code></p></li>
 <li><p><strong>value</strong> – The value to insert.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises</dt>
-<dd class="field-even"><p><strong>ValueError if a sub key is not a NestedMap</strong><strong> or </strong><strong>dict.</strong> – </p>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError if a sub key is not a NestedMap</strong><strong> or </strong><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)"><strong>dict</strong></a><strong> or </strong><strong>idx &gt; list length</strong> – </p></li>
+<li><p><strong>for key='key</strong><strong>[</strong><strong>idx</strong><strong>]</strong><strong>'.</strong> – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
