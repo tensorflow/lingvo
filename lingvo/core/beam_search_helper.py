@@ -49,7 +49,7 @@ from tensorflow.python.ops import inplace_ops
 #    position [b * num_hyps_per_beam + h, :].
 #  topk_lens: Int32 Tensor of shape [batch_size * num_hyps_per_beam] which
 #    indicates the length (>=0) of each of the hypotheses.
-#  topk_scores: Float32 Tensor of shape [batch_size * num_hyps_per_beam]
+#  topk_scores: Float32 Tensor of shape [batch_size, num_hyps_per_beam]
 #    containing the scores (negative log probabilities) of each of the
 #    hypotheses in the beam.
 #  topk_decoded: A string Tensor of shape [batch_size * num_hyps_per_beam] which
