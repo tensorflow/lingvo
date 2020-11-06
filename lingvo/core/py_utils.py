@@ -831,7 +831,8 @@ def IsCompatible(lhs, rhs):
     return False
 
 
-_NAME_PATTERN = re.compile('[A-Za-z_][A-Za-z0-9_]*')
+_NAME_PATTERN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
+_SQUARE_BRACKET_PATTERN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]')
 
 
 class NestedMap(dict):
@@ -922,6 +923,15 @@ class NestedMap(dict):
     if not (isinstance(key, str) and _NAME_PATTERN.match(key)):
       raise ValueError('Invalid NestedMap key \'{}\''.format(key))
 
+  @staticmethod
+  def SquareBracketIndex(key):
+    """Extracts the name and the index from the indexed key (e.g., k[0])."""
+    m = _SQUARE_BRACKET_PATTERN.fullmatch(key)
+    if not m:
+      return key, None
+    else:
+      return m.groups()[0], int(m.groups()[1])
+
   def GetItem(self, key):
     """Gets the value for the nested `key`.
 
@@ -969,34 +979,60 @@ class NestedMap(dict):
       return default
 
   def Set(self, key, value):
-    """Sets the value for a nested key.
+    r"""Sets the value for a nested key.
 
-    Note that indexing lists is not supported, names with underscores will be
-    considered as one key.
+    There is limited support for indexing lists when square bracket indexing is
+    used, e.g., key[0], key[1], etc. Names with underscores will be considered
+    as one key. When key[idx] is set, all of the values with indices before idx
+    must be already set. E.g., setting key='a[2]' to value=42 when
+    key='a' wasn't referenced before will throw a ValueError. Setting key='a[0]'
+    will not.
 
     Args:
-      key: str of the form
-        `([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.`.
+      key: str of the form key_part1.key_part2...key_partN where each key_part
+        is of the form `[A-Za-z_][A-Za-z0-9_]*` or
+        `[A-Za-z_][A-Za-z0-9_]*\[\d+\]`
       value: The value to insert.
 
     Raises:
-      ValueError if a sub key is not a NestedMap or dict.
+      ValueError if a sub key is not a NestedMap or dict or idx > list length
+      for key='key[idx]'.
     """
     current = self
     sub_keys = key.split('.')
     for i, k in enumerate(sub_keys):
-      self.CheckKey(k)
+      self.CheckKey(k)  # CheckKey allows k to be of form k[\d+]
+      k, idx = self.SquareBracketIndex(k)
+      if idx is not None:  # this is key with index pointing to a list item.
+        # create a list if not there yet.
+        if k not in current:
+          current[k] = []
+        if idx > len(current[k]):
+          raise ValueError('Error while setting key {}. The value under {} is a'
+                           ' list and the index {} is greater than the len={} '
+                           'of this list'.format(key, k, idx, len(current[k])))
+        elif idx == len(current[k]):
+          current[k].extend([None])  # this None will be overwritten right away.
+
       # We have reached the terminal node, set the value.
       if i == (len(sub_keys) - 1):
-        current[k] = value
+        if idx is None:
+          current[k] = value
+        else:
+          current[k][idx] = value
       else:
-        if k not in current:
-          current[k] = NestedMap()
-        if not isinstance(current[k], (dict, NestedMap)):
+        if idx is None:
+          if k not in current:
+            current[k] = NestedMap()
+          current = current[k]
+        else:
+          if current[k][idx] is None:
+            current[k][idx] = NestedMap()
+          current = current[k][idx]
+        if not isinstance(current, (dict, NestedMap)):
           raise ValueError('Error while setting key {}. Sub key "{}" is of type'
                            ' {} but must be a dict or NestedMap.'
-                           ''.format(key, k, type(current[k])))
-        current = current[k]
+                           ''.format(key, k, type(current)))
 
   def _RecursiveMap(self, fn, flatten=False):
     """Traverse recursively into lists, dicts, and NestedMaps applying `fn`.

@@ -108,6 +108,25 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     nested_map.Set('a.b.x.y', 2)
     self.assertIsInstance(nested_map.a.b.x, py_utils.NestedMap)
     self.assertEqual(nested_map.a.b.x.y, 2)
+    # Verify that non-existing intermediate list keys are set to list.
+    nested_map.Set('a.b.z[0].y', 3)
+    nested_map.Set('a.b.z[1].y', 4)
+    self.assertIsInstance(nested_map.a.b.z, list)
+    self.assertEqual(nested_map.a.b.z[0].y, 3)
+    self.assertEqual(nested_map.a.b.z[1].y, 4)
+    # Verify that using a index > len(list) leads to ValueError.
+    with self.assertRaises(ValueError):
+      nested_map.Set('a.b.z[3]', 5)
+
+  def testNestedMapSetIndexed(self):
+    nested_map = py_utils.NestedMap()
+    nested_map.x = [43, 44]
+    nested_map.y = 14
+    nested_map.z = [py_utils.NestedMap(b=13, c=[18, 8]), 4]
+    another_map = py_utils.NestedMap()
+    for k, v in nested_map.FlattenItems():
+      another_map.Set(k, v)
+    self.assertDictEqual(another_map, nested_map)
 
   @parameterized.named_parameters(
       ('_stateful', False, [tf.float32, tf.float64, tf.complex64]),
