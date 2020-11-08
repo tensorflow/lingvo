@@ -1258,7 +1258,8 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
         'ids': target_ids,
         'labels': target_labels,
         'weights': target_weights,
-        'paddings': target_paddings
+        'paddings': target_paddings,
+        'transcripts': tf.convert_to_tensor(['hello'] * batch),
     })
     encoder_outputs = py_utils.NestedMap(encoded=encoded, padding=padding)
 
