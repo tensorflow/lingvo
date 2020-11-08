@@ -653,9 +653,7 @@ class MoEBuilder(builder.Base):
          self._Fn('bias',
                   fn=lambda x: _Notvisible(x) * (-1e+09),
                   fn_out=lambda x: x + x[-1])),
-        ('inputs,wq->q', self._ComputeQKV('q')),
-        ('inputs,wk->k', self._ComputeQKV('k')),
-        ('inputs,wv->v', self._ComputeQKV('v')),
+        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('q,k,v,bias->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
@@ -752,9 +750,7 @@ class MoEBuilder(builder.Base):
             'aux_loss',
         ],
         ('->wq,wk,wv,wo', self._AttentionWeights('w')),
-        ('inputs,wq->q', self._ComputeQKV('q')),
-        ('inputs,wk->k', self._ComputeQKV('k')),
-        ('inputs,wv->v', self._ComputeQKV('v')),
+        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
         ('segment_id,segment_pos->bias',
@@ -892,9 +888,7 @@ class MoEBuilder(builder.Base):
                   fn_out=lambda x: x + x[-1])),
         ('segment_bias,segment_pos,relative_bias_weights->bias',
          self._Fn('relative_bias', fn=self._EncoderAddRelativeBias)),
-        ('inputs,wq->q', self._ComputeQKV('q')),
-        ('inputs,wk->k', self._ComputeQKV('k')),
-        ('inputs,wv->v', self._ComputeQKV('v')),
+        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('q,k,v,bias->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
@@ -974,9 +968,7 @@ class MoEBuilder(builder.Base):
         ],
         ('->wq,wk,wv,wo', self._AttentionWeights('w')),
         ('->relative_bias_weights', self._RelativeAttentionBiasWeights('wrb', collections)),
-        ('inputs,wq->q', self._ComputeQKV('q')),
-        ('inputs,wk->k', self._ComputeQKV('k')),
-        ('inputs,wv->v', self._ComputeQKV('v')),
+        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
         ('segment_pos->key_segment_pos',
@@ -1090,6 +1082,29 @@ class MoEBuilder(builder.Base):
         w = tf.reshape(
             w, [p.model_dim, p.attention_num_heads, p.attention_key_value_dim])
       return tf.einsum('BLM,MHD->BLHD', x, w)
+
+    return self._Fn(name, _Compute)
+
+  def _ComputeQKVCombine(self, name):
+    p = self.params
+
+    def _Compute(x, wq, wk, wv):
+
+      def _GetW(w):
+        if p.attention_combine_dims:
+          w = tf.reshape(
+              w,
+              [p.model_dim, p.attention_num_heads, p.attention_key_value_dim])
+        return tf.expand_dims(w, 0)
+
+      wq = _GetW(wq)
+      wk = _GetW(wk)
+      wv = _GetW(wv)
+      wc = tf.concat([wq, wk, wv], 0)
+      return [
+          tf.squeeze(y, 0)
+          for y in tf.split(tf.einsum('BLM,KMHD->KBLHD', x, wc), 3, 0)
+      ]
 
     return self._Fn(name, _Compute)
 
@@ -1452,6 +1467,32 @@ class DenseBuilder(MoEBuilder):
 
     return self._Fn(name, _Compute)
 
+  def _ComputeQKVCombine(self, name):
+    p = self.params
+
+    def _Compute(x, wq, wk, wv):
+
+      def _GetW(w):
+        if p.attention_combine_dims:
+          combined_split = None if p.mhd_w_split is None else p.mhd_w_split[:-1]
+          w = self._MeshSplit(w, combined_split)
+          w = tf.reshape(
+              w,
+              [p.model_dim, p.attention_num_heads, p.attention_key_value_dim])
+        w = self._MeshSplit(w, p.mhd_w_split)
+        return tf.expand_dims(self._ReshapeM(w, 0), 0)
+
+      wq = _GetW(wq)
+      wk = _GetW(wk)
+      wv = _GetW(wv)
+      wc = tf.concat([wq, wk, wv], 0)
+      return [
+          tf.squeeze(y, 0) for y in tf.split(
+              self._EinsumWithModelDim('BLM,KMHD->KBLHD', x, wc), 3, 0)
+      ]
+
+    return self._Fn(name, _Compute)
+
   def _ComputeAttenOutputs(self, o, wo):
     p = self.params
     hdm_split = None if p.mhd_w_split is None else [
@@ -1514,12 +1555,12 @@ class DenseBuilder(MoEBuilder):
       ]
 
     def _Impl(wi_0, wi_1, inputs):
-      return tf.math.multiply(
-          tf.nn.gelu(
-              self._EinsumWithModelDim('MH,BLM->BLH', wi_0, inputs),
-              approximate=True),
-          # linear / pass-through
-          self._EinsumWithModelDim('MH,BLM->BLH', wi_1, inputs))
+      wi = tf.concat([tf.expand_dims(wi_0, 0), tf.expand_dims(wi_1, 0)], 0)
+      o1, o2 = [
+          tf.squeeze(o, 0) for o in tf.split(
+              self._EinsumWithModelDim('KMH,BLM->KBLH', wi, inputs), 2, 0)
+      ]
+      return tf.math.multiply(tf.nn.gelu(o1, approximate=True), o2)
 
     p = self.params
     return self._Graph(
