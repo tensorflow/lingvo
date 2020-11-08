@@ -1251,13 +1251,16 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # The following are for streaming inference only.
     p.Define(
-        'inference_step_max_length', 1, 'Max inference step length.'
-        'Used for efficient sunn inference on tpu.')
+        'inference_step_max_length', None, 'Max inference step length '
+        '(query_vec length). Used for efficient sunn inference on tpu. In case '
+        'inference seq length is not static, set to None or negative, and a '
+        'less optimized algorithm is used.')
     p.Define(
         'use_3d_recurrent_state', False,
         'If True, recurrent state for streaming inference is [B, T, N*H] '
         'instead of [B, T, N, H]. This is for performance optimization '
-        'and does not change math.')
+        'and does not change math. Only effective if inference_step_max_length '
+        'is not None and > 0.')
     return p
 
   def __init__(self, params):
@@ -1504,6 +1507,15 @@ class LocalSelfAttention(MultiHeadedAttention):
                               use_short_seq_opt)
 
   def zero_state(self, batch_size):
+    """Returns the initial state given the batch size."""
+    p = self.params
+    if (p.inference_step_max_length is not None and
+        p.inference_step_max_length > 0):
+      return self._zero_state_static_length(batch_size)
+    else:
+      return self._zero_state_dynamic_length(batch_size)
+
+  def _zero_state_static_length(self, batch_size):
     """Returns the initial state given the batch size.
 
     Args:
@@ -1514,7 +1526,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       - key: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
         [..., N * H] if p.use_3d_recurrent_state.
-      - value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
+      - value: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
         [..., N * H] if p.use_3d_recurrent_state.
       - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
         Tensor where 0s are masked out positions.
@@ -1541,6 +1553,32 @@ class LocalSelfAttention(MultiHeadedAttention):
     return py_utils.NestedMap(
         key=key_state, value=value_state, masks=masks, tail=tail)
 
+  def _zero_state_dynamic_length(self, batch_size):
+    """Returns the initial state given the batch size.
+
+    Args:
+      batch_size: the batch size.
+
+    Returns:
+      A `.NestedMap` object containing
+
+      - key: [B, p.left_context - 1, N, H].
+      - value: [B, p.left_context - 1, N, H].
+      - masks: [B, p.left_context-1]. Tensor where 0s are masked out positions.
+    """
+    p = self.params
+    assert p.enable_value_proj, 'Value projection must be enabled.'
+    assert p.right_context == 0, 'StreamStep does not support look-ahead'
+
+    context_len = p.left_context - 1
+    key_state = tf.zeros(
+        [batch_size, context_len, p.num_heads, p.hidden_dim // p.num_heads],
+        py_utils.FPropDtype(p))
+    value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
+    # At the beginning, all positions are masked out.
+    masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
+    return py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
+
   def StreamStep(self, theta, query_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
 
@@ -1559,14 +1597,23 @@ class LocalSelfAttention(MultiHeadedAttention):
       state1: Updated state of the same structure as state0.
     """
     p = self.params
-    # Sanity checks.
     assert p.enable_value_proj, 'Value projection must be enabled.'
     assert p.right_context == 0, ('StreamStep() does not support look ahead.')
 
+    if (p.inference_step_max_length is not None and
+        p.inference_step_max_length > 0):
+      return self._StreamStepStaticLength(theta, query_vec, paddings, state0)
+    else:
+      return self._StreamStepDynamicLength(theta, query_vec, paddings, state0)
+
+  def _StreamStepStaticLength(self, theta, query_vec, paddings, state0):
+    """query_vec length is staticly known."""
+    p = self.params
+    # Sanity checks.
     n, h = p.num_heads, p.hidden_dim // p.num_heads
     s = p.inference_step_max_length + p.left_context - 1
     b, q = py_utils.GetShape(query_vec, 2)
-    assert q is not None, 'query_vec.shape[1] must be static.'
+    assert query_vec.shape[1] is not None, 'query_vec.shape[1] must be static.'
     assert q <= p.inference_step_max_length, (
         f'q: {q} should be less than p.inference_step_max_length: '
         f'{p.inference_step_max_length}')
@@ -1710,6 +1757,87 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       state1 = py_utils.NestedMap(
           key=next_key, value=next_value, masks=new_masks, tail=next_tail)
+      return output, paddings, state1
+
+  def _StreamStepDynamicLength(self, theta, query_vec, paddings, state0):
+    """query_vec length is dynamic."""
+    p = self.params
+    # Sanity checks.
+    b, q = py_utils.GetShape(query_vec, 2)
+    unused_n, h = p.num_heads, p.hidden_dim // p.num_heads
+    unused_s = q + p.left_context - 1
+
+    query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
+    paddings = py_utils.HasShape(paddings, [b, q])
+    with tf.name_scope(f'{p.name}/StreamStep'):
+      # query projection.
+      # [B, Q, N, H]
+      query_proj = self.query.FProp(theta.query, query_vec)
+      if p.enable_per_dim_scale:
+        query_proj = self.per_dim_scale.FProp(theta.per_dim_scale, query_proj)
+      else:
+        query_proj *= h**-0.5
+
+      # key, value, mask.
+      # [B, S, N, H].
+      key = tf.concat(
+          [state0.key, self.key.FProp(theta.key, query_vec)], axis=1)
+      # [B, S, N, H]
+      value = tf.concat(
+          [state0.value, self.value.FProp(theta.value, query_vec)], axis=1)
+      # [B, S]. 1s are masked positions.
+      state_paddings = tf.concat([1 - state0.masks, paddings], axis=1)
+      t = py_utils.GetShape(state_paddings)[1]
+
+      # [B, Q, N, T]
+      logits = tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
+
+      very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
+
+      with tf.name_scope('compute_padding'):
+        # Generate local atten mask.
+        # [Q, 1]
+        rows = tf.expand_dims(tf.range(q), -1)
+        # [1, T]
+        cols = tf.expand_dims(tf.range(t), 0)
+        # 1s are masked positions.
+        # [Q, S]
+        distance = cols - rows
+        local_atten_per_step_paddings = tf.where(
+            tf.logical_and(distance <= p.left_context - 1, distance >= 0),
+            tf.zeros([q, t], py_utils.FPropDtype(p)),
+            tf.ones([q, t], py_utils.FPropDtype(p)))
+        # [1, Q, T]
+        local_atten_per_step_paddings = tf.expand_dims(
+            local_atten_per_step_paddings, 0)
+        # [B, 1, T]
+        expanded_state_paddings = tf.expand_dims(state_paddings, 1)
+
+        # [B, Q, T]
+        final_paddings = tf.logical_or(
+            tf.cast(expanded_state_paddings, tf.bool),
+            tf.cast(local_atten_per_step_paddings, tf.bool))
+        # [B, Q, 1, T]
+        final_paddings = tf.expand_dims(
+            tf.cast(final_paddings, logits.dtype), axis=2)
+
+      # [B, Q, N, T]
+      logits = logits * (1 -
+                         final_paddings) + very_negative_logits * final_paddings
+      # [B, Q, N, T]
+      posteriors = py_utils.Softmax(
+          logits, axis=-1, extra_logit=p.atten_extra_logit)
+      # [B, Q, N, H]
+      output = tf.einsum('BQNT,BTNH->BQNH', posteriors, value)
+
+      # Post projection.
+      # [B,Q,D]
+      output = self.post.FProp(self.theta.post, output)
+
+      state1 = py_utils.NestedMap(
+          key=key[:, -(p.left_context - 1):, :, :],
+          value=value[:, -(p.left_context - 1):, :, :],
+          masks=1 - state_paddings[:, -(p.left_context - 1):])
       return output, paddings, state1
 
   @classmethod
