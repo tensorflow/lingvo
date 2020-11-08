@@ -1108,6 +1108,12 @@ updated_value_vec: [T, B, N, H].</p>
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.zero_state">
 <code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length">
+<code class="sig-name descname">_zero_state_static_length</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._zero_state_static_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
@@ -1117,13 +1123,33 @@ updated_value_vec: [T, B, N, H].</p>
 <ul class="simple">
 <li><p>key: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
 […, N * H] if p.use_3d_recurrent_state.</p></li>
-<li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
+<li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
 […, N * H] if p.use_3d_recurrent_state.</p></li>
 <li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
 Tensor where 0s are masked out positions.</p></li>
 <li><p>tail: [B, 1], currently only effective if use_3d_recurrent_state is
 True, the tail pointer to key, value and paddings circular buffers.
 Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_dynamic_length">
+<code class="sig-name descname">_zero_state_dynamic_length</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._zero_state_dynamic_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_dynamic_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing</p>
+<ul class="simple">
+<li><p>key: [B, p.left_context - 1, N, H].</p></li>
+<li><p>value: [B, p.left_context - 1, N, H].</p></li>
+<li><p>masks: [B, p.left_context-1]. Tensor where 0s are masked out positions.</p></li>
 </ul>
 </p>
 </dd>
@@ -1154,6 +1180,18 @@ state1: Updated state of the same structure as state0.</p>
 <dd class="field-odd"><p>output</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticLength">
+<code class="sig-name descname">_StreamStepStaticLength</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamStepStaticLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticLength" title="Permalink to this definition">¶</a></dt>
+<dd><p>query_vec length is staticly known.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDynamicLength">
+<code class="sig-name descname">_StreamStepDynamicLength</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamStepDynamicLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDynamicLength" title="Permalink to this definition">¶</a></dt>
+<dd><p>query_vec length is dynamic.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1301,26 +1339,6 @@ updated_value_vec: [T, B, N, H].</p>
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL.zero_state">
 <code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing</p>
-<ul class="simple">
-<li><p>key: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
-[…, N * H] if p.use_3d_recurrent_state.</p></li>
-<li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H or
-[…, N * H] if p.use_3d_recurrent_state.</p></li>
-<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-Tensor where 0s are masked out positions.</p></li>
-<li><p>tail: [B, 1], currently only effective if use_3d_recurrent_state is
-True, the tail pointer to key, value and paddings circular buffers.
-Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
-</ul>
-</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">
