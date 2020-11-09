@@ -259,7 +259,7 @@
         <span class="s1">&#39;Each key is expected to be a path to a checkpoint from which to &#39;</span>
         <span class="s1">&#39;initialize part of the model. Variables are only loaded from this &#39;</span>
         <span class="s1">&#39;path during initialization and will override values provided by &#39;</span>
-        <span class="s1">&#39;initialization.&#39;</span>
+        <span class="s1">&#39;initialization.</span><span class="se">\n</span><span class="s1">&#39;</span>
         <span class="s1">&#39;The corresponding values (loading_rules) are expected to be a tuple &#39;</span>
         <span class="s1">&#39;consisting of two list: loading rules, and ignore rules, respectively.&#39;</span>
         <span class="s1">&#39;The first list (loading rules) contains the list of variables &#39;</span>
@@ -267,9 +267,8 @@
         <span class="s1">&#39;list is a pair of strings. The first element is a regex and the &#39;</span>
         <span class="s1">&#39;second is a python format string. If a variable in the model matches &#39;</span>
         <span class="s1">&#39;a regex, we rename using the format string to determine the &#39;</span>
-        <span class="s1">&#39;corresponding var in the checkpoint. Note that, it is an error if a &#39;</span>
-        <span class="s1">&#39;model variable matches multiple loading rules, for the same &#39;</span>
-        <span class="s1">&#39;checkpoint or across checkpoints.&#39;</span>
+        <span class="s1">&#39;corresponding var in the checkpoint. If a model variable would match &#39;</span>
+        <span class="s1">&#39;multiple loading rules, the first rule that matches is used.</span><span class="se">\n</span><span class="s1">&#39;</span>
         <span class="s1">&#39;The second list (ignore rules) is a list of regexes which specify &#39;</span>
         <span class="s1">&#39;variables in the model which should not be initialized using the &#39;</span>
         <span class="s1">&#39;loading rules. Thus, if a variable in the model to be trained matches &#39;</span>
