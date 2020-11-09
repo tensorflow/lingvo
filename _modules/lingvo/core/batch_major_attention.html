@@ -4882,12 +4882,24 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="LmBuilder._ShardedVar"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._ShardedVar">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">split_dim</span><span class="p">):</span>
+    <span class="n">sharded_weights</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">:</span>
+      <span class="n">dims_mapping</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">dims_mapping</span><span class="p">[</span><span class="n">split_dim</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">sharded_weights</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span>
+                              <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
+                                  <span class="n">shape</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                  <span class="n">init</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">init</span><span class="p">,</span>
+                                  <span class="n">dtype</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                                  <span class="n">collections</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">collections</span><span class="p">,</span>
+                                  <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">dims_mapping</span><span class="p">)))</span>
+    <span class="n">device_mesh</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">xla_num_partitions</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                   <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
-        <span class="n">split_dimension</span><span class="o">=</span><span class="n">split_dim</span><span class="p">,</span>
-        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
-        <span class="n">num_devices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">)</span></div>
+        <span class="n">weights</span><span class="o">=</span><span class="n">sharded_weights</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LmBuilder._LinearWeight"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._LinearWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_LinearWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">split_dim</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>

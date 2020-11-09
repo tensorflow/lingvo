@@ -339,18 +339,66 @@
         <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
         <span class="n">shared_var_collection_suffix</span><span class="o">=</span><span class="n">shared_var_collection_suffix</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._ShardedVar"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedVar">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">num_devices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span></div>
+<div class="viewcode-block" id="MoEBuilder._ShardedVar"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedVar">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a layer of variables potentially sharded in a device mesh.</span>
 
-<div class="viewcode-block" id="MoEBuilder._EmbeddingWeight"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_EmbeddingWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer.</span>
+<span class="sd">      weights: list of (name, moe_layers.ShardedWeightParams).</span>
+<span class="sd">      device_mesh: device mesh used in mesh_split. If None, the variables will</span>
+<span class="sd">        not be sharded</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A layer of variables sharded according to device_mesh and the weights&#39;</span>
+<span class="sd">      sharding specification in ShardedWeightParams.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">device_mesh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._ShardedVarOn1DDeviceArray"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVarOn1DDeviceArray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Variables sharded along dimension 0.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer.</span>
+<span class="sd">      weights: list of (name, py_utils.WeightParams).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A layer of variables sharded on dimension 0 across all devices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sharded_weights</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span>
+      <span class="n">dims_mapping</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">sharded_weights</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span>
+                              <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
+                                  <span class="n">shape</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                  <span class="n">init</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">init</span><span class="p">,</span>
+                                  <span class="n">dtype</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                                  <span class="n">collections</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">collections</span><span class="p">,</span>
+                                  <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">dims_mapping</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="n">sharded_weights</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_devices</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._EmbeddingWeight"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_EmbeddingWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">name</span><span class="p">,</span>
+                       <span class="n">vocab_dim</span><span class="p">,</span>
+                       <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">w_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;embedding&#39;</span><span class="p">,</span>
-                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                  <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                       <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span>
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">vocab_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))])</span></div>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">vocab_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">w_mesh_split</span><span class="p">))],</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.SharedEmbSoftmax"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">SharedEmbSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">name</span><span class="p">,</span>
@@ -561,21 +609,28 @@
         <span class="s1">&#39;output_loss&#39;</span><span class="p">,</span>
     <span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._DenseReluDenseWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_DenseReluDenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+<div class="viewcode-block" id="MoEBuilder._DenseReluDenseWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_DenseReluDenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                             <span class="n">name</span><span class="p">,</span>
+                             <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">wi_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">wo_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span>
-                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                  <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                       <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
                           <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">])),</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wi_mesh_split</span><span class="p">)),</span>
                  <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span>
-                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                  <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                       <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
                           <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))])</span></div>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wo_mesh_split</span><span class="p">))],</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
@@ -605,30 +660,38 @@
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
     <span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._DenseReluDenseWeightsGatedGELU"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU">[docs]</a>  <span class="k">def</span> <span class="nf">_DenseReluDenseWeightsGatedGELU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder._DenseReluDenseWeightsGatedGELU"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU">[docs]</a>  <span class="k">def</span> <span class="nf">_DenseReluDenseWeightsGatedGELU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                      <span class="n">name</span><span class="p">,</span>
+                                      <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                      <span class="n">wi_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                      <span class="n">wo_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># Gated GELU.  There are two separate linear transformations applied in</span>
     <span class="c1"># parallel to the inputs.  You take the gelu of one of them and then</span>
     <span class="c1"># multiply the two componentwise.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi_0&#39;</span><span class="p">,</span>
-                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                  <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                       <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
                           <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">])),</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wi_mesh_split</span><span class="p">)),</span>
                  <span class="p">(</span><span class="s1">&#39;wi_1&#39;</span><span class="p">,</span>
-                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                  <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                       <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
                           <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">])),</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wi_mesh_split</span><span class="p">)),</span>
                  <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span>
-                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                  <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                       <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
                           <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))])</span></div>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wo_mesh_split</span><span class="p">))],</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.DenseReluDenseGatedGELU"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedGELU">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDenseGatedGELU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># Need to unify.</span>
@@ -769,7 +832,11 @@
           <span class="n">wo</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HDM,BLHD-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.SelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.SelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;TransformerEncoder SelfAttention.&quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -796,7 +863,8 @@
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span>
         <span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id-&gt;bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
                   <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
@@ -807,7 +875,11 @@
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
 
-<div class="viewcode-block" id="MoEBuilder.DecEncAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecEncAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecEncAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DecEncAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecEncAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecEncAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">name</span><span class="p">,</span>
+                      <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer Decoder-Encoder Attention.&quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -837,7 +909,8 @@
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
         <span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id,encoder_segment_id-&gt;bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="o">-</span><span class="mf">1e+09</span> <span class="o">*</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
@@ -848,7 +921,11 @@
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
 
-<div class="viewcode-block" id="MoEBuilder.DecSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DecSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">name</span><span class="p">,</span>
+                       <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;TransformerDecoder SelfAttention.</span>
 
 <span class="sd">    Note that attention bias (see _Notvisible) ensures that current position</span>
@@ -856,6 +933,9 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: name of the layer.</span>
+<span class="sd">      device_mesh: device_mesh for sharding (if specified)</span>
+<span class="sd">      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)</span>
+<span class="sd">      wo_hdm_mesh_split: mesh split for output weights (if specified)</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      layer params for TransformerDecoder SelfAttention.</span>
@@ -897,7 +977,8 @@
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
         <span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
@@ -991,7 +1072,11 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddRelativeBias</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">query_segment_pos</span><span class="p">,</span> <span class="n">key_segment_pos</span><span class="p">,</span>
                                  <span class="n">relative_bias_weights</span><span class="p">,</span> <span class="n">bidirectional</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.SelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.SelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">name</span><span class="p">,</span>
+                                <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;TransformerEncoder SelfAttention with relative Attention Bias.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">collections</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1027,7 +1112,8 @@
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span>
         <span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_bias&#39;</span><span class="p">,</span>
@@ -1042,7 +1128,11 @@
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
 
-<div class="viewcode-block" id="MoEBuilder.DecSelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DecSelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                   <span class="n">name</span><span class="p">,</span>
+                                   <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DecSelfAttention with relative Attention Bias.</span>
 
 <span class="sd">    Note that attention bias (see _Notvisible) ensures that current position</span>
@@ -1060,6 +1150,9 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: name of the layer.</span>
+<span class="sd">      device_mesh: device_mesh for sharding (if specified)</span>
+<span class="sd">      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)</span>
+<span class="sd">      wo_hdm_mesh_split: mesh split for output weights (if specified)</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The layer params.</span>
@@ -1114,7 +1207,8 @@
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
         <span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
@@ -1195,7 +1289,11 @@
     <span class="sd">&quot;&quot;&quot;Apply identity transformation.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">IdentityLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._AttentionWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._AttentionWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_AttentionWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder._AttentionWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._AttentionWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_AttentionWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Helper for &#39;-&gt;wq,wk,wv,wo&#39; Graph edge.&quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1203,24 +1301,48 @@
                 <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span> <span class="k">else</span>
                <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])</span>
     <span class="n">q_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
-    <span class="n">wq_tpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">w_qkv_mhd_mesh_split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                <span class="s1">&#39;Cannot combine heads when partitioning each head.&#39;</span><span class="p">)</span>
+        <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+      <span class="k">if</span> <span class="n">wo_hdm_mesh_split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wo_mesh_split</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                <span class="s1">&#39;Cannot combine heads when partitioning each head.&#39;</span><span class="p">)</span>
+        <span class="n">wo_mesh_split</span> <span class="o">=</span> <span class="p">[</span><span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="n">w_qkv_mhd_mesh_split</span>
+      <span class="n">wo_mesh_split</span> <span class="o">=</span> <span class="n">wo_hdm_mesh_split</span>
+
+    <span class="n">wq_tpl</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span> <span class="o">+</span> <span class="n">hd_dims</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">q_stddev</span><span class="p">))</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">q_stddev</span><span class="p">),</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">w_qkv_mesh_split</span><span class="p">)</span>
     <span class="n">kv_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
-    <span class="n">wkv_tpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+    <span class="n">wkv_tpl</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span> <span class="o">+</span> <span class="n">hd_dims</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">kv_stddev</span><span class="p">))</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">kv_stddev</span><span class="p">),</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">w_qkv_mesh_split</span><span class="p">)</span>
     <span class="n">o_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
-    <span class="n">wo_tpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+    <span class="n">wo_tpl</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">hd_dims</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">o_stddev</span><span class="p">))</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">o_stddev</span><span class="p">),</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wo_mesh_split</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wq&#39;</span><span class="p">,</span> <span class="n">wq_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wk&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wv&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span>
-                 <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_tpl</span><span class="p">)])</span></div>
+                 <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_tpl</span><span class="p">)],</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._ComputeQKV"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ComputeQKV">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeQKV</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1318,7 +1440,8 @@
         <span class="n">shape</span><span class="o">=</span><span class="n">ehm_shape</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="n">wo_kernel_param_init_scale</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">wi_pc</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_pc</span><span class="p">)])</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVarOn1DDeviceArray</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">wi_pc</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_pc</span><span class="p">)])</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._FeedForwardNetworksApplyGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._FeedForwardNetworksApplyGating">[docs]</a>  <span class="k">def</span> <span class="nf">_FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1505,19 +1628,23 @@
     <span class="p">]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DenseBuilder._MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_device_mesh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span>
-    <span class="k">if</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span>
     <span class="k">if</span> <span class="n">device_mesh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">x</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
       <span class="n">num_devices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">)</span>
       <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">)</span></div>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">device_mesh</span>
+
+<div class="viewcode-block" id="DenseBuilder._MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
@@ -1527,17 +1654,51 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ids&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;emb&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EmbeddingWeight</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;emb-&gt;emb_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;w_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;emb&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_EmbeddingWeight</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+                               <span class="n">p</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;ids-&gt;one_hot_ids&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OneHotEncode</span><span class="p">(</span><span class="s1">&#39;one_hot_ids&#39;</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;one_hot_ids-&gt;one_hot_ids_split&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;one_hot_ids_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">one_hot_ids_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;emb_split,one_hot_ids_split-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;emb,one_hot_ids_split-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;einsum&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;VH,BLV-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs_pre_reshape&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;output_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_out_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;outputs_pre_reshape-&gt;outputs&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">))))</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_attention_output_hdm_w_split</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># wo: hdm</span>
+    <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="DenseBuilder.SelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.SelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">SelfAttention</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder.DecEncAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DecEncAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecEncAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">DecEncAttention</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder.DecSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder.SelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">SelfAttentionRelativeBias</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder.DecSelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">DecSelfAttentionRelativeBias</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.Attention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.Attention">[docs]</a>  <span class="k">def</span> <span class="nf">Attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Attention with multiple attention heads.&quot;&quot;&quot;</span>
@@ -1605,8 +1766,6 @@
 
     <span class="k">def</span> <span class="nf">_Compute</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span><span class="p">:</span>
-        <span class="n">combined_split</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MeshSplit</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">combined_split</span><span class="p">)</span>
         <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MeshSplit</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">)</span>
@@ -1643,14 +1802,8 @@
 
 <div class="viewcode-block" id="DenseBuilder._ComputeAttenOutputs"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._ComputeAttenOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeAttenOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">wo</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">hdm_split</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="p">]</span>
+    <span class="n">hdm_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span><span class="p">:</span>
-      <span class="n">combined_split</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">hdm_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span>
-          <span class="n">hdm_split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hdm_split</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-      <span class="p">]</span>
-      <span class="n">wo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MeshSplit</span><span class="p">(</span><span class="n">wo</span><span class="p">,</span> <span class="n">combined_split</span><span class="p">)</span>
       <span class="n">wo</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">wo</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
     <span class="n">wo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MeshSplit</span><span class="p">(</span><span class="n">wo</span><span class="p">,</span> <span class="n">hdm_split</span><span class="p">)</span>
@@ -1673,12 +1826,12 @@
         <span class="n">name</span><span class="p">,</span>
         <span class="n">input_endpoints</span><span class="p">,</span>
         <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wi-&gt;wi_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;wi_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">mh_wi_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;wo_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hm_wo_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_split-&gt;wi_reshaped&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">mh_wi_split</span><span class="p">,</span>
+                                     <span class="n">p</span><span class="o">.</span><span class="n">hm_wo_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wi-&gt;wi_reshaped&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;wo_split-&gt;wo_reshaped&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_reshaped&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wo_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;wi_reshaped,inputs-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h-&gt;h_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_h_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blh_split</span><span class="p">)),</span>
@@ -1715,15 +1868,14 @@
         <span class="n">name</span><span class="p">,</span>
         <span class="n">input_endpoints</span><span class="p">,</span>
         <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;wi_0,wi_1,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeightsGatedGELU</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_0-&gt;wi_0_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;wi_0_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">mh_wi_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_1-&gt;wi_1_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;wi_1_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">mh_wi_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;wo_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hm_wo_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_0_split-&gt;wi_0_reshaped&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wi_0,wi_1,wo&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeightsGatedGELU</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+                                              <span class="n">p</span><span class="o">.</span><span class="n">mh_wi_split</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hm_wo_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wi_0-&gt;wi_0_reshaped&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi0_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_1_split-&gt;wi_1_reshaped&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;wi_1-&gt;wi_1_reshaped&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi1_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;wo_split-&gt;wo_reshaped&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_reshaped&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wo_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;wi_0_reshaped,wi_1_reshaped,inputs-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_Impl</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h-&gt;h_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_h_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blh_split</span><span class="p">)),</span>
@@ -1861,6 +2013,9 @@
       <span class="k">return</span> <span class="n">logits</span><span class="p">,</span> <span class="n">aux_loss</span></div>
 
 <div class="viewcode-block" id="UniTransformer._ComputeNonPadding"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeNonPadding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;paddings&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span>
+
     <span class="n">non_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
@@ -1871,6 +2026,41 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">non_padding</span></div>
 
+<div class="viewcode-block" id="UniTransformer._ComputeSoftLabels"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._ComputeSoftLabels">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeSoftLabels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">vocab_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span>
+    <span class="k">if</span> <span class="s1">&#39;soft_labels&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;using input_batch.tgt.soft_labels: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">soft_labels</span><span class="p">)</span>
+      <span class="n">soft_labels</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">soft_labels</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span>
+      <span class="n">off_value</span> <span class="o">=</span> <span class="n">label_smoothing</span> <span class="o">/</span> <span class="n">vocab_size</span>
+      <span class="n">on_value</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">label_smoothing</span> <span class="o">+</span> <span class="n">off_value</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">({</span><span class="s1">&#39;on_value&#39;</span><span class="p">:</span> <span class="n">on_value</span><span class="p">,</span> <span class="s1">&#39;off_value&#39;</span><span class="p">:</span> <span class="n">off_value</span><span class="p">})</span>
+      <span class="n">soft_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="n">vocab_size</span><span class="p">,</span>
+          <span class="n">on_value</span><span class="o">=</span><span class="n">on_value</span><span class="p">,</span>
+          <span class="n">off_value</span><span class="o">=</span><span class="n">off_value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">soft_labels</span></div>
+
+<div class="viewcode-block" id="UniTransformer.ComputePerTokenLoss"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer.ComputePerTokenLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePerTokenLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">soft_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeSoftLabels</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
+          <span class="n">labels</span><span class="o">=</span><span class="n">soft_labels</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">z_loss</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">log_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_logsumexp</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">z_loss_increment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">z_loss</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">log_z</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">+=</span> <span class="n">z_loss_increment</span>
+
+      <span class="n">non_padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeNonPadding</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">loss</span> <span class="o">*</span> <span class="n">non_padding</span></div>
+
 <div class="viewcode-block" id="UniTransformer.ComputeLoss"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1878,20 +2068,7 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">logits</span><span class="p">,</span> <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">predictions</span>
-      <span class="k">if</span> <span class="s1">&#39;soft_labels&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;using input_batch.tgt.soft_labels: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
-                        <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">soft_labels</span><span class="p">)</span>
-        <span class="n">soft_labels</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">soft_labels</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span>
-        <span class="n">off_value</span> <span class="o">=</span> <span class="n">label_smoothing</span> <span class="o">/</span> <span class="n">vocab_size</span>
-        <span class="n">on_value</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">label_smoothing</span> <span class="o">+</span> <span class="n">off_value</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">({</span><span class="s1">&#39;on_value&#39;</span><span class="p">:</span> <span class="n">on_value</span><span class="p">,</span> <span class="s1">&#39;off_value&#39;</span><span class="p">:</span> <span class="n">off_value</span><span class="p">})</span>
-        <span class="n">soft_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">on_value</span><span class="o">=</span><span class="n">on_value</span><span class="p">,</span>
-            <span class="n">off_value</span><span class="o">=</span><span class="n">off_value</span><span class="p">)</span>
+      <span class="n">soft_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeSoftLabels</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
 
       <span class="n">xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
           <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">),</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>

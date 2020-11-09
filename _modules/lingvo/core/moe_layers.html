@@ -216,7 +216,8 @@
 
 <div class="viewcode-block" id="MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.MeshSplit">[docs]</a><span class="k">def</span> <span class="nf">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wrapper of xla_sharding.mesh_split().&quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">device_mesh</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+  <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+      <span class="n">device_mesh</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">x</span>
   <span class="n">num_tiles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span>
       <span class="p">[</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tensor_split_dims_mapping</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">])</span>
@@ -336,15 +337,35 @@
     <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">retval</span></div></div>
 
 
+<div class="viewcode-block" id="ShardedWeightParams"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.ShardedWeightParams">[docs]</a><span class="k">def</span> <span class="nf">ShardedWeightParams</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span>
+                        <span class="n">init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a hyperparams for a weight variable with optional XLA sharding.&quot;&quot;&quot;</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">collections</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;tensor_split_dims_mapping&#39;</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
+      <span class="s1">&#39;The tensor_split_dims_mapping argument for xla_sharding.mesh_split. &#39;</span>
+      <span class="s1">&#39;E.g., [-1, 1, 0] means dim_0 is not sharded, dim_1 is sharded across &#39;</span>
+      <span class="s1">&#39;mesh dimension 1, and dim_2 is sharded across mesh dimension 0.&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">p</span></div>
+
+
 <div class="viewcode-block" id="ShardedVarLayer"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.ShardedVarLayer">[docs]</a><span class="k">class</span> <span class="nc">ShardedVarLayer</span><span class="p">(</span><span class="n">VarLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Container for variables whose values shared across different devices.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Container for variables whose values sharded across different devices.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ShardedVarLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.ShardedVarLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;split_dimension&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension to split&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_devices&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;The number of cores to split weights and computation over.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;[(name, ShardedWeightParams)..] list.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Numpy array of device mesh. E.g., Use a 1D array containing all &#39;</span>
+        <span class="s1">&#39;device IDs to represent simple 1D sharding; use a 2D array of &#39;</span>
+        <span class="s1">&#39;4x8 devices to shard tensors on the 2D mesh of devices, where &#39;</span>
+        <span class="s1">&#39;the 4 and 8 dimensiosn can be mapped to tensor dimensions.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cast_to_fprop_dtype&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether to cast variables to fprop_dtype&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -353,17 +374,31 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.</span>
-    <span class="k">def</span> <span class="nf">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+      <span class="c1"># In-place annotate the variable (no sharding op). This makes sure that</span>
+      <span class="c1"># in some backend implementation, even if the following sharding is</span>
+      <span class="c1"># optimized away, the backend can still infer the variable sharding.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">MeshSplit</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+            <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
+            <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">split_dimension</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="c1"># We annotate the read value again because some backend implementation</span>
+      <span class="c1"># may only look at the neighbors of the variable during compilation.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">MeshSplit</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cast_to_fprop_dtype</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span> <span class="ow">and</span>
           <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">x</span>
 
-    <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="n">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">]</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="n">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">retval</span></div></div>
 
 

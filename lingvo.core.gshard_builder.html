@@ -271,12 +271,44 @@ XlaShardingBuilder.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._ShardedVar">
-<code class="sig-name descname">_ShardedVar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">weights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedVar" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="sig-name descname">_ShardedVar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">weights</span></em>, <em class="sig-param"><span class="n">device_mesh</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedVar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a layer of variables potentially sharded in a device mesh.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the layer.</p></li>
+<li><p><strong>weights</strong> – list of (name, moe_layers.ShardedWeightParams).</p></li>
+<li><p><strong>device_mesh</strong> – device mesh used in mesh_split. If None, the variables will
+not be sharded</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A layer of variables sharded according to device_mesh and the weights’
+sharding specification in ShardedWeightParams.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray">
+<code class="sig-name descname">_ShardedVarOn1DDeviceArray</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">weights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedVarOn1DDeviceArray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Variables sharded along dimension 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the layer.</p></li>
+<li><p><strong>weights</strong> – list of (name, py_utils.WeightParams).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A layer of variables sharded on dimension 0 across all devices.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight">
-<code class="sig-name descname">_EmbeddingWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">vocab_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EmbeddingWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_EmbeddingWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">vocab_dim</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EmbeddingWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -356,7 +388,7 @@ XlaShardingBuilder.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights">
-<code class="sig-name descname">_DenseReluDenseWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_DenseReluDenseWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wi_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -366,7 +398,7 @@ XlaShardingBuilder.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU">
-<code class="sig-name descname">_DenseReluDenseWeightsGatedGELU</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeightsGatedGELU"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_DenseReluDenseWeightsGatedGELU</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wi_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeightsGatedGELU"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -402,25 +434,30 @@ params.self.params.attention_key_value_dim.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.SelfAttention">
-<code class="sig-name descname">SelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">SelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerEncoder SelfAttention.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.DecEncAttention">
-<code class="sig-name descname">DecEncAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecEncAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecEncAttention" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">DecEncAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecEncAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecEncAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Decoder-Encoder Attention.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">
-<code class="sig-name descname">DecSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">DecSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerDecoder SelfAttention.</p>
 <p>Note that attention bias (see _Notvisible) ensures that current position
 (~row) is less that memory position(~column).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>name</strong> – name of the layer.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the layer.</p></li>
+<li><p><strong>device_mesh</strong> – device_mesh for sharding (if specified)</p></li>
+<li><p><strong>w_qkv_mhd_mesh_split</strong> – mesh split for qkv weigthts (if specified)</p></li>
+<li><p><strong>wo_hdm_mesh_split</strong> – mesh split for output weights (if specified)</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>layer params for TransformerDecoder SelfAttention.</p>
@@ -445,13 +482,13 @@ params.self.params.attention_key_value_dim.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias">
-<code class="sig-name descname">SelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">SelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerEncoder SelfAttention with relative Attention Bias.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">
-<code class="sig-name descname">DecSelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">DecSelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>DecSelfAttention with relative Attention Bias.</p>
 <p>Note that attention bias (see _Notvisible) ensures that current position
 (~row) is less that memory position(~column).</p>
@@ -465,7 +502,12 @@ tf.gather(relative_bias_weights, relative_bucket, axis=1)
 to compute per position-pair bias.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>name</strong> – name of the layer.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the layer.</p></li>
+<li><p><strong>device_mesh</strong> – device_mesh for sharding (if specified)</p></li>
+<li><p><strong>w_qkv_mhd_mesh_split</strong> – mesh split for qkv weigthts (if specified)</p></li>
+<li><p><strong>wo_hdm_mesh_split</strong> – mesh split for output weights (if specified)</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The layer params.</p>
@@ -515,7 +557,7 @@ to compute per position-pair bias.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._AttentionWeights">
-<code class="sig-name descname">_AttentionWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AttentionWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AttentionWeights" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AttentionWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AttentionWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AttentionWeights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper for ‘-&gt;wq,wk,wv,wo’ Graph edge.</p>
 </dd></dl>
 
@@ -637,6 +679,11 @@ numpy.einsum.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder._device_mesh">
+<em class="property">property </em><code class="sig-name descname">_device_mesh</code><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._device_mesh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.gshard_builder.DenseBuilder._MeshSplit">
 <code class="sig-name descname">_MeshSplit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">tensor_split_dims_mapping</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._MeshSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._MeshSplit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -650,6 +697,79 @@ numpy.einsum.</p></li>
 <dt id="lingvo.core.gshard_builder.DenseBuilder.Embedding">
 <code class="sig-name descname">Embedding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">vocab_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.Embedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.Embedding" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder._attention_output_hdm_w_split">
+<em class="property">property </em><code class="sig-name descname">_attention_output_hdm_w_split</code><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._attention_output_hdm_w_split" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder.SelfAttention">
+<code class="sig-name descname">SelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.SelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>TransformerEncoder SelfAttention.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder.DecEncAttention">
+<code class="sig-name descname">DecEncAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecEncAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecEncAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Decoder-Encoder Attention.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention">
+<code class="sig-name descname">DecSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>TransformerDecoder SelfAttention.</p>
+<p>Note that attention bias (see _Notvisible) ensures that current position
+(~row) is less that memory position(~column).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the layer.</p></li>
+<li><p><strong>device_mesh</strong> – device_mesh for sharding (if specified)</p></li>
+<li><p><strong>w_qkv_mhd_mesh_split</strong> – mesh split for qkv weigthts (if specified)</p></li>
+<li><p><strong>wo_hdm_mesh_split</strong> – mesh split for output weights (if specified)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>layer params for TransformerDecoder SelfAttention.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias">
+<code class="sig-name descname">SelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.SelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dd><p>TransformerEncoder SelfAttention with relative Attention Bias.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias">
+<code class="sig-name descname">DecSelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dd><p>DecSelfAttention with relative Attention Bias.</p>
+<p>Note that attention bias (see _Notvisible) ensures that current position
+(~row) is less that memory position(~column).</p>
+<p>In addition to masking bias we use per-head per-relative position bucket
+relative_bias_weights tensor (see _RelativeAttentionBiasWeights) of shape
+[num heads, num relative position buckets]
+(e.g. [128, 32] for Meena 64B).</p>
+<p>We compute relative position bucket for every position pair, relative_bucket
+tensor of shape [batch, length, length] and do
+tf.gather(relative_bias_weights, relative_bucket, axis=1)
+to compute per position-pair bias.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the layer.</p></li>
+<li><p><strong>device_mesh</strong> – device_mesh for sharding (if specified)</p></li>
+<li><p><strong>w_qkv_mhd_mesh_split</strong> – mesh split for qkv weigthts (if specified)</p></li>
+<li><p><strong>wo_hdm_mesh_split</strong> – mesh split for output weights (if specified)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The layer params.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.DenseBuilder.Attention">
@@ -716,6 +836,16 @@ copied to this tower’s devices.</p></li>
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding">
 <code class="sig-name descname">_ComputeNonPadding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeNonPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.UniTransformer._ComputeSoftLabels">
+<code class="sig-name descname">_ComputeSoftLabels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeSoftLabels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeSoftLabels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.UniTransformer.ComputePerTokenLoss">
+<code class="sig-name descname">ComputePerTokenLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logits</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ComputePerTokenLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ComputePerTokenLoss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
