@@ -839,12 +839,12 @@ class BaseTask(base_layer.BaseLayer):
       ValueError: if `name` is already defined.
 
     """
-    if name in self._eval_metrics:
+    if name in self._eval_metrics and not tf.executing_eagerly():
       raise ValueError('Metric %s has already been defined.' % name)
     self._eval_metrics[name] = (value, weight)
 
   def AddPerExampleTensor(self, name, value):
-    if name in self._per_example:
+    if name in self._per_example and not tf.executing_eagerly():
       raise ValueError('Metric %s has already been defined.' % name)
     self._per_example[name] = value
 

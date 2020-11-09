@@ -275,9 +275,10 @@ def AssertIdShape(expected_ids_shape_pattern, ids_shape, *args):
 
 def _CheckNumerics(x, message=None, *args, **kwargs):
   if x.dtype.is_floating:
+    x_name = x.name if not tf.executing_eagerly() else '[eager]'
     if 'name' not in kwargs:
-      kwargs['name'] = re.sub(r':\d+', '', x.name) + '_CheckNumerics'
-    return tf.debugging.check_numerics(x, message if message else x.name, *args,
+      kwargs['name'] = re.sub(r':\d+', '', x_name) + '_CheckNumerics'
+    return tf.debugging.check_numerics(x, message if message else x_name, *args,
                                        **kwargs)
   else:
     return x
@@ -408,7 +409,8 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
     for name, val in zip(caller_more_vars, more):
       tensors += [tf.constant('{}='.format(name.strip())), val]
 
-    info = '{}{} {}'.format(header, caller_var, tensor.name)
+    name = tensor.name if not tf.executing_eagerly() else '[eager]'
+    info = '{}{} {}'.format(header, caller_var, name)
     return tf.Print(tensor, tensors, info, summarize=summarize)
 
   return tensor

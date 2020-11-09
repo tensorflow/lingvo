@@ -1266,6 +1266,18 @@ py_test(
     ],
 )
 
+py_test(
+    name = "py_utils_eager_test",
+    srcs = ["py_utils_eager_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
 py_library(
     name = "quant_utils",
     srcs = ["quant_utils.py"],

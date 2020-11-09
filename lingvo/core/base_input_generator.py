@@ -1124,15 +1124,18 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
           'TFDataSequenceInputGenerator does not support p.file_datasource.')
 
     super().__init__(params)
+    self._iterator = None
 
   def _InputBatch(self):
     """Returns a NestedMap containing an input batch."""
-    with py_utils.GlobalStepContext(None):
-      # Hide global_step tensor from being captured by dataset function.
-      dataset = self._GetDatasetInternal()
-    dataset = self._BatchDataset(dataset)
-    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-    batch = tf.data.make_one_shot_iterator(dataset).get_next()
+    if not self._iterator:
+      with py_utils.GlobalStepContext(None):
+        # Hide global_step tensor from being captured by dataset function.
+        dataset = self._GetDatasetInternal()
+      dataset = self._BatchDataset(dataset)
+      dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+      self._iterator = tf.data.make_one_shot_iterator(dataset)
+    batch = self._iterator.get_next()
 
     # Set tensor shapes.
     if py_utils.use_tpu():
