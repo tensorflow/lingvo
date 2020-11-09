@@ -139,7 +139,8 @@ class InferenceGraphExporterTest(test_utils.TestCase):
               retain_device_placement=False,
               var_options=None,
               gen_init_op=True,
-              dtype_override=None))
+              dtype_override=None,
+              fprop_dtype_override=None))
     self.assertDictEqual(initial_flags,
                          {k: tf.flags.FLAGS[k].value for k in tf.flags.FLAGS})
 
@@ -295,7 +296,8 @@ class InferenceGraphExporterLinearModelTest(test_utils.TestCase):
             retain_device_placement=True,
             var_options='ON_DEVICE',
             gen_init_op=True,
-            dtype_override=tf.bfloat16))
+            dtype_override=tf.bfloat16,
+            fprop_dtype_override=None))
     self.assertIn('tpu', inference_graph.subgraphs)
 
   def testTpuBfloat16OverrideExportWithEma(self):
@@ -310,7 +312,8 @@ class InferenceGraphExporterLinearModelTest(test_utils.TestCase):
             retain_device_placement=True,
             var_options='ON_DEVICE',
             gen_init_op=True,
-            dtype_override=tf.bfloat16))
+            dtype_override=tf.bfloat16,
+            fprop_dtype_override=None))
     self.assertIn('tpu', inference_graph.subgraphs)
 
   def testExportWithRandomSeeds(self):

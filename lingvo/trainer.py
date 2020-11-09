@@ -1819,7 +1819,8 @@ class RunnerManager:
             retain_device_placement=False,
             var_options=var_options,
             gen_init_op=True,
-            dtype_override=None)
+            dtype_override=None,
+            fprop_dtype_override=None)
         self.inference_graph_exporter.InferenceGraphExporter.Export(
             model_cfg=cfg,
             model_task_name=task_name,
@@ -1850,7 +1851,8 @@ class RunnerManager:
               retain_device_placement=False,
               var_options='ON_DEVICE',
               gen_init_op=True,
-              dtype_override=None)
+              dtype_override=None,
+              fprop_dtype_override=None)
           self.inference_graph_exporter.InferenceGraphExporter.Export(
               model_cfg=cfg,
               model_task_name=task_name,

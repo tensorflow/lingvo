@@ -44,7 +44,7 @@ FLAGS = tf.flags.FLAGS
 # weights in the model. Options supported are None or tf.bfloat16.
 InferenceDeviceOptions = collections.namedtuple('InferenceDeviceOptions', [
     'device', 'retain_device_placement', 'var_options', 'gen_init_op',
-    'dtype_override'
+    'dtype_override', 'fprop_dtype_override'
 ])
 
 _CONST_GUARANTEE = None
@@ -115,6 +115,10 @@ def IsTpu(device_options):
 
 def ShouldForceBfloat16ForWeightsAndActivations(device_options):
   return device_options.dtype_override == tf.bfloat16
+
+
+def ShouldForceBfloat16ForActivations(device_options):
+  return device_options.fprop_dtype_override == tf.bfloat16
 
 
 def ConvertSubgraphDictToProto(subgraphs_dict):
@@ -298,7 +302,8 @@ class InferenceGraphExporter:
                  retain_device_placement=False,
                  var_options=None,
                  gen_init_op=True,
-                 dtype_override=None),
+                 dtype_override=None,
+                 fprop_dtype_override=None),
              freeze_checkpoint=None,
              freeze_defaults=False,
              export_path=None,
@@ -335,6 +340,10 @@ class InferenceGraphExporter:
       ValueError: if the model does not support the listed subgraphs.
     """
     assert issubclass(model_cfg.cls, base_model.BaseModel)
+    if device_options.dtype_override and device_options.fprop_dtype_override:
+      raise ValueError(
+          'device_options{dtype_override,fprop_dtype_override) can not both be'
+          'set.')
 
     # Disable assertions unless user explicitly enables it.
     if FLAGS['enable_asserts'].using_default_value:
@@ -389,6 +398,11 @@ class InferenceGraphExporter:
 
         if bfloat16_override:
           py_utils.UpdateDtype(model_cfg, tf.bfloat16)
+          py_utils.UpdateFpropDtype(model_cfg, tf.bfloat16)
+
+        act_bfloat16_override = ShouldForceBfloat16ForActivations(
+            device_options)
+        if act_bfloat16_override:
           py_utils.UpdateFpropDtype(model_cfg, tf.bfloat16)
 
         # Hard-code TPU-related flags prior to instantiating model.
@@ -463,7 +477,7 @@ class InferenceGraphExporter:
           FLAGS.xla_device = old_xla_device
 
     tf.logging.info('Graph contains ops: %r',
-                         [op.name for op in graph.get_operations()])
+                    [op.name for op in graph.get_operations()])
 
     inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
 
@@ -475,8 +489,7 @@ class InferenceGraphExporter:
         raise ValueError('freeze_checkpoint cannot be used with device ' +
                          device_options.device)
       if freeze_checkpoint:
-        tf.logging.info('Freezing graph from checkpoint: %s',
-                             freeze_checkpoint)
+        tf.logging.info('Freezing graph from checkpoint: %s', freeze_checkpoint)
         graph_def = _FreezeGraphFromCheckpoint(graph, saver, freeze_checkpoint,
                                                output_op_names)
       elif freeze_defaults:
@@ -500,7 +513,7 @@ class InferenceGraphExporter:
     if not device_options.retain_device_placement:
       # Clear the device so that the runtime can choose.
       tf.logging.info('Clearing device placement for: %s',
-                           device_options.device)
+                      device_options.device)
       for node in graph_def.node:
         node.ClearField('device')
       for function in graph_def.library.function:
