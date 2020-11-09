@@ -68,7 +68,8 @@ def Split(x,
 
 def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
   """Wrapper of xla_sharding.mesh_split()."""
-  if tensor_split_dims_mapping is None or device_mesh.size <= 1:
+  if (not py_utils.use_tpu() or tensor_split_dims_mapping is None or
+      device_mesh.size <= 1):
     return x
   num_tiles = np.prod(
       [device_mesh.shape[i] for i in tensor_split_dims_mapping if i >= 0])
@@ -188,15 +189,35 @@ class VarLayer(base_layer.BaseLayer):
     return retval[0] if len(retval) == 1 else retval
 
 
+def ShardedWeightParams(shape,
+                        init=None,
+                        dtype=None,
+                        collections=None,
+                        tensor_split_dims_mapping=None):
+  """Returns a hyperparams for a weight variable with optional XLA sharding."""
+  p = py_utils.WeightParams(shape, init, dtype, collections)
+  p.Define(
+      'tensor_split_dims_mapping', tensor_split_dims_mapping,
+      'The tensor_split_dims_mapping argument for xla_sharding.mesh_split. '
+      'E.g., [-1, 1, 0] means dim_0 is not sharded, dim_1 is sharded across '
+      'mesh dimension 1, and dim_2 is sharded across mesh dimension 0.')
+  return p
+
+
 class ShardedVarLayer(VarLayer):
-  """Container for variables whose values shared across different devices."""
+  """Container for variables whose values sharded across different devices."""
 
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('split_dimension', 0, 'Dimension to split')
-    p.Define('num_devices', None,
-             'The number of cores to split weights and computation over.')
+    p.Delete('weights')
+    p.Define('weights', None, '[(name, ShardedWeightParams)..] list.')
+    p.Define(
+        'device_mesh', None,
+        'Numpy array of device mesh. E.g., Use a 1D array containing all '
+        'device IDs to represent simple 1D sharding; use a 2D array of '
+        '4x8 devices to shard tensors on the 2D mesh of devices, where '
+        'the 4 and 8 dimensiosn can be mapped to tensor dimensions.')
     p.Define('cast_to_fprop_dtype', True,
              'Whether to cast variables to fprop_dtype')
     return p
@@ -205,17 +226,31 @@ class ShardedVarLayer(VarLayer):
     p = self.params
 
     # TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.
-    def MaybeWeightSplitAndCastToFPropDtype(k):
+    def MaybeWeightSplitAndCastToFPropDtype(k, v):
+      # In-place annotate the variable (no sharding op). This makes sure that
+      # in some backend implementation, even if the following sharding is
+      # optimized away, the backend can still infer the variable sharding.
+      if p.device_mesh is not None:
+        MeshSplit(
+            self.vars[k],
+            p.device_mesh,
+            v.tensor_split_dims_mapping,
+            use_sharding_op=False)
       x = self.vars[k].read_value()
       if x is None:
         return None
-      x = Split(x, p.split_dimension, p.num_devices, use_sharding_op=True)
+
+      # We annotate the read value again because some backend implementation
+      # may only look at the neighbors of the variable during compilation.
+      if p.device_mesh is not None:
+        x = MeshSplit(
+            x, p.device_mesh, v.tensor_split_dims_mapping, use_sharding_op=True)
       if (p.cast_to_fprop_dtype and x.dtype.is_floating and
           x.dtype != p.fprop_dtype and p.fprop_dtype):
         x = tf.cast(x, p.fprop_dtype)
       return x
 
-    retval = [MaybeWeightSplitAndCastToFPropDtype(k) for k, _ in p.weights]
+    retval = [MaybeWeightSplitAndCastToFPropDtype(k, v) for k, v in p.weights]
     return retval[0] if len(retval) == 1 else retval
 
 

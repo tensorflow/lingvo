@@ -191,18 +191,66 @@ class MoEBuilder(builder.Base):
         weights=weights,
         shared_var_collection_suffix=shared_var_collection_suffix)
 
-  def _ShardedVar(self, name, weights):
-    return moe_layers.ShardedVarLayer.Params().Set(
-        name=name, weights=weights, num_devices=self.params.num_devices)
+  def _ShardedVar(self, name, weights, device_mesh):
+    """Creates a layer of variables potentially sharded in a device mesh.
 
-  def _EmbeddingWeight(self, name, vocab_dim):
-    return self._Var(
+    Args:
+      name: name of the layer.
+      weights: list of (name, moe_layers.ShardedWeightParams).
+      device_mesh: device mesh used in mesh_split. If None, the variables will
+        not be sharded
+
+    Returns:
+      A layer of variables sharded according to device_mesh and the weights'
+      sharding specification in ShardedWeightParams.
+    """
+
+    if device_mesh is None:
+      return self._Var(name=name, weights=weights)
+    else:
+      return moe_layers.ShardedVarLayer.Params().Set(
+          name=name, weights=weights, device_mesh=device_mesh)
+
+  def _ShardedVarOn1DDeviceArray(self, name, weights):
+    """Variables sharded along dimension 0.
+
+    Args:
+      name: name of the layer.
+      weights: list of (name, py_utils.WeightParams).
+
+    Returns:
+      A layer of variables sharded on dimension 0 across all devices.
+    """
+    sharded_weights = []
+    for k, v in weights:
+      assert v.shape is not None and v.shape
+      dims_mapping = [0] + [-1] * (len(v.shape) - 1)
+      sharded_weights.append((k,
+                              moe_layers.ShardedWeightParams(
+                                  shape=v.shape,
+                                  init=v.init,
+                                  dtype=v.dtype,
+                                  collections=v.collections,
+                                  tensor_split_dims_mapping=dims_mapping)))
+    return self._ShardedVar(
+        name=name,
+        weights=sharded_weights,
+        device_mesh=np.arange(self.params.num_devices))
+
+  def _EmbeddingWeight(self,
+                       name,
+                       vocab_dim,
+                       device_mesh=None,
+                       w_mesh_split=None):
+    return self._ShardedVar(
         name=name,
         weights=[('embedding',
-                  py_utils.WeightParams(
+                  moe_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Gaussian(),
                       dtype=self.params.dtype,
-                      shape=[vocab_dim, self.params.model_dim]))])
+                      shape=[vocab_dim, self.params.model_dim],
+                      tensor_split_dims_mapping=w_mesh_split))],
+        device_mesh=device_mesh)
 
   def SharedEmbSoftmax(self,
                        name,
@@ -413,21 +461,28 @@ class MoEBuilder(builder.Base):
         'output_loss',
     ], *stack)
 
-  def _DenseReluDenseWeights(self, name):
-    return self._Var(
+  def _DenseReluDenseWeights(self,
+                             name,
+                             device_mesh=None,
+                             wi_mesh_split=None,
+                             wo_mesh_split=None):
+    return self._ShardedVar(
         name=name,
         weights=[('wi',
-                  py_utils.WeightParams(
+                  moe_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
-                      shape=[self.params.model_dim, self.params.ff_dim])),
+                      shape=[self.params.model_dim, self.params.ff_dim],
+                      tensor_split_dims_mapping=wi_mesh_split)),
                  ('wo',
-                  py_utils.WeightParams(
+                  moe_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.ff_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
-                      shape=[self.params.ff_dim, self.params.model_dim]))])
+                      shape=[self.params.ff_dim, self.params.model_dim],
+                      tensor_split_dims_mapping=wo_mesh_split))],
+        device_mesh=device_mesh)
 
   def DenseReluDense(self, name, decoder=False):
     input_endpoints = ['inputs', 'segment_id', 'segment_pos']
@@ -457,30 +512,38 @@ class MoEBuilder(builder.Base):
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
     )
 
-  def _DenseReluDenseWeightsGatedGELU(self, name):
+  def _DenseReluDenseWeightsGatedGELU(self,
+                                      name,
+                                      device_mesh=None,
+                                      wi_mesh_split=None,
+                                      wo_mesh_split=None):
     # Gated GELU.  There are two separate linear transformations applied in
     # parallel to the inputs.  You take the gelu of one of them and then
     # multiply the two componentwise.
-    return self._Var(
+    return self._ShardedVar(
         name=name,
         weights=[('wi_0',
-                  py_utils.WeightParams(
+                  moe_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
-                      shape=[self.params.model_dim, self.params.ff_dim])),
+                      shape=[self.params.model_dim, self.params.ff_dim],
+                      tensor_split_dims_mapping=wi_mesh_split)),
                  ('wi_1',
-                  py_utils.WeightParams(
+                  moe_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
-                      shape=[self.params.model_dim, self.params.ff_dim])),
+                      shape=[self.params.model_dim, self.params.ff_dim],
+                      tensor_split_dims_mapping=wi_mesh_split)),
                  ('wo',
-                  py_utils.WeightParams(
+                  moe_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.ff_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
-                      shape=[self.params.ff_dim, self.params.model_dim]))])
+                      shape=[self.params.ff_dim, self.params.model_dim],
+                      tensor_split_dims_mapping=wo_mesh_split))],
+        device_mesh=device_mesh)
 
   def DenseReluDenseGatedGELU(self, name, decoder=False):
     # Need to unify.
@@ -621,7 +684,11 @@ class MoEBuilder(builder.Base):
           wo, [p.attention_num_heads, p.attention_key_value_dim, p.model_dim])
     return tf.einsum('HDM,BLHD->BLM', wo, o)
 
-  def SelfAttention(self, name):
+  def SelfAttention(self,
+                    name,
+                    device_mesh=None,
+                    w_qkv_mhd_mesh_split=None,
+                    wo_hdm_mesh_split=None):
     """TransformerEncoder SelfAttention."""
 
     p = self.params
@@ -648,7 +715,8 @@ class MoEBuilder(builder.Base):
             'outputs',
             'aux_loss'
         ],
-        ('->wq,wk,wv,wo', self._AttentionWeights('w')),
+        ('->wq,wk,wv,wo', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('segment_id->bias',
          self._Fn('bias',
                   fn=lambda x: _Notvisible(x) * (-1e+09),
@@ -659,7 +727,11 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
-  def DecEncAttention(self, name):
+  def DecEncAttention(self,
+                      name,
+                      device_mesh=None,
+                      w_qkv_mhd_mesh_split=None,
+                      wo_hdm_mesh_split=None):
     """Transformer Decoder-Encoder Attention."""
 
     p = self.params
@@ -689,7 +761,8 @@ class MoEBuilder(builder.Base):
             'outputs',
             'aux_loss',
         ],
-        ('->wq,wk,wv,wo', self._AttentionWeights('w')),
+        ('->wq,wk,wv,wo', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('segment_id,encoder_segment_id->bias',
          self._Fn('bias', fn=lambda a, b: -1e+09 * _Notvisible(a, b))),
         ('inputs,wq->q', self._ComputeQKV('q')),
@@ -700,7 +773,11 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
-  def DecSelfAttention(self, name):
+  def DecSelfAttention(self,
+                       name,
+                       device_mesh=None,
+                       w_qkv_mhd_mesh_split=None,
+                       wo_hdm_mesh_split=None):
     """TransformerDecoder SelfAttention.
 
     Note that attention bias (see _Notvisible) ensures that current position
@@ -708,6 +785,9 @@ class MoEBuilder(builder.Base):
 
     Args:
       name: name of the layer.
+      device_mesh: device_mesh for sharding (if specified)
+      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)
+      wo_hdm_mesh_split: mesh split for output weights (if specified)
 
     Returns:
       layer params for TransformerDecoder SelfAttention.
@@ -749,7 +829,8 @@ class MoEBuilder(builder.Base):
             'outputs',
             'aux_loss',
         ],
-        ('->wq,wk,wv,wo', self._AttentionWeights('w')),
+        ('->wq,wk,wv,wo', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
@@ -843,7 +924,11 @@ class MoEBuilder(builder.Base):
     return self._AddRelativeBias(bias, query_segment_pos, key_segment_pos,
                                  relative_bias_weights, bidirectional)
 
-  def SelfAttentionRelativeBias(self, name):
+  def SelfAttentionRelativeBias(self,
+                                name,
+                                device_mesh=None,
+                                w_qkv_mhd_mesh_split=None,
+                                wo_hdm_mesh_split=None):
     """TransformerEncoder SelfAttention with relative Attention Bias."""
     p = self.params
     collections = None
@@ -879,7 +964,8 @@ class MoEBuilder(builder.Base):
             'outputs',
             'aux_loss'
         ],
-        ('->wq,wk,wv,wo', self._AttentionWeights('w')),
+        ('->wq,wk,wv,wo', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('->relative_bias_weights',
          self._RelativeAttentionBiasWeights('wrb', collections)),
         ('segment_id->segment_bias',
@@ -894,7 +980,11 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
-  def DecSelfAttentionRelativeBias(self, name):
+  def DecSelfAttentionRelativeBias(self,
+                                   name,
+                                   device_mesh=None,
+                                   w_qkv_mhd_mesh_split=None,
+                                   wo_hdm_mesh_split=None):
     """DecSelfAttention with relative Attention Bias.
 
     Note that attention bias (see _Notvisible) ensures that current position
@@ -912,6 +1002,9 @@ class MoEBuilder(builder.Base):
 
     Args:
       name: name of the layer.
+      device_mesh: device_mesh for sharding (if specified)
+      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)
+      wo_hdm_mesh_split: mesh split for output weights (if specified)
 
     Returns:
       The layer params.
@@ -966,7 +1059,8 @@ class MoEBuilder(builder.Base):
             'outputs',
             'aux_loss',
         ],
-        ('->wq,wk,wv,wo', self._AttentionWeights('w')),
+        ('->wq,wk,wv,wo', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('->relative_bias_weights', self._RelativeAttentionBiasWeights('wrb', collections)),
         ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('k->k_full', self._State('k_state', state_shape)),
@@ -1047,7 +1141,11 @@ class MoEBuilder(builder.Base):
     """Apply identity transformation."""
     return layers.IdentityLayer.Params().Set(name=name)
 
-  def _AttentionWeights(self, name):
+  def _AttentionWeights(self,
+                        name,
+                        device_mesh=None,
+                        w_qkv_mhd_mesh_split=None,
+                        wo_hdm_mesh_split=None):
     """Helper for '->wq,wk,wv,wo' Graph edge."""
 
     p = self.params
@@ -1055,24 +1153,48 @@ class MoEBuilder(builder.Base):
                 p.attention_key_value_dim] if p.attention_combine_dims else
                [p.attention_num_heads, p.attention_key_value_dim])
     q_stddev = (p.model_dim * p.attention_key_value_dim)**-0.5
-    wq_tpl = py_utils.WeightParams(
+
+    if p.attention_combine_dims:
+      if w_qkv_mhd_mesh_split is None:
+        w_qkv_mesh_split = None
+      else:
+        assert (w_qkv_mhd_mesh_split[2] < 0 and
+                'Cannot combine heads when partitioning each head.')
+        w_qkv_mesh_split = w_qkv_mhd_mesh_split[:-1]
+
+      if wo_hdm_mesh_split is None:
+        wo_mesh_split = None
+      else:
+        assert (wo_hdm_mesh_split[1] < 0 and
+                'Cannot combine heads when partitioning each head.')
+        wo_mesh_split = [wo_hdm_mesh_split[0], wo_hdm_mesh_split[2]]
+    else:
+      w_qkv_mesh_split = w_qkv_mhd_mesh_split
+      wo_mesh_split = wo_hdm_mesh_split
+
+    wq_tpl = moe_layers.ShardedWeightParams(
         shape=[p.model_dim] + hd_dims,
         dtype=self.params.dtype,
-        init=py_utils.WeightInit.Gaussian(q_stddev))
+        init=py_utils.WeightInit.Gaussian(q_stddev),
+        tensor_split_dims_mapping=w_qkv_mesh_split)
     kv_stddev = (p.model_dim)**-0.5
-    wkv_tpl = py_utils.WeightParams(
+    wkv_tpl = moe_layers.ShardedWeightParams(
         shape=[p.model_dim] + hd_dims,
         dtype=self.params.dtype,
-        init=py_utils.WeightInit.Gaussian(kv_stddev))
+        init=py_utils.WeightInit.Gaussian(kv_stddev),
+        tensor_split_dims_mapping=w_qkv_mesh_split)
     o_stddev = (p.attention_num_heads * p.attention_key_value_dim)**-0.5
-    wo_tpl = py_utils.WeightParams(
+    wo_tpl = moe_layers.ShardedWeightParams(
         shape=hd_dims + [p.model_dim],
         dtype=self.params.dtype,
-        init=py_utils.WeightInit.Gaussian(o_stddev))
-    return self._Var(
+        init=py_utils.WeightInit.Gaussian(o_stddev),
+        tensor_split_dims_mapping=wo_mesh_split)
+
+    return self._ShardedVar(
         name=name,
         weights=[('wq', wq_tpl), ('wk', wkv_tpl), ('wv', wkv_tpl),
-                 ('wo', wo_tpl)])
+                 ('wo', wo_tpl)],
+        device_mesh=device_mesh)
 
   def _ComputeQKV(self, name):
     p = self.params
@@ -1170,7 +1292,8 @@ class MoEBuilder(builder.Base):
         shape=ehm_shape,
         init=py_utils.WeightInit.Uniform(wo_kernel_param_init_scale),
         dtype=p.dtype)
-    return self._ShardedVar(name=name, weights=[('wi', wi_pc), ('wo', wo_pc)])
+    return self._ShardedVarOn1DDeviceArray(
+        name=name, weights=[('wi', wi_pc), ('wo', wo_pc)])
 
   def _FeedForwardNetworksApplyGating(self, name):
     p = self.params
@@ -1357,19 +1480,23 @@ class DenseBuilder(MoEBuilder):
     ]
     return self._LNInternal(name, ln_weight_reshape)
 
-  def _MeshSplit(self, x, tensor_split_dims_mapping):
+  @property
+  def _device_mesh(self):
     p = self.params
     device_mesh = p.device_mesh
-    if tensor_split_dims_mapping is None:
-      return x
     if device_mesh is None:
-      if not p.device_mesh_shape:
-        return x
+      if p.device_mesh_shape is None:
+        return None
       num_devices = np.product(p.device_mesh_shape)
       device_mesh = np.reshape(np.arange(0, num_devices), p.device_mesh_shape)
     elif p.device_mesh_shape is not None:
-      assert p.device_mesh_shape == list(p.device_mesh.shape)
-    return moe_layers.MeshSplit(x, device_mesh, tensor_split_dims_mapping)
+      assert p.device_mesh_shape == list(device_mesh.shape)
+    return device_mesh
+
+  def _MeshSplit(self, x, tensor_split_dims_mapping):
+    if tensor_split_dims_mapping is None:
+      return x
+    return moe_layers.MeshSplit(x, self._device_mesh, tensor_split_dims_mapping)
 
   def MeshSplit(self, name, tensor_split_dims_mapping):
     return self._Fn(name,
@@ -1379,17 +1506,51 @@ class DenseBuilder(MoEBuilder):
     p = self.params
     return self._Graph(
         name, ['ids'], ['outputs'],
-        ('->emb', self._EmbeddingWeight('w', vocab_dim)),
-        ('emb->emb_split', self.MeshSplit('w_split', p.emb_w_split)),
+        ('->emb',
+         self._EmbeddingWeight('w', vocab_dim, self._device_mesh,
+                               p.emb_w_split)),
         ('ids->one_hot_ids', self._OneHotEncode('one_hot_ids', vocab_dim)),
         ('one_hot_ids->one_hot_ids_split',
          self.MeshSplit('one_hot_ids_split', p.one_hot_ids_split)),
-        ('emb_split,one_hot_ids_split->outputs_pre_split',
+        ('emb,one_hot_ids_split->outputs_pre_split',
          self._Fn('einsum', fn=lambda w, x: tf.einsum('VH,BLV->BLH', w, x))),
         ('outputs_pre_split->outputs_pre_reshape',
          self.MeshSplit('output_split', p.emb_out_split)),
         ('outputs_pre_reshape->outputs',
          self._Fn('outputs_reshape', fn=lambda x: self._ReshapeM(x, 2))))
+
+  @property
+  def _attention_output_hdm_w_split(self):
+    p = self.params
+    # wo: hdm
+    return None if p.mhd_w_split is None else [
+        p.mhd_w_split[1], p.mhd_w_split[2], p.mhd_w_split[0]
+    ]
+
+  def SelfAttention(self, name):
+    return super().SelfAttention(name, self._device_mesh,
+                                 self.params.mhd_w_split,
+                                 self._attention_output_hdm_w_split)
+
+  def DecEncAttention(self, name):
+    return super().DecEncAttention(name, self._device_mesh,
+                                   self.params.mhd_w_split,
+                                   self._attention_output_hdm_w_split)
+
+  def DecSelfAttention(self, name):
+    return super().DecSelfAttention(name, self._device_mesh,
+                                    self.params.mhd_w_split,
+                                    self._attention_output_hdm_w_split)
+
+  def SelfAttentionRelativeBias(self, name):
+    return super().SelfAttentionRelativeBias(name, self._device_mesh,
+                                             self.params.mhd_w_split,
+                                             self._attention_output_hdm_w_split)
+
+  def DecSelfAttentionRelativeBias(self, name):
+    return super().DecSelfAttentionRelativeBias(
+        name, self._device_mesh, self.params.mhd_w_split,
+        self._attention_output_hdm_w_split)
 
   def Attention(self, name):
     """Attention with multiple attention heads."""
@@ -1457,8 +1618,6 @@ class DenseBuilder(MoEBuilder):
 
     def _Compute(x, w):
       if p.attention_combine_dims:
-        combined_split = None if p.mhd_w_split is None else p.mhd_w_split[:-1]
-        w = self._MeshSplit(w, combined_split)
         w = tf.reshape(
             w, [p.model_dim, p.attention_num_heads, p.attention_key_value_dim])
       w = self._MeshSplit(w, p.mhd_w_split)
@@ -1495,14 +1654,8 @@ class DenseBuilder(MoEBuilder):
 
   def _ComputeAttenOutputs(self, o, wo):
     p = self.params
-    hdm_split = None if p.mhd_w_split is None else [
-        p.mhd_w_split[1], -1, p.mhd_w_split[0]
-    ]
+    hdm_split = self._attention_output_hdm_w_split
     if p.attention_combine_dims:
-      combined_split = None if hdm_split is None else [
-          hdm_split[0], hdm_split[2]
-      ]
-      wo = self._MeshSplit(wo, combined_split)
       wo = tf.reshape(
           wo, [p.attention_num_heads, p.attention_key_value_dim, p.model_dim])
     wo = self._MeshSplit(wo, hdm_split)
@@ -1525,12 +1678,12 @@ class DenseBuilder(MoEBuilder):
         name,
         input_endpoints,
         ['outputs', 'aux_loss'],
-        ('->wi,wo', self._DenseReluDenseWeights('w')),
-        ('wi->wi_split', self.MeshSplit('wi_split', p.mh_wi_split)),
-        ('wo->wo_split', self.MeshSplit('wo_split', p.hm_wo_split)),
-        ('wi_split->wi_reshaped',
+        ('->wi,wo',
+         self._DenseReluDenseWeights('w', self._device_mesh, p.mh_wi_split,
+                                     p.hm_wo_split)),
+        ('wi->wi_reshaped',
          self._Fn('wi_reshape', fn=lambda x: self._ReshapeM(x, 0))),
-        ('wo_split->wo_reshaped',
+        ('wo->wo_reshaped',
          self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
         ('wi_reshaped,inputs->h', self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
         ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
@@ -1567,15 +1720,14 @@ class DenseBuilder(MoEBuilder):
         name,
         input_endpoints,
         ['outputs', 'aux_loss'],
-        ('->wi_0,wi_1,wo', self._DenseReluDenseWeightsGatedGELU('w')),
-        ('wi_0->wi_0_split', self.MeshSplit('wi_0_split', p.mh_wi_split)),
-        ('wi_1->wi_1_split', self.MeshSplit('wi_1_split', p.mh_wi_split)),
-        ('wo->wo_split', self.MeshSplit('wo_split', p.hm_wo_split)),
-        ('wi_0_split->wi_0_reshaped',
+        ('->wi_0,wi_1,wo',
+         self._DenseReluDenseWeightsGatedGELU('w', self._device_mesh,
+                                              p.mh_wi_split, p.hm_wo_split)),
+        ('wi_0->wi_0_reshaped',
          self._Fn('wi0_reshape', fn=lambda x: self._ReshapeM(x, 0))),
-        ('wi_1_split->wi_1_reshaped',
+        ('wi_1->wi_1_reshaped',
          self._Fn('wi1_reshape', fn=lambda x: self._ReshapeM(x, 0))),
-        ('wo_split->wo_reshaped',
+        ('wo->wo_reshaped',
          self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
         ('wi_0_reshaped,wi_1_reshaped,inputs->h', self._Fn('wi', fn=_Impl)),
         ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
@@ -1713,6 +1865,9 @@ class UniTransformer(base_model.BaseTask):
       return logits, aux_loss
 
   def _ComputeNonPadding(self, input_batch):
+    if 'paddings' in input_batch:
+      return 1.0 - input_batch
+
     non_padding = tf.cast(
         tf.not_equal(input_batch.tgt.segment_ids, 0),
         py_utils.FPropDtype(self.params))
@@ -1723,6 +1878,41 @@ class UniTransformer(base_model.BaseTask):
         tf.greater(input_batch.tgt.labels, 0), py_utils.FPropDtype(self.params))
     return non_padding
 
+  def _ComputeSoftLabels(self, input_batch):
+    p = self.params
+    vocab_size = p.vocab_size
+    if 'soft_labels' in input_batch.tgt:
+      tf.logging.info('using input_batch.tgt.soft_labels: %r',
+                      input_batch.tgt.soft_labels)
+      soft_labels = input_batch.tgt.soft_labels
+    else:
+      label_smoothing = p.label_smoothing
+      off_value = label_smoothing / vocab_size
+      on_value = 1.0 - label_smoothing + off_value
+      tf.logging.info({'on_value': on_value, 'off_value': off_value})
+      soft_labels = tf.one_hot(
+          tf.maximum(input_batch.tgt.labels, 0),
+          vocab_size,
+          on_value=on_value,
+          off_value=off_value)
+    return soft_labels
+
+  def ComputePerTokenLoss(self, logits, input_batch):
+    p = self.params
+
+    with tf.name_scope(p.name):
+      soft_labels = self._ComputeSoftLabels(input_batch)
+      loss = tf.nn.softmax_cross_entropy_with_logits(
+          labels=soft_labels, logits=logits)
+
+      if self.params.z_loss > 0.0:
+        log_z = tf.math.reduce_logsumexp(logits, -1)
+        z_loss_increment = self.params.z_loss * tf.math.square(log_z)
+        loss += z_loss_increment
+
+      non_padding = self._ComputeNonPadding(input_batch)
+      return loss * non_padding
+
   def ComputeLoss(self, theta, predictions, input_batch):
     p = self.params
 
@@ -1730,20 +1920,7 @@ class UniTransformer(base_model.BaseTask):
 
     with tf.name_scope(p.name):
       logits, aux_loss = predictions
-      if 'soft_labels' in input_batch.tgt:
-        tf.logging.info('using input_batch.tgt.soft_labels: %r',
-                        input_batch.tgt.soft_labels)
-        soft_labels = input_batch.tgt.soft_labels
-      else:
-        label_smoothing = p.label_smoothing
-        off_value = label_smoothing / vocab_size
-        on_value = 1.0 - label_smoothing + off_value
-        tf.logging.info({'on_value': on_value, 'off_value': off_value})
-        soft_labels = tf.one_hot(
-            tf.maximum(input_batch.tgt.labels, 0),
-            vocab_size,
-            on_value=on_value,
-            off_value=off_value)
+      soft_labels = self._ComputeSoftLabels(input_batch)
 
       xent = tf.nn.softmax_cross_entropy_with_logits(
           labels=tf.one_hot(input_batch.tgt.labels, vocab_size), logits=logits)

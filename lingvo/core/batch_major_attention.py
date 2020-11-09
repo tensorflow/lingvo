@@ -4734,12 +4734,24 @@ class LmBuilder(Builder):
     return p
 
   def _ShardedVar(self, name, weights, split_dim):
+    sharded_weights = []
+    for k, v in weights:
+      dims_mapping = [-1] * len(v.shape)
+      dims_mapping[split_dim] = 0
+      sharded_weights.append((k,
+                              moe_layers.ShardedWeightParams(
+                                  shape=v.shape,
+                                  init=v.init,
+                                  dtype=v.dtype,
+                                  collections=v.collections,
+                                  tensor_split_dims_mapping=dims_mapping)))
+    device_mesh = (None if self.params.xla_num_partitions is None else
+                   np.arange(self.params.xla_num_partitions))
     return moe_layers.ShardedVarLayer.Params().Set(
         name=name,
-        weights=weights,
-        split_dimension=split_dim,
-        fprop_dtype=self.params.fprop_dtype,
-        num_devices=self.params.xla_num_partitions)
+        weights=sharded_weights,
+        device_mesh=device_mesh,
+        fprop_dtype=self.params.fprop_dtype)
 
   def _LinearWeight(self, name, input_dim, output_dim, split_dim):
     return self._ShardedVar(
