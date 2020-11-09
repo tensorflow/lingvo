@@ -881,6 +881,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('block_dim', 1024, 'Dimension of the block')
     p.Define('xla_num_partitions', None, 'Number of Gshard partitions.')
     p.Define('xla_split_dim', None, 'Which dim to g-shard.')
+    # Non-default quantization behaviour for weights.
+    p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
+
     return p
 
   def __init__(self, params):
@@ -1349,6 +1352,9 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     p.Define('proj_xla_num_partitions', [],
              'Gshard number of partitions for the proj layers.')
     p.Define('proj_xla_split_dim', [], 'Gshard split dims for the proj layers.')
+    # Non-default quantization behaviour for the weights.
+    p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
+
     return p
 
   def __init__(self, params):
@@ -1422,6 +1428,8 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
 
       if p.qdomain.default is not None:
         params_i.qdomain.default = p.qdomain.default.Copy()
+      if p.qdomain.weight is not None:
+        params_i.qdomain.weight = p.qdomain.weight.Copy()
 
     self.CreateChildren('fc', params_fc_layers)
     self.CreateChildren('dropout', params_dropout_layers)
@@ -2666,6 +2674,7 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
         'xent by small chunks along the batch dimension.')
 
     p.qdomain.Define('logits', None, 'Quantization domain for logits.')
+    p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
     return p
 
   def Logits(self, **unused):
