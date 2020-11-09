@@ -192,7 +192,7 @@
 <span class="c1"># weights in the model. Options supported are None or tf.bfloat16.</span>
 <span class="n">InferenceDeviceOptions</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;InferenceDeviceOptions&#39;</span><span class="p">,</span> <span class="p">[</span>
     <span class="s1">&#39;device&#39;</span><span class="p">,</span> <span class="s1">&#39;retain_device_placement&#39;</span><span class="p">,</span> <span class="s1">&#39;var_options&#39;</span><span class="p">,</span> <span class="s1">&#39;gen_init_op&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;dtype_override&#39;</span>
+    <span class="s1">&#39;dtype_override&#39;</span><span class="p">,</span> <span class="s1">&#39;fprop_dtype_override&#39;</span>
 <span class="p">])</span>
 
 <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">None</span>
@@ -263,6 +263,10 @@
 
 <div class="viewcode-block" id="ShouldForceBfloat16ForWeightsAndActivations"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ShouldForceBfloat16ForWeightsAndActivations">[docs]</a><span class="k">def</span> <span class="nf">ShouldForceBfloat16ForWeightsAndActivations</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">device_options</span><span class="o">.</span><span class="n">dtype_override</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span></div>
+
+
+<div class="viewcode-block" id="ShouldForceBfloat16ForActivations"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ShouldForceBfloat16ForActivations">[docs]</a><span class="k">def</span> <span class="nf">ShouldForceBfloat16ForActivations</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">device_options</span><span class="o">.</span><span class="n">fprop_dtype_override</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span></div>
 
 
 <div class="viewcode-block" id="ConvertSubgraphDictToProto"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ConvertSubgraphDictToProto">[docs]</a><span class="k">def</span> <span class="nf">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_dict</span><span class="p">):</span>
@@ -446,7 +450,8 @@
                  <span class="n">retain_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                  <span class="n">var_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">gen_init_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                 <span class="n">dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
+                 <span class="n">dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">fprop_dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
              <span class="n">freeze_checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">freeze_defaults</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
              <span class="n">export_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -483,6 +488,10 @@
 <span class="sd">      ValueError: if the model does not support the listed subgraphs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">BaseModel</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">device_options</span><span class="o">.</span><span class="n">dtype_override</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">fprop_dtype_override</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;device_options{dtype_override,fprop_dtype_override) can not both be&#39;</span>
+          <span class="s1">&#39;set.&#39;</span><span class="p">)</span>
 
     <span class="c1"># Disable assertions unless user explicitly enables it.</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="p">[</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">using_default_value</span><span class="p">:</span>
@@ -537,6 +546,11 @@
 
         <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateDtype</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateFpropDtype</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+
+        <span class="n">act_bfloat16_override</span> <span class="o">=</span> <span class="n">ShouldForceBfloat16ForActivations</span><span class="p">(</span>
+            <span class="n">device_options</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">act_bfloat16_override</span><span class="p">:</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateFpropDtype</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
 
         <span class="c1"># Hard-code TPU-related flags prior to instantiating model.</span>
@@ -611,7 +625,7 @@
           <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="n">old_xla_device</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Graph contains ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>
+                    <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>
 
     <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
 
@@ -623,8 +637,7 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;freeze_checkpoint cannot be used with device &#39;</span> <span class="o">+</span>
                          <span class="n">device_options</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">freeze_checkpoint</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Freezing graph from checkpoint: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                             <span class="n">freeze_checkpoint</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Freezing graph from checkpoint: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">freeze_checkpoint</span><span class="p">)</span>
         <span class="n">graph_def</span> <span class="o">=</span> <span class="n">_FreezeGraphFromCheckpoint</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">saver</span><span class="p">,</span> <span class="n">freeze_checkpoint</span><span class="p">,</span>
                                                <span class="n">output_op_names</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">freeze_defaults</span><span class="p">:</span>
@@ -648,7 +661,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">device_options</span><span class="o">.</span><span class="n">retain_device_placement</span><span class="p">:</span>
       <span class="c1"># Clear the device so that the runtime can choose.</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Clearing device placement for: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                           <span class="n">device_options</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                      <span class="n">device_options</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
         <span class="n">node</span><span class="o">.</span><span class="n">ClearField</span><span class="p">(</span><span class="s1">&#39;device&#39;</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">library</span><span class="o">.</span><span class="n">function</span><span class="p">:</span>
