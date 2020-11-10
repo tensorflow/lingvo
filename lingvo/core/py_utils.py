@@ -1662,6 +1662,19 @@ def GenerateSeedFromName(name):
   return np.int64(int(md5.hexdigest(), 16) % (2**31 - 1))
 
 
+def MaybeGenerateSeedFromScope():
+  """Generate a random seed from the current name of the scope.
+
+  If running in eager mode, this returns 0.
+
+  Returns:
+    An integer seed in the range [0, 2**31 - 1).
+  """
+  if not tf.executing_eagerly():
+    return GenerateSeedFromName(tf.no_op(name='new_step_seed').name)
+  return 0
+
+
 def GenerateSeedFromId(obj_id):
   """Generate a random seed from the id of an object.
 
@@ -3472,6 +3485,25 @@ def ResetStepSeed(seed=0):
   _STEP_SEED_DICT.dict[key] = tf.convert_to_tensor(seed, dtype=tf.int64)
 
 
+def MaybeResetStepSeedFromScope():
+  """In graph mode, resets step_seed according to the current named scope.
+
+  This is used in graph mode to avoid "tensor is from a different graph"
+  errors that happen when we share random seend tensors too much.
+  See b/129159299 for more context.
+
+  Eager mode does not have this problem, so in eager mode we do nothing.
+  """
+  if not tf.executing_eagerly():
+    ResetStepSeed(GenerateSeedFromName(tf.no_op(name='new_step_seed').name))
+
+
+def MaybeResetStepSeed(seed):
+  """If we're in graph mode, reset the step seed."""
+  if not tf.executing_eagerly():
+    ResetStepSeed(seed)
+
+
 def GetIncStepSeed():
   """Returns and increments the step_seed."""
   step_seed = GetStepSeed()
@@ -4411,7 +4443,7 @@ def RematerializeFn(fn, *xs):
     `fn(*xs)`
   """
   initial_step_seed = GetStepSeed()
-  final_step_seed = GenerateSeedFromName(tf.no_op(name='new_step_seed').name)
+  final_step_seed = MaybeGenerateSeedFromScope()
 
   def Backward(fwd_xs, fwd_ys, d_fwd_ys):
     """The backward function that rematerializes forward outputs."""
@@ -4426,7 +4458,7 @@ def RematerializeFn(fn, *xs):
       dst.set_shape(src.shape)
     ResetStepSeed(initial_step_seed)
     ys = fn(*bak_xs)
-    ResetStepSeed(final_step_seed)
+    MaybeResetStepSeed(final_step_seed)
     dxs = tf.gradients(ys, bak_xs, grad_ys=d_fwd_ys)
     dxs_final = []
     for dx, x in zip(dxs, bak_xs):
@@ -4473,7 +4505,7 @@ def RematerializeFn(fn, *xs):
   # bug, which is a problem with global tensors being shared by different
   # inference graphs. It should be replaced with the new step seed value
   # returned from the Forward function when the bug is fixed.
-  ResetStepSeed(final_step_seed)
+  MaybeResetStepSeed(final_step_seed)
   return ys
 
 

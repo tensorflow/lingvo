@@ -1080,8 +1080,7 @@ def Recurrent(theta,
   # TODO(b/129159299): The ResetStepSeed below is needed to work around this
   # bug, which is a problem with global tensors being shared by different
   # inference graphs. It should be removed once the bug is fixed.
-  py_utils.ResetStepSeed(
-      py_utils.GenerateSeedFromName(tf.no_op(name='new_step_seed').name))
+  py_utils.MaybeResetStepSeedFromScope()
 
   return acc_state, final_state
 
@@ -1637,7 +1636,6 @@ def _StackedRecurrent(devices, cell_fns, cell_grads, cell_outs, cell_out_grads,
   # TODO(b/129159299): The ResetStepSeed below is needed to work around this
   # bug, which is a problem with global tensors being shared by different
   # inference graphs. It should be removed once the bug is fixed.
-  py_utils.ResetStepSeed(
-      py_utils.GenerateSeedFromName(tf.no_op(name='new_step_seed').name))
+  py_utils.MaybeResetStepSeedFromScope()
 
   return outputs, final_states
