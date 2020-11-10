@@ -129,7 +129,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertDictEqual(another_map, nested_map)
 
   @parameterized.named_parameters(
-      ('_stateful', False, [tf.float32, tf.float64, tf.complex64]),
+      ('_stateful', False, [tf.float32, tf.float64, tf.complex64, tf.int8]),
       ('_stateless', True, [tf.float32, tf.float64]))
   def testCreateVariableBasics(self, stateless_vars_init, dtypes):
     with flagsaver.flagsaver(stateless_vars_init=stateless_vars_init):

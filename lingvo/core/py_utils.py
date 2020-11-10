@@ -1901,6 +1901,13 @@ def _CreateVariableStateful(name,
         seed = GenerateSeedFromName(var_name)
 
   init_dtype = p.dtype.real_dtype
+
+  # TODO(b/172827074): we do not natively support var initialization for
+  # int8 type except for constant initialization.
+  # NOTE: For int8, we initialize by scaling float32 random values to integer.
+  if init_dtype == tf.int8:
+    init_dtype = tf.float32
+
   v_init = _CreateVarInitStateful(name, method, shape, dim0, seed, scale,
                                   init_dtype)
 
@@ -1919,6 +1926,23 @@ def _CreateVariableStateful(name,
       return _Wrapper
 
     v_init = ComplexWrapper(v_init)
+
+  if p.dtype == tf.int8:
+
+    def FloatToInt8Wrapper(init):
+
+      def _Wrapper(shape, dtype, partition_info):
+        del dtype
+        value = init(shape, init_dtype, partition_info)
+        scale = tf.math.maximum(
+            tf.math.reduce_min(value) / -127,
+            tf.math.reduce_max(value) / 127)
+        value = tf.divide(value, scale)
+        return tf.cast(value, tf.int8)
+
+      return _Wrapper
+
+    v_init = FloatToInt8Wrapper(v_init)
 
   # Variable creators.
   def MaybePinVarsToCpu(next_creator, **kwargs):
