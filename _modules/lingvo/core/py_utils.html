@@ -1810,6 +1810,19 @@
   <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">md5</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div>
 
 
+<div class="viewcode-block" id="MaybeGenerateSeedFromScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MaybeGenerateSeedFromScope">[docs]</a><span class="k">def</span> <span class="nf">MaybeGenerateSeedFromScope</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Generate a random seed from the current name of the scope.</span>
+
+<span class="sd">  If running in eager mode, this returns 0.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    An integer seed in the range [0, 2**31 - 1).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+  <span class="k">return</span> <span class="mi">0</span></div>
+
+
 <div class="viewcode-block" id="GenerateSeedFromId"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GenerateSeedFromId">[docs]</a><span class="k">def</span> <span class="nf">GenerateSeedFromId</span><span class="p">(</span><span class="n">obj_id</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Generate a random seed from the id of an object.</span>
 
@@ -3620,6 +3633,25 @@
   <span class="n">_STEP_SEED_DICT</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="MaybeResetStepSeedFromScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MaybeResetStepSeedFromScope">[docs]</a><span class="k">def</span> <span class="nf">MaybeResetStepSeedFromScope</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;In graph mode, resets step_seed according to the current named scope.</span>
+
+<span class="sd">  This is used in graph mode to avoid &quot;tensor is from a different graph&quot;</span>
+<span class="sd">  errors that happen when we share random seend tensors too much.</span>
+<span class="sd">  See b/129159299 for more context.</span>
+
+<span class="sd">  Eager mode does not have this problem, so in eager mode we do nothing.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="MaybeResetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MaybeResetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">MaybeResetStepSeed</span><span class="p">(</span><span class="n">seed</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;If we&#39;re in graph mode, reset the step seed.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="GetIncStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetIncStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetIncStepSeed</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Returns and increments the step_seed.&quot;&quot;&quot;</span>
   <span class="n">step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
@@ -4559,7 +4591,7 @@
 <span class="sd">    `fn(*xs)`</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">initial_step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
-  <span class="n">final_step_seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+  <span class="n">final_step_seed</span> <span class="o">=</span> <span class="n">MaybeGenerateSeedFromScope</span><span class="p">()</span>
 
   <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">fwd_xs</span><span class="p">,</span> <span class="n">fwd_ys</span><span class="p">,</span> <span class="n">d_fwd_ys</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The backward function that rematerializes forward outputs.&quot;&quot;&quot;</span>
@@ -4574,7 +4606,7 @@
       <span class="n">dst</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">initial_step_seed</span><span class="p">)</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">bak_xs</span><span class="p">)</span>
-    <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">final_step_seed</span><span class="p">)</span>
+    <span class="n">MaybeResetStepSeed</span><span class="p">(</span><span class="n">final_step_seed</span><span class="p">)</span>
     <span class="n">dxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">bak_xs</span><span class="p">,</span> <span class="n">grad_ys</span><span class="o">=</span><span class="n">d_fwd_ys</span><span class="p">)</span>
     <span class="n">dxs_final</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">dx</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dxs</span><span class="p">,</span> <span class="n">bak_xs</span><span class="p">):</span>
@@ -4621,7 +4653,7 @@
   <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
   <span class="c1"># inference graphs. It should be replaced with the new step seed value</span>
   <span class="c1"># returned from the Forward function when the bug is fixed.</span>
-  <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">final_step_seed</span><span class="p">)</span>
+  <span class="n">MaybeResetStepSeed</span><span class="p">(</span><span class="n">final_step_seed</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">ys</span></div>
 
 

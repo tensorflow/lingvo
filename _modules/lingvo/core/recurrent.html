@@ -1228,8 +1228,7 @@
   <span class="c1"># TODO(b/129159299): The ResetStepSeed below is needed to work around this</span>
   <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
   <span class="c1"># inference graphs. It should be removed once the bug is fixed.</span>
-  <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+  <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeResetStepSeedFromScope</span><span class="p">()</span>
 
   <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span></div>
 
@@ -1785,8 +1784,7 @@
   <span class="c1"># TODO(b/129159299): The ResetStepSeed below is needed to work around this</span>
   <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
   <span class="c1"># inference graphs. It should be removed once the bug is fixed.</span>
-  <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+  <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeResetStepSeedFromScope</span><span class="p">()</span>
 
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">final_states</span></div>
 </pre></div>

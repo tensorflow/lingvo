@@ -321,13 +321,13 @@
                                             <span class="n">pred_bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:])</span>
     <span class="n">mean_angular_error_deg</span> <span class="o">=</span> <span class="n">mean_angular_error_rad</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+    <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;error/center_distance&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_center_error</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
         <span class="s1">&#39;error/length&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
         <span class="s1">&#39;error/width&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
         <span class="s1">&#39;error/height&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_dimension_error</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
         <span class="s1">&#39;error/rotation_deg&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_angular_error_deg</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
-    <span class="p">})</span></div>
+    <span class="p">}</span></div>
 
 <div class="viewcode-block" id="PointDetectorBase.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.car.point_detector.html#lingvo.tasks.car.point_detector.PointDetectorBase.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Builds the inference graph.</span>

@@ -1203,6 +1203,18 @@ new_name_format will be interpolated using the matched groups.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.MaybeGenerateSeedFromScope">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">MaybeGenerateSeedFromScope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MaybeGenerateSeedFromScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MaybeGenerateSeedFromScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a random seed from the current name of the scope.</p>
+<p>If running in eager mode, this returns 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An integer seed in the range [0, 2**31 - 1).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils.GenerateSeedFromId">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GenerateSeedFromId</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateSeedFromId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateSeedFromId" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a random seed from the id of an object.</p>
@@ -1968,6 +1980,22 @@ weight is a float and each metrics is a dict with str keys and
 <dt id="lingvo.core.py_utils.ResetStepSeed">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ResetStepSeed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ResetStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ResetStepSeed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resets step_seed to specified value.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils.MaybeResetStepSeedFromScope">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">MaybeResetStepSeedFromScope</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MaybeResetStepSeedFromScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MaybeResetStepSeedFromScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>In graph mode, resets step_seed according to the current named scope.</p>
+<p>This is used in graph mode to avoid “tensor is from a different graph”
+errors that happen when we share random seend tensors too much.
+See b/129159299 for more context.</p>
+<p>Eager mode does not have this problem, so in eager mode we do nothing.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils.MaybeResetStepSeed">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">MaybeResetStepSeed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seed</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MaybeResetStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MaybeResetStepSeed" title="Permalink to this definition">¶</a></dt>
+<dd><p>If we’re in graph mode, reset the step seed.</p>
 </dd></dl>
 
 <dl class="py function">
