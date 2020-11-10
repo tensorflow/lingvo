@@ -2049,6 +2049,13 @@
         <span class="n">seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
 
   <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">real_dtype</span>
+
+  <span class="c1"># TODO(b/172827074): we do not natively support var initialization for</span>
+  <span class="c1"># int8 type except for constant initialization.</span>
+  <span class="c1"># NOTE: For int8, we initialize by scaling float32 random values to integer.</span>
+  <span class="k">if</span> <span class="n">init_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
+    <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+
   <span class="n">v_init</span> <span class="o">=</span> <span class="n">_CreateVarInitStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
                                   <span class="n">init_dtype</span><span class="p">)</span>
 
@@ -2067,6 +2074,23 @@
       <span class="k">return</span> <span class="n">_Wrapper</span>
 
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">ComplexWrapper</span><span class="p">(</span><span class="n">v_init</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">FloatToInt8Wrapper</span><span class="p">(</span><span class="n">init</span><span class="p">):</span>
+
+      <span class="k">def</span> <span class="nf">_Wrapper</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+        <span class="k">del</span> <span class="n">dtype</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="o">-</span><span class="mi">127</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="mi">127</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="n">_Wrapper</span>
+
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">FloatToInt8Wrapper</span><span class="p">(</span><span class="n">v_init</span><span class="p">)</span>
 
   <span class="c1"># Variable creators.</span>
   <span class="k">def</span> <span class="nf">MaybePinVarsToCpu</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
