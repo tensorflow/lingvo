@@ -3084,8 +3084,17 @@ class SimpleFullSoftmax(SoftmaxLayer):
           0, 'Using sampled_softmax_loss(..., num_sampled=%d, '
           'num_classes=%d) in SimpleFullSoftmax::_FProp2D', p.num_sampled,
           p.num_classes)
+      # tf.nn.sampled_softmax_loss will call tf.embedding_lookup. And when
+      # tf.embedding_lookup is used, the gradient for the weights will be
+      # represented as IndexedSlices which is sparse. tf.tpu.cross_replica_sum
+      # turns IndexedSlices into a dense tensor with undefined first dimension.
+      # This may cause issues on TPU so instead we just wrap this with
+      # tf.identity which allows tf.tpu.cross_replica_sum to properly compute
+      # the first dim.
       per_example_xent = tf.nn.sampled_softmax_loss(
-          weights=[theta['weight_%d' % i] for i in range(p.num_shards)],
+          weights=[
+              tf.identity(theta['weight_%d' % i]) for i in range(p.num_shards)
+          ],
           biases=tf.concat([theta['bias_%d' % i] for i in range(p.num_shards)],
                            axis=0),
           labels=tf.reshape(class_ids, [-1, 1]),
