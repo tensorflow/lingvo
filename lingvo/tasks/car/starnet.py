@@ -447,7 +447,7 @@ class ModelBase(point_detector.PointDetectorBase):
         p.loss_weight_localization * regression_loss +
         p.loss_weight_classification * classification_loss)
 
-    metrics_dict = py_utils.NestedMap({
+    metrics_dict = {
         'loss': (total_loss, batch_size),
         'loss/regression': (regression_loss, batch_size),
         'loss/regression/loc': (reg_loc_loss, batch_size),
@@ -455,7 +455,7 @@ class ModelBase(point_detector.PointDetectorBase):
         'loss/regression/rot': (reg_rot_loss, batch_size),
         'loss/regression/corner': (reg_corner_loss, batch_size),
         'loss/classification': (classification_loss, batch_size),
-    })
+    }
 
     # Calculate dimension errors
     dimension_errors_dict = self._BBoxDimensionErrors(gt_bboxes,
@@ -463,13 +463,13 @@ class ModelBase(point_detector.PointDetectorBase):
                                                       reg_weights)
     metrics_dict.update(dimension_errors_dict)
 
-    per_example_dict = py_utils.NestedMap({
+    per_example_dict = {
         'residuals': predicted_residuals,
         'classification_logits': predicted_classification_logits,
         'predicted_bboxes': predicted_bboxes,
         'gt_bboxes': gt_bboxes,
         'reg_weights': reg_weights,
-    })
+    }
 
     return metrics_dict, per_example_dict
 

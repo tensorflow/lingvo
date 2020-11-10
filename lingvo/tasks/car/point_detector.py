@@ -173,13 +173,13 @@ class PointDetectorBase(base_model.BaseTask):
                                             pred_bboxes[..., 6:])
     mean_angular_error_deg = mean_angular_error_rad * (180 / np.pi)
 
-    return py_utils.NestedMap({
+    return {
         'error/center_distance': (mean_center_error, batch_size),
         'error/length': (mean_dimension_error[0], batch_size),
         'error/width': (mean_dimension_error[1], batch_size),
         'error/height': (mean_dimension_error[2], batch_size),
         'error/rotation_deg': (mean_angular_error_deg, batch_size),
-    })
+    }
 
   def Inference(self):
     """Builds the inference graph.
