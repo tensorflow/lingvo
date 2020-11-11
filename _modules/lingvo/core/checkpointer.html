@@ -212,7 +212,9 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">params</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model_tasks</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">tasks</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
@@ -223,6 +225,33 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
+
+    <span class="c1"># TODO(b/160786085): Move this logic into Overriding vars logic itself,</span>
+    <span class="c1"># which requires refactoring things out of py_utils to avoid circular deps.</span>
+    <span class="k">def</span> <span class="nf">_ResolveCkptPath</span><span class="p">(</span><span class="n">ckpt_rules</span><span class="p">):</span>
+      <span class="k">return</span> <span class="p">{</span><span class="n">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ckpt_rules</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Add graph nodes to restore specific variables based on</span>
+    <span class="c1"># init_from_checkpoint_rules.</span>
+    <span class="c1"># TODO(b/159267006): Move this back to Restore().</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+        <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
+        <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
+          <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+          <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span>
+                                                    <span class="n">rules</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
+      <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span>
+      <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+      <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">rules</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Checkpointer._GetSaver"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a saver.&quot;&quot;&quot;</span>
@@ -321,24 +350,10 @@
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_op</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialized all vars.&#39;</span><span class="p">)</span>
 
-    <span class="c1"># TODO(b/160786085): Move this logic into Overriding vars logic itself,</span>
-    <span class="c1"># which requires refactoring things out of py_utils to avoid circular deps.</span>
-    <span class="k">def</span> <span class="nf">_ResolveCkptPath</span><span class="p">(</span><span class="n">ckpt_rules</span><span class="p">):</span>
-      <span class="k">return</span> <span class="p">{</span><span class="n">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ckpt_rules</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-
-    <span class="c1"># Restore specific variables based on init_from_checkpoint_rules.</span>
-    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
-      <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
-      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
-        <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">rules</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
-      <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span>
-      <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">rules</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
+        <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restored vars using checkpoint rules.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Checkpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If vars are not initialized, restore from checkpoint.&quot;&quot;&quot;</span>

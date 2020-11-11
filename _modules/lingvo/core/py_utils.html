@@ -2733,9 +2733,24 @@
   <span class="k">return</span> <span class="n">vars_to_load</span></div>
 
 
-<div class="viewcode-block" id="OverrideVarsFromCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OverrideVarsFromCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">,</span>
+<div class="viewcode-block" id="OverrideVarsFromCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OverrideVarsFromCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">,</span>
                                <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Overrides variables from a provided checkpoint.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Add TF graph ops to override variables from a provided checkpoint.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    all_vars: List of all the parameters in the model.</span>
+<span class="sd">    checkpoint_path: A path to the checkpoints of a pretrained model.</span>
+<span class="sd">    variable_loading_rules: A list of tuples of strings defining (regex to match</span>
+<span class="sd">      parameter names in the model to override, format string to determine the</span>
+<span class="sd">      corresponding var in the checkpoint).</span>
+<span class="sd">    var_ignore_rules: A list consisting of a list of regexes to match parameter</span>
+<span class="sd">      names in the model which should not be overridden, even if they match</span>
+<span class="sd">      those in the loading rules.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A callable that, when called with a tf.Session, will restore the variables</span>
+<span class="sd">    from the provided checkpoint.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span>
                                 <span class="n">var_ignore_rules</span><span class="p">)</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">vars_to_load</span><span class="p">:</span>
@@ -2744,6 +2759,7 @@
   <span class="n">load_var_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vars_to_load</span><span class="p">])</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Overriding vars from checkpoint: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">load_var_names</span><span class="p">)</span>
 
+  <span class="n">savers</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">while</span> <span class="n">vars_to_load</span><span class="p">:</span>
     <span class="c1"># When restoring, it&#39;s possible the same value in the checkpoint</span>
     <span class="c1"># can be restored to multiple variables (e.g. during</span>
@@ -2758,15 +2774,20 @@
         <span class="n">unique_vars_to_load</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">remaining_vars_to_load</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">var_list</span><span class="o">=</span><span class="n">unique_vars_to_load</span><span class="p">)</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">remaining_vars_to_load</span></div>
+    <span class="n">savers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">var_list</span><span class="o">=</span><span class="n">unique_vars_to_load</span><span class="p">))</span>
+    <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">remaining_vars_to_load</span>
+
+  <span class="k">def</span> <span class="nf">_Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">saver</span> <span class="ow">in</span> <span class="n">savers</span><span class="p">:</span>
+      <span class="n">saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">_Restore</span></div>
 
 
-<div class="viewcode-block" id="OverrideVarsFromCheckpoints"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OverrideVarsFromCheckpoints">[docs]</a><span class="k">def</span> <span class="nf">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpts_loading_rules</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Overrides model variables from checkpoints.</span>
+<div class="viewcode-block" id="OverrideVarsFromCheckpoints"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OverrideVarsFromCheckpoints">[docs]</a><span class="k">def</span> <span class="nf">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpts_loading_rules</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Add TF graph ops to override model variables from checkpoints.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    session: Tensorflow session.</span>
 <span class="sd">    all_vars: List of all the parameters in the model.</span>
 <span class="sd">    ckpts_loading_rules: A dictionary of checkpoint path: loading rules.</span>
 <span class="sd">      Checkpoint path must be a path to a pretrained model, and loading rules is</span>
@@ -2778,7 +2799,8 @@
 <span class="sd">      the loading rules.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A list of overwritten variables.</span>
+<span class="sd">    A callable that, when called with a tf.Session, will restore the variables</span>
+<span class="sd">    from checkpoint and return a list of overwritten variables.</span>
 
 <span class="sd">  Raises:</span>
 <span class="sd">    ValueError: if colliding vars exist or loading rules is not a list.</span>
@@ -2788,6 +2810,7 @@
 
   <span class="n">var_refs_overridden</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
   <span class="n">var_names_overridden</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+  <span class="n">restore_fns</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">ckpt_path</span><span class="p">,</span> <span class="n">loading_rules</span> <span class="ow">in</span> <span class="n">ckpts_loading_rules</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Overriding vars from checkpoint: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
 
@@ -2813,12 +2836,19 @@
     <span class="k">if</span> <span class="n">overlap_refs</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Colliding variables to override: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">overlap_refs</span><span class="p">)</span>
 
-    <span class="n">OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                               <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
     <span class="n">var_refs_overridden</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">var_refs_to_override</span><span class="p">)</span>
     <span class="n">var_names_overridden</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">var_names_to_override</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model variables overridden: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var_refs_overridden</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">var_names_overridden</span></div>
+
+  <span class="k">def</span> <span class="nf">_Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">restore_fns</span><span class="p">:</span>
+      <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">var_names_overridden</span>
+
+  <span class="k">return</span> <span class="n">_Restore</span></div>
 
 
 <div class="viewcode-block" id="ComputeGradientsSimple"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradientsSimple">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span>
