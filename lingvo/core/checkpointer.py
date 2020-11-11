@@ -64,7 +64,9 @@ class Checkpointer:
       self._train_params = model.params.train
       self._model = model
 
-    if not self._save_only:
+    if self._save_only:
+      self._params = None
+    else:
       self._params = model.params
       self._model_tasks = model.tasks
       self._model = model
@@ -75,6 +77,33 @@ class Checkpointer:
 
     self._uninitialized_vars = tf.report_uninitialized_variables(
         tf.global_variables())
+
+    # TODO(b/160786085): Move this logic into Overriding vars logic itself,
+    # which requires refactoring things out of py_utils to avoid circular deps.
+    def _ResolveCkptPath(ckpt_rules):
+      return {GetSpecificCheckpoint(k): v for k, v in ckpt_rules.items()}
+
+    self._restore_fns = []
+
+    # Add graph nodes to restore specific variables based on
+    # init_from_checkpoint_rules.
+    # TODO(b/159267006): Move this back to Restore().
+    if self._model:
+      for task in self._model.tasks:
+        tp = task.params.train
+        if tp.init_from_checkpoint_rules:
+          rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
+          tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
+          fn = py_utils.OverrideVarsFromCheckpoints(tf.global_variables(),
+                                                    rules)
+          self._restore_fns.append(fn)
+
+    if self._params and self._params.train.init_from_checkpoint_rules:
+      tp = self._params.train
+      rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
+      tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
+      fn = py_utils.OverrideVarsFromCheckpoints(tf.global_variables(), rules)
+      self._restore_fns.append(fn)
 
   def _GetSaver(self):
     """Returns a saver."""
@@ -173,24 +202,10 @@ class Checkpointer:
     sess.run(self._init_op)
     tf.logging.info('Initialized all vars.')
 
-    # TODO(b/160786085): Move this logic into Overriding vars logic itself,
-    # which requires refactoring things out of py_utils to avoid circular deps.
-    def _ResolveCkptPath(ckpt_rules):
-      return {GetSpecificCheckpoint(k): v for k, v in ckpt_rules.items()}
-
-    # Restore specific variables based on init_from_checkpoint_rules.
-    for task in self._model.tasks:
-      tp = task.params.train
-      if tp.init_from_checkpoint_rules:
-        rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-        tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
-        py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(), rules)
-
-    if self._params.train.init_from_checkpoint_rules:
-      tp = self._params.train
-      rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-      tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
-      py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(), rules)
+    if self._restore_fns:
+      for fn in self._restore_fns:
+        fn(sess)
+      tf.logging.info('Restored vars using checkpoint rules.')
 
   def RestoreIfNeeded(self, sess):
     """If vars are not initialized, restore from checkpoint."""

@@ -2585,9 +2585,24 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules):
   return vars_to_load
 
 
-def OverrideVarsFromCheckpoint(sess, all_vars, checkpoint_path,
+def OverrideVarsFromCheckpoint(all_vars, checkpoint_path,
                                variable_loading_rules, var_ignore_rules):
-  """Overrides variables from a provided checkpoint."""
+  """Add TF graph ops to override variables from a provided checkpoint.
+
+  Args:
+    all_vars: List of all the parameters in the model.
+    checkpoint_path: A path to the checkpoints of a pretrained model.
+    variable_loading_rules: A list of tuples of strings defining (regex to match
+      parameter names in the model to override, format string to determine the
+      corresponding var in the checkpoint).
+    var_ignore_rules: A list consisting of a list of regexes to match parameter
+      names in the model which should not be overridden, even if they match
+      those in the loading rules.
+
+  Returns:
+    A callable that, when called with a tf.Session, will restore the variables
+    from the provided checkpoint.
+  """
   vars_to_load = _GetVarsToLoad(all_vars, variable_loading_rules,
                                 var_ignore_rules)
   if not vars_to_load:
@@ -2596,6 +2611,7 @@ def OverrideVarsFromCheckpoint(sess, all_vars, checkpoint_path,
   load_var_names = sorted([v.name for _, v in vars_to_load])
   tf.logging.info('Overriding vars from checkpoint: %r', load_var_names)
 
+  savers = []
   while vars_to_load:
     # When restoring, it's possible the same value in the checkpoint
     # can be restored to multiple variables (e.g. during
@@ -2610,15 +2626,20 @@ def OverrideVarsFromCheckpoint(sess, all_vars, checkpoint_path,
         unique_vars_to_load[k] = v
       else:
         remaining_vars_to_load.append((k, v))
-    tf.train.Saver(var_list=unique_vars_to_load).restore(sess, checkpoint_path)
+    savers.append(tf.train.Saver(var_list=unique_vars_to_load))
     vars_to_load = remaining_vars_to_load
 
+  def _Restore(sess):
+    for saver in savers:
+      saver.restore(sess, checkpoint_path)
 
-def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
-  """Overrides model variables from checkpoints.
+  return _Restore
+
+
+def OverrideVarsFromCheckpoints(all_vars, ckpts_loading_rules):
+  """Add TF graph ops to override model variables from checkpoints.
 
   Args:
-    session: Tensorflow session.
     all_vars: List of all the parameters in the model.
     ckpts_loading_rules: A dictionary of checkpoint path: loading rules.
       Checkpoint path must be a path to a pretrained model, and loading rules is
@@ -2630,7 +2651,8 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
       the loading rules.
 
   Returns:
-    A list of overwritten variables.
+    A callable that, when called with a tf.Session, will restore the variables
+    from checkpoint and return a list of overwritten variables.
 
   Raises:
     ValueError: if colliding vars exist or loading rules is not a list.
@@ -2640,6 +2662,7 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
 
   var_refs_overridden = set()
   var_names_overridden = set()
+  restore_fns = []
   for ckpt_path, loading_rules in ckpts_loading_rules.items():
     tf.logging.info('Overriding vars from checkpoint: %s', ckpt_path)
 
@@ -2665,12 +2688,19 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     if overlap_refs:
       raise ValueError('Colliding variables to override: %s' % overlap_refs)
 
-    OverrideVarsFromCheckpoint(session, all_vars, ckpt_path, loading_rules[0],
-                               loading_rules[1])
+    restore_fns.append(
+        OverrideVarsFromCheckpoint(all_vars, ckpt_path, loading_rules[0],
+                                   loading_rules[1]))
     var_refs_overridden.update(var_refs_to_override)
     var_names_overridden.update(var_names_to_override)
   tf.logging.info('Model variables overridden: %s', var_refs_overridden)
-  return var_names_overridden
+
+  def _Restore(sess):
+    for fn in restore_fns:
+      fn(sess)
+    return var_names_overridden
+
+  return _Restore
 
 
 def ComputeGradientsSimple(loss_or_activations,
