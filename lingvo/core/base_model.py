@@ -642,8 +642,9 @@ class BaseTask(base_layer.BaseLayer):
 
       tpu_embedding_summary_tensors = tf.get_collection(
           py_utils.TPU_EMBEDDING_SUMMARY_TENSORS)
-      for name, value, weight in tpu_embedding_summary_tensors:
-        self.AddEvalMetric(name, value, weight)
+      if add_summary:
+        for name, value, weight in tpu_embedding_summary_tensors:
+          self.AddEvalMetric(name, value, weight)
 
     for op_name, op in train_ops.items():
       assert op is not None, op_name
