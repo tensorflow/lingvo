@@ -790,8 +790,9 @@
 
       <span class="n">tpu_embedding_summary_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_SUMMARY_TENSORS</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">tpu_embedding_summary_tensors</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">tpu_embedding_summary_tensors</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">op_name</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">train_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="k">assert</span> <span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="n">op_name</span>
