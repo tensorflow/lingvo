@@ -1109,6 +1109,9 @@ class LayerNormalizedLSTMCell(RNNCell):
   def _Mix(self, theta, state0, inputs):
     if not isinstance(inputs.act, list):
       raise ValueError('Input activations must be of list type!')
+    # TODO(b/172580007): Support weight quantization for RNN. Right now we do
+    # not support checkpointing vars for Recurrent cell, and setting AqtQdomain
+    # for LayerNormalizedLSTM cell might run into errors.
     wm = self.ToAqtWeight('rnn_aqt', theta.wm, feature_axis=-1)
     out = py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), wm)
     return self.FromAqtWeight('rnn_aqt', out, feature_axis=-1)
