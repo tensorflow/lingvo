@@ -390,6 +390,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span>
+        <span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_in_controller</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCheckpointer</span><span class="p">(</span>
@@ -433,6 +436,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="c1"># This initializes any ops the input generator depends on.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
 
       <span class="c1"># TODO(zhifengc): Moves these options into params.</span>
       <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
@@ -502,6 +507,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span>
+      <span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Trainer number of enqueue ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                       <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
@@ -567,6 +575,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="c1"># This initializes any ops the input generator depends on.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WaitUntilInit</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_up_delay_steps</span><span class="p">)</span>
 
       <span class="n">status_interval_steps</span> <span class="o">=</span> <span class="mi">100</span>
@@ -716,6 +726,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
         <span class="c1"># Needed due to the AddExtraTheta() reference to global_step when</span>
         <span class="c1"># instantiating the InputGenerator.</span>
@@ -961,6 +972,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="n">config_proto</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span><span class="p">)</span>
@@ -1101,6 +1113,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
@@ -1130,6 +1143,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="c1"># This initializes input generator ops</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_path</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_EvalOnce</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
@@ -1158,6 +1173,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="c1"># This initializes input generator ops</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
       <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No checkpoint available.&#39;</span><span class="p">)</span>
@@ -1174,6 +1191,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="c1"># This initializes input generator ops</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
       <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/ckpt-</span><span class="si">{:08d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="n">ckpt_id</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_EvalOnce</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span></div>
 
@@ -1330,6 +1349,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span>
         <span class="c1"># Note, different graphs are being constructed for different model</span>
         <span class="c1"># tasks, which may result in different node names being chosen.</span>
         <span class="c1"># Obviously, variable names has to be stay the same between train and</span>
@@ -1368,6 +1388,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="c1"># This initializes any ops the input generator depends on.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span><span class="p">)</span>
@@ -1499,6 +1521,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="c1"># This initializes any ops the input generator depends on.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
       <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No checkpoint available.&#39;</span><span class="p">)</span>

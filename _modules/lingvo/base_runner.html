@@ -234,6 +234,8 @@
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="p">[]</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Starting ...&#39;</span><span class="p">)</span>
 
   <span class="nd">@property</span>
@@ -444,6 +446,8 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="n">sess</span><span class="p">:</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">:</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
       <span class="n">gsteps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
       <span class="n">local_enqueue_steps</span> <span class="o">=</span> <span class="mi">0</span>
 
