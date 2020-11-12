@@ -341,12 +341,15 @@ List of retrieve ops</p>
 
 <dl class="py method">
 <dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup">
-<code class="sig-name descname">CpuEmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">CpuEmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span></em>, <em class="sig-param"><span class="n">partition_strategy</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>CPU evaluation embedding lookup.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
--1 is used as a padding id.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
+-1 is used as a padding id.</p></li>
+<li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor.

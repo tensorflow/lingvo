@@ -565,10 +565,12 @@
 <span class="c1"># Explicit 1.x symbol import.</span>
 <span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">make_initializable_iterator</span>
 <span class="n">data</span><span class="o">.</span><span class="n">make_one_shot_iterator</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">make_one_shot_iterator</span>
-<span class="c1"># For `nn.embedding_lookup`, v2 doesn&#39;t have the arg &#39;partition_strategy&#39; in</span>
-<span class="c1"># the API, and uses &#39;partition_strategy=&quot;div&quot;&#39; by default;</span>
-<span class="c1"># while v1 uses &#39;partition_strategy=&quot;mod&quot;&#39; by default. Keep this for now.</span>
+<span class="c1"># For `nn.embedding_lookup` and `nn.embedding_lookup_sparse`, v2 doesn&#39;t have</span>
+<span class="c1"># the arg &#39;partition_strategy&#39; in the API, and uses &#39;partition_strategy=&quot;div&quot;&#39;</span>
+<span class="c1"># by default; while v1 uses &#39;partition_strategy=&quot;mod&quot;&#39; by default.</span>
+<span class="c1"># Keep this for now.</span>
 <span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup</span>
+<span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span>
 <span class="c1"># pylint: enable=undefined-variable</span>
 </pre></div>
 
