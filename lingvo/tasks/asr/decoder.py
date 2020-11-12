@@ -264,6 +264,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'Setting this will enable the use of adapter layers. This is the name '
         'of the field in the encoder_outputs to extract the tasks IDs for '
         'adatper layers.')
+    p.Define('confidence', None, 'Additional confidence estimation module.')
+    p.Define('lm_for_confidence', False,
+             'Use LM scores for confidence estimation.')
 
     # Set some reasonable default values.
     # Default config for the embedding layer.
@@ -390,6 +393,23 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                              p.label_smoothing.num_classes,
                              p.softmax.num_classes))
       self.CreateChild('smoother', p.label_smoothing)
+
+    if p.confidence is not None:
+      AsrDecoderBase.SequenceOutTensorArrays = collections.namedtuple(
+          'SequenceOutTensorArrays',
+          AsrDecoderBase.SequenceOutTensorArrays._fields +
+          ('confidence_scores',))
+      p.confidence.name = 'confidence'
+      # Input to the confidence estimation module is:
+      # pre-softmax feature, token embedding
+      # softmax prob, top5 mean & std
+      # atten prob, top5 mean & std
+      # Refer to _ExtractConfidenceFeatures()
+      p.confidence.input_dim = p.softmax.input_dim + p.emb.embedding_dim + 6
+      # When LM score is used, another input is LM prob
+      if p.lm_for_confidence:
+        p.confidence.input_dim += 1
+      self.CreateChild('confidence', p.confidence)
 
   def _CreateAtten(self):
     p = self.params
@@ -568,7 +588,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                    alignments=None):
       """Plots attention for one example."""
       tf.logging.info('Plotting attention for %s: %s %s', title,
-                           atten_probs.shape, alignments)
+                      atten_probs.shape, alignments)
       atten_probs = atten_probs[:tgtlen, index, :srclen]
       if alignments is not None:
         # [tgtlen].
@@ -803,39 +823,59 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     """Get intitial tensor arrays for ComputePredictionsDynamic."""
     p = self.params
     # TensorArrays for sequence outputs.
-    return AsrDecoder.SequenceOutTensorArrays(
-        rnn_outs=[
-            _NewTensorArray(
-                name='rnn%d_outs' % i,
-                max_seq_length=max_seq_length,
-                dtype=py_utils.FPropDtype(p)) for i in range(p.rnn_layers)
-        ],
-        step_outs=_NewTensorArray(
-            name='step_outs',
+    rnn_outs = [
+        _NewTensorArray(
+            name='rnn%d_outs' % i,
             max_seq_length=max_seq_length,
-            dtype=py_utils.FPropDtype(p)),
-        atten_probs=_NewTensorArray(
-            name='atten_probs',
+            dtype=py_utils.FPropDtype(p)) for i in range(p.rnn_layers)
+    ]
+    step_outs = _NewTensorArray(
+        name='step_outs',
+        max_seq_length=max_seq_length,
+        dtype=py_utils.FPropDtype(p))
+    atten_probs = _NewTensorArray(
+        name='atten_probs',
+        max_seq_length=max_seq_length,
+        dtype=py_utils.FPropDtype(p))
+    logits = _NewTensorArray(
+        name='logits',
+        max_seq_length=max_seq_length,
+        dtype=py_utils.FPropDtype(p))
+    fusion_array = [
+        _NewTensorArray(
+            name='fusion_states%d' % i,
             max_seq_length=max_seq_length,
-            dtype=py_utils.FPropDtype(p)),
-        logits=_NewTensorArray(
-            name='logits',
+            dtype=decoder_step_state_zero_fusion_flat[i].dtype)
+        for i in range(len(decoder_step_state_zero_fusion_flat))
+    ]
+    misc = [
+        _NewTensorArray(
+            name='misc_states%d' % i,
             max_seq_length=max_seq_length,
-            dtype=py_utils.FPropDtype(p)),
-        fusion=[
-            _NewTensorArray(
-                name='fusion_states%d' % i,
-                max_seq_length=max_seq_length,
-                dtype=decoder_step_state_zero_fusion_flat[i].dtype)
-            for i in range(len(decoder_step_state_zero_fusion_flat))
-        ],
-        misc=[
-            _NewTensorArray(
-                name='misc_states%d' % i,
-                max_seq_length=max_seq_length,
-                dtype=decoder_step_state_zero_misc_flat[i].dtype)
-            for i in range(len(decoder_step_state_zero_misc_flat))
-        ])
+            dtype=decoder_step_state_zero_misc_flat[i].dtype)
+        for i in range(len(decoder_step_state_zero_misc_flat))
+    ]
+    if p.confidence is None:
+      return AsrDecoder.SequenceOutTensorArrays(
+          rnn_outs=rnn_outs,
+          step_outs=step_outs,
+          atten_probs=atten_probs,
+          logits=logits,
+          fusion=fusion_array,
+          misc=misc)
+    else:
+      confidence_scores = _NewTensorArray(
+          name='confidence_scores',
+          max_seq_length=max_seq_length,
+          dtype=py_utils.FPropDtype(p))
+      return AsrDecoder.SequenceOutTensorArrays(
+          rnn_outs=rnn_outs,
+          step_outs=step_outs,
+          atten_probs=atten_probs,
+          logits=logits,
+          fusion=fusion_array,
+          misc=misc,
+          confidence_scores=confidence_scores)
 
   def _GetNewAttenProbs(self, seq_out_tas, time, decoder_step_state):
     """Update atten probs for a timestep and return the updated tensor array."""
@@ -864,19 +904,31 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       new_seq_outs_misc_states.append(seq_out_tas.misc[i].write(
           time, new_misc_states_flat[i]))
 
-    return AsrDecoder.SequenceOutTensorArrays(
-        rnn_outs=new_rnn_outs,
-        step_outs=new_step_outs_ta,
-        atten_probs=new_atten_probs_ta,
-        logits=new_logits_ta,
-        fusion=new_seq_outs_fusion_states,
-        misc=new_seq_outs_misc_states)
+    if self.params.confidence is not None:
+      new_confidence_scores_ta = seq_out_tas.confidence_scores.write(
+          time, decoder_step_state.confidence_scores)
+      return AsrDecoder.SequenceOutTensorArrays(
+          rnn_outs=new_rnn_outs,
+          step_outs=new_step_outs_ta,
+          atten_probs=new_atten_probs_ta,
+          logits=new_logits_ta,
+          fusion=new_seq_outs_fusion_states,
+          confidence_scores=new_confidence_scores_ta,
+          misc=new_seq_outs_misc_states)
+    else:
+      return AsrDecoder.SequenceOutTensorArrays(
+          rnn_outs=new_rnn_outs,
+          step_outs=new_step_outs_ta,
+          atten_probs=new_atten_probs_ta,
+          logits=new_logits_ta,
+          fusion=new_seq_outs_fusion_states,
+          misc=new_seq_outs_misc_states)
 
   def _GetAttenProbsFromSequenceOutTensorArrays(self, atten_probs):
     return tf.transpose(atten_probs.stack(), [1, 0, 2])
 
   def _GetPredictionFromSequenceOutTensorArrays(self, seq_out_tas):
-    return py_utils.NestedMap(
+    prediction = py_utils.NestedMap(
         # softmax_input is of shape [time, batch, dim] for compatibility.
         softmax_input=seq_out_tas.step_outs.stack(),
         # logits is of shape [batch, time, dim].
@@ -884,6 +936,11 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         attention=py_utils.NestedMap(
             probs=self._GetAttenProbsFromSequenceOutTensorArrays(
                 seq_out_tas.atten_probs)))
+    if self.params.confidence is not None:
+      # confidence_scores is of shape [batch, time].
+      prediction.confidence_scores = tf.transpose(
+          seq_out_tas.confidence_scores.stack())
+    return prediction
 
   def _GetInitialTargetInfo(self, targets, max_seq_length, target_embs):
     return AsrDecoderBase.TargetInfo(
@@ -964,10 +1021,30 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         decoder_step_state.logits = self.fusion.ComputeLogitsWithLM(
             decoder_step_state.fusion_states, decoder_step_state.logits)
 
+        if p.confidence is not None:
+          if p.lm_for_confidence:
+            lm_output = decoder_step_state.fusion_states.lm_output
+          else:
+            lm_output = None
+          confidence_features = self._ExtractConfidenceFeatures(
+              theta,
+              cur_target_info.label,
+              xent_loss.logits,
+              decoder_step_state.atten_probs,
+              lm_output=lm_output)
+          confidence_input = tf.concat([step_outs, confidence_features],
+                                       axis=-1)
+          decoder_step_state.confidence_scores = tf.squeeze(
+              self.confidence.FProp(theta.confidence,
+                                    tf.stop_gradient(confidence_input)),
+              axis=1)
+
         # Update SequenceOutTensorArrays.
         new_seq_out_tas = self._UpdateSequenceOutTensorArrays(
             decoder_step_state, time, step_outs, seq_out_tas)
         del decoder_step_state.logits
+        if hasattr(decoder_step_state, 'confidence_scores'):
+          del decoder_step_state.confidence_scores
         return (time + 1, decoder_step_state, target_info_tas, new_seq_out_tas)
 
       loop_vars = time, decoder_step_state_zero, target_info_tas, seq_out_tas
@@ -1085,12 +1162,35 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       # seq_logits: [time, batch, num_classes].
       adjusted_logits = self.fusion.ComputeLogitsWithLM(state0.fusion_states,
                                                         seq_logits)
+
+      # Forward confidence estimation module
+      if p.confidence is not None:
+        if p.lm_for_confidence:
+          lm_output = tf.transpose(state0.fusion_states.lm_output, [1, 0, 2])
+        else:
+          lm_output = None
+        confidence_features = self._ExtractConfidenceFeatures(
+            theta,
+            targets.labels,
+            tf.transpose(seq_logits, [1, 0, 2]),
+            tf.transpose(accumulated_states.atten_probs, [1, 0, 2]),
+            lm_output=lm_output)
+        confidence_input = tf.concat(
+            [tf.transpose(step_out, [1, 0, 2]), confidence_features], axis=-1)
+        confidence_scores = tf.squeeze(
+            self.confidence.FProp(theta.confidence,
+                                  tf.stop_gradient(confidence_input)),
+            axis=-1)
+
       predictions = py_utils.NestedMap(
           # Transpose to [batch, time, num_classes].
           logits_without_bias=tf.transpose(seq_logits, [1, 0, 2]),
           logits=tf.transpose(adjusted_logits, [1, 0, 2]),
           # softmax_input is of shape [time, batch, dim] for compatibility.
           softmax_input=softmax_input)
+      if p.confidence is not None:
+        # confidence_scores is of shape [batch, time], pre-sigmoid values
+        predictions.confidence_scores = confidence_scores
       attention_map = py_utils.NestedMap(
           probs=accumulated_states.atten_probs,
           contexts=accumulated_states.atten_context)
@@ -1114,6 +1214,43 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
               shape=tf.shape(softmax_input)[:-1], dtype=softmax_input.dtype),
           class_ids=tf.ones(shape=tf.shape(softmax_input)[:-1], dtype=tf.int32))
       return xent_loss.logits
+
+  def _ExtractConfidenceFeatures(self,
+                                 theta,
+                                 labels,
+                                 logits,
+                                 atten_dists,
+                                 topk=5,
+                                 lm_output=None):
+    target_embs = self.emb.EmbLookup(theta.emb, labels)
+    target_dists = tf.nn.softmax(logits)
+    target_probs = tf.exp(
+        -tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits))
+    target_top_probs = tf.math.top_k(target_dists, k=topk)[0]
+    target_top_prob_mean = tf.math.reduce_mean(
+        target_top_probs, axis=-1, keepdims=True)
+    target_top_prob_std = tf.math.reduce_std(
+        target_top_probs, axis=-1, keepdims=True)
+    atten_probs = tf.math.reduce_max(atten_dists, axis=-1, keepdims=True)
+    atten_top_probs = tf.math.top_k(atten_dists, k=topk)[0]
+    atten_top_prob_mean = tf.math.reduce_mean(
+        atten_top_probs, axis=-1, keepdims=True)
+    atten_top_prob_std = tf.math.reduce_std(
+        atten_top_probs, axis=-1, keepdims=True)
+    confidence_features = tf.concat([
+        target_embs,
+        tf.expand_dims(target_probs,
+                       axis=-1), target_top_prob_mean, target_top_prob_std,
+        atten_probs, atten_top_prob_mean, atten_top_prob_std
+    ],
+                                    axis=-1)
+    if lm_output is not None:
+      lm_probs = tf.exp(
+          -tf.nn.sparse_softmax_cross_entropy_with_logits(labels, lm_output))
+      confidence_features = tf.concat(
+          [confidence_features,
+           tf.expand_dims(lm_probs, axis=-1)], axis=-1)
+    return confidence_features
 
   def SingleDecodeStep(self,
                        theta,

@@ -29,85 +29,88 @@ from google.protobuf import text_format
 FLAGS = tf.flags.FLAGS
 
 
+def _DecoderParams(vn_config, num_classes=32, num_rnn_layers=1):
+  """Create a small decoder for testing."""
+  p = decoder.AsrDecoder.Params()
+  p.random_seed = 12345
+
+  p.name = 'decoder'
+  uniform_init = py_utils.WeightInit.Uniform(0.1, seed=12345)
+
+  # Set up embedding params.
+  p.emb.vocab_size = num_classes
+  p.emb.max_num_shards = 1
+  p.emb.params_init = uniform_init
+
+  # Set up decoder RNN layers.
+  p.rnn_layers = num_rnn_layers
+  rnn_params = p.rnn_cell_tpl
+  rnn_params.params_init = uniform_init
+
+  # Set up attention.
+  p.attention.hidden_dim = 16
+  p.attention.params_init = uniform_init
+
+  # Set up final softmax layer.
+  p.softmax.num_classes = num_classes
+  p.softmax.params_init = uniform_init
+
+  # Set up variational noise params.
+  p.vn = vn_config
+  p.vn.scale = tf.constant(0.1)
+
+  p.target_seq_len = 5
+  p.source_dim = 8
+  p.emb_dim = 2
+  p.rnn_cell_dim = 4
+
+  return p
+
+
+def _CreateSourceAndTargets(params):
+  """Creates encoder outputs and targets from params for the decoder."""
+  src_seq_len = 5
+  src_enc = tf.random.normal([src_seq_len, 2, 8],
+                             seed=982774838,
+                             dtype=py_utils.FPropDtype(params))
+  src_enc_padding = tf.constant(
+      [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+      dtype=py_utils.FPropDtype(params))
+  encoder_outputs = py_utils.NestedMap(encoded=src_enc, padding=src_enc_padding)
+  # shape=[4, 5]
+  target_ids = tf.transpose(
+      tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 15], [5, 6, 7, 8],
+                   [10, 5, 2, 5]],
+                  dtype=tf.int32))
+  # shape=[4, 5]
+  target_labels = tf.transpose(
+      tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 13], [5, 7, 8, 10],
+                   [10, 5, 2, 4]],
+                  dtype=tf.int32))
+  # shape=[4, 5]
+  target_paddings = tf.transpose(
+      tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0],
+                   [1, 1, 1, 0]],
+                  dtype=py_utils.FPropDtype(params)))
+  target_transcripts = tf.constant(['abcd', 'bcde', 'klmp', 'fghi', 'kfcf'])
+  target_weights = 1.0 - target_paddings
+  # ids/labels/weights/paddings are all in [batch, time] shape.
+  targets = py_utils.NestedMap({
+      'ids': target_ids,
+      'labels': target_labels,
+      'weights': target_weights,
+      'paddings': target_paddings,
+      'transcripts': target_transcripts,
+  })
+  return encoder_outputs, targets
+
+
 class DecoderTest(test_utils.TestCase):
-
-  def _DecoderParams(self,
-                     vn_config,
-                     num_classes=32,
-                     num_rnn_layers=1):
-    """Create a small decoder for testing."""
-    p = decoder.AsrDecoder.Params()
-    p.random_seed = 12345
-
-    p.name = 'decoder'
-    uniform_init = py_utils.WeightInit.Uniform(0.1, seed=12345)
-
-    # Set up embedding params.
-    p.emb.vocab_size = num_classes
-    p.emb.max_num_shards = 1
-    p.emb.params_init = uniform_init
-
-    # Set up decoder RNN layers.
-    p.rnn_layers = num_rnn_layers
-    rnn_params = p.rnn_cell_tpl
-    rnn_params.params_init = uniform_init
-
-    # Set up attention.
-    p.attention.hidden_dim = 16
-    p.attention.params_init = uniform_init
-
-    # Set up final softmax layer.
-    p.softmax.num_classes = num_classes
-    p.softmax.params_init = uniform_init
-
-    # Set up variational noise params.
-    p.vn = vn_config
-    p.vn.scale = tf.constant(0.1)
-
-    p.target_seq_len = 5
-    p.source_dim = 8
-    p.emb_dim = 2
-    p.rnn_cell_dim = 4
-
-    return p
 
   def _getDecoderFPropMetrics(self, params):
     """Creates decoder from params and computes metrics with random inputs."""
     dec = params.Instantiate()
-    src_seq_len = 5
-    src_enc = tf.random.normal([src_seq_len, 2, 8],
-                               seed=982774838,
-                               dtype=py_utils.FPropDtype(params))
-    src_enc_padding = tf.constant(
-        [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
-        dtype=py_utils.FPropDtype(params))
-    encoder_outputs = py_utils.NestedMap(
-        encoded=src_enc, padding=src_enc_padding)
-    # shape=[4, 5]
-    target_ids = tf.transpose(
-        tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 15], [5, 6, 7, 8],
-                     [10, 5, 2, 5]],
-                    dtype=tf.int32))
-    # shape=[4, 5]
-    target_labels = tf.transpose(
-        tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 13],
-                     [5, 7, 8, 10], [10, 5, 2, 4]],
-                    dtype=tf.int32))
-    # shape=[4, 5]
-    target_paddings = tf.transpose(
-        tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0],
-                     [1, 1, 1, 0]],
-                    dtype=py_utils.FPropDtype(params)))
-    target_transcripts = tf.constant(['abcd', 'bcde', 'klmp', 'fghi', 'kfcf'])
-    target_weights = 1.0 - target_paddings
-    # ids/labels/weights/paddings are all in [batch, time] shape.
-    targets = py_utils.NestedMap({
-        'ids': target_ids,
-        'labels': target_labels,
-        'weights': target_weights,
-        'paddings': target_paddings,
-        'transcripts': target_transcripts,
-    })
+    encoder_outputs, targets = _CreateSourceAndTargets(params)
     decoder_outputs = dec.FPropDefaultTheta(encoder_outputs, targets)
     return decoder_outputs.metrics, decoder_outputs.per_sequence['loss']
 
@@ -129,7 +132,7 @@ class DecoderTest(test_utils.TestCase):
     with cluster, self.session(use_gpu=False, config=config):
       tf.random.set_seed(8372749040)
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
-      p = self._DecoderParams(vn_config)
+      p = _DecoderParams(vn_config)
       p.rnn_layers = num_decoder_layers
       p.residual_start = residual_start
       p.target_seq_len = target_seq_len
@@ -178,7 +181,7 @@ class DecoderTest(test_utils.TestCase):
 
   def testDecoderConstruction(self):
     """Test that decoder can be constructed from params."""
-    p = self._DecoderParams(
+    p = _DecoderParams(
         vn_config=py_utils.VariationalNoiseParams(
             None, True, False, seed=12345))
     _ = decoder.AsrDecoder(p)
@@ -188,7 +191,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
 
-      p = self._DecoderParams(
+      p = _DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(
               None, True, False, seed=12345))
 
@@ -209,7 +212,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
 
-      p = self._DecoderParams(
+      p = _DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(
               None, True, False, seed=12345))
       p.token_normalized_per_seq_loss = True
@@ -220,7 +223,7 @@ class DecoderTest(test_utils.TestCase):
       metrics_val, per_sequence_loss_val = self.evaluate(
           [metrics, per_sequence_loss])
       tf.logging.info('metrics=%s, per_sequence_loss=%s', metrics_val,
-                           per_sequence_loss_val)
+                      per_sequence_loss_val)
 
       self.assertNotEqual(metrics_val['loss'][0], metrics_val['log_pplx'][0])
       self.assertAllClose(metrics_val['loss'], (3.484608, 4.0))
@@ -233,7 +236,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
 
-      p = self._DecoderParams(
+      p = _DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(
               None, True, False, seed=12345))
       rnn_cell_tpl = p.rnn_cell_tpl
@@ -258,7 +261,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
 
-      p = self._DecoderParams(
+      p = _DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(
               None, True, False, seed=12345))
       p.rnn_cell_hidden_dim = 6
@@ -276,7 +279,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
 
-      p = self._DecoderParams(
+      p = _DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(
               None, True, False, seed=12345))
       p.fprop_dtype = tf.float64
@@ -293,7 +296,7 @@ class DecoderTest(test_utils.TestCase):
     """Verify that attention dropout is deterministic given fixed seeds."""
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
-      p = self._DecoderParams(
+      p = _DecoderParams(
           py_utils.VariationalNoiseParams(None, True, False, seed=1792))
 
       p.use_while_loop_based_unrolling = False
@@ -329,7 +332,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
 
-      p = self._DecoderParams(vn_config=py_utils.VariationalNoiseParams(None))
+      p = _DecoderParams(vn_config=py_utils.VariationalNoiseParams(None))
       p.label_smoothing = lingvo_layers.LocalizedLabelSmoother.Params()
       p.label_smoothing.offsets = [-2, -1, 1, 2]
       p.label_smoothing.weights = [0.015, 0.035, 0.035, 0.015]
@@ -374,7 +377,7 @@ class DecoderTest(test_utils.TestCase):
       tf.random.set_seed(8372749040)
       np.random.seed(827374)
 
-      p = self._DecoderParams(
+      p = _DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(None, False, False))
       p.dtype = tf.float64
 
@@ -426,7 +429,7 @@ class DecoderTest(test_utils.TestCase):
       tf.random.set_seed(8372749040)
       np.random.seed(274854)
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
-      p = self._DecoderParams(vn_config)
+      p = _DecoderParams(vn_config)
       p.dtype = tf.float64
 
       dec = p.Instantiate()
@@ -550,7 +553,7 @@ class DecoderTest(test_utils.TestCase):
   def testDecoderBeamSearchDecode(self):
     np.random.seed(837575)
 
-    p = self._DecoderParams(
+    p = _DecoderParams(
         vn_config=py_utils.VariationalNoiseParams(None, False, False),
         num_classes=8)
     p.beam_search.num_hyps_per_beam = 4
@@ -594,7 +597,7 @@ class DecoderTest(test_utils.TestCase):
     self._VerifyHypothesesMatch(expected_hyp, decoded_hyp)
 
   def testDecoderSampleTargetSequences(self):
-    p = self._DecoderParams(
+    p = _DecoderParams(
         vn_config=py_utils.VariationalNoiseParams(None, False, False),
         num_classes=8)
     p.target_seq_len = 5
@@ -658,7 +661,7 @@ class DecoderTest(test_utils.TestCase):
   def testDecoderFPropWithSymbolicShape(self):
     """Create decoder with default params, and verify that FProp runs."""
     with self.session():
-      p = self._DecoderParams(
+      p = _DecoderParams(
           vn_config=py_utils.VariationalNoiseParams(
               None, True, False, seed=12345))
       p.rnn_cell_dim = symbolic.Symbol('rnn_cell_dim')
@@ -675,7 +678,7 @@ class DecoderTest(test_utils.TestCase):
       self.assertEqual(per_sequence_loss_val.shape, (4,))
 
   def testUpdateTargetVocabSize(self):
-    p = self._DecoderParams(
+    p = _DecoderParams(
         vn_config=py_utils.VariationalNoiseParams(
             None, True, False, seed=12345))
     p.label_smoothing = lingvo_layers.LocalizedLabelSmoother.Params()
@@ -698,7 +701,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
 
-      params = self._DecoderParams(
+      params = _DecoderParams(
           num_rnn_layers=2,
           vn_config=py_utils.VariationalNoiseParams(
               None, True, False, seed=12345))
@@ -759,6 +762,48 @@ class DecoderTest(test_utils.TestCase):
       self.assertEqual(metrics_val['loss'], metrics_val['log_pplx'])
       # Target batch size is 4. Therefore, we should expect 4 here.
       self.assertEqual(per_sequence_loss_val.shape, (4,))
+
+
+class DecoderWithConfidenceTest(test_utils.TestCase):
+
+  def _testComputePredictionsHelper(self,
+                                    use_while_loop_based_unrolling=False,
+                                    confidence_module=False):
+    """Create decoder and confidence prediction, and verify that FProp runs."""
+    with self.session():
+      p = _DecoderParams(
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
+      p.use_while_loop_based_unrolling = use_while_loop_based_unrolling
+      if confidence_module:
+        p.confidence = lingvo_layers.FeedForwardNet.Params()
+        p.confidence.hidden_layer_dims = [8, 1]
+        p.confidence.activation = ['RELU', 'NONE']
+
+      dec = p.Instantiate()
+      encoder_outputs, targets = _CreateSourceAndTargets(p)
+      predictions = dec.ComputePredictions(dec.theta, encoder_outputs, targets)
+
+      self.evaluate(tf.global_variables_initializer())
+      predictions_val = self.evaluate(predictions)
+      self.assertAllEqual(predictions_val['logits'].shape, [4, 5, 32])
+      self.assertAllEqual(predictions_val['softmax_input'].shape, [5, 4, 12])
+      if p.confidence is not None:
+        self.assertAllEqual(predictions_val['confidence_scores'].shape, [4, 5])
+
+  def testComputePredictionsDynamic(self):
+    self._testComputePredictionsHelper(use_while_loop_based_unrolling=True)
+
+  def testComputePredictionsFunctional(self):
+    self._testComputePredictionsHelper(use_while_loop_based_unrolling=False)
+
+  def testComputePredictionsDynamicWithConfidence(self):
+    self._testComputePredictionsHelper(
+        use_while_loop_based_unrolling=True, confidence_module=True)
+
+  def testComputePredictionsFunctionalWithConfidence(self):
+    self._testComputePredictionsHelper(
+        use_while_loop_based_unrolling=False, confidence_module=True)
 
 
 if __name__ == '__main__':

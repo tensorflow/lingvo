@@ -1177,6 +1177,19 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     with self.assertRaises(ValueError):
       py_utils.ShardedFilePatternToGlob(file_pattern)
 
+  def testComputeNceAndAuc(self):
+    probs = tf.constant([[1.0, 0.9, 0.8, 0.7, 0.6, 0.5],
+                         [0.5, 0.4, 0.3, 0.2, 0.1, 0.0]])
+    targets = tf.constant([[1., 1., 1., 0., 0., 1.], [1., 0., 1., 0., 0., 0.]])
+    mask = tf.constant([[1., 1., 1., 1., 1., 0.], [1., 1., 1., 1., 1., 1.]])
+    nce, auc = py_utils.ComputeNceAndAuc(probs, targets, mask)
+    with self.session():
+      self.evaluate(tf.local_variables_initializer())
+      nce_val, auc_val = self.evaluate([nce, auc])
+      print(nce_val, auc_val)
+      self.assertAllClose(0.315853, nce_val)
+      self.assertAllClose(0.846309, auc_val)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 

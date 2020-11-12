@@ -5943,3 +5943,32 @@ def ShardedFilePatternToGlob(file_pattern):
   if shards == '*':
     return f'{path}-?????-of-*'
   return f'{path}-?????-of-{int(shards):05}'
+
+
+def ComputeNceAndAuc(probs, targets, mask):
+  """Compute normalized cross entropy and AUC of the PR curve for a batch.
+
+  Args:
+    probs: a tensor of shape [batch, time].
+    targets: a tensor of shape [batch, time], where each element is either 0 or
+      1 indicating wrong or correct.
+    mask: a tensor of shape [batch, time], a mask for hyp sequence.
+
+  Returns:
+    nce: a tensor of shape [1], the normalized cross entropy value.
+    auc: a tensor of shape [1], the AUC value.
+  """
+
+  def LogWithClip(tensor, clip_value_min=1e-8):
+    """Clip all elements of a tensor to a minimum before taking log."""
+    return tf.math.log(tf.clip_by_value(tensor, clip_value_min, 1.0))
+
+  bce = -targets * LogWithClip(probs) - (1 - targets) * LogWithClip(1 - probs)
+  num_cor = tf.reduce_sum(targets * mask)
+  num_tokens = tf.reduce_sum(mask)
+  wcr = num_cor / num_tokens
+  entropy = -wcr * LogWithClip(wcr) - (1 - wcr) * LogWithClip(1 - wcr)
+  avg_conditional_entropy = tf.reduce_mean(tf.boolean_mask(bce, mask))
+  nce = (entropy - avg_conditional_entropy) / entropy
+  auc = tf.metrics.auc(targets, probs, mask, curve='PR')[1]
+  return nce, auc
