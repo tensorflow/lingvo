@@ -6091,6 +6091,35 @@
   <span class="k">if</span> <span class="n">shards</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
     <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">-?????-of-*&#39;</span>
   <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">-?????-of-</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">shards</span><span class="p">)</span><span class="si">:</span><span class="s1">05</span><span class="si">}</span><span class="s1">&#39;</span></div>
+
+
+<div class="viewcode-block" id="ComputeNceAndAuc"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeNceAndAuc">[docs]</a><span class="k">def</span> <span class="nf">ComputeNceAndAuc</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute normalized cross entropy and AUC of the PR curve for a batch.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    probs: a tensor of shape [batch, time].</span>
+<span class="sd">    targets: a tensor of shape [batch, time], where each element is either 0 or</span>
+<span class="sd">      1 indicating wrong or correct.</span>
+<span class="sd">    mask: a tensor of shape [batch, time], a mask for hyp sequence.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    nce: a tensor of shape [1], the normalized cross entropy value.</span>
+<span class="sd">    auc: a tensor of shape [1], the AUC value.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">LogWithClip</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">clip_value_min</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Clip all elements of a tensor to a minimum before taking log.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+
+  <span class="n">bce</span> <span class="o">=</span> <span class="o">-</span><span class="n">targets</span> <span class="o">*</span> <span class="n">LogWithClip</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">targets</span><span class="p">)</span> <span class="o">*</span> <span class="n">LogWithClip</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">probs</span><span class="p">)</span>
+  <span class="n">num_cor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">targets</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span>
+  <span class="n">num_tokens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+  <span class="n">wcr</span> <span class="o">=</span> <span class="n">num_cor</span> <span class="o">/</span> <span class="n">num_tokens</span>
+  <span class="n">entropy</span> <span class="o">=</span> <span class="o">-</span><span class="n">wcr</span> <span class="o">*</span> <span class="n">LogWithClip</span><span class="p">(</span><span class="n">wcr</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wcr</span><span class="p">)</span> <span class="o">*</span> <span class="n">LogWithClip</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wcr</span><span class="p">)</span>
+  <span class="n">avg_conditional_entropy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">bce</span><span class="p">,</span> <span class="n">mask</span><span class="p">))</span>
+  <span class="n">nce</span> <span class="o">=</span> <span class="p">(</span><span class="n">entropy</span> <span class="o">-</span> <span class="n">avg_conditional_entropy</span><span class="p">)</span> <span class="o">/</span> <span class="n">entropy</span>
+  <span class="n">auc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">auc</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">curve</span><span class="o">=</span><span class="s1">&#39;PR&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">nce</span><span class="p">,</span> <span class="n">auc</span></div>
 </pre></div>
 
            </div>

@@ -3200,6 +3200,29 @@ the exact definition of weight for eval metrics.</p>
 <dd><p>Converts a file pattern <a class="reference external" href="mailto:path&#37;&#52;&#48;shards">path<span>&#64;</span>shards</a> to path-?????-of-shards.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.py_utils.ComputeNceAndAuc">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeNceAndAuc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">probs</span></em>, <em class="sig-param"><span class="n">targets</span></em>, <em class="sig-param"><span class="n">mask</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeNceAndAuc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeNceAndAuc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute normalized cross entropy and AUC of the PR curve for a batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>probs</strong> – a tensor of shape [batch, time].</p></li>
+<li><p><strong>targets</strong> – a tensor of shape [batch, time], where each element is either 0 or
+1 indicating wrong or correct.</p></li>
+<li><p><strong>mask</strong> – a tensor of shape [batch, time], a mask for hyp sequence.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a tensor of shape [1], the normalized cross entropy value.
+auc: a tensor of shape [1], the AUC value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>nce</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
