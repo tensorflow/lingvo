@@ -29,12 +29,18 @@ namespace lingvo {
 
 // Simple tuple for book keeping during beam pruning.
 struct Hyp {
-  int32 beam_id;                // The beam that this hyp belongs to.
-  int32 hyp_id;                 // The hypothesis id.
-  int32 word_id;                // The id for the predicted next word.
-  float local_score;            // Local score from the current step.
-  float global_score;           // Cumulative score till the current step.
-  std::vector<int32> prev_ids;  // The (non-epsilon) token ids up to this step.
+  // The beam that this hyp belongs to.
+  int32 beam_id;
+  // The hypothesis id within a beam, ranges [0, num_hyps_per_beam).
+  int32 hyp_id;
+  // The id for the predicted next word (a.k.a expansion word, can be epsilon).
+  int32 word_id;
+  // Local score from the current step for word_id.
+  float local_score;
+  // Cumulative score up to the current step (inclusive).
+  float global_score;
+  // The (non-epsilon) token ids up to this step (before expansion).
+  std::vector<int32> prev_labels;
 
   string DebugString() const {
     return strings::StrCat(beam_id, " ", hyp_id, " ", word_id, " ", local_score,
@@ -227,6 +233,7 @@ class TopK {
 //
 // eos_in_topk is filled with true/false to indicate whether or not the eos
 // symbol is among the topk candidate for a hyp.
+// terminam_symbols stores the terminal token id (eos or eoc).
 void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const int32 k, const int32 m, const int32 eos_id,
                       const int32 eoc_id, const int32 num_beams,
@@ -236,7 +243,7 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       bool merge_paths, bool allow_empty_terminated_hyp,
                       std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
                       std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
-                      std::vector<int32>* terminal_symbol);
+                      std::vector<int32>* terminal_symbols);
 
 }  // namespace lingvo
 }  // namespace tensorflow

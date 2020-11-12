@@ -148,21 +148,21 @@ The following data structures are allocated before the first decoding step and
 are passed along from cur step to the next step:
 
 in_scores
-    A tensor of shape [t, b * k]. in_scores[i, j] is the local
+    A tensor of shape [t, k * b]. in_scores[i, j] is the local
     score of the j-th hyp at the i-th decoding step.
 in_hyps
-    A tensor of shape [t, b * k]. in_hyps[i, j] is the token id of the
+    A tensor of shape [t, k * b]. in_hyps[i, j] is the token id of the
     j-th hyp at the i-th decoding step.
 in_prev_hyps
-    A tensor of shape [t, b * k]. in_prev_hyps[i, j] stores a
+    A tensor of shape [t, k * b]. in_prev_hyps[i, j] stores a
     pointer of the j-th hyp at time step i to the hyp at previous timestep
-    (i - 1). 0 <= in_prev_hyps[i, j] < b * k.
+    (i - 1). 0 <= in_prev_hyps[i, j] < k * b.
 in_done_hyps
-    A tensor of shape [t, b * k]. in_done_hyps[i, j] can be either an
+    A tensor of shape [t, k * b]. in_done_hyps[i, j] can be either an
     empty string, or a serialized Hypothesis proto. Terminated hyps are removed
     from the beam and are moved to the corresponding in_done_hyps slot.
 in_atten_probs
-    A tensor of shape [t, b * k, s_len]. in_atten_probs[i, j, ...]
+    A tensor of shape [t, k * b, s_len]. in_atten_probs[i, j, ...]
     is the attention probs over the source words for the j-th hyp at the i-th
     timestep.
 
@@ -170,17 +170,17 @@ Those tensors are modified (with content for the cur_step timestep being filled
 in) within this op invocation and are passed to the corresponding output
 tensors.
 
-is_last_chunk: A tensor of shape [b * k]. Used by neural transducer, determine
+is_last_chunk: A tensor of shape [k * b]. Used by neural transducer, determine
     whether the current hypothesis reaches the last chunk and should treat the
     next end-of-chunk symbol as end-of-sentence.
-scores: A matrix of shape [b * k, vocab_size], where b is the number of
+scores: A matrix of shape [k * b, vocab_size], where b is the number of
     active beams, and k is the number of hyps in each beam. Local scores for the
     current timestep.
-atten_probs: A matrix of shape [b * k, source_len]. Attention probabilities
+atten_probs: A matrix of shape [k * b, source_len]. Attention probabilities
     for the current timestep.
 best_scores: A vector of size [b], best scores of terminated hyps so far in
     each of the beams.
-cumulative_scores: A vector of size [b * k]. The cumulative score of each
+cumulative_scores: A vector of size [k * b]. The cumulative score of each
     active hyp before the current step.
 in_scores: As explained above.
 in_hyps: As explained above.
@@ -191,7 +191,7 @@ cur_step: Current step id.
 out_best_scores:
     Updated best scores for each of the beams.
 out_cumulative_scores:
-    A vector of size [b * k]. The cumulative score of the new hyps after the
+    A vector of size [k * b]. The cumulative score of the new hyps after the
     current decoding step.
 out_scores:
     As explained above.
@@ -341,22 +341,22 @@ REGISTER_OP("HypsFromBeamSearchOuts")
 
 Generates `Hypothesis` protos from output of a beam search step.
 
-hyps: A tensor of shape [t, b * k] with ids of the token selected.
-prev_hyps: A tensor of shape [t, b * k] with index to the previous hyps which
+hyps: A tensor of shape [t, k * b] with ids of the token selected.
+prev_hyps: A tensor of shape [t, k * b] with index to the previous hyps which
     was selected.
-done_hyps: A boolean tensor of shape [t, b * k] where value indicates if hyps
+done_hyps: A boolean tensor of shape [t, k * b] where value indicates if hyps
     was terminated.
-scores: A tensor of shape [t, b * k]. in_scores[i, j] is the local score of
+scores: A tensor of shape [t, k * b]. in_scores[i, j] is the local score of
     the j-th hyp at the i-th decoding step.
-atten_probs:  A tensor of shape [t, b * k, s_len]. atten_probs[i, j, ...]
+atten_probs:  A tensor of shape [t, k * b, s_len]. atten_probs[i, j, ...]
     is the attention probs over the source words for the j-th hyp at the i-th
     timestep.
-eos_scores: A tensor of shape [t, b * k]. eos_scores[i, j] is the local
+eos_scores: A tensor of shape [t, k * b]. eos_scores[i, j] is the local
     score of the EOS token at the j-th hyp at the i-th decoding step.
-eos_atten_probs: A tensor of shape [t, b * k, s_len].
+eos_atten_probs: A tensor of shape [t, k * b, s_len].
     eos_atten_probs[i, j, ...] is the attention probs over the source words
     for the j-th terminated hyp at the i-th timestep.
-out_hyps: A tensor of shape [t, b * k] with terminated hyps.
+out_hyps: A tensor of shape [t, k * b] with terminated hyps.
 eos_id: Token id of the special end of sequence token.
 num_hyps_per_beam: Number of hyps per beam.
 )doc");

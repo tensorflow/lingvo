@@ -30,7 +30,7 @@ void Populate(T* top_k) {
   // Add 3 distinct hyps.
   float bottom_of_topk;
   // Hyp struct consists of:
-  //  beam_id, hyp_id, word_id, local_score, global_score, prev_ids
+  //  beam_id, hyp_id, word_id, local_score, global_score, prev_labels
   bottom_of_topk = top_k->Add({0, 2, 3, -0.4, -2.0, {1, 2, 3}});
   EXPECT_THAT(bottom_of_topk, FloatEq(std::numeric_limits<float>::lowest()));
   bottom_of_topk = top_k->Add({0, 1, 8, -0.7, -1.3, {1, 7, 2}});
@@ -85,11 +85,11 @@ bool IsDupe(const Hyp& hyp1, const Hyp& hyp2) {
   if (hyp1.word_id != hyp2.word_id) {
     return false;
   }
-  if (hyp1.prev_ids.size() != hyp2.prev_ids.size()) {
+  if (hyp1.prev_labels.size() != hyp2.prev_labels.size()) {
     return false;
   }
-  return std::equal(hyp1.prev_ids.begin(), hyp1.prev_ids.end(),
-                    hyp2.prev_ids.begin());
+  return std::equal(hyp1.prev_labels.begin(), hyp1.prev_labels.end(),
+                    hyp2.prev_labels.begin());
 }
 
 // Tests that when we use the default Insert, there is NO deduping.
