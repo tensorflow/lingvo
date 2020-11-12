@@ -273,21 +273,21 @@ maximum decoding steps.</p>
 <p>The following data structures are allocated before the first decoding step and
 are passed along from cur step to the next step:</p>
 <dl class="simple">
-<dt>in_scores</dt><dd><p>A tensor of shape [t, b * k]. in_scores[i, j] is the local
+<dt>in_scores</dt><dd><p>A tensor of shape [t, k * b]. in_scores[i, j] is the local
 score of the j-th hyp at the i-th decoding step.</p>
 </dd>
-<dt>in_hyps</dt><dd><p>A tensor of shape [t, b * k]. in_hyps[i, j] is the token id of the
+<dt>in_hyps</dt><dd><p>A tensor of shape [t, k * b]. in_hyps[i, j] is the token id of the
 j-th hyp at the i-th decoding step.</p>
 </dd>
-<dt>in_prev_hyps</dt><dd><p>A tensor of shape [t, b * k]. in_prev_hyps[i, j] stores a
+<dt>in_prev_hyps</dt><dd><p>A tensor of shape [t, k * b]. in_prev_hyps[i, j] stores a
 pointer of the j-th hyp at time step i to the hyp at previous timestep
-(i - 1). 0 &lt;= in_prev_hyps[i, j] &lt; b * k.</p>
+(i - 1). 0 &lt;= in_prev_hyps[i, j] &lt; k * b.</p>
 </dd>
-<dt>in_done_hyps</dt><dd><p>A tensor of shape [t, b * k]. in_done_hyps[i, j] can be either an
+<dt>in_done_hyps</dt><dd><p>A tensor of shape [t, k * b]. in_done_hyps[i, j] can be either an
 empty string, or a serialized Hypothesis proto. Terminated hyps are removed
 from the beam and are moved to the corresponding in_done_hyps slot.</p>
 </dd>
-<dt>in_atten_probs</dt><dd><p>A tensor of shape [t, b * k, s_len]. in_atten_probs[i, j, …]
+<dt>in_atten_probs</dt><dd><p>A tensor of shape [t, k * b, s_len]. in_atten_probs[i, j, …]
 is the attention probs over the source words for the j-th hyp at the i-th
 timestep.</p>
 </dd>
@@ -299,17 +299,17 @@ tensors.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-A matrix of shape [b * k, vocab_size], where b is the number of
+A matrix of shape [k * b, vocab_size], where b is the number of
 active beams, and k is the number of hyps in each beam. Local scores for the
 current timestep.</p></li>
 <li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-A matrix of shape [b * k, source_len]. Attention probabilities
+A matrix of shape [k * b, source_len]. Attention probabilities
 for the current timestep.</p></li>
 <li><p><strong>best_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
 A vector of size [b], best scores of terminated hyps so far in
 each of the beams.</p></li>
 <li><p><strong>cumulative_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
-A vector of size [b * k]. The cumulative score of each
+A vector of size [k * b]. The cumulative score of each
 active hyp before the current step.</p></li>
 <li><p><strong>in_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. As explained above.</p></li>
 <li><p><strong>in_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. As explained above.</p></li>
@@ -317,7 +317,7 @@ active hyp before the current step.</p></li>
 <li><p><strong>in_done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. As explained above.</p></li>
 <li><p><strong>in_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. As explained above.</p></li>
 <li><p><strong>is_last_chunk</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
-A tensor of shape [b * k]. Used by neural transducer, determine
+A tensor of shape [k * b]. Used by neural transducer, determine
 whether the current hypothesis reaches the last chunk and should treat the
 next end-of-chunk symbol as end-of-sentence.</p></li>
 <li><p><strong>cur_step</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. Current step id.</p></li>
@@ -368,7 +368,7 @@ empty hypothesis are returned and all_done is set to false at termination.</p></
 <dl class="simple">
 <dt>out_best_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>Updated best scores for each of the beams.</p>
 </dd>
-<dt>out_cumulative_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>A vector of size [b * k]. The cumulative score of the new hyps after the
+<dt>out_cumulative_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>A vector of size [k * b]. The cumulative score of the new hyps after the
 current decoding step.</p>
 </dd>
 <dt>out_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>As explained above.</p>
@@ -470,25 +470,25 @@ Sequences shorter than max_seq_length are padded with 0s. If max_seq_length is 0
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
-A tensor of shape [t, b * k] with ids of the token selected.</p></li>
+A tensor of shape [t, k * b] with ids of the token selected.</p></li>
 <li><p><strong>prev_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
-A tensor of shape [t, b * k] with index to the previous hyps which
+A tensor of shape [t, k * b] with index to the previous hyps which
 was selected.</p></li>
 <li><p><strong>done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
-A boolean tensor of shape [t, b * k] where value indicates if hyps
+A boolean tensor of shape [t, k * b] where value indicates if hyps
 was terminated.</p></li>
 <li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must be one of the following types: <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">bfloat16</span></code>.
-A tensor of shape [t, b * k]. in_scores[i, j] is the local score of
+A tensor of shape [t, k * b]. in_scores[i, j] is the local score of
 the j-th hyp at the i-th decoding step.</p></li>
 <li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
-A tensor of shape [t, b * k, s_len]. atten_probs[i, j, …]
+A tensor of shape [t, k * b, s_len]. atten_probs[i, j, …]
 is the attention probs over the source words for the j-th hyp at the i-th
 timestep.</p></li>
 <li><p><strong>eos_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
-A tensor of shape [t, b * k]. eos_scores[i, j] is the local
+A tensor of shape [t, k * b]. eos_scores[i, j] is the local
 score of the EOS token at the j-th hyp at the i-th decoding step.</p></li>
 <li><p><strong>eos_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
-A tensor of shape [t, b * k, s_len].
+A tensor of shape [t, k * b, s_len].
 eos_atten_probs[i, j, …] is the attention probs over the source words
 for the j-th terminated hyp at the i-th timestep.</p></li>
 <li><p><strong>eos_id</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Token id of the special end of sequence token.</p></li>
@@ -498,7 +498,7 @@ for the j-th terminated hyp at the i-th timestep.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
-A tensor of shape [t, b * k] with terminated hyps.</p>
+A tensor of shape [t, k * b] with terminated hyps.</p>
 </dd>
 </dl>
 </dd></dl>
