@@ -417,8 +417,10 @@ wrap_function = tf1.wrap_function
 # Explicit 1.x symbol import.
 data.make_initializable_iterator = dataset_ops.make_initializable_iterator
 data.make_one_shot_iterator = dataset_ops.make_one_shot_iterator
-# For `nn.embedding_lookup`, v2 doesn't have the arg 'partition_strategy' in
-# the API, and uses 'partition_strategy="div"' by default;
-# while v1 uses 'partition_strategy="mod"' by default. Keep this for now.
+# For `nn.embedding_lookup` and `nn.embedding_lookup_sparse`, v2 doesn't have
+# the arg 'partition_strategy' in the API, and uses 'partition_strategy="div"'
+# by default; while v1 uses 'partition_strategy="mod"' by default.
+# Keep this for now.
 nn.embedding_lookup = embedding_ops.embedding_lookup
+nn.embedding_lookup_sparse = embedding_ops.embedding_lookup_sparse
 # pylint: enable=undefined-variable

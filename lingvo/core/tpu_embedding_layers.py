@@ -351,12 +351,13 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
   def max_sequence_length(self):
     return self._max_sequence_length
 
-  def CpuEmbLookup(self, ids_map):
+  def CpuEmbLookup(self, ids_map, partition_strategy):
     """CPU evaluation embedding lookup.
 
     Args:
       ids_map: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
         -1 is used as a padding id.
+      partition_strategy: See TPUEmbeddingLayer partition_strategy param.
 
     Returns:
       An activations dict of string -> float32 Tensor.
@@ -369,7 +370,10 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     if self.max_sequence_length > 0:
       # "Sequence embedding", no combiner case
       for k, ids in ids_map.items():
-        embs = tf.nn.embedding_lookup(self.theta.wm, tf.reshape(ids, [-1]))
+        embs = tf.nn.embedding_lookup(
+            self.theta.wm,
+            tf.reshape(ids, [-1]),
+            partition_strategy=partition_strategy)
         out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
         rets[k] = tf.reshape(embs, out_shape)
     else:
@@ -392,7 +396,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
             self.theta.wm,
             sparse_ids,
             None,  # sp_weights
-            combiner=p.combiner)
+            combiner=p.combiner,
+            partition_strategy=partition_strategy)
         batch_size = dense_shape[0]
         # Explicitly pad results to maintain dim0=batch.
         dim0_padlen = tf.cast(batch_size, tf.int32) - tf.shape(embs)[0]
@@ -429,6 +434,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     p.Define(
         'lr_schedule', schedule.ContinuousSchedule.Params(),
         'Lingvo learning rate schedule. Will be multiplied to learning rate.')
+    p.Define(
+        'partition_strategy', 'div', 'A string, either "mod" or "div", '
+        'specifying how to map the lookup id to the embedding tensor. For '
+        'more information see `tf.nn.embedding_lookup_sparse`.')
     return p
 
   def __init__(self, params):
@@ -441,6 +450,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.optimizer
     assert p.learning_rate
     assert p.lr_schedule
+    assert p.partition_strategy in ['mod', 'div']
 
     num_tpu_hosts = p.tables[0].num_tpu_hosts
     assert all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
@@ -473,6 +483,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
+    p = self.params
 
     load_op_list = []
     retrieve_op_list = []
@@ -520,6 +531,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             master=None,
             pipeline_execution_with_tensor_core=(
                 self.params.pipeline_execution_with_tensor_core),
+            partition_strategy=p.partition_strategy,
             device_config=device_config)
         tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
 
@@ -545,6 +557,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
     """
+    p = self.params
 
     def TpuEmbLookup(ids_map):
       """TPU Embedding lookup."""
@@ -567,7 +580,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         table_id_map = {}
         for key in table.input_keys:
           table_id_map[key] = ids_map[key]
-        table_rets = table.CpuEmbLookup(table_id_map)
+        table_rets = table.CpuEmbLookup(table_id_map, p.partition_strategy)
         # Merge table_rets with rets
         for k, v in table_rets.items():
           rets[k] = v
