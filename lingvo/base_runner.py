@@ -86,6 +86,8 @@ class BaseRunner:
       with self._graph.as_default():
         self._early_stop.FProp(None)
 
+    self._init_input_ops = []
+
     self._SetStatusMessage('Starting ...')
 
   @property
@@ -296,6 +298,8 @@ class BaseRunner:
     with tf.container(self._container_id), sess:
       if self._initialize_tables is not None:
         sess.run(self._initialize_tables)
+      if self._init_input_ops:
+        sess.run(self._init_input_ops)
       gsteps = py_utils.GetGlobalStep()
       local_enqueue_steps = 0
 
