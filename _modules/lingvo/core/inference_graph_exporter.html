@@ -476,8 +476,8 @@
 <span class="sd">      freeze_defaults: Default initializes the graph and freeze. Useful for</span>
 <span class="sd">        early testing of downstream tools without having a checkpoint.</span>
 <span class="sd">      export_path: If not None, write the inference graph in ASCII to this path.</span>
-<span class="sd">      subgraph_filter: A list of subgraph names. If not None or empty, export</span>
-<span class="sd">        only this list of inference subgraphs.</span>
+<span class="sd">      subgraph_filter: A string or a list of subgraph names. If not None or</span>
+<span class="sd">        empty, export only this list of inference subgraphs.</span>
 <span class="sd">      random_seed: Fixes the random seed in the exported inference graph.</span>
 <span class="sd">      disable_packed_input: Disable packed input for inference writing purposes.</span>
 
@@ -492,6 +492,8 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;device_options{dtype_override,fprop_dtype_override) can not both be&#39;</span>
           <span class="s1">&#39;set.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">subgraph_filter</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraph_filter</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+      <span class="n">subgraph_filter</span> <span class="o">=</span> <span class="p">[</span><span class="n">subgraph_filter</span><span class="p">]</span>
 
     <span class="c1"># Disable assertions unless user explicitly enables it.</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="p">[</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">using_default_value</span><span class="p">:</span>
