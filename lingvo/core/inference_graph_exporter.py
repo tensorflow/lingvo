@@ -328,8 +328,8 @@ class InferenceGraphExporter:
       freeze_defaults: Default initializes the graph and freeze. Useful for
         early testing of downstream tools without having a checkpoint.
       export_path: If not None, write the inference graph in ASCII to this path.
-      subgraph_filter: A list of subgraph names. If not None or empty, export
-        only this list of inference subgraphs.
+      subgraph_filter: A string or a list of subgraph names. If not None or
+        empty, export only this list of inference subgraphs.
       random_seed: Fixes the random seed in the exported inference graph.
       disable_packed_input: Disable packed input for inference writing purposes.
 
@@ -344,6 +344,8 @@ class InferenceGraphExporter:
       raise ValueError(
           'device_options{dtype_override,fprop_dtype_override) can not both be'
           'set.')
+    if subgraph_filter and not isinstance(subgraph_filter, (tuple, list)):
+      subgraph_filter = [subgraph_filter]
 
     # Disable assertions unless user explicitly enables it.
     if FLAGS['enable_asserts'].using_default_value:
