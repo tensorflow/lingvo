@@ -1016,6 +1016,18 @@ class BaseModel(base_layer.BaseLayer):
     """
     pass
 
+  def Export(self, train_dir):
+    """Called by the checkpointer when a checkpoint is written.
+
+    This is entirely optional and is intended for models that have additional
+    information to save.
+
+    Args:
+      train_dir: Directory in which any additional files should be saved. This
+        is also the same directory where checkpoints will be written.
+    """
+    pass
+
 
 class SingleTaskBase(BaseModel):
   """Represents a single task from a model.
