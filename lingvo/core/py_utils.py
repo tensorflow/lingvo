@@ -2626,7 +2626,7 @@ def OverrideVarsFromCheckpoint(all_vars, checkpoint_path,
         unique_vars_to_load[k] = v
       else:
         remaining_vars_to_load.append((k, v))
-    savers.append(tf.train.Saver(var_list=unique_vars_to_load))
+    savers.append(tf.train.Saver(var_list=unique_vars_to_load, sharded=True))
     vars_to_load = remaining_vars_to_load
 
   def _Restore(sess):
