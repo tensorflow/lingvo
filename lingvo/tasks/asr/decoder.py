@@ -1023,17 +1023,18 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
         if p.confidence is not None:
           if p.lm_for_confidence:
-            lm_output = decoder_step_state.fusion_states.lm_output
+            lm_output = tf.expand_dims(
+                decoder_step_state.fusion_states.lm_output, axis=1)
           else:
             lm_output = None
           confidence_features = self._ExtractConfidenceFeatures(
               theta,
-              cur_target_info.label,
-              xent_loss.logits,
-              decoder_step_state.atten_probs,
+              tf.expand_dims(cur_target_info.label, axis=1),
+              tf.expand_dims(xent_loss.logits, axis=1),
+              tf.expand_dims(decoder_step_state.atten_probs, axis=1),
               lm_output=lm_output)
-          confidence_input = tf.concat([step_outs, confidence_features],
-                                       axis=-1)
+          confidence_input = tf.concat(
+              [step_outs, tf.squeeze(confidence_features, axis=1)], axis=-1)
           decoder_step_state.confidence_scores = tf.squeeze(
               self.confidence.FProp(theta.confidence,
                                     tf.stop_gradient(confidence_input)),
@@ -1224,8 +1225,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                  lm_output=None):
     target_embs = self.emb.EmbLookup(theta.emb, labels)
     target_dists = tf.nn.softmax(logits)
-    target_probs = tf.exp(
-        -tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits))
+    target_probs = py_utils.GetSoftmaxProbsBySeqIndices(
+        logits, labels, keepdims=True)
     target_top_probs = tf.math.top_k(target_dists, k=topk)[0]
     target_top_prob_mean = tf.math.reduce_mean(
         target_top_probs, axis=-1, keepdims=True)
@@ -1238,18 +1239,14 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     atten_top_prob_std = tf.math.reduce_std(
         atten_top_probs, axis=-1, keepdims=True)
     confidence_features = tf.concat([
-        target_embs,
-        tf.expand_dims(target_probs,
-                       axis=-1), target_top_prob_mean, target_top_prob_std,
+        target_embs, target_probs, target_top_prob_mean, target_top_prob_std,
         atten_probs, atten_top_prob_mean, atten_top_prob_std
     ],
                                     axis=-1)
     if lm_output is not None:
-      lm_probs = tf.exp(
-          -tf.nn.sparse_softmax_cross_entropy_with_logits(labels, lm_output))
-      confidence_features = tf.concat(
-          [confidence_features,
-           tf.expand_dims(lm_probs, axis=-1)], axis=-1)
+      lm_probs = py_utils.GetSoftmaxProbsBySeqIndices(
+          lm_output, labels, keepdims=True)
+      confidence_features = tf.concat([confidence_features, lm_probs], axis=-1)
     return confidence_features
 
   def SingleDecodeStep(self,

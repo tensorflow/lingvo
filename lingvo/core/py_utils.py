@@ -5972,3 +5972,52 @@ def ComputeNceAndAuc(probs, targets, mask):
   nce = (entropy - avg_conditional_entropy) / entropy
   auc = tf.metrics.auc(targets, probs, mask, curve='PR')[1]
   return nce, auc
+
+
+def GatherTensorValuesBySeqIndices(tensor, class_indices, keepdims=False):
+  """Gather values from a 3d tensor according to sequences of indices.
+
+  Args:
+    tensor: a 3d tensor of [dim0, dim1, num_class], e.g. output from softmax.
+    class_indices: a 2d tensor of [dim0, dim1], where the second dim is a
+      sequence of class indices between 0 to num_class - 1, inclusive.
+    keepdims: bool, expand the last dimension of the returned tensor if True.
+
+  Returns:
+    A tensor ret of [dim0, dim1], where
+      ret[b, t] = tensor[b, t, indices[b, t]].
+      If keepdims is True, then ret has shape [dim0, dim1, 1].
+  """
+  tensor = HasRank(tensor, 3)
+  class_indices = HasRank(class_indices, 2)
+  tensor = HasShape(tensor, GetShape(class_indices), 2)
+  dim0 = GetShape(class_indices)[0]
+  dim1 = GetShape(class_indices)[1]
+  dim0_indices = tf.tile(tf.expand_dims(tf.range(dim0), axis=-1), [1, dim1])
+  dim1_indices = tf.tile(tf.expand_dims(tf.range(dim1), axis=0), [dim0, 1])
+  gather_indices = tf.stack([
+      tf.cast(dim0_indices, dtype=class_indices.dtype),
+      tf.cast(dim1_indices, dtype=class_indices.dtype), class_indices
+  ],
+                            axis=-1)
+  ret = tf.gather_nd(tensor, gather_indices)
+  if keepdims:
+    ret = tf.expand_dims(ret, axis=-1)
+  return ret
+
+
+def GetSoftmaxProbsBySeqIndices(logits, indices, keepdims=False):
+  """Get softmax probabilities from index sequences given logits sequences.
+
+  Args:
+    logits: a tensor of [batch, time, num_class] or [time, batch, num_class].
+    indices: a tensor of [batch, time] or [time, batch].
+    keepdims: bool, expand the last dimension of the returned tensor if True.
+
+  Returns:
+    a tensor of [batch, time] or [time, batch] for the corresponding softmax
+      probabilities. If keepdims is True, returned tensor has a third dimension
+      of size 1.
+  """
+  probs = tf.nn.softmax(logits)
+  return GatherTensorValuesBySeqIndices(probs, indices, keepdims)

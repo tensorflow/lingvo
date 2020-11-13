@@ -1190,6 +1190,18 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(0.315853, nce_val)
       self.assertAllClose(0.846309, auc_val)
 
+  def testGetSoftmaxProbsBySeqIndices(self):
+    logits = tf.constant(
+        [[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+         [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]]],
+        dtype=tf.float32)
+    indices = tf.constant([[0, 1, 2], [1, 2, 3]])
+    y = py_utils.GetSoftmaxProbsBySeqIndices(logits, indices)
+    with tf.Session():
+      y_val = self.evaluate(y)
+      self.assertAllClose([[0.0320586, 0.08714432, 0.2368828],
+                           [0.08714432, 0.2368828, 0.6439142]], y_val)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 
