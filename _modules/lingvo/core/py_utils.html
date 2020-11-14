@@ -6120,6 +6120,55 @@
   <span class="n">nce</span> <span class="o">=</span> <span class="p">(</span><span class="n">entropy</span> <span class="o">-</span> <span class="n">avg_conditional_entropy</span><span class="p">)</span> <span class="o">/</span> <span class="n">entropy</span>
   <span class="n">auc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">auc</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">curve</span><span class="o">=</span><span class="s1">&#39;PR&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
   <span class="k">return</span> <span class="n">nce</span><span class="p">,</span> <span class="n">auc</span></div>
+
+
+<div class="viewcode-block" id="GatherTensorValuesBySeqIndices"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GatherTensorValuesBySeqIndices">[docs]</a><span class="k">def</span> <span class="nf">GatherTensorValuesBySeqIndices</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">class_indices</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Gather values from a 3d tensor according to sequences of indices.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensor: a 3d tensor of [dim0, dim1, num_class], e.g. output from softmax.</span>
+<span class="sd">    class_indices: a 2d tensor of [dim0, dim1], where the second dim is a</span>
+<span class="sd">      sequence of class indices between 0 to num_class - 1, inclusive.</span>
+<span class="sd">    keepdims: bool, expand the last dimension of the returned tensor if True.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor ret of [dim0, dim1], where</span>
+<span class="sd">      ret[b, t] = tensor[b, t, indices[b, t]].</span>
+<span class="sd">      If keepdims is True, then ret has shape [dim0, dim1, 1].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">tensor</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">class_indices</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">class_indices</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">tensor</span> <span class="o">=</span> <span class="n">HasShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">class_indices</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">dim0</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">class_indices</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">dim1</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">class_indices</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">dim0_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">dim0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim1</span><span class="p">])</span>
+  <span class="n">dim1_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">dim1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">dim0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">gather_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dim0_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">class_indices</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dim1_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">class_indices</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">class_indices</span>
+  <span class="p">],</span>
+                            <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">gather_indices</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">keepdims</span><span class="p">:</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="GetSoftmaxProbsBySeqIndices"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetSoftmaxProbsBySeqIndices">[docs]</a><span class="k">def</span> <span class="nf">GetSoftmaxProbsBySeqIndices</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get softmax probabilities from index sequences given logits sequences.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    logits: a tensor of [batch, time, num_class] or [time, batch, num_class].</span>
+<span class="sd">    indices: a tensor of [batch, time] or [time, batch].</span>
+<span class="sd">    keepdims: bool, expand the last dimension of the returned tensor if True.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    a tensor of [batch, time] or [time, batch] for the corresponding softmax</span>
+<span class="sd">      probabilities. If keepdims is True, returned tensor has a third dimension</span>
+<span class="sd">      of size 1.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">GatherTensorValuesBySeqIndices</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">keepdims</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
