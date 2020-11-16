@@ -33,6 +33,9 @@ from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 from lingvo.core import decoder_lib
 from model_pruning.python import pruning
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.tpu import tpu_embedding_gradient
+# pylint: enable=g-direct-tensorflow-import
 
 
 class DecodeFinalizeArgs(
@@ -631,13 +634,13 @@ class BaseTask(base_layer.BaseLayer):
 
     # If we are using Tpu Embeddings, generate the monolithic send
     # gradient op.
-    tpu_embedding_activations = tf.get_collection(
-        py_utils.TPU_EMBEDDING_ACTIVATIONS)
-    if tpu_embedding_activations:
-      tpu_embedding_activations_dict = tpu_embedding_activations[0]
+    if tf.get_collection(py_utils.TPU_EMBEDDING):
       tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
-      tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
-          self.loss, tpu_embedding_activations_dict, tpu_embedding)
+      sparse_grads = (
+          tpu_embedding_gradient.get_gradients_through_dummy_table_variables(
+              tpu_embedding))
+      tpu_embedding_send_gradient_op = tpu_embedding.generate_send_gradients_op(
+          sparse_grads, py_utils.GetGlobalStep())
       train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
 
       tpu_embedding_summary_tensors = tf.get_collection(

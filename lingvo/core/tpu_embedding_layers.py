@@ -23,6 +23,7 @@ from lingvo.core import schedule
 
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
+from tensorflow.python.tpu import tpu_embedding_gradient
 # pylint:enable=g-direct-tensorflow-import
 
 
@@ -485,14 +486,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     super()._CreateLayerVariables()
     p = self.params
 
-    load_op_list = []
-    retrieve_op_list = []
+    def _BuildTpuEmbeddingApi():
+      load_op_list = []
+      retrieve_op_list = []
 
-    # At the feature level, track which are associated
-    # with "sequence embeddings".
-    self._sequence_features = {}
-
-    if py_utils.use_tpu():
       num_cores = self.cluster.params.worker.tpus_per_replica
       global_batch_size = (
           self.params.batch_size * self.cluster.num_splits_per_client)
@@ -503,37 +500,60 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         load_op_list += table.load_op_list
         retrieve_op_list += table.retrieve_op_list
         for feature in table.input_keys:
-          if table.max_sequence_length > 0:
-            self._sequence_features[feature] = True
           feature_to_config_dict[feature] = tpu_embedding_lib.FeatureConfig(
               table.table_name, max_sequence_length=table.max_sequence_length)
-      tf.logging.info('adding load and retrieve ops to collection.')
+
+      mode = tpu_embedding_lib.TRAINING
+      device_config = tpu_embedding_lib.DeviceConfig(
+          num_cores=num_cores,
+          num_hosts=self.params.tables[0].num_tpu_hosts,
+          job_name=self.cluster.params.worker.name)
+      tpu_embedding = tpu_embedding_lib.TPUEmbedding(
+          table_to_config_dict,
+          feature_to_config_dict,
+          global_batch_size,
+          mode,
+          master=None,
+          pipeline_execution_with_tensor_core=(
+              self.params.pipeline_execution_with_tensor_core),
+          partition_strategy=p.partition_strategy,
+          device_config=device_config)
+
+      with tf.init_scope():
+        dummy_variables, dummy_variables_init = (
+            tpu_embedding_gradient.create_dummy_table_variables(tpu_embedding))
+      load_op_list += [dummy_variables_init]
+
+      tf.add_to_collection(py_utils.TPU_EMBEDDING, tpu_embedding)
+      tf.add_to_collection(py_utils.TPU_EMBEDDING_DUMMY_VARS, dummy_variables)
       tf.add_to_collection(py_utils.TPU_EMBEDDING_LOAD_OPS, load_op_list)
       tf.add_to_collection(py_utils.TPU_EMBEDDING_RETRIEVE_OPS,
                            retrieve_op_list)
 
+    if py_utils.use_tpu():
+      # At the feature level, track which are associated
+      # with "sequence embeddings".
+      self._sequence_features = {}
+      for table in self.tables:
+        for feature in table.input_keys:
+          if table.max_sequence_length > 0:
+            self._sequence_features[feature] = True
+
+      # Multiple TPUEmbeddingLayers can be created but we must have a singleton
+      # TPUEmbedding API object
       tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
       assert len(tpu_embedding_collection) <= 1
-      if len(tpu_embedding_collection) == 1:
-        tf.logging.info('TPUEmbedding API singleton already exists, reusing')
-        self._tpu_embedding = tpu_embedding_collection[0]
+      if not tpu_embedding_collection:
+        _BuildTpuEmbeddingApi()
       else:
-        mode = tpu_embedding_lib.TRAINING
-        device_config = tpu_embedding_lib.DeviceConfig(
-            num_cores=num_cores,
-            num_hosts=self.params.tables[0].num_tpu_hosts,
-            job_name=self.cluster.params.worker.name)
-        self._tpu_embedding = tpu_embedding_lib.TPUEmbedding(
-            table_to_config_dict,
-            feature_to_config_dict,
-            global_batch_size,
-            mode,
-            master=None,
-            pipeline_execution_with_tensor_core=(
-                self.params.pipeline_execution_with_tensor_core),
-            partition_strategy=p.partition_strategy,
-            device_config=device_config)
-        tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
+        tf.logging.info('TPUEmbedding API singleton already exists, reusing')
+
+      self._tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
+      self._dummy_variables = tf.get_collection(
+          py_utils.TPU_EMBEDDING_DUMMY_VARS)[0]
+      for k, v in self._dummy_variables.items():
+        self._private_vars[k] = v
+        self._private_theta[k] = v
 
   def EmbLookup(self, ids_map):
     """Looks up embedding vectors for each entry in ids_map.
@@ -563,9 +583,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       """TPU Embedding lookup."""
       del ids_map
       activations = self._tpu_embedding.get_activations()
-      tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS, activations)
+      new_activations = tpu_embedding_gradient.hook_dummy_table_variables_to_activations(
+          self._tpu_embedding, activations, self._dummy_variables)
       ret = py_utils.NestedMap()
-      for k, v in activations.items():
+      for k, v in new_activations.items():
         if k in self._sequence_features:
           ret[k] = v
         else:
