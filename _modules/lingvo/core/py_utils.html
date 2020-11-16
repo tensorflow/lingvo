@@ -296,7 +296,7 @@
 <span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span> <span class="o">=</span> <span class="s1">&#39;__lingvo_tpu_embedding_retrieve_ops&#39;</span>
 <span class="n">TPU_EMBEDDING</span> <span class="o">=</span> <span class="s1">&#39;__tpu_embedding&#39;</span>
 <span class="n">TPU_EMBEDDING_SUMMARY_TENSORS</span> <span class="o">=</span> <span class="s1">&#39;__tpu_embedding_summary_tensors&#39;</span>
-<span class="n">TPU_EMBEDDING_ACTIVATIONS</span> <span class="o">=</span> <span class="s1">&#39;__tpu_embedding_activations&#39;</span>
+<span class="n">TPU_EMBEDDING_DUMMY_VARS</span> <span class="o">=</span> <span class="s1">&#39;__tpu_embedding_dummy_vars&#39;</span>
 
 <span class="c1"># pylint: disable=protected-access</span>
 <span class="n">deprecation</span><span class="o">.</span><span class="n">_PRINT_DEPRECATION_WARNINGS</span> <span class="o">=</span> <span class="kc">False</span>
@@ -2864,27 +2864,6 @@
       <span class="n">aggregation_method</span><span class="o">=</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
       <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
       <span class="n">gate_gradients</span><span class="o">=</span><span class="n">gate_gradients</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="ComputeTpuEmbeddingGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeTpuEmbeddingGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeTpuEmbeddingGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">activation_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns a TpuEmbedding SendGradient op.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">   loss: The loss to backprop from.</span>
-<span class="sd">   activation_dict: String feature -&gt; embedding activations dict.</span>
-<span class="sd">   tpu_embedding: TPUEmbedding instance.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="c1"># Scale the loss to account for the full batch size.</span>
-  <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
-  <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
-  <span class="n">grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
-  <span class="n">feature_to_gradient_dict</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
-      <span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">grads</span><span class="p">))</span>
-  <span class="n">send_gradient_op</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
-      <span class="n">feature_to_gradient_dict</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">GetGlobalStep</span><span class="p">())</span>
-  <span class="k">return</span> <span class="n">send_gradient_op</span></div>
 
 
 <div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span>

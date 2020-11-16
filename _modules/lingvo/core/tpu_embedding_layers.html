@@ -171,6 +171,7 @@
 
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_embedding_gradient</span>
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 
@@ -633,14 +634,10 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">def</span> <span class="nf">_BuildTpuEmbeddingApi</span><span class="p">():</span>
+      <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="c1"># At the feature level, track which are associated</span>
-    <span class="c1"># with &quot;sequence embeddings&quot;.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">num_cores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span>
       <span class="n">global_batch_size</span> <span class="o">=</span> <span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
@@ -651,37 +648,60 @@
         <span class="n">load_op_list</span> <span class="o">+=</span> <span class="n">table</span><span class="o">.</span><span class="n">load_op_list</span>
         <span class="n">retrieve_op_list</span> <span class="o">+=</span> <span class="n">table</span><span class="o">.</span><span class="n">retrieve_op_list</span>
         <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">input_keys</span><span class="p">:</span>
-          <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">max_sequence_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
           <span class="n">feature_to_config_dict</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">FeatureConfig</span><span class="p">(</span>
               <span class="n">table</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">max_sequence_length</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;adding load and retrieve ops to collection.&#39;</span><span class="p">)</span>
+
+      <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
+      <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
+          <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
+          <span class="n">num_hosts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
+          <span class="n">job_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TPUEmbedding</span><span class="p">(</span>
+          <span class="n">table_to_config_dict</span><span class="p">,</span>
+          <span class="n">feature_to_config_dict</span><span class="p">,</span>
+          <span class="n">global_batch_size</span><span class="p">,</span>
+          <span class="n">mode</span><span class="p">,</span>
+          <span class="n">master</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">pipeline_execution_with_tensor_core</span><span class="o">=</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">),</span>
+          <span class="n">partition_strategy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">partition_strategy</span><span class="p">,</span>
+          <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+        <span class="n">dummy_variables</span><span class="p">,</span> <span class="n">dummy_variables_init</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">tpu_embedding_gradient</span><span class="o">.</span><span class="n">create_dummy_table_variables</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="p">))</span>
+      <span class="n">load_op_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">dummy_variables_init</span><span class="p">]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_DUMMY_VARS</span><span class="p">,</span> <span class="n">dummy_variables</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_LOAD_OPS</span><span class="p">,</span> <span class="n">load_op_list</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">,</span>
                            <span class="n">retrieve_op_list</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="c1"># At the feature level, track which are associated</span>
+      <span class="c1"># with &quot;sequence embeddings&quot;.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">input_keys</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">max_sequence_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+      <span class="c1"># Multiple TPUEmbeddingLayers can be created but we must have a singleton</span>
+      <span class="c1"># TPUEmbedding API object</span>
       <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tpu_embedding_collection</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
-      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tpu_embedding_collection</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPUEmbedding API singleton already exists, reusing&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">tpu_embedding_collection</span><span class="p">:</span>
+        <span class="n">_BuildTpuEmbeddingApi</span><span class="p">()</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
-        <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
-            <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
-            <span class="n">num_hosts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
-            <span class="n">job_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TPUEmbedding</span><span class="p">(</span>
-            <span class="n">table_to_config_dict</span><span class="p">,</span>
-            <span class="n">feature_to_config_dict</span><span class="p">,</span>
-            <span class="n">global_batch_size</span><span class="p">,</span>
-            <span class="n">mode</span><span class="p">,</span>
-            <span class="n">master</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">pipeline_execution_with_tensor_core</span><span class="o">=</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">),</span>
-            <span class="n">partition_strategy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">partition_strategy</span><span class="p">,</span>
-            <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span></div>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPUEmbedding API singleton already exists, reusing&#39;</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_dummy_variables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_DUMMY_VARS</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dummy_variables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Looks up embedding vectors for each entry in ids_map.</span>
@@ -711,9 +731,10 @@
       <span class="sd">&quot;&quot;&quot;TPU Embedding lookup.&quot;&quot;&quot;</span>
       <span class="k">del</span> <span class="n">ids_map</span>
       <span class="n">activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">get_activations</span><span class="p">()</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">,</span> <span class="n">activations</span><span class="p">)</span>
+      <span class="n">new_activations</span> <span class="o">=</span> <span class="n">tpu_embedding_gradient</span><span class="o">.</span><span class="n">hook_dummy_table_variables_to_activations</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">,</span> <span class="n">activations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dummy_variables</span><span class="p">)</span>
       <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">activations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">new_activations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span><span class="p">:</span>
           <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
         <span class="k">else</span><span class="p">:</span>

@@ -181,6 +181,9 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">task_scheduler</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">decoder_lib</span>
 <span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="kn">import</span> <span class="n">pruning</span>
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_embedding_gradient</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
 <div class="viewcode-block" id="DecodeFinalizeArgs"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DecodeFinalizeArgs">[docs]</a><span class="k">class</span> <span class="nc">DecodeFinalizeArgs</span><span class="p">(</span>
@@ -779,13 +782,13 @@
 
     <span class="c1"># If we are using Tpu Embeddings, generate the monolithic send</span>
     <span class="c1"># gradient op.</span>
-    <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
-      <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">):</span>
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">tpu_embedding_send_gradient_op</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeTpuEmbeddingGradients</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">)</span>
+      <span class="n">sparse_grads</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tpu_embedding_gradient</span><span class="o">.</span><span class="n">get_gradients_through_dummy_table_variables</span><span class="p">(</span>
+              <span class="n">tpu_embedding</span><span class="p">))</span>
+      <span class="n">tpu_embedding_send_gradient_op</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
+          <span class="n">sparse_grads</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
       <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;tpu_embedding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_send_gradient_op</span>
 
       <span class="n">tpu_embedding_summary_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
