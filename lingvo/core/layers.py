@@ -2806,6 +2806,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         'use_bias', True, 'Whether or not to use a bias variable.'
         'Not using bias is not compatible with sampled softmax '
         '(num_sampled > 0).')
+    p.Define('bias_init', 0, 'Weight initialization constant for bias.')
     return p
 
   def __init__(self, params):
@@ -2879,7 +2880,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
     pc = py_utils.WeightParams(
         shape=[num_classes_per_shard],
-        init=py_utils.WeightInit.Constant(0.0),
+        init=py_utils.WeightInit.Constant(scale=p.bias_init),
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
     if p.use_bias:
