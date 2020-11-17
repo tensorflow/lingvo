@@ -413,6 +413,7 @@ variable_scope = tf1.variable_scope
 where = tf1.where
 while_loop = tf1.while_loop
 wrap_function = tf1.wrap_function
+convert_to_tensor_or_indexed_slices = tf1.convert_to_tensor_or_indexed_slices
 
 # Explicit 1.x symbol import.
 data.make_initializable_iterator = dataset_ops.make_initializable_iterator
