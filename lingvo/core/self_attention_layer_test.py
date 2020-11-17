@@ -40,7 +40,6 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'num_splits': 1,
           'num_micro_batches': 2
       })
-
   def testTransformerStack(self, num_splits, num_micro_batches):
     with self.session(use_gpu=False) as sess:
       bs = 2
@@ -76,6 +75,125 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertAllEqual(actual_enc_out.shape, [bs, sl, d])
       self.assertAllClose(386.16741943359375, actual_enc_out_sum, atol=1e-5)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_v1_stack',
+          'use_v1_stack': True,
+      }, {
+          'testcase_name': '_baseline',
+          'first_n': None,
+      }, {
+          'testcase_name': '_first_1',
+          'first_n': 1,
+      }, {
+          'testcase_name': '_first_2',
+          'first_n': 2,
+      }, {
+          'testcase_name': '_stride_2',
+          'stride': 2,
+      })
+  def testTransformerStackV2(self, use_v1_stack=False, stride=1, first_n=None):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 21
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder = self_attention.Builder.Params().Set(
+          model_dim=d,
+          num_heads=2,
+          ff_hidden_dim=5,
+          deterministic_dropout=False,
+          num_splits=1,
+          num_micro_batches=1)
+      builder = atten_builder.Instantiate()
+      if use_v1_stack:
+        p = builder.TransformerStack('atten', num_layers=3)
+      else:
+        p = builder.TransformerStackV2(
+            'atten',
+            num_layers=3,
+            final_layer_stride=stride,
+            final_layer_first_n=first_n)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      self.assertAllEqual([
+          'atten/iter_000/block/ff/feedforward/bias01/b/var',
+          'atten/iter_000/block/ff/feedforward/bias02/b/var',
+          'atten/iter_000/block/ff/feedforward/linear01/w/var',
+          'atten/iter_000/block/ff/feedforward/linear02/w/var',
+          'atten/iter_000/block/ff/feedforward/ln/bias/var',
+          'atten/iter_000/block/ff/feedforward/ln/scale/var',
+          'atten/iter_000/block/self_atten/LN/bias/var',
+          'atten/iter_000/block/self_atten/LN/scale/var',
+          'atten/iter_000/block/self_atten/atten/key/b/var',
+          'atten/iter_000/block/self_atten/atten/key/w/var',
+          'atten/iter_000/block/self_atten/atten/per_dim_scale/per_dim_scale/var',
+          'atten/iter_000/block/self_atten/atten/post/b/var',
+          'atten/iter_000/block/self_atten/atten/post/w/var',
+          'atten/iter_000/block/self_atten/atten/query/b/var',
+          'atten/iter_000/block/self_atten/atten/query/w/var',
+          'atten/iter_000/block/self_atten/atten/value/b/var',
+          'atten/iter_000/block/self_atten/atten/value/w/var',
+          'atten/iter_001/block/ff/feedforward/bias01/b/var',
+          'atten/iter_001/block/ff/feedforward/bias02/b/var',
+          'atten/iter_001/block/ff/feedforward/linear01/w/var',
+          'atten/iter_001/block/ff/feedforward/linear02/w/var',
+          'atten/iter_001/block/ff/feedforward/ln/bias/var',
+          'atten/iter_001/block/ff/feedforward/ln/scale/var',
+          'atten/iter_001/block/self_atten/LN/bias/var',
+          'atten/iter_001/block/self_atten/LN/scale/var',
+          'atten/iter_001/block/self_atten/atten/key/b/var',
+          'atten/iter_001/block/self_atten/atten/key/w/var',
+          'atten/iter_001/block/self_atten/atten/per_dim_scale/per_dim_scale/var',
+          'atten/iter_001/block/self_atten/atten/post/b/var',
+          'atten/iter_001/block/self_atten/atten/post/w/var',
+          'atten/iter_001/block/self_atten/atten/query/b/var',
+          'atten/iter_001/block/self_atten/atten/query/w/var',
+          'atten/iter_001/block/self_atten/atten/value/b/var',
+          'atten/iter_001/block/self_atten/atten/value/w/var',
+          'atten/iter_002/block/ff/feedforward/bias01/b/var',
+          'atten/iter_002/block/ff/feedforward/bias02/b/var',
+          'atten/iter_002/block/ff/feedforward/linear01/w/var',
+          'atten/iter_002/block/ff/feedforward/linear02/w/var',
+          'atten/iter_002/block/ff/feedforward/ln/bias/var',
+          'atten/iter_002/block/ff/feedforward/ln/scale/var',
+          'atten/iter_002/block/self_atten/LN/bias/var',
+          'atten/iter_002/block/self_atten/LN/scale/var',
+          'atten/iter_002/block/self_atten/atten/key/b/var',
+          'atten/iter_002/block/self_atten/atten/key/w/var',
+          'atten/iter_002/block/self_atten/atten/per_dim_scale/per_dim_scale/var',
+          'atten/iter_002/block/self_atten/atten/post/b/var',
+          'atten/iter_002/block/self_atten/atten/post/w/var',
+          'atten/iter_002/block/self_atten/atten/query/b/var',
+          'atten/iter_002/block/self_atten/atten/query/w/var',
+          'atten/iter_002/block/self_atten/atten/value/b/var',
+          'atten/iter_002/block/self_atten/atten/value/w/var',
+      ], [var.op.name for var in tf.nest.flatten(l.vars)])
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      segment_mask = tf.zeros([bs, 1, sl, sl])
+
+      out = l.FPropDefaultTheta(
+          py_utils.NestedMap(
+              vec=input_embs, paddings=paddings, segment_mask=segment_mask))
+      enc_out = out.vec
+      if first_n is None:
+        first_n = sl
+      enc_out = py_utils.HasShape(enc_out,
+                                  [bs, (first_n + stride - 1) // stride, d])
+      # Only test the value of the first token.
+      enc_out = enc_out[:, :1, :]
+      tf.logging.info('enc_out={}'.format(enc_out.shape))
+      enc_out_sum = tf.reduce_sum(enc_out)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out, actual_enc_out_sum = sess.run([enc_out, enc_out_sum])
+      print('actual_enc_out_sum=', actual_enc_out_sum)
+
+      self.assertAllEqual(actual_enc_out.shape, [bs, 1, d])
+      self.assertAllClose(21.429626, actual_enc_out_sum, atol=1e-5)
 
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):

@@ -28,7 +28,6 @@ from lingvo.core import py_utils
 MultiHeadedSelfAttention = batch_major_attention.MultiHeadedAttention
 
 
-# pyformat: disable
 class Builder(batch_major_attention.Builder):
   """Builder for self-attention layers."""
 
@@ -43,7 +42,8 @@ class Builder(batch_major_attention.Builder):
 
     sub_list = [
         ('i.vec->after_ln', self._DefaultLN('LN')),
-        ('{}->after_att,unused_prob'.format(attention_inputs), self._MultiHeadedAtten('atten')),
+        ('{}->after_att,unused_prob'.format(attention_inputs),
+         self._MultiHeadedAtten('atten')),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
         ('{},after_dropout->o.vec'.format(input_to_add), self._Add('add')),
@@ -73,7 +73,33 @@ class Builder(batch_major_attention.Builder):
         'block_{}'.format(d)) for d in range(num_layers)]
     return self._MaybeSplit(name, blocks) or (
         self._Rep(name, num_layers, self._TransformerLayerBlock('block')))
-# pyformat: enable
+
+  def _StridedTransformerLayerBlock(self, name, *, stride=1, first_n=None):
+    """(inputs, paddings) -> (encoded, paddings)."""
+    return self._Seq(
+        name,
+        self._StridedAttention('self_atten', stride=stride, first_n=first_n),
+        self.Feedforward('ff'))
+
+  def TransformerStackV2(self,
+                         name,
+                         num_layers=1,
+                         *,
+                         final_layer_first_n=None,
+                         final_layer_stride=1):
+    """Returns a stack of num_layers self-attention layers."""
+    blocks = []
+    for i in range(num_layers):
+      if i < num_layers - 1:
+        stride, first_n = (1, None)
+      else:
+        stride, first_n = (final_layer_stride, final_layer_first_n)
+      blocks.append(
+          self._Seq(
+              'iter_%03d' % i,
+              self._StridedTransformerLayerBlock(
+                  'block', stride=stride, first_n=first_n)))
+    return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
 
 
 # TODO(huangyp): remove this layer after transition to nested maps is complete.
