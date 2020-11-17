@@ -168,14 +168,12 @@ from waymo_open_dataset.utils import range_image_utils
 from waymo_open_dataset.utils import transform_utils
 
 
-class WaymoOpenDatasetConverter(beam.DoFn):
-  """Converts WaymoOpenDataset into tf.Examples.  See file docstring."""
-
-  def __init__(self, emitter_fn):
-    self._emitter_fn = emitter_fn
+class FrameToTFE(object):
+  """Converter utility from car.open_dataset.Frame to tf.Examples."""
 
   def process(self, item):
     """Convert 'item' into tf.Example format."""
+    assert isinstance(item, dataset_pb2.Frame)
     output = tf.train.Example()
     feature = output.features.feature
 
@@ -236,7 +234,7 @@ class WaymoOpenDatasetConverter(beam.DoFn):
     self.extract_camera_calibrations(feature,
                                      list(camera_calibrations_dict.values()))
 
-    return self._emitter_fn(key, output)
+    return key, output
 
   def _get_range_image_pose(self, lasers):
     """Fetches the per-pixel pose information for the range image."""
@@ -528,6 +526,7 @@ class WaymoOpenDatasetConverter(beam.DoFn):
       points_xyz: A numpy array of shape [-1, 3] with the pointcloud. This is
         used to calculate the number of points in each 3D bounding box.
     """
+    del points_xyz
     label_classes = []
     label_ids = []
     detection_difficulty_levels = []
@@ -590,3 +589,15 @@ class WaymoOpenDatasetConverter(beam.DoFn):
     for nlz in no_label_zones:
       nlz_proto_strs += [tf.compat.as_bytes(nlz.SerializeToString())]
     feature['no_label_zones'].bytes_list.value[:] = nlz_proto_strs
+
+
+class WaymoOpenDatasetConverter(beam.DoFn):
+  """Converts WaymoOpenDataset into tf.Examples.  See file docstring."""
+
+  def __init__(self, emitter_fn):
+    self._emitter_fn = emitter_fn
+    self._converter = FrameToTFE()
+
+  def process(self, item):
+    key, output = self._converter.process(item)
+    return self._emitter_fn(key, output)
