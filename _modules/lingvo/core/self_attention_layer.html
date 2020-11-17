@@ -176,7 +176,6 @@
 <span class="n">MultiHeadedSelfAttention</span> <span class="o">=</span> <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">MultiHeadedAttention</span>
 
 
-<span class="c1"># pyformat: disable</span>
 <div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../lingvo.core.self_attention_layer.html#lingvo.core.self_attention_layer.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">batch_major_attention</span><span class="o">.</span><span class="n">Builder</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Builder for self-attention layers.&quot;&quot;&quot;</span>
 
@@ -191,7 +190,8 @@
 
     <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_ln&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;LN&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;after_att,unused_prob&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attention_inputs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MultiHeadedAtten</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;after_att,unused_prob&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attention_inputs</span><span class="p">),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_MultiHeadedAtten</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;after_att-&gt;after_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">,after_dropout-&gt;o.vec&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_to_add</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
@@ -220,8 +220,34 @@
     <span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_TransformerLayerBlock</span><span class="p">(</span>
         <span class="s1">&#39;block_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">)]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Rep</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TransformerLayerBlock</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">)))</span></div></div>
-<span class="c1"># pyformat: enable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Rep</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TransformerLayerBlock</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="Builder._StridedTransformerLayerBlock"><a class="viewcode-back" href="../../../lingvo.core.self_attention_layer.html#lingvo.core.self_attention_layer.Builder._StridedTransformerLayerBlock">[docs]</a>  <span class="k">def</span> <span class="nf">_StridedTransformerLayerBlock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;(inputs, paddings) -&gt; (encoded, paddings).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_StridedAttention</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Builder.TransformerStackV2"><a class="viewcode-back" href="../../../lingvo.core.self_attention_layer.html#lingvo.core.self_attention_layer.Builder.TransformerStackV2">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerStackV2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">name</span><span class="p">,</span>
+                         <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                         <span class="o">*</span><span class="p">,</span>
+                         <span class="n">final_layer_first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">final_layer_stride</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a stack of num_layers self-attention layers.&quot;&quot;&quot;</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">final_layer_stride</span><span class="p">,</span> <span class="n">final_layer_first_n</span><span class="p">)</span>
+      <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+              <span class="s1">&#39;iter_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_StridedTransformerLayerBlock</span><span class="p">(</span>
+                  <span class="s1">&#39;block&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">blocks</span><span class="p">)</span></div></div>
 
 
 <span class="c1"># TODO(huangyp): remove this layer after transition to nested maps is complete.</span>
