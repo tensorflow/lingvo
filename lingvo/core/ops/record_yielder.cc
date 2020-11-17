@@ -566,6 +566,7 @@ void BasicRecordYielder::ShardLoop(Shard* shard) {
     string key;
     Rope val;
     while (iter->Next(&key, &val)) {
+      LOG_EVERY_N_SEC(INFO, 10) << "Record: key=" << key;
       values.emplace_back(val);
       if (values.size() >= kRecordsPerAdd && Add(&values)) {
         shard->status = errors::Aborted("stopped");
