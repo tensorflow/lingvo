@@ -206,6 +206,8 @@ class Learner(base_layer.BaseLayer):
 
     assert py_utils.GetGlobalStep() is not None
     lr = self.LearningRate()
+    eval_metrics['learning_rate'] = (tf.convert_to_tensor(lr),
+                                     tf.convert_to_tensor(1.))
 
     var_update_op = self.optimizer.Apply(lr, var_grads)
     return losses, var_update_op, eval_metrics
