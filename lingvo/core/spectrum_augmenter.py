@@ -53,7 +53,7 @@ def _global_seed_from_inputs(input_floats):
     A tensor of shape=[2] with integer seed tensors derived from the inputs.
   """
   timestamp = tf.math.floormod(
-      tf.cast(tf.timestamp(), dtype=tf.int64), 10000000)
+      tf.cast(1000.0 * tf.timestamp(), dtype=tf.int64), 10000000000)
   input_sum = tf.cast(tf.reduce_sum(tf.math.abs(input_floats)), dtype=tf.int64)
   return tf.stack([timestamp + input_sum, timestamp - input_sum], axis=-1)
 
