@@ -2590,11 +2590,12 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – weights defined in this layer.</p></li>
-<li><p><strong>x</strong> – input tensor, [batch, time, …]. Stride is applied to the time dim.</p></li>
+<li><p><strong>x</strong> – input tensor, […, time, …]. Stride is applied to the time dim
+as given by p.axis.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Strided tensor, with the stride applied to the second dim in x.</p>
+<dd class="field-even"><p>Strided tensor, with the stride applied to the time dim in x.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2757,7 +2758,7 @@ Corresponding PyTorch Implementation (L587):
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder._Stride">
-<code class="sig-name descname">_Stride</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._Stride"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._Stride" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_Stride</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">axis</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._Stride"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._Stride" title="Permalink to this definition">¶</a></dt>
 <dd><p>Strides the input sequence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2772,6 +2773,7 @@ flag is a no-op. If stride is positive, the output sequence length is
 “(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
 1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
 used.</p></li>
+<li><p><strong>axis</strong> – along which axis to apply striding.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

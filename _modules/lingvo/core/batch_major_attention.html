@@ -4395,6 +4395,7 @@
         <span class="s1">&#39; output sequence length is &quot;(first_n-1) // stride + 1&quot;. If stride&#39;</span>
         <span class="s1">&#39; is 0, first_n has to be None or 1. first_n ca not be 0. If &#39;</span>
         <span class="s1">&#39;first_n &lt;= stride, only the first token is used.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;axis&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The axis to apply striding.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="StrideLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StrideLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
@@ -4402,44 +4403,47 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: weights defined in this layer.</span>
-<span class="sd">      x: input tensor, [batch, time, ...]. Stride is applied to the time dim.</span>
+<span class="sd">      x: input tensor, [..., time, ...]. Stride is applied to the time dim</span>
+<span class="sd">        as given by p.axis.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Strided tensor, with the stride applied to the second dim in x.</span>
+<span class="sd">      Strided tensor, with the stride applied to the time dim in x.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span>  <span class="c1"># x[:None:k] == x[::k]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">==</span> <span class="mi">1</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">first_n</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># x[:k:1]  == x[:k]</span>
+      <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span>
-
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span>
-
-    <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">::</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span></div>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">first_n</span><span class="p">:</span><span class="n">stride</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">first_n</span><span class="p">:</span><span class="n">stride</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">first_n</span><span class="p">:</span><span class="n">stride</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="StrideLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StrideLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">x</span><span class="p">,))</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),))</span>
+    <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span>
+    <span class="k">if</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">first_n</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span>
-      <span class="c1"># out_seq_len is 1 if first_n is 1 ~ stride and is 2 if it&#39;s stride+1 ~</span>
-      <span class="c1"># 2*stride...</span>
-      <span class="n">out_seq_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">+</span> <span class="mi">1</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">out_seq_len</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),))</span>
-
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,))</span>
-
+    <span class="n">out_seq_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">first_n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">stride</span> <span class="o">+</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),))</span></div></div>
+        <span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">out_seq_len</span><span class="p">]</span> <span class="o">+</span>
+                                 <span class="n">x</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]),))</span></div></div>
 
 
 <span class="c1"># pyformat: disable</span>
@@ -4748,7 +4752,7 @@
               <span class="n">convolution_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">blocks</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Builder._Stride"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Stride">[docs]</a>  <span class="k">def</span> <span class="nf">_Stride</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder._Stride"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Stride">[docs]</a>  <span class="k">def</span> <span class="nf">_Stride</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Strides the input sequence.</span>
 
 <span class="sd">    Args:</span>
@@ -4762,11 +4766,12 @@
 <span class="sd">        &quot;(first_n-1) // stride + 1&quot;. If stride is 0, first_n has to be None or</span>
 <span class="sd">        1. first_n can&#39;t be 0. If first_n &lt;= stride, only the first token is</span>
 <span class="sd">        used.</span>
+<span class="sd">      axis: along which axis to apply striding.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A layer params that does stride.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">StrideLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">StrideLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._StridedAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._StridedAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_StridedAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes self attention with optional stride.</span>
@@ -4792,13 +4797,18 @@
                     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">selfatten_add_unnormalized_input</span> <span class="k">else</span> <span class="s1">&#39;after_ln&#39;</span><span class="p">)</span>
 
     <span class="n">attention_inputs</span> <span class="o">=</span> <span class="s1">&#39;strided_query,after_ln,after_ln,i.paddings&#39;</span>
+    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
-      <span class="n">attention_inputs</span> <span class="o">+=</span> <span class="s1">&#39;,i.segment_mask&#39;</span>
+      <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;i.segment_mask-&gt;strided_segment_mask&#39;</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;segment_mask_query_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)),</span>
+      <span class="p">]</span>
+      <span class="n">attention_inputs</span> <span class="o">+=</span> <span class="s1">&#39;,strided_segment_mask&#39;</span>
 
     <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
 
-    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_ln&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;LN&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;after_ln-&gt;strided_query&#39;</span><span class="p">,</span>
@@ -4815,7 +4825,10 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;padding_after_Stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">)),</span>
     <span class="p">]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
-      <span class="n">sub_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;i.segment_mask-&gt;o.segment_mask&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;segment_mask&#39;</span><span class="p">)))</span>
+      <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;strided_segment_mask-&gt;o.segment_mask&#39;</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;segment_mask_context_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)),</span>
+      <span class="p">]</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
