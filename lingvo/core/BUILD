@@ -197,6 +197,7 @@ py_library(
         "//lingvo/core:conv_layers_with_time_padding",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
+        "//lingvo/core:moe_layers",
     ],
 )
 
