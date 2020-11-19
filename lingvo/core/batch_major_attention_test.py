@@ -2931,6 +2931,89 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       actual_enc_out = sess.run(enc_out)
       self.assertAllEqual([bs, out_seq_len, d], actual_enc_out.shape)
 
+  @parameterized.named_parameters({
+      'testcase_name': '_baseline',
+  }, {
+      'testcase_name': '_first_token',
+      'first_n': 1,
+  }, {
+      'testcase_name': '_pack_sequences',
+      'pack_sequences': 2,
+  }, {
+      'testcase_name': '_pack_sequences_first_token',
+      'pack_sequences': 2,
+      'first_n': 1,
+  })
+  def testStridingWithPackedInput(self, pack_sequences=None, first_n=None):
+    with self.session(use_gpu=False) as sess:
+      np.random.seed(123)
+      bs = 2
+      sl = 10
+      d = 16
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      segment_mask = None
+      if pack_sequences:
+        # Pack multiple original sequences into one, delineated with
+        # segment_mask.
+        input_embs = tf.reshape(input_embs,
+                                [bs // pack_sequences, pack_sequences * sl, d])
+        paddings = tf.reshape(paddings,
+                              [bs // pack_sequences, pack_sequences * sl])
+        segment_ids = tf.reshape(
+            tf.cumsum(tf.ones([bs, sl]), axis=0),
+            [bs // pack_sequences, pack_sequences * sl])
+        segment_mask = attention.SegmentMask(segment_ids, segment_ids)
+      tf.random.set_seed(12345)
+      atten_builder = attention.Builder.Params().Set(
+          model_dim=d,
+          num_heads=2,
+          ff_hidden_dim=5,
+          packed_input=pack_sequences is not None).Instantiate()
+      if first_n is None:
+        stride, atten_first_n = (1, None)
+      elif pack_sequences:
+        stride, atten_first_n = (sl, None)
+      else:
+        stride, atten_first_n = (0, 1)
+      p = atten_builder.TransformerEncoderLayer(
+          name='trans', stride=stride, first_n=atten_first_n)
+      p.random_seed = 1234
+      l = p.Instantiate()
+      l_in = py_utils.NestedMap(vec=input_embs, paddings=paddings)
+      if segment_mask is not None:
+        l_in.segment_mask = segment_mask
+      l_out = l.FPropDefaultTheta(l_in)
+      enc_out = l_out.vec
+      # Get the first token outputs.
+      if pack_sequences:
+        out_segment_mask = l_out.segment_mask
+        if first_n:
+          enc_out = py_utils.HasShape(enc_out,
+                                      [bs // pack_sequences, pack_sequences, d])
+          enc_out = tf.reshape(enc_out, [bs, d])
+          self.assertAllEqual(
+              out_segment_mask.shape,
+              [bs // pack_sequences, 1, pack_sequences, pack_sequences])
+        else:
+          enc_out = py_utils.HasShape(
+              enc_out, [bs // pack_sequences, pack_sequences * sl, d])
+          enc_out = tf.reshape(enc_out, [bs, sl, d])
+          enc_out = enc_out[:, 0, :]
+          self.assertAllEqual(out_segment_mask.shape, [
+              bs // pack_sequences, 1, pack_sequences * sl, pack_sequences * sl
+          ])
+      else:
+        if first_n:
+          enc_out = py_utils.HasShape(enc_out, [bs, 1, d])
+          enc_out = tf.reshape(enc_out, [bs, 1, d])
+        else:
+          enc_out = py_utils.HasShape(enc_out, [bs, sl, d])
+          enc_out = enc_out[:, 0, :]
+      tf.global_variables_initializer().run()
+      self.assertAllClose(20.82248, sess.run(tf.reduce_sum(enc_out)))
+
   def testEncoderLayerWithPerLayerParam(self):
     with self.session(use_gpu=False) as sess:
       bs = 2

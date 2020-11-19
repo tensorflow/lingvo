@@ -4247,6 +4247,7 @@ class StrideLayer(base_layer.BaseLayer):
         ' output sequence length is "(first_n-1) // stride + 1". If stride'
         ' is 0, first_n has to be None or 1. first_n ca not be 0. If '
         'first_n <= stride, only the first token is used.')
+    p.Define('axis', 1, 'The axis to apply striding.')
     return p
 
   def FProp(self, theta, x):
@@ -4254,44 +4255,47 @@ class StrideLayer(base_layer.BaseLayer):
 
     Args:
       theta: weights defined in this layer.
-      x: input tensor, [batch, time, ...]. Stride is applied to the time dim.
+      x: input tensor, [..., time, ...]. Stride is applied to the time dim
+        as given by p.axis.
 
     Returns:
-      Strided tensor, with the stride applied to the second dim in x.
+      Strided tensor, with the stride applied to the time dim in x.
     """
     p = self.params
     assert p.first_n is None or p.first_n > 0
+    assert p.axis in (1, 2, 3)
+
+    stride, first_n = p.stride, p.first_n  # x[:None:k] == x[::k]
     if p.stride == 0:
       assert p.first_n is None or p.first_n == 1
-      return tf.expand_dims(x[:, 0], 1)
+      first_n = 1  # x[:k:1]  == x[:k]
+      stride = 1
 
-    if p.first_n:
-      return x[:, :p.first_n:p.stride]
-
-    if p.stride == 1:
-      return x
-
-    return x[:, ::p.stride]
+    if p.axis == 1:
+      return x[:, :first_n:stride]
+    elif p.axis == 2:
+      return x[:, :, :first_n:stride]
+    elif p.axis == 3:
+      return x[:, :, :, :first_n:stride]
+    else:
+      return None
 
   @classmethod
   def FPropMeta(cls, p, x):
+    assert p.first_n is None or p.first_n > 0
+    assert p.axis in (1, 2, 3)
     py_utils.CheckShapes((x,))
-    if p.stride == 0:
-      return py_utils.NestedMap(
-          flops=1, out_shapes=(tshape.Shape(x[0:1] + [1] + x[2:]),))
+    stride, first_n = p.stride, p.first_n
+    if stride == 0:
+      stride, first_n = 1, 1
+    if first_n is None:
+      first_n = x[p.axis]
 
-    if p.first_n:
-      # out_seq_len is 1 if first_n is 1 ~ stride and is 2 if it's stride+1 ~
-      # 2*stride...
-      out_seq_len = (p.first_n - 1) // p.stride + 1
-      return py_utils.NestedMap(
-          flops=1, out_shapes=(tshape.Shape(x[0:1] + [out_seq_len] + x[2:]),))
-
-    if p.stride == 1:
-      return py_utils.NestedMap(flops=0, out_shapes=(x,))
-
+    out_seq_len = (first_n - 1) // stride + 1
     return py_utils.NestedMap(
-        flops=1, out_shapes=(tshape.Shape(x[0:1] + x[1] // p.stride + x[2:]),))
+        flops=1,
+        out_shapes=(tshape.Shape(x[0:p.axis] + [out_seq_len] +
+                                 x[p.axis + 1:]),))
 
 
 # pyformat: disable
@@ -4600,7 +4604,7 @@ class Builder(builder.Base):
               convolution_fn=None))
     return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
 
-  def _Stride(self, name, stride, first_n=None):
+  def _Stride(self, name, stride, first_n=None, axis=1):
     """Strides the input sequence.
 
     Args:
@@ -4614,11 +4618,12 @@ class Builder(builder.Base):
         "(first_n-1) // stride + 1". If stride is 0, first_n has to be None or
         1. first_n can't be 0. If first_n <= stride, only the first token is
         used.
+      axis: along which axis to apply striding.
 
     Returns:
       A layer params that does stride.
     """
-    return StrideLayer.Params().Set(stride=stride, first_n=first_n, name=name)
+    return StrideLayer.Params().Set(stride=stride, first_n=first_n, axis=axis, name=name)
 
   def _StridedAttention(self, name, stride=1, first_n=None, num_heads=None):
     """Computes self attention with optional stride.
@@ -4644,13 +4649,18 @@ class Builder(builder.Base):
                     if p.selfatten_add_unnormalized_input else 'after_ln')
 
     attention_inputs = 'strided_query,after_ln,after_ln,i.paddings'
+    sub_list = []
     if p.packed_input:
-      attention_inputs += ',i.segment_mask'
+      sub_list += [
+          ('i.segment_mask->strided_segment_mask',
+           self._Stride('segment_mask_query_stride', stride, first_n, axis=2)),
+      ]
+      attention_inputs += ',strided_segment_mask'
 
     if num_heads is None:
       num_heads = p.num_heads
 
-    sub_list = [
+    sub_list += [
         ('i.vec->after_ln',
          self._DefaultLN('LN')),
         ('after_ln->strided_query',
@@ -4667,7 +4677,10 @@ class Builder(builder.Base):
          self._Stride('padding_after_Stride', stride, first_n)),
     ]
     if p.packed_input:
-      sub_list.append(('i.segment_mask->o.segment_mask', self._Id('segment_mask')))
+      sub_list += [
+          ('strided_segment_mask->o.segment_mask',
+           self._Stride('segment_mask_context_stride', stride, first_n, axis=3)),
+      ]
 
     return self._Graph(
         name,
