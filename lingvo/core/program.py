@@ -226,6 +226,14 @@ class BaseProgram:
       return task_params.Instantiate(shared_model=self._shared_model)
     return task_params.Instantiate()
 
+  def _OutfeedEnqueue(self, per_example_tensors):
+    if not per_example_tensors:
+      return tf.no_op()
+    per_example_tensors = py_utils.NestedMap(per_example_tensors)
+    device = tpu.core(0) if self.spmd else ''
+    with tf.device(device):
+      return tpu_ops.outfeed_enqueue_tuple(per_example_tensors.Flatten())
+
 
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
@@ -234,14 +242,6 @@ class TrainProgram(BaseProgram):
     super().__init__(params, shared_model=shared_model, **kwargs)
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
-
-  def _OutfeedEnqueue(self, per_example_tensors):
-    if not per_example_tensors:
-      return tf.no_op()
-    per_example_tensors = py_utils.NestedMap(per_example_tensors)
-    device = tpu.core(0) if self.spmd else ''
-    with tf.device(device):
-      return tpu_ops.outfeed_enqueue_tuple(per_example_tensors.Flatten())
 
   def _OutfeedDequeueLoop(self, per_example_tensors, num_loops, num_devices):
     """Process all per-example tensor outfeed data for a TPU sess.run.
@@ -667,11 +667,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
         input_batch = self._task.input.TpuDequeueBatch()
         decode_dict = self._task.Decode(input_batch)
       self.decode_nm = py_utils.NestedMap(decode_dict)
-      device = tpu.core(0) if self.spmd else ''
-      with tf.device(device):
-        outfeed_enqueue = tpu_ops.outfeed_enqueue_tuple(
-            self.decode_nm.Flatten())
-        return [outfeed_enqueue]
+      return [self._OutfeedEnqueue(decode_dict)]
 
     @tpu_function.on_device_training_loop
     def DecodeLoopFn():
