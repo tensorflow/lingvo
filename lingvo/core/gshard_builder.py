@@ -1865,8 +1865,8 @@ class UniTransformer(base_model.BaseTask):
       return logits, aux_loss
 
   def _ComputeNonPadding(self, input_batch):
-    if 'paddings' in input_batch:
-      return 1.0 - input_batch
+    if 'paddings' in input_batch.tgt:
+      return 1.0 - input_batch.tgt.paddings
 
     non_padding = tf.cast(
         tf.not_equal(input_batch.tgt.segment_ids, 0),
