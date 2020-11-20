@@ -2013,8 +2013,8 @@
       <span class="k">return</span> <span class="n">logits</span><span class="p">,</span> <span class="n">aux_loss</span></div>
 
 <div class="viewcode-block" id="UniTransformer._ComputeNonPadding"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeNonPadding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="k">if</span> <span class="s1">&#39;paddings&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
-      <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span>
+    <span class="k">if</span> <span class="s1">&#39;paddings&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span>
 
     <span class="n">non_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
