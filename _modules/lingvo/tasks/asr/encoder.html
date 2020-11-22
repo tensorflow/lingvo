@@ -215,6 +215,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_cnn_layers&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of conv layers to create.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_conv_lstm_layers&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of conv lstm layers to create.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_lstm_layers&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Number of rnn layers to create&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;project_after_last_lstm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, add a final &#39;</span>
+        <span class="s1">&#39;projection layer after the last LSTM layer&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;project_lstm_output&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Include projection layer after each encoder LSTM layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pad_steps&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span>
@@ -362,7 +365,11 @@
       <span class="n">params_rnn_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rnn_p</span><span class="p">)</span>
       <span class="n">output_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">project_lstm_output</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">project_after_last_lstm</span><span class="p">:</span>
+        <span class="n">num_proj_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">num_proj_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">project_lstm_output</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_proj_layers</span><span class="p">):</span>
         <span class="n">proj_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
         <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
         <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
@@ -576,7 +583,12 @@
             <span class="k">else</span><span class="p">:</span>
               <span class="c1"># Residual skip connection.</span>
               <span class="n">rnn_out</span> <span class="o">+=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">residual_in</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">rnn_out</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">project_lstm_output</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">project_after_last_lstm</span><span class="p">:</span>
+          <span class="n">num_proj_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">num_proj_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">project_lstm_output</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_proj_layers</span><span class="p">):</span>
           <span class="c1"># Projection layers.</span>
           <span class="n">rnn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">proj</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">rnn_out</span><span class="p">,</span> <span class="n">rnn_padding</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
