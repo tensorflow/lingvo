@@ -67,6 +67,9 @@ class AsrEncoder(base_layer.BaseLayer):
     p.Define('num_cnn_layers', 2, 'Number of conv layers to create.')
     p.Define('num_conv_lstm_layers', 1, 'Number of conv lstm layers to create.')
     p.Define('num_lstm_layers', 3, 'Number of rnn layers to create')
+    p.Define(
+        'project_after_last_lstm', False, 'If True, add a final '
+        'projection layer after the last LSTM layer')
     p.Define('project_lstm_output', True,
              'Include projection layer after each encoder LSTM layer.')
     p.Define('pad_steps', 6,
@@ -214,7 +217,11 @@ class AsrEncoder(base_layer.BaseLayer):
       params_rnn_layers.append(rnn_p)
       output_dim = 2 * p.lstm_cell_size
 
-      if p.project_lstm_output and (i < p.num_lstm_layers - 1):
+      if p.project_after_last_lstm:
+        num_proj_layers = p.num_lstm_layers
+      else:
+        num_proj_layers = p.num_lstm_layers - 1
+      if p.project_lstm_output and (i < num_proj_layers):
         proj_p = p.proj_tpl.Copy()
         proj_p.input_dim = 2 * p.lstm_cell_size
         proj_p.output_dim = 2 * p.lstm_cell_size
@@ -428,7 +435,12 @@ class AsrEncoder(base_layer.BaseLayer):
             else:
               # Residual skip connection.
               rnn_out += py_utils.HasShape(residual_in, tf.shape(rnn_out))
-        if p.project_lstm_output and (i < p.num_lstm_layers - 1):
+
+        if p.project_after_last_lstm:
+          num_proj_layers = p.num_lstm_layers
+        else:
+          num_proj_layers = p.num_lstm_layers - 1
+        if p.project_lstm_output and (i < num_proj_layers):
           # Projection layers.
           rnn_out = self.proj[i].FProp(theta.proj[i], rnn_out, rnn_padding)
         if i == p.num_lstm_layers - 1:
