@@ -163,7 +163,7 @@ def GetOutputOpNames(graph,
       from these subgraphs are preserved. Otherwise, all subgraphs are included.
     preserve_colocation_nodes: a Python bool, default to True. Preserves nodes
       colocating with the closure of output ops in the returned array.
-    preserve_saver_restore_nodes: a Python bool, default to True. Preserves
+    preserve_saver_restore_nodes: a Python bool, default to False. Preserves
       nodes for restoring according to inference_graph_proto.saver_def.
     preserve_extra_ops: an optional list of extra op names to preserve as long
       as they present in the graph.
@@ -195,16 +195,19 @@ def GetOutputOpNames(graph,
       continue
     # Sometimes feeds aren't connected to any outputs but keep them in the graph
     # anyways to avoid errors.
-    for tensor_or_op_name in (
-        list(subgraph.feeds.values()) + list(subgraph.fetches.values())):
+    for tensor_or_op_name in (list(subgraph.feeds.values()) +
+                              list(subgraph.fetches.values())):
       output_op_names.add(_GetOpName(tensor_or_op_name))
 
   if preserve_saver_restore_nodes:
     # Only nodes for restoring is preserved. saver_def.save_tensor_name is
     # skipped because it's only used for saving.
     saver_def = inference_graph_proto.saver_def
-    output_op_names.add(_GetOpName(saver_def.filename_tensor_name))
-    output_op_names.add(_GetOpName(saver_def.restore_op_name))
+    for op_name in [saver_def.filename_tensor_name, saver_def.restore_op_name]:
+      try:
+        output_op_names.add(_GetOpName(op_name))
+      except KeyError:
+        tf.logging.info('Op/tensor %s not in the graph. Ignoring.' % op_name)
 
   if not preserve_colocation_nodes and not preserve_extra_ops:
     return sorted(list(output_op_names))
@@ -481,12 +484,13 @@ class InferenceGraphExporter:
     tf.logging.info('Graph contains ops: %r',
                     [op.name for op in graph.get_operations()])
 
-    inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
-
     # Freezing.
     if freeze_defaults or freeze_checkpoint:
       output_op_names = GetOutputOpNames(
-          graph, inference_graph_proto, preserve_colocation_nodes=False)
+          graph,
+          inference_graph_proto,
+          preserve_colocation_nodes=False,
+          preserve_saver_restore_nodes=False)
       if cls._DeviceSupportsFreezing(device_options):
         raise ValueError('freeze_checkpoint cannot be used with device ' +
                          device_options.device)
@@ -498,6 +502,7 @@ class InferenceGraphExporter:
         tf.logging.info('Default initializing graph and freezing.')
         graph_def = _FreezeDefaults(graph, output_op_names)
     else:
+      inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
       output_op_names = GetOutputOpNames(graph, inference_graph_proto)
 
       # Prune the graph to just the parts we need.
