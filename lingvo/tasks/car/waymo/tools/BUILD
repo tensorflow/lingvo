@@ -13,6 +13,7 @@ py_library(
     deps = [
         # Implicit apache_beam dependency.
         "//lingvo:compat",
+        "//lingvo/core:py_utils",
         "//lingvo/tasks/car:geometry",
         # Implicit numpy dependency.
         # Implicit Waymo Open Dataset proto dependency.

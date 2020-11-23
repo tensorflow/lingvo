@@ -162,6 +162,7 @@ import zlib
 
 import apache_beam as beam
 from lingvo import compat as tf
+from lingvo.core import py_utils
 import numpy as np
 from waymo_open_dataset import dataset_pb2
 from waymo_open_dataset.utils import range_image_utils
@@ -170,6 +171,19 @@ from waymo_open_dataset.utils import transform_utils
 
 class FrameToTFE(object):
   """Converter utility from car.open_dataset.Frame to tf.Examples."""
+
+  def __init__(self, use_range_image_index_as_lidar_feature=None):
+    """FrameToTFE.
+
+    Args:
+      use_range_image_index_as_lidar_feature: If True, the lidar point feature
+        is filled with the (row index, col index, NLZ) instead of (intensity,
+        elongation, NLZ). This is used _only_ for data processing code to
+        construct another range image that's parallel to the main range image
+        (e.g., the sceneflow range image).
+    """
+    self._use_range_image_index_as_lidar_feature = (
+        use_range_image_index_as_lidar_feature)
 
   def process(self, item):
     """Convert 'item' into tf.Example format."""
@@ -220,9 +234,8 @@ class FrameToTFE(object):
 
     # From the range images, also turn them into 3D point clouds.
     self.add_point_cloud(feature, laser_names, range_image_pose)
-    merged_pointcloud_xyz = self._get_merged_pointcloud(feature, laser_names)
 
-    self.add_labels(feature, item.laser_labels, merged_pointcloud_xyz)
+    self.add_labels(feature, item.laser_labels)
     self.add_no_label_zones(feature, item.no_label_zones)
 
     camera_calibrations_dict = ({
@@ -390,6 +403,10 @@ class FrameToTFE(object):
       laser_names: A list of laser names (e.g., 'TOP', 'REAR', 'SIDE_LEFT').
       range_image_pose: A range image pose Tensor for the GBR.
     """
+    # Stash metadata for laser. These metadata can be useful
+    # for reconstructing the range image.
+    self.laser_info = {}
+
     for laser_name in laser_names:
       beam_inclinations = np.array(feature['%s_beam_inclinations' %
                                            laser_name].float_list.value[:])
@@ -460,15 +477,26 @@ class FrameToTFE(object):
                 pixel_pose=batched_pixel_pose,
                 frame_pose=batched_frame_pose))
 
-        points_xyz = tf.gather_nd(range_image_cartesian[0],
-                                  tf.where(range_image_mask))
+        info = py_utils.NestedMap()
+        self.laser_info[laser_ri_name] = info
+        info.range_image = range_image
+        info.range_image_shape = range_image_shape
+
+        ri_indices = tf.where(range_image_mask)
+        points_xyz = tf.gather_nd(range_image_cartesian[0], ri_indices)
 
         # Fetch the features corresponding to each xyz coordinate and
         # concatentate them together.
         points_features = tf.cast(
-            tf.gather_nd(range_image[..., 1:], tf.where(range_image_mask)),
-            tf.float32)
-        points_data = tf.concat([points_xyz, points_features], axis=-1)
+            tf.gather_nd(range_image[..., 1:], ri_indices), tf.float32)
+        if self._use_range_image_index_as_lidar_feature:
+          points_data = tf.concat([
+              points_xyz,
+              tf.cast(ri_indices, tf.float32), points_features[..., 2:]
+          ],
+                                  axis=-1)
+        else:
+          points_data = tf.concat([points_xyz, points_features], axis=-1)
 
         # Add laser feature to output.
         #
@@ -476,17 +504,6 @@ class FrameToTFE(object):
         # and so we can reconstruct the number of points.
         points_list = list(points_data.numpy().reshape([-1]))
         feature['laser_%s' % laser_ri_name].float_list.value[:] = points_list
-
-  def _get_merged_pointcloud(self, feature, laser_names):
-    """From the feature list, get a merged pointcloud of all laser sources."""
-    points_list = []
-    for laser_name in laser_names:
-      for ri_type in ['ri1', 'ri2']:
-        laser_ri_name = '%s_%s' % (laser_name, ri_type)
-        points_xyz = np.array(feature['laser_%s' %
-                                      laser_ri_name].float_list.value[:])
-        points_list.append(np.reshape(points_xyz, (-1, 3)))
-    return np.concatenate(points_list, axis=0)
 
   def _single_frame_detection_difficulty(self, human_difficulty, num_points):
     """Create the `single_frame_detection_difficulty` field.
@@ -517,16 +534,13 @@ class FrameToTFE(object):
     else:
       return 1
 
-  def add_labels(self, feature, labels, points_xyz):
+  def add_labels(self, feature, labels):
     """Add 3d bounding box labels into the output feature map.
 
     Args:
       feature: A tf.Example feature map.
       labels: A repeated car.open_dataset.Label proto.
-      points_xyz: A numpy array of shape [-1, 3] with the pointcloud. This is
-        used to calculate the number of points in each 3D bounding box.
     """
-    del points_xyz
     label_classes = []
     label_ids = []
     detection_difficulty_levels = []
