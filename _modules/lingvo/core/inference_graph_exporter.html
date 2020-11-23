@@ -311,7 +311,7 @@
 <span class="sd">      from these subgraphs are preserved. Otherwise, all subgraphs are included.</span>
 <span class="sd">    preserve_colocation_nodes: a Python bool, default to True. Preserves nodes</span>
 <span class="sd">      colocating with the closure of output ops in the returned array.</span>
-<span class="sd">    preserve_saver_restore_nodes: a Python bool, default to True. Preserves</span>
+<span class="sd">    preserve_saver_restore_nodes: a Python bool, default to False. Preserves</span>
 <span class="sd">      nodes for restoring according to inference_graph_proto.saver_def.</span>
 <span class="sd">    preserve_extra_ops: an optional list of extra op names to preserve as long</span>
 <span class="sd">      as they present in the graph.</span>
@@ -343,16 +343,19 @@
       <span class="k">continue</span>
     <span class="c1"># Sometimes feeds aren&#39;t connected to any outputs but keep them in the graph</span>
     <span class="c1"># anyways to avoid errors.</span>
-    <span class="k">for</span> <span class="n">tensor_or_op_name</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span><span class="o">.</span><span class="n">values</span><span class="p">())):</span>
+    <span class="k">for</span> <span class="n">tensor_or_op_name</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">+</span>
+                              <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span><span class="o">.</span><span class="n">values</span><span class="p">())):</span>
       <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_GetOpName</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">))</span>
 
   <span class="k">if</span> <span class="n">preserve_saver_restore_nodes</span><span class="p">:</span>
     <span class="c1"># Only nodes for restoring is preserved. saver_def.save_tensor_name is</span>
     <span class="c1"># skipped because it&#39;s only used for saving.</span>
     <span class="n">saver_def</span> <span class="o">=</span> <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span>
-    <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_GetOpName</span><span class="p">(</span><span class="n">saver_def</span><span class="o">.</span><span class="n">filename_tensor_name</span><span class="p">))</span>
-    <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_GetOpName</span><span class="p">(</span><span class="n">saver_def</span><span class="o">.</span><span class="n">restore_op_name</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">op_name</span> <span class="ow">in</span> <span class="p">[</span><span class="n">saver_def</span><span class="o">.</span><span class="n">filename_tensor_name</span><span class="p">,</span> <span class="n">saver_def</span><span class="o">.</span><span class="n">restore_op_name</span><span class="p">]:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_GetOpName</span><span class="p">(</span><span class="n">op_name</span><span class="p">))</span>
+      <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Op/tensor </span><span class="si">%s</span><span class="s1"> not in the graph. Ignoring.&#39;</span> <span class="o">%</span> <span class="n">op_name</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="ow">not</span> <span class="n">preserve_colocation_nodes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">preserve_extra_ops</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
@@ -629,12 +632,13 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Graph contains ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>
 
-    <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
-
     <span class="c1"># Freezing.</span>
     <span class="k">if</span> <span class="n">freeze_defaults</span> <span class="ow">or</span> <span class="n">freeze_checkpoint</span><span class="p">:</span>
       <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span>
-          <span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">,</span> <span class="n">preserve_colocation_nodes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+          <span class="n">graph</span><span class="p">,</span>
+          <span class="n">inference_graph_proto</span><span class="p">,</span>
+          <span class="n">preserve_colocation_nodes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">preserve_saver_restore_nodes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_DeviceSupportsFreezing</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;freeze_checkpoint cannot be used with device &#39;</span> <span class="o">+</span>
                          <span class="n">device_options</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -646,6 +650,7 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Default initializing graph and freezing.&#39;</span><span class="p">)</span>
         <span class="n">graph_def</span> <span class="o">=</span> <span class="n">_FreezeDefaults</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
       <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">)</span>
 
       <span class="c1"># Prune the graph to just the parts we need.</span>
