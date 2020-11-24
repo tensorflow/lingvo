@@ -58,10 +58,10 @@ _PARSING_FUNCTIONS = {
 
 
 class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
-  """The base extractor for all V06+-derived Minecraft datasets.
+  """The base extractor for all lingvo car task datasets.
 
   Subclasses should define and pass in a custom dictionary of extractors to
-  select which fields from V06+ datasets to output from an input
+  select which fields from car datasets to output from an input
   generator.
 
   Preprocessors are applied to all the extracted outputs jointly, in the
