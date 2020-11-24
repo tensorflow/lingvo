@@ -1220,7 +1220,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Constructs a MultiHeadedAttention object."""
     super().__init__(params)
     p = self.params
-    assert symbolic.ToStatic(p.hidden_dim) % p.num_attention_heads == 0
+    assert symbolic.ToStatic(
+        p.hidden_dim) % p.num_attention_heads == 0, '%s mod %s != 0' % (
+            symbolic.ToStatic(p.hidden_dim), p.num_attention_heads)
 
     if p.proj_init not in ('uniform', 'default'):
       raise ValueError('Unknown proj_init: %s!' % p.proj_init)
