@@ -396,6 +396,67 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
     return ret
 
 
+class WaymoLaserSceneflowExtractor(WaymoLaserExtractor):
+  """Extracts the raw laser and sceneflow data from a WaymoOD tf.Example."""
+
+  def FeatureMap(self):
+    """Return a dictionary from tf.Example feature names to Features."""
+    p = self.params
+    features = super().FeatureMap()
+    for lidar in p.lidar_names:
+      for ri in p.lidar_returns:
+        features['%s_%s_flow' %
+                 (lidar, ri)] = tf.io.VarLenFeature(dtype=tf.float32)
+    return features
+
+  def _Extract(self, features):
+    """Returns the laser Tensor."""
+    p = self.params
+    ret = super()._Extract(features)
+
+    all_vxyz = []
+    all_classes = []
+    for lidar in p.lidar_names:
+      for ri in p.lidar_returns:
+        feature_name = '%s_%s_flow' % (lidar, ri)
+        laser_data = tf.reshape(_Dense(features[feature_name]), [-1, 3 + 1])
+        points_vxyz = laser_data[..., 0:3]
+        points_classes = laser_data[..., 3]
+
+        all_vxyz += [points_vxyz]
+        all_classes += [points_classes]
+
+    # Stack all of the points along the major dimension
+    points_vxyz = tf.concat(all_vxyz, axis=0)
+    points_class = tf.concat(all_classes, axis=0)
+
+    # The precomputed class uses -1 to mean 5 in our current code.
+    points_class = tf.where(
+        tf.less(points_class, 0), 5. * tf.ones_like(points_class), points_class)
+
+    if p.max_num_points is not None:
+      assert 'points_padding' in ret
+      points_vxyz = py_utils.PadOrTrimTo(points_vxyz, [p.max_num_points, 3])
+      points_class = py_utils.PadOrTrimTo(points_class, [p.max_num_points])
+
+    assert 'points_xyz' in ret
+    ret.world_flow = points_vxyz
+    ret.pointwise_class = tf.cast(points_class, tf.int32)
+    return ret
+
+  def Shape(self):
+    shape = super().Shape()
+    shape.world_flow = shape.points_xyz
+    shape.pointwise_class = shape.world_flow[:-1]
+    return shape
+
+  def DType(self):
+    dtype = super().DType()
+    dtype.world_flow = tf.float32
+    dtype.pointwise_class = tf.int32
+    return dtype
+
+
 class WaymoLabelExtractor(input_extractor.FieldsExtractor):
   """Extracts the bounding box and label info from a WaymoOD tf.Example.
 
