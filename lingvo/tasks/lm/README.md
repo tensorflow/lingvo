@@ -6,7 +6,7 @@ This directory contains libraries and models for training language models.
 The guide below is meant to illustrate how to train a GShard language model with one trillion parameters on GCP using
 CloudTPUs v3-512 using 512-way model parallelism.
 
-Reference to GShard: https://arxiv.org/abs/2006.16668
+Reference to the GShard paper: https://arxiv.org/abs/2006.16668
 
 ### Setup
 

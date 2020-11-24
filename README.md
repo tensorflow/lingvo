@@ -22,6 +22,7 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
     *   [Installation](#installation)
     *   [Running the MNIST image model](#running-the-mnist-image-model)
     *   [Running the machine translation model](#running-the-machine-translation-model)
+    *   [Running the GShard transformer based giant language model](#running-the-gshard-transformer-based-giant-language-model)
     *   [Running the 3d object detection model](#running-the-3d-object-detection-model)
 *   [Models](#models)
     *   [Automatic Speech Recognition](#automatic-speech-recognition)
@@ -237,6 +238,13 @@ To run a more elaborate model, you'll need a cluster with GPUs. Please refer to
 [`third_party/py/lingvo/tasks/mt/README.md`](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/README.md)
 for more information.
 
+### Running the GShard transformer based giant language model
+
+To train a GShard language model with one trillion parameters on GCP using
+CloudTPUs v3-512 using 512-way model parallelism, please refer to
+[`third_party/py/lingvo/tasks/lm/README.md`](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/README.md) for more information.
+
+
 ### Running the 3d object detection model
 
 To run the StarNet model using CloudTPUs on GCP, please refer to
@@ -264,11 +272,13 @@ To run the StarNet model using CloudTPUs on GCP, please refer to
 
 *   [lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/params/one_billion_wds.py)<sup>5</sup>
 
+*   [lm.synthetic_packed_input.DenseLm1T16x16](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/params/synthetic_packed_input.py)<sup>6</sup>
+
 ### Machine Translation
 
-*   [mt.wmt14_en_de.WmtEnDeTransformerBase](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>6</sup>
-*   [mt.wmt14_en_de.WmtEnDeRNMT](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>6</sup>
-*   [mt.wmtm16_en_de.WmtCaptionEnDeTransformer](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmtm16_en_de.py)<sup>6</sup>
+*   [mt.wmt14_en_de.WmtEnDeTransformerBase](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>7</sup>
+*   [mt.wmt14_en_de.WmtEnDeRNMT](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>7</sup>
+*   [mt.wmtm16_en_de.WmtCaptionEnDeTransformer](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmtm16_en_de.py)<sup>7</sup>
 
 <font size="-1">
 
@@ -294,7 +304,12 @@ Yann LeCun, Leon Bottou, Yoshua Bengio, and Patrick Haffner. IEEE 1998.
 Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui Wu.
 arXiv, 2016.
 
-\[6]: [The Best of Both Worlds: Combining Recent Advances in Neural Machine
+\[6]:
+[GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding](https://arxiv.org/pdf/2006.16668.pdf).
+Dmitry Lepikhin, HyoukJoong Lee, Yuanzhong Xu, Dehao Chen, Orhan Firat, Yanping Huang, Maxim Krikun, Noam Shazeer and Zhifeng Chen
+arXiv, 2020.
+
+\[7]: [The Best of Both Worlds: Combining Recent Advances in Neural Machine
 Translation](http://aclweb.org/anthology/P18-1008). Mia X. Chen, Orhan Firat,
 Ankur Bapna, Melvin Johnson, Wolfgang Macherey, George Foster, Llion Jones, Mike
 Schuster, Noam Shazeer, Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz
