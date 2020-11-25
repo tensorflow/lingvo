@@ -2385,13 +2385,19 @@
 
     <span class="k">def</span> <span class="nf">EmbGather</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Lookups embedding vectors.&quot;&quot;&quot;</span>
-      <span class="c1"># If tf.gather is used, the gradient for the wm will be represented as</span>
-      <span class="c1"># IndexedSlices which is sparse. tf.tpu.cross_replica_sum turns</span>
-      <span class="c1"># IndexedSlices into a dense tensor with undefined first dimension.</span>
-      <span class="c1"># This may cause issues on TPU so instead we just wrap this with</span>
-      <span class="c1"># tf.identity which allows tf.tpu.cross_replica_sum to properly compute</span>
-      <span class="c1"># the first dim.</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">embs</span><span class="p">),</span> <span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+        <span class="c1"># If tf.gather is used, the gradient for the wm will be represented as</span>
+        <span class="c1"># IndexedSlices which is sparse. tf.tpu.cross_replica_sum turns</span>
+        <span class="c1"># IndexedSlices into a dense tensor with undefined first dimension.</span>
+        <span class="c1"># This may cause issues on TPU so instead we just wrap this with</span>
+        <span class="c1"># tf.identity which allows tf.tpu.cross_replica_sum to properly compute</span>
+        <span class="c1"># the first dim.</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">embs</span><span class="p">),</span> <span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># The above fix tf.tpu_cross_replica_sum causes issues</span>
+        <span class="c1"># on inference graphs in which the EmbeddingLayer is on the host</span>
+        <span class="c1"># as the tf.identity prevents ResourceGather from being used.</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">embs</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">ids_vec</span><span class="p">)</span>
 
     <span class="n">xs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">embs</span><span class="o">=</span><span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="o">=</span><span class="n">ids_vec</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;matmul&#39;</span><span class="p">:</span>
