@@ -254,8 +254,13 @@ class ModelV2(BaseClassifier):
     with tf.ops.colocate_with(act):
       tf.logging.info("{}'s device: {}".format(act, act.device))
       # Softmax
-      labels = tf.cast(input_batch.label, tf.int64)
-      onehot_labels = tf.one_hot(labels, p.softmax.num_classes)
+      if py_utils.GetRank(input_batch.label) == 1:
+        # Create one_hot labels if rank is 1.
+        labels = tf.cast(input_batch.label, tf.int64)
+        onehot_labels = tf.one_hot(labels, p.softmax.num_classes)
+      else:
+        onehot_labels = input_batch.label
+        labels = tf.math.argmax(onehot_labels, axis=-1)
       if p.label_smoothing > 0:
         smooth_positives = 1.0 - p.label_smoothing
         smooth_negatives = p.label_smoothing / p.softmax.num_classes
