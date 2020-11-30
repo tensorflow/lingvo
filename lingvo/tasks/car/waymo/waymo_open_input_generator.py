@@ -407,6 +407,8 @@ class WaymoLaserSceneflowExtractor(WaymoLaserExtractor):
       for ri in p.lidar_returns:
         features['%s_%s_flow' %
                  (lidar, ri)] = tf.io.VarLenFeature(dtype=tf.float32)
+        features['laser_%s_%s_flow' %
+                 (lidar, ri)] = tf.io.VarLenFeature(dtype=tf.float32)
     return features
 
   def _Extract(self, features):
@@ -418,8 +420,14 @@ class WaymoLaserSceneflowExtractor(WaymoLaserExtractor):
     all_classes = []
     for lidar in p.lidar_names:
       for ri in p.lidar_returns:
-        feature_name = '%s_%s_flow' % (lidar, ri)
-        laser_data = tf.reshape(_Dense(features[feature_name]), [-1, 3 + 1])
+        feature_name = 'laser_%s_%s' % (lidar, ri)
+        laser_data = tf.reshape(
+            _Dense(features[feature_name]), [-1, 3 + p.num_features])
+        num = py_utils.GetShape(laser_data)[0]
+        # We expect lidar_$lidar_$ri and lidar_$lidar_$ri_flow has
+        # same number of points.
+        feature_name += '_flow'
+        laser_data = tf.reshape(_Dense(features[feature_name]), [num, 3 + 1])
         points_vxyz = laser_data[..., 0:3]
         points_classes = laser_data[..., 3]
 

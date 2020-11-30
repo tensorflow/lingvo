@@ -484,6 +484,7 @@ class FrameToTFE(object):
 
         ri_indices = tf.where(range_image_mask)
         points_xyz = tf.gather_nd(range_image_cartesian[0], ri_indices)
+        info.num_points = tf.shape(points_xyz).numpy()[0]
 
         # Fetch the features corresponding to each xyz coordinate and
         # concatentate them together.
