@@ -4815,7 +4815,8 @@
                                  <span class="n">label_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">label_probs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                 <span class="n">gamma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                                 <span class="n">gamma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">stop_gradient_on_focal_loss_coefficient</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sa">u</span><span class="sd">&quot;&quot;&quot;Focal loss for multinomial (softmax) logistic loss.</span>
 
 <span class="sd">  [1] Focal loss https://arxiv.org/abs/1708.02002</span>
@@ -4828,16 +4829,26 @@
 <span class="sd">      probability distribution.</span>
 <span class="sd">    alpha: [C]. The weighting factor alpha. Eq (3) in [1].</span>
 <span class="sd">    gamma: []. Tunable focusing parameter. Eq (4) in [1].</span>
+<span class="sd">    stop_gradient_on_focal_loss_coefficient: If true, stops gradient on the</span>
+<span class="sd">      focal loss coefficient (1-p)^gamma to stabilize the gradient.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    loss[i..., j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_ApplyFocalLossCoefficient</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">gamma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">gamma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span>
+      <span class="n">coefficient</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">probs</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">stop_gradient_on_focal_loss_coefficient</span><span class="p">:</span>
+        <span class="n">coefficient</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span>
+      <span class="n">loss</span> <span class="o">*=</span> <span class="n">coefficient</span>
+    <span class="k">return</span> <span class="n">loss</span>
+
   <span class="k">if</span> <span class="n">label_probs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
     <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">label_probs</span> <span class="o">*</span> <span class="n">log_probs</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">gamma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">gamma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span>
-      <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">probs</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">_ApplyFocalLossCoefficient</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">alpha</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span>
@@ -4846,9 +4857,7 @@
   <span class="k">else</span><span class="p">:</span>
     <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy_with_logits</span><span class="p">(</span>
         <span class="n">labels</span><span class="o">=</span><span class="n">label_ids</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">gamma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">gamma</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">loss</span><span class="p">)</span>
-      <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">probs</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">_ApplyFocalLossCoefficient</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="o">-</span><span class="n">loss</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">label_ids</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">loss</span></div>

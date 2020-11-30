@@ -2612,7 +2612,7 @@ Otherwise, these ops produce inconsistent values between FProp and BProp.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">SoftmaxCrossEntropyFocalLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logits</span></em>, <em class="sig-param"><span class="n">label_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_probs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">alpha</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gamma</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SoftmaxCrossEntropyFocalLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">SoftmaxCrossEntropyFocalLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logits</span></em>, <em class="sig-param"><span class="n">label_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_probs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">alpha</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gamma</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">stop_gradient_on_focal_loss_coefficient</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SoftmaxCrossEntropyFocalLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SoftmaxCrossEntropyFocalLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Focal loss for multinomial (softmax) logistic loss.</p>
 <p>[1] Focal loss <a class="reference external" href="https://arxiv.org/abs/1708.02002">https://arxiv.org/abs/1708.02002</a></p>
 <dl class="field-list simple">
@@ -2625,6 +2625,8 @@ number of classes.</p></li>
 probability distribution.</p></li>
 <li><p><strong>alpha</strong> – [C]. The weighting factor alpha. Eq (3) in [1].</p></li>
 <li><p><strong>gamma</strong> – []. Tunable focusing parameter. Eq (4) in [1].</p></li>
+<li><p><strong>stop_gradient_on_focal_loss_coefficient</strong> – If true, stops gradient on the
+focal loss coefficient (1-p)^gamma to stabilize the gradient.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
