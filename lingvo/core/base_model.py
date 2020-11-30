@@ -647,7 +647,7 @@ class BaseTask(base_layer.BaseLayer):
           py_utils.TPU_EMBEDDING_SUMMARY_TENSORS)
       if add_summary:
         for name, value, weight in tpu_embedding_summary_tensors:
-          self.AddEvalMetric(name, value, weight)
+          self.AddEvalMetric(name, value, weight, raise_if_already_added=False)
 
     for op_name, op in train_ops.items():
       assert op is not None, op_name
@@ -830,20 +830,22 @@ class BaseTask(base_layer.BaseLayer):
     """
     return self._per_example
 
-  def AddEvalMetric(self, name, value, weight):
+  def AddEvalMetric(self, name, value, weight, raise_if_already_added=True):
     """Adds a metric to the eval metrics.
 
     Args:
       name: A python string. The name of the metric.
       value: A scalar Tensor.
       weight: A scalar Tensor.
+      raise_if_already_added: If the metric already exists, raise a ValueError.
 
     Raises:
       ValueError: if `name` is already defined.
 
     """
     if name in self._eval_metrics and not tf.executing_eagerly():
-      raise ValueError('Metric %s has already been defined.' % name)
+      if raise_if_already_added:
+        raise ValueError('Metric %s has already been defined.' % name)
     self._eval_metrics[name] = (value, weight)
 
   def AddPerExampleTensor(self, name, value):
