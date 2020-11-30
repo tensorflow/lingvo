@@ -4667,7 +4667,8 @@ def SoftmaxCrossEntropyFocalLoss(logits,
                                  label_ids=None,
                                  label_probs=None,
                                  alpha=None,
-                                 gamma=None):
+                                 gamma=None,
+                                 stop_gradient_on_focal_loss_coefficient=False):
   u"""Focal loss for multinomial (softmax) logistic loss.
 
   [1] Focal loss https://arxiv.org/abs/1708.02002
@@ -4680,16 +4681,26 @@ def SoftmaxCrossEntropyFocalLoss(logits,
       probability distribution.
     alpha: [C]. The weighting factor alpha. Eq (3) in [1].
     gamma: []. Tunable focusing parameter. Eq (4) in [1].
+    stop_gradient_on_focal_loss_coefficient: If true, stops gradient on the
+      focal loss coefficient (1-p)^gamma to stabilize the gradient.
 
   Returns:
     loss[i..., j] = FL(pₜ) = - αₜ(1-pₜ)ˠlog(pₜ) Eq (5) in [1].
   """
+
+  def _ApplyFocalLossCoefficient(loss, log_probs):
+    if gamma is not None and gamma != 0:
+      probs = tf.exp(log_probs)
+      coefficient = tf.pow(1.0 - probs, gamma)
+      if stop_gradient_on_focal_loss_coefficient:
+        coefficient = tf.stop_gradient(coefficient)
+      loss *= coefficient
+    return loss
+
   if label_probs is not None:
     log_probs = tf.nn.log_softmax(logits)
     loss = -(label_probs * log_probs)
-    if gamma is not None and gamma != 0:
-      probs = tf.exp(log_probs)
-      loss *= tf.pow(1.0 - probs, gamma)
+    loss = _ApplyFocalLossCoefficient(loss, log_probs)
     if alpha is not None:
       loss *= tf.reshape(
           alpha, tf.concat([tf.ones(tf.rank(loss) - 1, tf.int32), [-1]],
@@ -4698,9 +4709,7 @@ def SoftmaxCrossEntropyFocalLoss(logits,
   else:
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
         labels=label_ids, logits=logits)
-    if gamma is not None and gamma != 0:
-      probs = tf.exp(-loss)
-      loss *= tf.pow(1.0 - probs, gamma)
+    loss = _ApplyFocalLossCoefficient(loss, -loss)
     if alpha is not None:
       loss *= tf.gather(alpha, label_ids)
   return loss

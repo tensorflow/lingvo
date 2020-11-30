@@ -18,6 +18,7 @@
 import collections
 import copy
 import itertools
+import math
 import os
 import sys
 
@@ -2813,7 +2814,7 @@ class ReadFileLinesTest(test_utils.TestCase):
       py_utils.ReadFileLines(path)
 
 
-class FocalLossTest(test_utils.TestCase):
+class FocalLossTest(parameterized.TestCase, test_utils.TestCase):
 
   def _testNpFL(self, logits, labels, alpha, gamma):
     self.assertEqual(logits.shape, labels.shape)
@@ -2915,6 +2916,29 @@ class FocalLossTest(test_utils.TestCase):
       self.assertAllClose(
           self._testNpSCEFL(logits, label_probs, alpha, gamma),
           self._testTfSCEFLLabelProbs(logits, label_probs, alpha, gamma))
+
+  @parameterized.named_parameters(
+      ('NoStopGradientOnFocalLossCoefficient', False),
+      ('StopGradientOnFocalLossCoefficient', True),
+  )
+  def testSoftmaxCrossEntropyFocalLossGradients(self,
+                                                stop_gradient_on_coefficient):
+    label_ids = [0, 1]
+    logits = tf.constant([[1e30, 0., 0.], [0., -1e30, 0.]], dtype=tf.float32)
+    loss = py_utils.SoftmaxCrossEntropyFocalLoss(
+        logits,
+        label_ids,
+        label_probs=None,
+        gamma=.5,
+        stop_gradient_on_focal_loss_coefficient=stop_gradient_on_coefficient)
+    dlogits, = tf.gradients(ys=loss, xs=[logits])
+    with self.session():
+      dlogits = dlogits.eval()
+      if stop_gradient_on_coefficient:
+        self.assertAllClose([[0., 0., 0.], [0.5, -1., 0.5]], dlogits)
+      else:
+        # Gradients will contain nan.
+        self.assertTrue(any(math.isnan(x)) for x in dlogits.flatten())
 
 
 class UniformSamplerTest(test_utils.TestCase):
