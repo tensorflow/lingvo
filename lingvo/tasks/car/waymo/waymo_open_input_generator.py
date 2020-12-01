@@ -402,10 +402,10 @@ class WaymoLaserSceneflowExtractor(WaymoLaserExtractor):
   def FeatureMap(self):
     """Return a dictionary from tf.Example feature names to Features."""
     p = self.params
-    features = super().FeatureMap()
+    features = {}
     for lidar in p.lidar_names:
       for ri in p.lidar_returns:
-        features['%s_%s_flow' %
+        features['laser_%s_%s' %
                  (lidar, ri)] = tf.io.VarLenFeature(dtype=tf.float32)
         features['laser_%s_%s_flow' %
                  (lidar, ri)] = tf.io.VarLenFeature(dtype=tf.float32)
@@ -414,55 +414,51 @@ class WaymoLaserSceneflowExtractor(WaymoLaserExtractor):
   def _Extract(self, features):
     """Returns the laser Tensor."""
     p = self.params
-    ret = super()._Extract(features)
+    all_xyzs = []
+    all_laser_features = []
 
-    all_vxyz = []
-    all_classes = []
     for lidar in p.lidar_names:
       for ri in p.lidar_returns:
         feature_name = 'laser_%s_%s' % (lidar, ri)
         laser_data = tf.reshape(
             _Dense(features[feature_name]), [-1, 3 + p.num_features])
-        num = py_utils.GetShape(laser_data)[0]
         # We expect lidar_$lidar_$ri and lidar_$lidar_$ri_flow has
         # same number of points.
         feature_name += '_flow'
-        laser_data = tf.reshape(_Dense(features[feature_name]), [num, 3 + 1])
-        points_vxyz = laser_data[..., 0:3]
-        points_classes = laser_data[..., 3]
+        flow_data = tf.reshape(_Dense(features[feature_name]), [-1, 3 + 1])
 
-        all_vxyz += [points_vxyz]
-        all_classes += [points_classes]
+        points_xyz = laser_data[..., 0:3]
+        points_feature = tf.concat([laser_data[..., 3:], flow_data], axis=1)
+
+        all_xyzs += [points_xyz]
+        all_laser_features += [points_feature]
 
     # Stack all of the points along the major dimension
-    points_vxyz = tf.concat(all_vxyz, axis=0)
-    points_class = tf.concat(all_classes, axis=0)
-
-    # The precomputed class uses -1 to mean 5 in our current code.
-    points_class = tf.where(
-        tf.less(points_class, 0), 5. * tf.ones_like(points_class), points_class)
+    points_xyz = tf.concat(all_xyzs, axis=0)
+    points_feature = tf.concat(all_laser_features, axis=0)
 
     if p.max_num_points is not None:
-      assert 'points_padding' in ret
-      points_vxyz = py_utils.PadOrTrimTo(points_vxyz, [p.max_num_points, 3])
-      points_class = py_utils.PadOrTrimTo(points_class, [p.max_num_points])
+      npoints = tf.shape(points_xyz)[0]
+      points_xyz = py_utils.PadOrTrimTo(points_xyz, [p.max_num_points, 3])
+      points_feature = py_utils.PadOrTrimTo(
+          points_feature, [p.max_num_points, p.num_features + 4])
+      points_padding = 1.0 - py_utils.PadOrTrimTo(
+          tf.ones([npoints]), [p.max_num_points])
 
-    assert 'points_xyz' in ret
-    ret.world_flow = points_vxyz
-    ret.pointwise_class = tf.cast(points_class, tf.int32)
+    ret = py_utils.NestedMap(
+        points_xyz=points_xyz, points_feature=points_feature)
+    if p.max_num_points is not None:
+      ret.points_padding = points_padding
     return ret
 
   def Shape(self):
-    shape = super().Shape()
-    shape.world_flow = shape.points_xyz
-    shape.pointwise_class = shape.world_flow[:-1]
-    return shape
-
-  def DType(self):
-    dtype = super().DType()
-    dtype.world_flow = tf.float32
-    dtype.pointwise_class = tf.int32
-    return dtype
+    p = self.params
+    ret = py_utils.NestedMap(
+        points_xyz=tf.TensorShape([p.max_num_points, 3]),
+        points_feature=tf.TensorShape([p.max_num_points, p.num_features + 4]))
+    if p.max_num_points is not None:
+      ret.points_padding = tf.TensorShape([p.max_num_points])
+    return ret
 
 
 class WaymoLabelExtractor(input_extractor.FieldsExtractor):
