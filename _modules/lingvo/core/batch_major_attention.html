@@ -4331,6 +4331,9 @@
     <span class="sd">&quot;&quot;&quot;Params for `ResidualAddLayer`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Residual weight.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;apply_residual&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If set False, input is not added, decay &#39;</span>
+        <span class="s1">&#39;to Id layer if residual_weight is 1.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="ResidualAddLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ResidualAddLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
@@ -4345,7 +4348,10 @@
 <span class="sd">      Added tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_weight</span> <span class="o">*</span> <span class="n">y</span></div>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_residual</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_weight</span> <span class="o">*</span> <span class="n">y</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_weight</span> <span class="o">*</span> <span class="n">y</span></div>
 
 <div class="viewcode-block" id="ResidualAddLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ResidualAddLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
@@ -4466,6 +4472,14 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_residual_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Weight given to F(x) in the residual &#39;</span>
              <span class="s1">&#39;connection: y = x + ff_residual_weight * F(x), in Feedforward &#39;</span>
              <span class="s1">&#39;layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_apply_residual&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If true,  &#39;</span>
+             <span class="s1">&#39;y = x + ff_residual_weight * F(x) in Feedforward layer, else &#39;</span>
+             <span class="s1">&#39;y = ff_residual_weight * F(x). This is experimental and could be &#39;</span>
+             <span class="s1">&#39;removed in the future. See b/174568214.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_apply_residual&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If true,  &#39;</span>
+             <span class="s1">&#39;y = x + F(x) in attention layer, else y = F(x). This is &#39;</span>
+             <span class="s1">&#39;experimental and could be removed in the future. See &#39;</span>
+             <span class="s1">&#39;b/174568214.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;relu_dropout_prob&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
              <span class="s1">&#39;Probability at which we apply dropout to the hidden layer of &#39;</span>
              <span class="s1">&#39;feed-forward network.&#39;</span><span class="p">)</span>
@@ -4516,9 +4530,10 @@
     <span class="sd">&quot;&quot;&quot;Returns a DropoutLayer Params.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">drop_prob</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Builder._Add"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Add">[docs]</a>  <span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">residual_weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder._Add"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Add">[docs]</a>  <span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">residual_weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">apply_residual</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">ResidualAddLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-                                         <span class="n">residual_weight</span><span class="o">=</span><span class="n">residual_weight</span><span class="p">)</span></div>
+                                         <span class="n">residual_weight</span><span class="o">=</span><span class="n">residual_weight</span><span class="p">,</span>
+                                         <span class="n">apply_residual</span><span class="o">=</span><span class="n">apply_residual</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._DefaultLN"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._DefaultLN">[docs]</a>  <span class="k">def</span> <span class="nf">_DefaultLN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Layer norm with default params.&quot;&quot;&quot;</span>
@@ -4599,7 +4614,8 @@
              <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear02&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;i.vec,after_feedforward-&gt;added&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,after_feedforward-&gt;added&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_apply_residual</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)),</span>
     <span class="p">]</span>
