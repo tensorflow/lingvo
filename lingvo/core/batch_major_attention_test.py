@@ -3215,5 +3215,49 @@ class RelativeAttentionHelperTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(tr_atten_tpl.input_dim, input_dim)
 
 
+class ResidualAddLayerTest(test_utils.TestCase, parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'apply_residual',
+          'apply_residual': True,
+          'residual_weight': 1.0,
+          'expected_output': [[0.3, 0.5, 0.7]]
+      }, {
+          'testcase_name': 'no_residual',
+          'apply_residual': False,
+          'residual_weight': 1.0,
+          'expected_output': [[0.2, 0.3, 0.4]]
+      }, {
+          'testcase_name': 'apply_residual_w_weight',
+          'apply_residual': True,
+          'residual_weight': 0.5,
+          'expected_output': [[0.2, 0.35, 0.5]]
+      }, {
+          'testcase_name': 'no_residual_w_weight',
+          'apply_residual': False,
+          'residual_weight': 0.5,
+          'expected_output': [[0.1, 0.15, 0.2]]
+      })
+  def testClearRelativeAttentionInTransformerLayer(self, apply_residual,
+                                                   residual_weight,
+                                                   expected_output):
+    x = tf.constant([[0.1, 0.2, 0.3]])
+    fx = tf.constant([[0.2, 0.3, 0.4]])
+    p = attention.ResidualAddLayer.Params().Set(
+        name='residual_test',
+        residual_weight=residual_weight,
+        apply_residual=apply_residual)
+    l = p.Instantiate()
+    ret = l.FPropDefaultTheta(x, fx)
+    init = tf.group(
+        [tf.global_variables_initializer(),
+         tf.local_variables_initializer()])
+    with self.session(use_gpu=False) as sess:
+      sess.run(init)
+      ret_val = sess.run(ret)
+    self.assertAllClose(ret_val, np.array(expected_output))
+
+
 if __name__ == '__main__':
   tf.test.main()

@@ -4183,6 +4183,9 @@ class ResidualAddLayer(base_layer.BaseLayer):
     """Params for `ResidualAddLayer`."""
     p = super().Params()
     p.Define('residual_weight', 1.0, 'Residual weight.')
+    p.Define(
+        'apply_residual', True, 'If set False, input is not added, decay '
+        'to Id layer if residual_weight is 1.')
     return p
 
   def FProp(self, theta, x, y):
@@ -4197,7 +4200,10 @@ class ResidualAddLayer(base_layer.BaseLayer):
       Added tensors.
     """
     p = self.params
-    return x + p.residual_weight * y
+    if p.apply_residual:
+      return x + p.residual_weight * y
+    else:
+      return p.residual_weight * y
 
   @classmethod
   def FPropMeta(cls, p, x, y):
@@ -4318,6 +4324,14 @@ class Builder(builder.Base):
     p.Define('ff_residual_weight', 1.0, 'Weight given to F(x) in the residual '
              'connection: y = x + ff_residual_weight * F(x), in Feedforward '
              'layer.')
+    p.Define('ff_apply_residual', True, 'If true,  '
+             'y = x + ff_residual_weight * F(x) in Feedforward layer, else '
+             'y = ff_residual_weight * F(x). This is experimental and could be '
+             'removed in the future. See b/174568214.')
+    p.Define('atten_apply_residual', True, 'If true,  '
+             'y = x + F(x) in attention layer, else y = F(x). This is '
+             'experimental and could be removed in the future. See '
+             'b/174568214.')
     p.Define('relu_dropout_prob', 0,
              'Probability at which we apply dropout to the hidden layer of '
              'feed-forward network.')
@@ -4368,9 +4382,10 @@ class Builder(builder.Base):
     """Returns a DropoutLayer Params."""
     return super()._Dropout(name, keep_prob=1.0 - drop_prob)
 
-  def _Add(self, name, residual_weight=1.0):
+  def _Add(self, name, residual_weight=1.0, apply_residual=True):
     return ResidualAddLayer.Params().Set(name=name,
-                                         residual_weight=residual_weight)
+                                         residual_weight=residual_weight,
+                                         apply_residual=apply_residual)
 
   def _DefaultLN(self, name):
     """Layer norm with default params."""
@@ -4451,7 +4466,8 @@ class Builder(builder.Base):
              self._Linear('linear02', ff_hidden_dim, p.model_dim),
              self._Bias('bias02', p.model_dim),
              self._Dropout('dropout', p.residual_dropout_prob))),
-        ('i.vec,after_feedforward->added', self._Add('add', p.ff_residual_weight)),
+        ('i.vec,after_feedforward->added',
+         self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
         ('added,i.paddings->o.vec', self._Pad('pad')),
         ('i.paddings->o.paddings', self._Id('id')),
     ]

@@ -46,7 +46,8 @@ class Builder(batch_major_attention.Builder):
          self._MultiHeadedAtten('atten')),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
-        ('{},after_dropout->o.vec'.format(input_to_add), self._Add('add')),
+        ('{},after_dropout->o.vec'.format(input_to_add),
+         self._Add('add', apply_residual=p.atten_apply_residual)),
         ('i.paddings->o.paddings', self._Id('id')),
     ]
 
