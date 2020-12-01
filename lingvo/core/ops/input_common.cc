@@ -24,9 +24,7 @@ namespace lingvo {
 
 RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
-                                int64 file_random_seed, int64 file_buffer_size,
-                                int64 file_buffer_size_in_seconds,
-                                int64 file_parallelism,
+                                const BasicRecordYielder::Options& yopts_tpl,
                                 bool require_sequential_order,
                                 int64 repeat_count, bool use_chaining) {
   std::vector<string> file_patterns;
@@ -53,21 +51,18 @@ RecordYielder* ConstructYielder(const string& file_pattern,
   std::vector<BasicRecordYielder::Options> yielder_options;
 
   for (int i = 0; i < file_patterns.size(); ++i) {
-    BasicRecordYielder::Options yopts;
+    BasicRecordYielder::Options yopts(yopts_tpl);
     yopts.file_pattern = file_patterns[i];
-    if (file_random_seed == 0) {
+    if (yopts_tpl.seed == 0) {
       yopts.seed = 0;  // Let the yielder pick a random seed.
     } else {
       yopts.seed =
-          (file_random_seed + i) % (std::numeric_limits<int32>::max() - 1);
+          (yopts_tpl.seed + i) % (std::numeric_limits<int32>::max() - 1);
       if (yopts.seed == 0) {
         // Add 1 to avoid 0.
         ++yopts.seed;
       }
     }
-    yopts.bufsize = file_buffer_size;
-    yopts.bufsize_in_seconds = file_buffer_size_in_seconds;
-    yopts.parallelism = file_parallelism;
     yopts.source_id = i;
     yielder_options.push_back(yopts);
   }
@@ -83,12 +78,22 @@ RecordYielder* ConstructYielder(const string& file_pattern,
     for (const auto& yopts : yielder_options) {
       yielders.push_back(BasicRecordYielder::New(yopts));
     }
-    yielder = WeightedMixRecordYielder::New(
-        file_random_seed,
-        yielders,
-        input_source_weights);
+    yielder = WeightedMixRecordYielder::New(yopts_tpl.seed, yielders,
+                                            input_source_weights);
   }
   return yielder;
+}
+
+void GetBasicRecordYielderOptions(OpKernelConstruction* ctx,
+                                  BasicRecordYielder::Options* yopts) {
+  OP_REQUIRES_OK(ctx, ctx->GetAttr("file_pattern", &(yopts->file_pattern)));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr("file_random_seed", &(yopts->seed)));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr("file_buffer_size", &(yopts->bufsize)));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr("file_parallelism", &(yopts->parallelism)));
+  OP_REQUIRES_OK(
+      ctx, ctx->GetAttr("num_input_replicas", &(yopts->num_input_replicas)));
+  OP_REQUIRES_OK(ctx,
+                 ctx->GetAttr("input_replica_id", &(yopts->input_replica_id)));
 }
 
 }  // namespace lingvo

@@ -208,9 +208,10 @@ string RecordIterator::StripPrefixFromFilePattern(string* file_pattern) {
   return prefix;
 }
 
-Status RecordIterator::ParsePattern(const string& type_name,
-                                    const string& file_pattern_list,
-                                    std::vector<string>* filenames) {
+Status RecordIterator::ParsePattern(
+    const string& type_name, const string& file_pattern_list,
+    const RecordIterator::ParserOptions& options,
+    std::vector<string>* filenames) {
   Factory* factory = GetFactory();
   RecordIterator::PatternParserMethod parser_method;
   {
@@ -221,7 +222,7 @@ Status RecordIterator::ParsePattern(const string& type_name,
     }
   }
   if (parser_method) {
-    return parser_method(file_pattern_list, filenames);
+    return parser_method(file_pattern_list, options, filenames);
   }
   for (const auto& file_pattern : str_util::Split(file_pattern_list, ',')) {
     std::vector<string> files_per_glob;
@@ -329,7 +330,8 @@ bool register_indirect_text_iterator =
     RecordIterator::RegisterWithPatternParser(
         "text_indirect",
         [](const string& filename) { return new PlainTextIterator(filename); },
-        [](const string& pattern, std::vector<string>* outs) {
+        [](const string& pattern, const RecordIterator::ParserOptions& options,
+           std::vector<string>* outs) {
           TF_RETURN_IF_ERROR(GetFilePatternsFromCkptFile(pattern, outs));
           return Status::OK();
         });
@@ -346,7 +348,8 @@ bool register_tf_record_gzip_iterator =
 
 bool register_iota_iterator = RecordIterator::RegisterWithPatternParser(
     "iota", [](const string& filename) { return new IotaIterator(filename); },
-    [](const string& pattern, std::vector<string>* outs) {
+    [](const string& pattern, const RecordIterator::ParserOptions& options,
+       std::vector<string>* outs) {
       // The pattern is just a stringified number.
       *outs = {pattern};
       return Status::OK();
@@ -482,12 +485,17 @@ void BasicRecordYielder::MainLoop() {
 
   while (true) {
     num_records_yielded_in_epoch_ = 0;
-    LOG(INFO) << "Epoch " << current_epoch() << " " << opts_.file_pattern;
+    const int64 epoch = current_epoch();
+    LOG(INFO) << "Epoch " << epoch << " " << opts_.file_pattern;
 
     // Finds all files.
     std::vector<string> filenames;
+    RecordIterator::ParserOptions parser_options;
+    parser_options.epoch = epoch;
+    parser_options.num_input_replicas = opts_.num_input_replicas;
+    parser_options.input_replica_id = opts_.input_replica_id;
     Status s = RecordIterator::ParsePattern(file_type_, opts_.file_pattern,
-                                            &filenames);
+                                            parser_options, &filenames);
     if (ShouldFinish(s)) break;
 
     if (filenames.empty()) {

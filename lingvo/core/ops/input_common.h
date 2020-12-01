@@ -25,15 +25,19 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-// Constructs single Yielder for a given file pattern or mixes multiple yielders
-// with weights.
+// Constructs a RecordYielder for the given file pattern. The returned instance
+// can be a single BasicRecordYielder or mixes multiple yielders with weights.
+// In either case `yopts_tpl` is used to construct BasicRecordYielder instances.
+// However, when constructing multiple BasicRecordYielder instances, the
+// random seeds will be either all 0 or all different across instances.
 RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
-                                int64 file_random_seed, int64 file_buffer_size,
-                                int64 file_buffer_size_in_seconds,
-                                int64 file_parallelism,
+                                const BasicRecordYielder::Options& yopts_tpl,
                                 bool require_sequential_order,
                                 int64 repeat_count, bool use_chaining);
+
+void GetBasicRecordYielderOptions(OpKernelConstruction* ctx,
+                                  BasicRecordYielder::Options* yopts);
 
 // Base class for op kernels that emit training examples.
 template <class RecordProcessorClass>
@@ -45,16 +49,14 @@ class InputOp : public OpKernel {
  public:
   explicit InputOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     typedef std::vector<int64> Int64Vec;
+    BasicRecordYielder::Options yopts;
+    GetBasicRecordYielderOptions(ctx, &yopts);
 #define GETATTR(TYPE, FIELD) \
   TYPE FIELD;                \
   OP_REQUIRES_OK(ctx, ctx->GetAttr(#FIELD, &FIELD));
 
     GETATTR(string, file_pattern);
     GETATTR(std::vector<float>, input_source_weights);
-    GETATTR(int64, file_random_seed);
-    GETATTR(int64, file_buffer_size);
-    GETATTR(int64, file_buffer_size_in_seconds);
-    GETATTR(int64, file_parallelism);
     GETATTR(Int64Vec, bucket_upper_bound);
     GETATTR(Int64Vec, bucket_batch_limit);
     GETATTR(int64, bucket_adjust_every_n);
@@ -74,10 +76,9 @@ class InputOp : public OpKernel {
     }
     LOG(INFO) << "Create RecordProcessor";
     processor_ = new RecordProcessorClass(ctx);
-    RecordYielder* yielder = CHECK_NOTNULL(ConstructYielder(
-        file_pattern, input_source_weights, file_random_seed, file_buffer_size,
-        file_buffer_size_in_seconds, file_parallelism, require_sequential_order,
-        repeat_count, use_chaining));
+    RecordYielder* yielder = CHECK_NOTNULL(
+        ConstructYielder(file_pattern, input_source_weights, yopts,
+                         require_sequential_order, repeat_count, use_chaining));
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;
     bopts.bucket_upper_bound = bucket_upper_bound;

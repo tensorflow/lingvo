@@ -33,6 +33,8 @@ limitations under the License.
       .Attr("repeat_count: int = -1")                 \
       .Attr("use_chaining: bool = False")             \
       .Attr("fatal_errors: list(int) = []")           \
+      .Attr("num_input_replicas: int = 1")            \
+      .Attr("input_replica_id: int = 0")              \
       .SetIsStateful()
 
 #define INPUT_DOCS \
@@ -72,6 +74,9 @@ use_chaining: If true, the input op is outputing records from file patterns in \
   then all records from the second file pattern and so on. If false, the \
   records from different file patterns will be mixed.\
 fatal_errors: A list of tf.error codes to treat as fatal.\
+num_input_replicas: if > 1, input generators run on this number of replicas. \
+input_replica_id: The replica id of the current input generator. Must be in \
+  range [0, num_input_replicas).\
 )"
 
 #endif  // LINGVO_CORE_OPS_X_OPS_HELPER_H_

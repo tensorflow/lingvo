@@ -438,7 +438,8 @@ class FakeIterator : public RecordIterator {
 
 bool register_fake_iterator = RecordIterator::RegisterWithPatternParser(
     "fakeiter", [](const string& pattern) { return new FakeIterator(pattern); },
-    [](const string& file_pattern, std::vector<std::string>* shards) {
+    [](const string& file_pattern, const RecordIterator::ParserOptions& options,
+       std::vector<std::string>* shards) {
       shards->push_back(file_pattern);
       return Status::OK();
     });

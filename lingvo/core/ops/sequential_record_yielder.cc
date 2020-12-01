@@ -37,8 +37,9 @@ SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern,
     mutable_file_pattern.erase(0, file_type_.size() + 1);
   }
   // Finds all files.
+  RecordIterator::ParserOptions parser_options;
   TF_CHECK_OK(RecordIterator::ParsePattern(file_type_, mutable_file_pattern,
-                                           &filenames_));
+                                           parser_options, &filenames_));
   std::sort(filenames_.begin(), filenames_.end());
   if (filenames_.empty()) {
     LOG(FATAL) << "Found no files at " << file_pattern;

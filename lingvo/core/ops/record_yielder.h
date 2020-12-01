@@ -77,9 +77,15 @@ class RecordIterator {
   typedef std::function<RecordIterator*(const string&)> FactoryMethod;
   static bool Register(const string& type_name, FactoryMethod method);
 
+  struct ParserOptions {
+    int64 epoch = 0;
+    int num_input_replicas = 1;
+    int input_replica_id = 0;
+  };
   // As above, but also register a custom method for parsing file_pattern
   // strings into lists of shards.
-  typedef std::function<Status(const string&, std::vector<std::string>*)>
+  typedef std::function<Status(const string&, const ParserOptions&,
+                               std::vector<std::string>*)>
       PatternParserMethod;
   static bool RegisterWithPatternParser(const string& type_name,
                                         FactoryMethod method,
@@ -99,6 +105,7 @@ class RecordIterator {
   // Parse a file pattern into a list of matching files.
   static Status ParsePattern(const string& type_name,
                              const string& file_pattern_list,
+                             const ParserOptions& options,
                              std::vector<string>* filenames);
 };
 
@@ -174,6 +181,9 @@ class BasicRecordYielder : public RecordYielder {
 
     // Source id to be supplied with yield.
     int32 source_id = 0;
+
+    int num_input_replicas = 1;
+    int input_replica_id = 0;
   };
 
   // Returns a record yielder according to 'opts'. A caller is responsible for
