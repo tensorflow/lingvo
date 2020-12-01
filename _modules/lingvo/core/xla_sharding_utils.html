@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.xla_sharding_utils &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.xla_sharding_utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.xla_sharding_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Utilities for applying xla-sharding to a model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+
+
+<div class="viewcode-block" id="Split"><a class="viewcode-back" href="../../../lingvo.core.xla_sharding_utils.html#lingvo.core.xla_sharding_utils.Split">[docs]</a><span class="k">def</span> <span class="nf">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span>
+          <span class="n">split_dimension</span><span class="p">,</span>
+          <span class="n">num_devices</span><span class="p">,</span>
+          <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">input_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrapper for xla_sharding.split.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: Tensor to annotate.</span>
+<span class="sd">    split_dimension: xla_sharding.split arg.</span>
+<span class="sd">    num_devices: xla_sharding.split arg.</span>
+<span class="sd">    use_sharding_op: If true, adds a sharding op to set the sharding:</span>
+<span class="sd">      tensor = gen_xla_ops.xla_sharding(tensor)</span>
+
+<span class="sd">      hyouklee@: use_sharding_op=False</span>
+<span class="sd">        &quot;It adds the sharding attribute to the op itself. The outcome is that,</span>
+<span class="sd">        that information could be lost by TF graph transformations. Also,</span>
+<span class="sd">        directly attaching the sharding annotation to the op caused some</span>
+<span class="sd">        compilation failures in the past (due to incompatible shardings), so the</span>
+<span class="sd">        plan is to make use_sharding_op to be the default.&quot;</span>
+
+<span class="sd">        &quot;The only case I would set it to False today is when annotating weights.</span>
+<span class="sd">        Weight annotation does some special handling, so there may be some</span>
+<span class="sd">        changes needed in that logic if we add separate sharding op.&quot;</span>
+<span class="sd">    input_shape: The shape of the original tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Tensor conditionally annotated with sharding.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">num_devices</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">x</span>
+  <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+      <span class="n">x</span><span class="p">,</span>
+      <span class="n">split_dimension</span><span class="p">,</span>
+      <span class="n">num_devices</span><span class="p">,</span>
+      <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">,</span>
+      <span class="n">use_sharding_op</span><span class="o">=</span><span class="n">use_sharding_op</span><span class="p">,</span>
+  <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.xla_sharding_utils.html#lingvo.core.xla_sharding_utils.MeshSplit">[docs]</a><span class="k">def</span> <span class="nf">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrapper of xla_sharding.mesh_split().&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+      <span class="n">device_mesh</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span>
+  <span class="n">num_tiles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tensor_split_dims_mapping</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">])</span>
+  <span class="k">if</span> <span class="n">num_tiles</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">x</span>
+  <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">mesh_split</span><span class="p">(</span>
+      <span class="n">x</span><span class="p">,</span>
+      <span class="n">device_mesh</span><span class="p">,</span>
+      <span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
+      <span class="n">use_sharding_op</span><span class="o">=</span><span class="n">use_sharding_op</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ZigzagOrderOnDeviceMesh"><a class="viewcode-back" href="../../../lingvo.core.xla_sharding_utils.html#lingvo.core.xla_sharding_utils.ZigzagOrderOnDeviceMesh">[docs]</a><span class="k">def</span> <span class="nf">ZigzagOrderOnDeviceMesh</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">zigzag_mesh_dim</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Permutes device_mesh to form zigzag order along zigzag_mesh_dim.&quot;&quot;&quot;</span>
+  <span class="c1"># Where there is no wrap-around links along one edge, we might</span>
+  <span class="c1"># reduce all-reduce latency along that edge by permuting the device order:</span>
+  <span class="c1"># instead of</span>
+  <span class="c1">#   0 - 1 - 2 - 3 - 4 - 5 - 6 - 7</span>
+  <span class="c1">#   |                           |</span>
+  <span class="c1">#   +---------------------------+</span>
+  <span class="c1"># it will be</span>
+  <span class="c1">#   +-------+-------+-------+</span>
+  <span class="c1">#   |       |       |       |</span>
+  <span class="c1">#   0 - 7   1   6   2   5   3 - 4</span>
+  <span class="c1">#       |       |       |       |</span>
+  <span class="c1">#       +-------+-------+-------+</span>
+  <span class="n">xpose_dims</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+  <span class="n">xpose_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">zigzag_mesh_dim</span>
+  <span class="n">xpose_dims</span><span class="p">[</span><span class="n">zigzag_mesh_dim</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">xpose_dims</span><span class="p">)</span>
+  <span class="n">permuted_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="n">zigzag_i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">&lt;</span> <span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="p">(</span>
+        <span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">permuted_mesh</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">device_mesh</span><span class="p">[</span><span class="n">zigzag_i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">permuted_mesh</span><span class="p">,</span> <span class="n">xpose_dims</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetNonPod2dMesh"><a class="viewcode-back" href="../../../lingvo.core.xla_sharding_utils.html#lingvo.core.xla_sharding_utils.GetNonPod2dMesh">[docs]</a><span class="k">def</span> <span class="nf">GetNonPod2dMesh</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">,</span> <span class="n">physical_mesh_shape</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a 2D device mesh on slices smaller than a pod.&quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">physical_mesh_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+  <span class="k">if</span> <span class="n">device_mesh_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">physical_mesh_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">physical_mesh_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s1">&#39;This only works when device_mesh_shape == [physical_mesh_shape[0], &#39;</span>
+        <span class="s1">&#39; physical_mesh_shape[1] * physical_mesh_shape[2]]. &#39;</span>
+        <span class="s1">&#39;If device_mesh_shape is [32, 16] where physical_mesh_shape is &#39;</span>
+        <span class="s1">&#39; [16, 16, 2]. we can transpose the result of this function &#39;</span>
+        <span class="s1">&#39;GetNonPod2dMesh([16, 32], [16, 16, 2]).&#39;</span><span class="p">)</span>
+  <span class="c1"># Form a ring on inner mesh dim.</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">)),</span> <span class="n">physical_mesh_shape</span><span class="p">)</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">device_mesh</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">device_mesh</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="c1"># Next line: reshape back to mesh shape</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">device_mesh_shape</span><span class="p">)</span>
+  <span class="c1"># Next line: zigzag on outer mesh dim (8). It doesn&#39;t have wrap link, either.</span>
+  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">ZigzagOrderOnDeviceMesh</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">zigzag_mesh_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">device_mesh</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

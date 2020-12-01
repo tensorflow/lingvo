@@ -169,57 +169,6 @@
   <div class="section" id="module-lingvo.core.moe_layers">
 <span id="lingvo-core-moe-layers-module"></span><h1>lingvo.core.moe_layers module<a class="headerlink" href="#module-lingvo.core.moe_layers" title="Permalink to this headline">¶</a></h1>
 <p>Layers and utilities that facilitate building MOE models.</p>
-<dl class="py function">
-<dt id="lingvo.core.moe_layers.Split">
-<code class="sig-prename descclassname">lingvo.core.moe_layers.</code><code class="sig-name descname">Split</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">split_dimension</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">use_sharding_op</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">input_shape</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/moe_layers.html#Split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.moe_layers.Split" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrapper for xla_sharding.split.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – Tensor to annotate.</p></li>
-<li><p><strong>split_dimension</strong> – xla_sharding.split arg.</p></li>
-<li><p><strong>num_devices</strong> – xla_sharding.split arg.</p></li>
-<li><p><strong>use_sharding_op</strong> – <p>If true, adds a sharding op to set the sharding:
-tensor = gen_xla_ops.xla_sharding(tensor)</p>
-<dl>
-<dt>hyouklee&#64;: use_sharding_op=False</dt><dd><p>”It adds the sharding attribute to the op itself. The outcome is that,
-that information could be lost by TF graph transformations. Also,
-directly attaching the sharding annotation to the op caused some
-compilation failures in the past (due to incompatible shardings), so the
-plan is to make use_sharding_op to be the default.”</p>
-<p>”The only case I would set it to False today is when annotating weights.
-Weight annotation does some special handling, so there may be some
-changes needed in that logic if we add separate sharding op.”</p>
-</dd>
-</dl>
-</p></li>
-<li><p><strong>input_shape</strong> – The shape of the original tensor.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Tensor conditionally annotated with sharding.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.moe_layers.MeshSplit">
-<code class="sig-prename descclassname">lingvo.core.moe_layers.</code><code class="sig-name descname">MeshSplit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">device_mesh</span></em>, <em class="sig-param"><span class="n">tensor_split_dims_mapping</span></em>, <em class="sig-param"><span class="n">use_sharding_op</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/moe_layers.html#MeshSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.moe_layers.MeshSplit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrapper of xla_sharding.mesh_split().</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.moe_layers.ZigzagOrderOnDeviceMesh">
-<code class="sig-prename descclassname">lingvo.core.moe_layers.</code><code class="sig-name descname">ZigzagOrderOnDeviceMesh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">device_mesh</span></em>, <em class="sig-param"><span class="n">zigzag_mesh_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/moe_layers.html#ZigzagOrderOnDeviceMesh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.moe_layers.ZigzagOrderOnDeviceMesh" title="Permalink to this definition">¶</a></dt>
-<dd><p>Permutes device_mesh to form zigzag order along zigzag_mesh_dim.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.moe_layers.GetNonPod2dMesh">
-<code class="sig-prename descclassname">lingvo.core.moe_layers.</code><code class="sig-name descname">GetNonPod2dMesh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">device_mesh_shape</span></em>, <em class="sig-param"><span class="n">physical_mesh_shape</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/moe_layers.html#GetNonPod2dMesh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.moe_layers.GetNonPod2dMesh" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a 2D device mesh on slices smaller than a pod.</p>
-</dd></dl>
-
 <dl class="py class">
 <dt id="lingvo.core.moe_layers.VarLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.moe_layers.</code><code class="sig-name descname">VarLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/moe_layers.html#VarLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.moe_layers.VarLayer" title="Permalink to this definition">¶</a></dt>
