@@ -1964,6 +1964,20 @@ py_library(
         ":base_layer",
         ":py_utils",
         ":tpu_summary",
+        ":xla_sharding_utils",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_library(
+    name = "xla_sharding_utils",
+    srcs = ["xla_sharding_utils.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":tpu_summary",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
