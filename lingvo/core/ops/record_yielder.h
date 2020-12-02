@@ -78,6 +78,7 @@ class RecordIterator {
   static bool Register(const string& type_name, FactoryMethod method);
 
   struct ParserOptions {
+    thread::ThreadPool* executor = nullptr;
     int64 epoch = 0;
     int num_input_replicas = 1;
     int input_replica_id = 0;

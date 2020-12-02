@@ -491,6 +491,7 @@ void BasicRecordYielder::MainLoop() {
     // Finds all files.
     std::vector<string> filenames;
     RecordIterator::ParserOptions parser_options;
+    parser_options.executor = thread_;
     parser_options.epoch = epoch;
     parser_options.num_input_replicas = opts_.num_input_replicas;
     parser_options.input_replica_id = opts_.input_replica_id;
