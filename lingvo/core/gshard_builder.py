@@ -122,8 +122,8 @@ class MoEBuilder(builder.Base):
 
     p.Define(
         'dropout_rate', 0.0,
-        'Universal dropout rate that applies to inputs, attention, '
-        'residual and other Transformer layers.')
+        'Universal dropout rate that applies to inputs, residual, '
+        'and other Transformer layers.')
 
     p.Define(
         'noise_shape_broadcast_dims', None,
@@ -670,7 +670,8 @@ class MoEBuilder(builder.Base):
                   fn=lambda q, k: tf.einsum('BLHD,BMHD->BLHM', q, k))),
         ('l,bias->logits', self._Fn('bias', fn=_AddBias)),
         ('logits->w', self._Fn('weights', _Softmax)),
-        ('w->weights', self._Dropout('dropout', 1 - self.params.dropout_rate)),
+        ('w->weights',
+         self._Dropout('dropout', 1 - self.params.attention_dropout_prob)),
         ('weights,v->outputs',
          self._Fn(
              'outputs',
@@ -1605,7 +1606,8 @@ class DenseBuilder(MoEBuilder):
                   fn=lambda q, k: tf.einsum('BLHD,BMHD->BLHM', q, k))),
         ('l,bias->logits', self._Fn('bias', fn=_AddBias)),
         ('logits->w', self._Fn('weights', _Softmax)),
-        ('w->weights', self._Dropout('dropout', 1 - self.params.dropout_rate)),
+        ('w->weights',
+         self._Dropout('dropout', 1 - self.params.attention_dropout_prob)),
         ('weights->weights_split', self.MeshSplit('_wsplit', p.qkv_split)),
         ('weights_split,v->outputs_unsplitted',
          self._Fn(
