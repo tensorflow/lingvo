@@ -1394,6 +1394,11 @@ class WeightInit:
     return WeightInit._Params('uniform_positive', scale, seed)
 
   @staticmethod
+  def Category(scale=2, seed=None):
+    """tf.floor(scale * tf.random.uniform(0., 1.0))."""
+    return WeightInit._Params('category', scale, seed)
+
+  @staticmethod
   def Xavier(scale=1.0, seed=None):
     """Xavier initialization (x = sqrt(6. / (in + out)); [-x, x])."""
     return WeightInit._Params('xavier', scale, seed)
@@ -2171,6 +2176,10 @@ def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
   elif method in ['uniform_positive']:
     v_init = init_ops.random_uniform_initializer(
         minval=0.0, maxval=scale, seed=seed, dtype=init_dtype)
+  elif method == 'category':
+    uniform_init = init_ops.random_uniform_initializer(
+        minval=0.0, maxval=scale, seed=seed, dtype=init_dtype)
+    v_init = lambda *args, **kwargs: tf.floor(uniform_init(*args, **kwargs))
   elif method in ['uniform_unit_scaling']:
     v_init = init_ops.uniform_unit_scaling_initializer(
         factor=scale, seed=seed, dtype=init_dtype)

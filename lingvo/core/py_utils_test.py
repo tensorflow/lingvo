@@ -2511,6 +2511,16 @@ class WeightInitTest(test_utils.TestCase):
       self.assertTrue(np.all(var_v >= 0.0))
       self.assertTrue(np.all(var_v <= 1.0))
 
+  def testCategory(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.random.set_seed(12345678)
+      pc = py_utils.WeightParams([30, 30], py_utils.WeightInit.Category(3),
+                                 tf.float32)
+      var = py_utils.CreateVariable('var', pc)
+      self.evaluate(tf.global_variables_initializer())
+      var_v = var.eval()
+      self.assertEqual({0.0, 1.0, 2.0}, set(np.unique(var_v)))
+
   def testKaimingUniformRelu(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       pc = py_utils.WeightParams(
