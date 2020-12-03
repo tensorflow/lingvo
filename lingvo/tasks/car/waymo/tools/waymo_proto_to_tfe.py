@@ -266,8 +266,8 @@ class FrameToTFE(object):
         range_image_gbr_pose.data).reshape(shape)
     range_image_gbr_pose_tensor_rotation = transform_utils.get_rotation_matrix(
         range_image_gbr_pose_tensor[..., 0],
-        range_image_gbr_pose_tensor[..., 1],
-        range_image_gbr_pose_tensor[..., 2])
+        range_image_gbr_pose_tensor[..., 1], range_image_gbr_pose_tensor[...,
+                                                                         2])
     range_image_gbr_pose_tensor_translation = range_image_gbr_pose_tensor[...,
                                                                           3:]
     range_image_gbr_pose_tensor = transform_utils.get_transform(
@@ -286,7 +286,14 @@ class FrameToTFE(object):
       ri.ParseFromString(ri_str)
     else:
       ri = range_image.range_image
-    return ri
+    if range_image.range_image_flow_compressed:
+      ri_str = zlib.decompress(range_image.range_image_flow_compressed)
+      # Deserialize from MatrixFloat serialization.
+      ri_flow = dataset_pb2.MatrixFloat()
+      ri_flow.ParseFromString(ri_str)
+    else:
+      ri_flow = None
+    return ri, ri_flow
 
   def extract_camera_images(self, feature, camera_images,
                             camera_calibrations_dict):
@@ -360,8 +367,8 @@ class FrameToTFE(object):
       lasers: A repeated car.open_dataset.Laser proto.
     """
     for laser in lasers:
-      ri1 = self._parse_range_image(laser.ri_return1)
-      ri2 = self._parse_range_image(laser.ri_return2)
+      ri1, ri1_flow = self._parse_range_image(laser.ri_return1)
+      ri2, ri2_flow = self._parse_range_image(laser.ri_return2)
 
       # Add the range image data (flattened) and their original shape
       # to the output feature map.
@@ -371,6 +378,14 @@ class FrameToTFE(object):
       feature['%s_ri1_shape' % real_name].int64_list.value[:] = ri1.shape.dims
       feature['%s_ri2' % real_name].float_list.value[:] = ri2.data
       feature['%s_ri2_shape' % real_name].int64_list.value[:] = ri2.shape.dims
+      if ri1_flow:
+        feature['%s_ri1_flow' % real_name].float_list.value[:] = ri1_flow.data
+        feature['%s_ri1_flow_shape' %
+                real_name].int64_list.value[:] = ri1_flow.shape.dims
+      if ri2_flow:
+        feature['%s_ri2_flow' % real_name].float_list.value[:] = ri2_flow.data
+        feature['%s_ri2_flow_shape' %
+                real_name].int64_list.value[:] = ri2_flow.shape.dims
 
   def extract_laser_calibrations(self, feature, laser_calibrations):
     """Extract the laser calibrations into the tf.Example feature map.
@@ -505,6 +520,19 @@ class FrameToTFE(object):
         # and so we can reconstruct the number of points.
         points_list = list(points_data.numpy().reshape([-1]))
         feature['laser_%s' % laser_ri_name].float_list.value[:] = points_list
+
+        laser_ri_flow_name = '%s_flow' % laser_ri_name
+        if laser_ri_flow_name in feature:
+          range_image_flow = np.array(
+              feature[laser_ri_flow_name].float_list.value[:])
+          range_image_flow_shape = feature[laser_ri_flow_name +
+                                           '_shape'].int64_list.value[:]
+          range_image_flow = range_image_flow.reshape(range_image_flow_shape)
+          flow_data = tf.cast(
+              tf.gather_nd(range_image_flow, ri_indices), tf.float32)
+          flow_list = list(flow_data.numpy().reshape([-1]))
+          feature['laser_%s' %
+                  laser_ri_flow_name].float_list.value[:] = flow_list
 
   def _single_frame_detection_difficulty(self, human_difficulty, num_points):
     """Create the `single_frame_detection_difficulty` field.
