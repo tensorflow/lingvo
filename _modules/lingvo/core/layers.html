@@ -4952,6 +4952,8 @@
         <span class="s1">&#39;data_format&#39;</span><span class="p">,</span> <span class="s1">&#39;TBC&#39;</span><span class="p">,</span> <span class="s1">&#39;String(enum) specifying the input and output &#39;</span>
         <span class="s1">&#39;data format for this layer. Supported formats: &#39;</span>
         <span class="s1">&#39;&quot;TBC&quot;: [time, batch, input_dim] and &quot;BTC&quot;: [batch, time, input_dim].&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_task_ids&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If True, clips the given task ids to [0, p.num_tasks - 1].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -5023,6 +5025,8 @@
             <span class="p">])</span>
         <span class="p">],</span>
         <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">clip_task_ids</span><span class="p">:</span>
+      <span class="n">tasks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="c1"># To support different task for each timetstep, flatten inputs and</span>
     <span class="c1"># tasks.  Below, &#39;batch&#39; now refers to flattened batch size, time * batch.</span>
