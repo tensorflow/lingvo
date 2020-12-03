@@ -254,6 +254,11 @@ XlaShardingBuilder.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._device_mesh">
+<em class="property">property </em><code class="sig-name descname">_device_mesh</code><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._device_mesh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._Dropout">
 <code class="sig-name descname">_Dropout</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">keep_prob</span></em>, <em class="sig-param"><span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Dropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Dropout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a DropoutLayer Params.</p>
@@ -692,6 +697,18 @@ numpy.einsum.</p></li>
 <dt id="lingvo.core.gshard_builder.DenseBuilder.MeshSplit">
 <code class="sig-name descname">MeshSplit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">tensor_split_dims_mapping</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.MeshSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.MeshSplit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder._ShardedFeedForwardNetworksWeights">
+<code class="sig-name descname">_ShardedFeedForwardNetworksWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ShardedFeedForwardNetworksWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ShardedFeedForwardNetworksWeights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the sharded weights for the two layer feedforward nets.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks">
+<code class="sig-name descname">_ShardedMoEPositionWiseFeedForwardNetworks</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple MoE FFN with xla_sharding.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.DenseBuilder.Embedding">

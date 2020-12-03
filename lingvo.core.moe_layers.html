@@ -640,7 +640,7 @@ combining expert outputs.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.moe_layers.FeedForwardNetworksApplyGating">
-<code class="sig-prename descclassname">lingvo.core.moe_layers.</code><code class="sig-name descname">FeedForwardNetworksApplyGating</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gating</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">reshaped_inputs</span></em>, <em class="sig-param"><span class="n">wi_split</span></em>, <em class="sig-param"><span class="n">wo_split</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">num_groups</span></em>, <em class="sig-param"><span class="n">bi_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bo_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dropout_rate</span><span class="o">=</span><span class="default_value">0.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/moe_layers.html#FeedForwardNetworksApplyGating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.moe_layers.FeedForwardNetworksApplyGating" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.moe_layers.</code><code class="sig-name descname">FeedForwardNetworksApplyGating</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gating</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">reshaped_inputs</span></em>, <em class="sig-param"><span class="n">wi_split</span></em>, <em class="sig-param"><span class="n">wo_split</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">num_groups</span></em>, <em class="sig-param"><span class="n">bi_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bo_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dropout_rate</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gsm_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">egcm_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gecm_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gsec_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">eah_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">eam_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/moe_layers.html#FeedForwardNetworksApplyGating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.moe_layers.FeedForwardNetworksApplyGating" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply top_2 gating to feedforward networks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -650,7 +650,7 @@ Tensor, scattering/dispatching inputs to experts. combine_tensor, G`SEC
 Tensor, combining expert outputs. aux_loss. auxiliary loss, equalizing the
 expert assignment ratios</p></li>
 <li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
-<li><p><strong>reshaped_inputs</strong> – [G*S/E, M] Tensor.</p></li>
+<li><p><strong>reshaped_inputs</strong> – G`SM Tensor.</p></li>
 <li><p><strong>wi_split</strong> – First projection weights [E, M, H] of the feedforward networks.</p></li>
 <li><p><strong>wo_split</strong> – Last projection weights [E, H, M] of the feedforward networks.</p></li>
 <li><p><strong>num_devices</strong> – number of devices.</p></li>
@@ -659,6 +659,14 @@ num_devices).</p></li>
 <li><p><strong>bi_split</strong> – First projection bias [E, 1, H] of the feedforward networks.</p></li>
 <li><p><strong>bo_split</strong> – Last projection bias [E, 1, M] of the feedforward networks.</p></li>
 <li><p><strong>dropout_rate</strong> – Dropout rate.</p></li>
+<li><p><strong>device_mesh</strong> – Device mesh as a numpy ND array of device IDs. Split arguments
+must be set if device_mesh is not None.</p></li>
+<li><p><strong>gsm_split</strong> – Mesh split for GSM tensors.</p></li>
+<li><p><strong>egcm_split</strong> – Mesh split for EGCM tensors.</p></li>
+<li><p><strong>gecm_split</strong> – Mesh split for GECM tensors.</p></li>
+<li><p><strong>gsec_split</strong> – Mesh split for GSEC tensors.</p></li>
+<li><p><strong>eah_split</strong> – Mesh split for EAH tensors.</p></li>
+<li><p><strong>eam_split</strong> – Mesh split for EAM tensors.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

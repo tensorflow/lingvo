@@ -291,7 +291,7 @@
 
       <span class="c1"># We annotate the read value again because some backend implementation</span>
       <span class="c1"># may only look at the neighbors of the variable during compilation.</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">MeshSplit</span><span class="p">(</span>
             <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cast_to_fprop_dtype</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span> <span class="ow">and</span>
@@ -721,6 +721,9 @@
 <span class="sd">    - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to</span>
 <span class="sd">      experts.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">use_xla_sharding</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Sharding propagation should be sufficient and Splits &#39;</span>
+                       <span class="s1">&#39;within Top2GatingOnLogits are generally redundant.&#39;</span><span class="p">)</span>
   <span class="k">del</span> <span class="n">inputs</span>  <span class="c1"># inputs is currently not used.</span>
   <span class="n">raw_gates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>  <span class="c1"># along E dim</span>
 
@@ -989,12 +992,15 @@
       <span class="s1">&#39;GSE,GSC-&gt;GSEC&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;second_part_of_combine_tensor&#39;</span><span class="p">)</span>
 
   <span class="c1"># GSEC Tensor</span>
-  <span class="n">combine_tensor</span> <span class="o">=</span> <span class="p">(</span>
-      <span class="n">first_part_of_combine_tensor</span> <span class="o">+</span> <span class="n">second_part_of_combine_tensor</span><span class="p">)</span>
+  <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+      <span class="n">first_part_of_combine_tensor</span><span class="p">,</span>
+      <span class="n">second_part_of_combine_tensor</span><span class="p">,</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;combine_tensor&#39;</span><span class="p">)</span>
   <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">combine_tensor</span><span class="p">)</span>
 
   <span class="c1"># GSEC Tensor</span>
-  <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+  <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dispatch_tensor&#39;</span><span class="p">)</span>
   <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">dispatch_tensor</span><span class="p">)</span>
 
   <span class="c1"># TODO(yonghui): compute and return per-group aux_loss.</span>
@@ -1093,7 +1099,14 @@
                                    <span class="n">num_groups</span><span class="p">,</span>
                                    <span class="n">bi_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">bo_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                   <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+                                   <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                   <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">gsm_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">egcm_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">gecm_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">gsec_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">eah_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">eam_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Apply top_2 gating to feedforward networks.</span>
 
 <span class="sd">  Args:</span>
@@ -1102,7 +1115,7 @@
 <span class="sd">      Tensor, combining expert outputs. aux_loss. auxiliary loss, equalizing the</span>
 <span class="sd">      expert assignment ratios</span>
 <span class="sd">    inputs: G`SM Tensor.</span>
-<span class="sd">    reshaped_inputs: [G*S/E, M] Tensor.</span>
+<span class="sd">    reshaped_inputs: G`SM Tensor.</span>
 <span class="sd">    wi_split: First projection weights [E, M, H] of the feedforward networks.</span>
 <span class="sd">    wo_split: Last projection weights [E, H, M] of the feedforward networks.</span>
 <span class="sd">    num_devices: number of devices.</span>
@@ -1111,16 +1124,37 @@
 <span class="sd">    bi_split: First projection bias [E, 1, H] of the feedforward networks.</span>
 <span class="sd">    bo_split: Last projection bias [E, 1, M] of the feedforward networks.</span>
 <span class="sd">    dropout_rate: Dropout rate.</span>
+<span class="sd">    device_mesh: Device mesh as a numpy ND array of device IDs. Split arguments</span>
+<span class="sd">      must be set if device_mesh is not None.</span>
+<span class="sd">    gsm_split: Mesh split for GSM tensors.</span>
+<span class="sd">    egcm_split: Mesh split for EGCM tensors.</span>
+<span class="sd">    gecm_split: Mesh split for GECM tensors.</span>
+<span class="sd">    gsec_split: Mesh split for GSEC tensors.</span>
+<span class="sd">    eah_split: Mesh split for EAH tensors.</span>
+<span class="sd">    eam_split: Mesh split for EAM tensors.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    outputs: G`SM Tensor.</span>
 <span class="sd">    aux_loss: scalar auxilliar loss.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="c1"># dispatch_tensor  G`SEC</span>
-  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSEC,GSM-&gt;EGCM&#39;</span><span class="p">,</span>
-                            <span class="n">Split</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span>
-                            <span class="n">Split</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">))</span>
-  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">gsm_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">egcm_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">gecm_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">gsec_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">eah_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">eam_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+  <span class="k">def</span> <span class="nf">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_split</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">MeshSplit</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">t_split</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Split</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+
+  <span class="c1"># dispatch_tensor: G`SEC</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+      <span class="s1">&#39;GSEC,GSM-&gt;EGCM&#39;</span><span class="p">,</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
+      <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">gsm_split</span><span class="p">))</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="n">egcm_split</span><span class="p">)</span>
 
   <span class="n">M</span> <span class="o">=</span> <span class="n">reshaped_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">E</span> <span class="o">=</span> <span class="n">expert_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -1139,22 +1173,23 @@
   <span class="c1">#</span>
   <span class="c1"># (512, 1024, 4, 1024) =&gt; (512, 4096, 1024)</span>
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">expert_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">])</span>
-  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="n">eam_split</span><span class="p">)</span>
 
   <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAM,EMH-&gt;EAH&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">wi_split</span><span class="p">)</span>
-  <span class="n">h</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+  <span class="n">h</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">eah_split</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">bi_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">h</span> <span class="o">+=</span> <span class="n">Split</span><span class="p">(</span><span class="n">bi_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
     <span class="n">h</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
 
-  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-
+  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;moe_relu&#39;</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">dropout_rate</span><span class="p">:</span>
     <span class="c1"># we generally do not use stateless dropout in MoE since it introduces</span>
     <span class="c1"># large uint32 tensor broadcast (per dehao@ study)</span>
     <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">)</span>
 
-  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAH,EHM-&gt;EAM&#39;</span><span class="p">,</span> <span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span> <span class="n">wo_split</span><span class="p">)</span>
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAH,EHM-&gt;EAM&#39;</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">wo_split</span><span class="p">)</span>
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">eam_split</span><span class="p">)</span>
+
   <span class="k">if</span> <span class="n">bo_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
     <span class="n">expert_outputs</span> <span class="o">+=</span> <span class="n">Split</span><span class="p">(</span><span class="n">bo_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
@@ -1162,16 +1197,14 @@
   <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="p">[</span><span class="n">E</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">M</span><span class="p">])</span>
 
   <span class="c1"># same as tf.transpose</span>
-  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EGCM-&gt;GECM&#39;</span><span class="p">,</span> <span class="n">expert_outputs</span><span class="p">)</span>
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+      <span class="s1">&#39;EGCM-&gt;GECM&#39;</span><span class="p">,</span> <span class="n">expert_outputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_outputs_gecm&#39;</span><span class="p">)</span>
 
-  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
-
-  <span class="c1"># split by G dim</span>
-  <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSEC,GECM-&gt;GSM&#39;</span><span class="p">,</span>
-                               <span class="n">Split</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span>
-                               <span class="n">expert_outputs</span><span class="p">)</span>
-
-  <span class="n">outputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">combined_outputs</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+  <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+      <span class="s1">&#39;GSEC,GECM-&gt;GSM&#39;</span><span class="p">,</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
+      <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">gecm_split</span><span class="p">))</span>
+  <span class="n">outputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">combined_outputs</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">gsm_split</span><span class="p">)</span>
   <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">aux_loss</span>
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">aux_loss</span></div>
 
