@@ -143,7 +143,7 @@ class ShardedVarLayer(VarLayer):
 
       # We annotate the read value again because some backend implementation
       # may only look at the neighbors of the variable during compilation.
-      if p.device_mesh is not None:
+      if p.device_mesh is not None and v.tensor_split_dims_mapping is not None:
         x = MeshSplit(
             x, p.device_mesh, v.tensor_split_dims_mapping, use_sharding_op=True)
       if (p.cast_to_fprop_dtype and x.dtype.is_floating and
@@ -573,6 +573,9 @@ def Top2GatingOnLogits(inputs,
     - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
       experts.
   """
+  if use_xla_sharding:
+    tf.logging.warning('Sharding propagation should be sufficient and Splits '
+                       'within Top2GatingOnLogits are generally redundant.')
   del inputs  # inputs is currently not used.
   raw_gates = tf.nn.softmax(logits)  # along E dim
 
@@ -841,12 +844,15 @@ def Top2GatingOnLogits(inputs,
       'GSE,GSC->GSEC', a, b, name='second_part_of_combine_tensor')
 
   # GSEC Tensor
-  combine_tensor = (
-      first_part_of_combine_tensor + second_part_of_combine_tensor)
+  combine_tensor = tf.math.add(
+      first_part_of_combine_tensor,
+      second_part_of_combine_tensor,
+      name='combine_tensor')
   combine_tensor = _MaybeSplit(combine_tensor)
 
   # GSEC Tensor
-  dispatch_tensor = tf.cast(tf.cast(combine_tensor, tf.bool), fprop_dtype)
+  dispatch_tensor = tf.cast(
+      tf.cast(combine_tensor, tf.bool), fprop_dtype, name='dispatch_tensor')
   dispatch_tensor = _MaybeSplit(dispatch_tensor)
 
   # TODO(yonghui): compute and return per-group aux_loss.
@@ -945,7 +951,14 @@ def FeedForwardNetworksApplyGating(gating,
                                    num_groups,
                                    bi_split=None,
                                    bo_split=None,
-                                   dropout_rate=0.0):
+                                   dropout_rate=0.0,
+                                   device_mesh=None,
+                                   gsm_split=None,
+                                   egcm_split=None,
+                                   gecm_split=None,
+                                   gsec_split=None,
+                                   eah_split=None,
+                                   eam_split=None):
   """Apply top_2 gating to feedforward networks.
 
   Args:
@@ -954,7 +967,7 @@ def FeedForwardNetworksApplyGating(gating,
       Tensor, combining expert outputs. aux_loss. auxiliary loss, equalizing the
       expert assignment ratios
     inputs: G`SM Tensor.
-    reshaped_inputs: [G*S/E, M] Tensor.
+    reshaped_inputs: G`SM Tensor.
     wi_split: First projection weights [E, M, H] of the feedforward networks.
     wo_split: Last projection weights [E, H, M] of the feedforward networks.
     num_devices: number of devices.
@@ -963,16 +976,37 @@ def FeedForwardNetworksApplyGating(gating,
     bi_split: First projection bias [E, 1, H] of the feedforward networks.
     bo_split: Last projection bias [E, 1, M] of the feedforward networks.
     dropout_rate: Dropout rate.
+    device_mesh: Device mesh as a numpy ND array of device IDs. Split arguments
+      must be set if device_mesh is not None.
+    gsm_split: Mesh split for GSM tensors.
+    egcm_split: Mesh split for EGCM tensors.
+    gecm_split: Mesh split for GECM tensors.
+    gsec_split: Mesh split for GSEC tensors.
+    eah_split: Mesh split for EAH tensors.
+    eam_split: Mesh split for EAM tensors.
 
   Returns:
     outputs: G`SM Tensor.
     aux_loss: scalar auxilliar loss.
   """
-  # dispatch_tensor  G`SEC
-  expert_inputs = tf.einsum('GSEC,GSM->EGCM',
-                            Split(gating.dispatch_tensor, 0, num_devices),
-                            Split(reshaped_inputs, 0, num_devices))
-  expert_inputs = Split(expert_inputs, 0, num_devices)
+  if device_mesh is not None:
+    assert gsm_split is not None
+    assert egcm_split is not None
+    assert gecm_split is not None
+    assert gsec_split is not None
+    assert eah_split is not None
+    assert eam_split is not None
+
+  def _NewOrHistoricSplit(t, t_split):
+    if device_mesh is not None:
+      return MeshSplit(t, device_mesh, t_split)
+    return Split(t, 0, num_devices)
+
+  # dispatch_tensor: G`SEC
+  expert_inputs = tf.einsum(
+      'GSEC,GSM->EGCM', _NewOrHistoricSplit(gating.dispatch_tensor, gsec_split),
+      _NewOrHistoricSplit(reshaped_inputs, gsm_split))
+  expert_inputs = _NewOrHistoricSplit(expert_inputs, egcm_split)
 
   M = reshaped_inputs.shape[-1]  # pylint: disable=invalid-name
   E = expert_inputs.shape[0]  # pylint: disable=invalid-name
@@ -991,22 +1025,23 @@ def FeedForwardNetworksApplyGating(gating,
   #
   # (512, 1024, 4, 1024) => (512, 4096, 1024)
   expert_inputs = tf.reshape(expert_inputs, [expert_inputs.shape[0], A, M])
-  expert_inputs = Split(expert_inputs, 0, num_devices)
+  expert_inputs = _NewOrHistoricSplit(expert_inputs, eam_split)
 
   h = tf.einsum('EAM,EMH->EAH', expert_inputs, wi_split)
-  h = Split(h, 0, num_devices)
+  h = _NewOrHistoricSplit(h, eah_split)
   if bi_split is not None:
     h += Split(bi_split, 0, num_devices)
     h = Split(h, 0, num_devices)
 
-  h = tf.nn.relu(h)
-
+  h = tf.nn.relu(h, name='moe_relu')
   if dropout_rate:
     # we generally do not use stateless dropout in MoE since it introduces
     # large uint32 tensor broadcast (per dehao@ study)
     h = tf.nn.dropout(h, dropout_rate)
 
-  expert_outputs = tf.einsum('EAH,EHM->EAM', Split(h, 0, num_devices), wo_split)
+  expert_outputs = tf.einsum('EAH,EHM->EAM', h, wo_split)
+  expert_outputs = _NewOrHistoricSplit(expert_outputs, eam_split)
+
   if bo_split is not None:
     expert_outputs = Split(expert_outputs, 0, num_devices)
     expert_outputs += Split(bo_split, 0, num_devices)
@@ -1014,16 +1049,14 @@ def FeedForwardNetworksApplyGating(gating,
   expert_outputs = tf.reshape(expert_outputs, [E, G, C, M])
 
   # same as tf.transpose
-  expert_outputs = tf.einsum('EGCM->GECM', expert_outputs)
+  expert_outputs = tf.einsum(
+      'EGCM->GECM', expert_outputs, name='expert_outputs_gecm')
 
-  expert_outputs = Split(expert_outputs, 0, num_devices)
-
-  # split by G dim
-  combined_outputs = tf.einsum('GSEC,GECM->GSM',
-                               Split(gating.combine_tensor, 0, num_devices),
-                               expert_outputs)
-
-  outputs = Split(tf.reshape(combined_outputs, inputs.shape), 0, num_devices)
+  combined_outputs = tf.einsum(
+      'GSEC,GECM->GSM', _NewOrHistoricSplit(gating.combine_tensor, gsec_split),
+      _NewOrHistoricSplit(expert_outputs, gecm_split))
+  outputs = _NewOrHistoricSplit(
+      tf.reshape(combined_outputs, inputs.shape), gsm_split)
   aux_loss = gating.aux_loss
   return outputs, aux_loss
 

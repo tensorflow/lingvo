@@ -176,6 +176,10 @@ class MoEBuilder(builder.Base):
              'Extra logit for attention softmax.')
     return p
 
+  @property
+  def _device_mesh(self):
+    return None
+
   def _Dropout(self, name, keep_prob, noise_shape_broadcast_dims=None):
     return super()._Dropout(
         name, keep_prob, noise_shape_broadcast_dims or
@@ -1131,6 +1135,9 @@ class MoEBuilder(builder.Base):
 
   def Split(self, name):
     """Sets sharding attribute for the Tensor. Split across dim=0."""
+    tf.logging.warning('moe_layers.Split is deprecated. '
+                       'Please use moe_layers.MeshSplit with specific '
+                       'device_mesh and device_mesh_shape set in the Builder.')
     return self._Fn(
         name,
         lambda x: moe_layers.Split(x, 0, num_devices=self.params.num_devices))
@@ -1256,7 +1263,10 @@ class MoEBuilder(builder.Base):
           expert_capacity_dim=p.c_dim,
           local_dispatch=True,
           fprop_dtype=py_utils.FPropDtype(p),
-          use_xla_sharding=True,
+          # We rely on sharding propagation here, Top2Gating is done
+          # independently for each group and inputs are typically sharded by
+          # group dimension.
+          use_xla_sharding=False,
           second_expert_policy=p.second_expert_policy,
           second_expert_threshold=p.second_expert_threshold,
           legacy_mtf_behavior=p.legacy_mtf_behavior,
@@ -1298,6 +1308,14 @@ class MoEBuilder(builder.Base):
 
   def _FeedForwardNetworksApplyGating(self, name):
     p = self.params
+    if p.num_devices > 1:
+      tf.logging.warning('Split API is deprecated. '
+                         'Use device_mesh and MeshSplit.')
+
+    def _Split(split):
+      # TODO(lepikhin): eliminate usages of MoEBuilder and merge DenseBuilder
+      # with MoEBuilder, so this getattr is not necessary.
+      return getattr(p, split, None)
 
     def _Compute(gating, inputs, reshaped_inputs, wi, wo):
       return moe_layers.FeedForwardNetworksApplyGating(
@@ -1308,7 +1326,14 @@ class MoEBuilder(builder.Base):
           wo,
           num_devices=p.num_devices,
           num_groups=p.num_groups or p.num_devices,
-          dropout_rate=p.moe_dropout_rate)
+          dropout_rate=p.moe_dropout_rate,
+          device_mesh=self._device_mesh,
+          gsm_split=_Split('blm_split'),
+          egcm_split=_Split('egcm_split'),
+          gecm_split=_Split('gecm_split'),
+          gsec_split=_Split('gsec_split'),
+          eah_split=_Split('eah_split'),
+          eam_split=_Split('eam_split'))
 
     return self._Fn(name, _Compute)
 
@@ -1414,6 +1439,13 @@ class DenseBuilder(MoEBuilder):
     p.Define('qkv_split', [0, -1, 1, -1], 'Mesh split for Q, K, V')
     p.Define('blm_split', [0, -1, -1], 'Mesh split for BLM.')
     p.Define('blh_split', [0, -1, 1], 'Mesh split for BLH.')
+    p.Define('egcm_split', [0, -1, -1, -1], 'Mesh split for EGCM.')
+    p.Define('gecm_split', [0, -1, -1, -1], 'Mesh split for GECM.')
+    p.Define('gsec_split', [0, -1, -1, -1], 'Mesh split for GSEC.')
+    p.Define('eah_split', [0, -1, -1], 'Mesh split for EAH.')
+    p.Define('eam_split', [0, -1, -1], 'Mesh split for EAM.')
+    p.Define('emh_split', [0, -1, -1], 'Mesh split for EMH.')
+    p.Define('ehm_split', [0, -1, -1], 'Mesh split for EHM.')
     p.Define('logits_split', [0, -1, -1], 'Mesh split for logits.')
     p.Define('model_dim_reshape_segments', None,
              'Size of N when reshaping model dimension M to Nm')
@@ -1502,6 +1534,75 @@ class DenseBuilder(MoEBuilder):
   def MeshSplit(self, name, tensor_split_dims_mapping):
     return self._Fn(name,
                     lambda x: self._MeshSplit(x, tensor_split_dims_mapping))
+
+  def _ShardedFeedForwardNetworksWeights(self, name):
+    """Gets the sharded weights for the two layer feedforward nets."""
+    p = self.params
+    device_mesh = self._device_mesh
+    emh_shape = [p.e_dim, p.model_dim, p.moe_hidden_dim]
+    # See VarianceScalingInitializer in py_utils
+    #   scale        ~ 1.0
+    #   reduced_dims ~ params.input_dim
+    #   mode         ~ 'fan_in'
+    #
+    stddev = (1. / p.model_dim)**0.5
+    wi_kernel_param_init_scale = stddev * 3.**0.5
+    wi_pc = moe_layers.ShardedWeightParams(
+        shape=emh_shape,
+        init=py_utils.WeightInit.Uniform(wi_kernel_param_init_scale),
+        dtype=p.dtype,
+        tensor_split_dims_mapping=p.emh_split)
+
+    # EHM Tensor (output transformation after RELU)
+    ehm_shape = [p.e_dim, p.moe_hidden_dim, p.model_dim]
+    # See VarianceScalingInitializer in py_utils
+    #   scale        ~ 1.0
+    #   reduced_dims ~ params.moe_hidden_dim
+    #   mode         ~ 'fan_in'
+    #
+    stddev = (1. / p.moe_hidden_dim)**0.5
+    wo_kernel_param_init_scale = stddev * 3.**0.5
+    wo_pc = moe_layers.ShardedWeightParams(
+        shape=ehm_shape,
+        init=py_utils.WeightInit.Uniform(wo_kernel_param_init_scale),
+        dtype=p.dtype,
+        tensor_split_dims_mapping=p.ehm_split)
+    return self._ShardedVar(
+        name=name,
+        weights=[('wi', wi_pc), ('wo', wo_pc)],
+        device_mesh=device_mesh)
+
+  def _ShardedMoEPositionWiseFeedForwardNetworks(self, name):
+    """Simple MoE FFN with xla_sharding."""
+    p = self.params
+    num_groups = p.num_groups or p.num_devices
+
+    def _ReshapeInputs(inputs, segment_id):
+      """Prepare inputs and paddings for the gating layer."""
+      paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
+      orig_inputs = inputs
+      inputs = tf.reshape(
+          orig_inputs, [
+              num_groups,
+              (orig_inputs.shape[0] * orig_inputs.shape[1]) // num_groups,
+              orig_inputs.shape[-1],
+          ],
+          name='grouped_inputs')
+      # inputs = self._MeshSplit(inputs, self._AdjustMSplit(p.blm_split, 2))
+      paddings = tf.reshape(paddings, inputs.shape[:2], name='grouped_paddings')
+      # paddings = self._MeshSplit(paddings,
+      #                            p.blm_split[:2])  # Snapshot version: 432
+      return inputs, paddings
+
+    return self._Graph(name, ['inputs', 'segment_id', 'wi', 'wo'],
+                       ['outputs', 'aux_loss'],
+                       ('inputs,segment_id->reshaped_inputs, paddings',
+                        self._Fn('reshape_inputs', _ReshapeInputs)),
+                       ('->gw', self._Top2GatingWeights('top_2_gating')),
+                       ('gw,reshaped_inputs,paddings->gating',
+                        self._ComputeTopKGating('compute_gating')),
+                       ('gating,inputs,reshaped_inputs,wi,wo->outputs,aux_loss',
+                        self._FeedForwardNetworksApplyGating('process_gating')))
 
   def Embedding(self, name, vocab_dim):
     p = self.params

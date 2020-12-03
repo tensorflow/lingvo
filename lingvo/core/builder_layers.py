@@ -841,7 +841,8 @@ class GraphLayer(base_layer.BaseLayer):
         if isinstance(t, py_utils.NestedMap):
           assert all(isinstance(x, tf.Tensor) for x in t.Flatten()), t
         else:
-          assert isinstance(t, tf.Tensor)
+          assert isinstance(t,
+                            tf.Tensor), (n, t, p.name, p.input_endpoints, args)
         graph_tensors.StoreTensor(n, t)
 
       ch_out = None
