@@ -495,6 +495,15 @@ void BasicRecordYielder::MainLoop() {
     parser_options.epoch = epoch;
     parser_options.num_input_replicas = opts_.num_input_replicas;
     parser_options.input_replica_id = opts_.input_replica_id;
+    const int num_threads = thread_->NumThreads();
+    // We want each shard to fit into the shuffle buffer. Since there can be
+    // up to `num_threads` concurrent ShardLoop calls, we divide the shuffle
+    // buffer by num_threads.
+    parser_options.max_records_per_shard = static_cast<int64>(
+        bufsize() * .9 / num_threads);
+    // Ideally there should be enough number of shards to keep the thread pool
+    // busy.
+    parser_options.min_shards = opts_.parallelism * 4;
     Status s = RecordIterator::ParsePattern(file_type_, opts_.file_pattern,
                                             parser_options, &filenames);
     if (ShouldFinish(s)) break;

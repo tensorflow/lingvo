@@ -82,6 +82,15 @@ class RecordIterator {
     int64 epoch = 0;
     int num_input_replicas = 1;
     int input_replica_id = 0;
+
+    // max_records_per_shard and min_shards should be considered as
+    // recommendations from the RecordYielder. They are not hard limits and
+    // can be ignored by PatternParserMethod.
+
+    // Each shard should ideally contain no more than this number of records.
+    int max_records_per_shard = 0;
+    // Desired minimum number of shards.
+    int min_shards = 1;
   };
   // As above, but also register a custom method for parsing file_pattern
   // strings into lists of shards.
