@@ -39,7 +39,6 @@ import inspect
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import batch_utils
-from lingvo.core import cluster_factory
 from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import input_generator_helper as ig_helper
@@ -774,7 +773,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
   def CommonInputOpArgs(self):
     """Common input params."""
     p = self.params
-    cluster = cluster_factory.Current()
 
     args = super().CommonInputOpArgs()
     if p.file_datasource and issubclass(p.file_datasource.cls,
@@ -784,9 +782,12 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       p.use_chaining = True
     num_input_replicas = 1
     input_replica_id = 0
-    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      num_input_replicas = cluster.num_tpu_hosts
-      input_replica_id = cluster.task
+    infeed_context = GetInfeedContext()
+    if infeed_context:
+      num_input_replicas = infeed_context.num_infeed_hosts
+      input_replica_id = infeed_context.infeed_host_index
+      tf.logging.info('input_replica_id=%s/%s', input_replica_id,
+                      num_input_replicas)
     args.update({
         'file_random_seed': p.file_random_seed,
         'file_buffer_size': p.file_buffer_size,
