@@ -187,7 +187,6 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">batch_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
@@ -922,7 +921,6 @@
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
 
     <span class="n">args</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
@@ -932,9 +930,12 @@
       <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">num_input_replicas</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">input_replica_id</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">num_input_replicas</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
-      <span class="n">input_replica_id</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">task</span>
+    <span class="n">infeed_context</span> <span class="o">=</span> <span class="n">GetInfeedContext</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">infeed_context</span><span class="p">:</span>
+      <span class="n">num_input_replicas</span> <span class="o">=</span> <span class="n">infeed_context</span><span class="o">.</span><span class="n">num_infeed_hosts</span>
+      <span class="n">input_replica_id</span> <span class="o">=</span> <span class="n">infeed_context</span><span class="o">.</span><span class="n">infeed_host_index</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_replica_id=</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_replica_id</span><span class="p">,</span>
+                      <span class="n">num_input_replicas</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
         <span class="s1">&#39;file_random_seed&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span><span class="p">,</span>
         <span class="s1">&#39;file_buffer_size&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
