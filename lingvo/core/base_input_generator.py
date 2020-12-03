@@ -1536,6 +1536,7 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
         (func, dataset))
     self.iterator = tf1.data.make_initializable_iterator(dataset)
     self._init_ops.append(self.iterator.initializer)  # pylint: disable=protected-access
+    self.dataset = dataset
 
   def _InputBatch(self):
     """Generates data tensors by invoking the pipeline."""
