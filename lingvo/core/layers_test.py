@@ -5256,6 +5256,39 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(actual.shape, (2, 2, 4))
       self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
 
+  @parameterized.parameters('TBC', 'BTC')
+  def testWithClipping(self, data_format):
+    with self.session(use_gpu=True):
+      np.random.seed(1234567)
+      # Inputs are of shape [1, batch, input_dim] (single time step)
+      # Batch elements 0, 2, and 3 are identical, but 0 and 2 have the same
+      # task ID where as 3 has a different task ID.
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0],
+                             [0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      tasks = tf.constant([1, 0, 1, 0], dtype=tf.int32)
+      if data_format == 'BTC':
+        inputs = tf.transpose(inputs, [1, 0, 2])
+      p = self._MultitaskAdapterParams(data_format)
+      p.clip_task_ids = True
+      p.num_tasks = 1
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, tasks)
+      self.evaluate(tf.global_variables_initializer())
+      actual = self.evaluate(output)
+      if data_format == 'BTC':
+        actual = tf.transpose(actual, [1, 0, 2])
+      tf.logging.info('testWithClipping actual=%r' % actual)
+      expected = [[[0.573645, 0.578965, 0.592506, 0.151613],
+                   [0.059424, 0.943358, -0.263031, 2.147371],
+                   [0.573645, 0.578965, 0.592506, 0.151613],
+                   [0.573645, 0.578965, 0.592506, 0.151613]]]
+      self.assertEqual(actual.shape, (1, 4, 4))
+      # Batch elements 0 and 2 are equal because they had the same input
+      # and the same task ID.
+      self.assertAllClose(actual[0][0], actual[0][2], rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
+
   def testGradientChecker(self):
     with self.session(use_gpu=True):
       np.random.seed(1234567)

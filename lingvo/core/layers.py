@@ -4804,6 +4804,8 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
         'data_format', 'TBC', 'String(enum) specifying the input and output '
         'data format for this layer. Supported formats: '
         '"TBC": [time, batch, input_dim] and "BTC": [batch, time, input_dim].')
+    p.Define('clip_task_ids', False,
+             'If True, clips the given task ids to [0, p.num_tasks - 1].')
     return p
 
   def __init__(self, params):
@@ -4875,6 +4877,8 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
             ])
         ],
         inputs)
+    if p.clip_task_ids:
+      tasks = tf.clip_by_value(tasks, 0, p.num_tasks - 1)
 
     # To support different task for each timetstep, flatten inputs and
     # tasks.  Below, 'batch' now refers to flattened batch size, time * batch.
