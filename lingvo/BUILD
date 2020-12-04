@@ -171,6 +171,22 @@ py_test(
 )
 
 py_library(
+    name = "trainer_impl",
+    srcs = ["trainer_impl.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":compat",
+        "//lingvo:base_runner",
+        "//lingvo/core:base_model",
+        "//lingvo/core:checkpointer_lib",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:metrics",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:summary_utils",
+    ],
+)
+
+py_library(
     name = "trainer_lib",
     srcs = ["trainer.py"],
     srcs_version = "PY3",
@@ -181,6 +197,7 @@ py_library(
         ":executor_lib",
         ":model_imports_no_params",
         ":model_registry",
+        ":trainer_impl",
         # Implicit network file system dependency.
         "//lingvo:base_runner",
         # Implicit python proto dependency.
