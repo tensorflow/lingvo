@@ -21,7 +21,6 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 
-
 # AsrFrontendConfig which defines characteristics of the frontend that may
 # be relevant to interfacing code which needs to reason about inputs and
 # outputs.
@@ -79,13 +78,10 @@ class BaseAsrFrontend(base_layer.BaseLayer):
     Args:
       theta: A NestedMap object containing weights' values of this layer and its
         children layers.
-      input_batch: A NestedMap with fields:
-
-        - 'src_inputs' - The inputs tensor,
-          compatible with model input. Expected to be of shape
-          [batch, time, ...].
+      input_batch: A NestedMap with fields:  - 'src_inputs' - The inputs tensor,
+        compatible with model input. Expected to be of shape [batch, time, ...].
         - 'paddings' - The paddings tensor. It is expected to be of shape
-          [batch, time].
+        [batch, time].
 
     Returns:
       NestedMap of encoder inputs which can be passed directly to a
@@ -180,6 +176,14 @@ class MelAsrFrontend(BaseAsrFrontend):
              'Number of right context frames to stack.')
     p.Define('frame_stride', 1, 'The frame stride for sub-sampling.')
 
+    p.Define('fft_overdrive', True,
+             'Whether to use twice the minimum fft resolution.')
+    p.Define('output_floor', 1.0,
+             'Minimum output of filterbank output prior to taking logarithm.')
+    p.Define(
+        'compute_energy', False,
+        'Whether to compute filterbank output on the energy of spectrum '
+        'rather than just the magnitude.')
     return p
 
   @staticmethod
@@ -213,9 +217,10 @@ class MelAsrFrontend(BaseAsrFrontend):
     self._frame_step = int(round(p.sample_rate * p.frame_step_ms / 1000.0))
     self._frame_size = (int(round(p.sample_rate * p.frame_size_ms / 1000.0)) + 1
                        )  # +1 for the preemph
-    # Overdrive means double FFT size.
-    # Note: 2* because of overdrive
-    self._fft_size = 2 * int(max(512, _NextPowerOfTwo(self._frame_size)))
+
+    self._fft_size = int(max(512, _NextPowerOfTwo(self._frame_size)))
+    if p.fft_overdrive:
+      self._fft_size *= 2
 
     self._CreateWindowFunction()
 
@@ -304,18 +309,17 @@ class MelAsrFrontend(BaseAsrFrontend):
     Args:
       theta: Layer theta.
       input_batch: PCM input map:
+      - 'src_inputs': int16 or float32 tensor of PCM audio data, scaled to
+      [-32768..32768] (versus [-1..1)!). See class comments for supported
+      input shapes.
+      - 'paddings': per frame 0/1 paddings. Shaped: [batch, frame].
 
-        - 'src_inputs': int16 or float32 tensor of PCM audio data, scaled to
-          +/-32768 (versus [-1..1)!). See class comments for supported input
-          shapes.
-        - 'paddings': per frame 0/1 paddings. Shaped: [batch, frame].
     Returns:
       NestedMap of encoder inputs which can be passed directly to a
       compatible encoder and contains:
-
-        - 'src_inputs': inputs to the encoder, minimally of shape
-          [batch, time, ...].
-        - 'paddings': a 0/1 tensor of shape [batch, time].
+      - 'src_inputs': inputs to the encoder, minimally of shape
+      [batch, time, ...].
+      - 'paddings': a 0/1 tensor of shape [batch, time].
     """
 
     return self._FPropDefault(input_batch)
@@ -434,9 +438,8 @@ class MelAsrFrontend(BaseAsrFrontend):
 
     mel_spectrogram = self._MelSpectrogram(windowed_signal)
 
-    output_floor = 1.0
     mel_spectrogram_log = tf.math.log(
-        tf.maximum(float(output_floor), mel_spectrogram))
+        tf.maximum(float(p.output_floor), mel_spectrogram))
 
     # Mean and stddev.
     mel_spectrogram_norm = (
@@ -457,6 +460,8 @@ class MelAsrFrontend(BaseAsrFrontend):
     # FFT.
     real_frequency_spectrogram = tf.signal.rfft(signal, [self._fft_size])
     magnitude_spectrogram = tf.abs(real_frequency_spectrogram)
+    if p.compute_energy:
+      magnitude_spectrogram = tf.square(magnitude_spectrogram)
 
     # Shape of magnitude_spectrogram is num_frames x (fft_size/2+1)
     # Mel_weight is [num_spectrogram_bins, num_mel_bins]
