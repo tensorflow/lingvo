@@ -785,8 +785,6 @@
       <li><a href="lingvo.trainer.html#lingvo.trainer.Controller._CreateCheckpointer">_CreateCheckpointer() (lingvo.trainer.Controller method)</a>
 
       <ul>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder._CreateCheckpointer">(lingvo.trainer.Decoder method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.Evaler._CreateCheckpointer">(lingvo.trainer.Evaler method)</a>
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Controller._CreateCheckpointer">(lingvo.trainer.RunnerManager.Controller method)</a>
@@ -794,6 +792,8 @@
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder._CreateCheckpointer">(lingvo.trainer.RunnerManager.Decoder method)</a>
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Evaler._CreateCheckpointer">(lingvo.trainer.RunnerManager.Evaler method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder._CreateCheckpointer">(lingvo.trainer_impl.Decoder method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.core.attention.html#lingvo.core.attention.MergerLayer._CreateChildrenVariables">_CreateChildrenVariables() (lingvo.core.attention.MergerLayer method)</a>
@@ -1506,7 +1506,7 @@
 </li>
       <li><a href="lingvo.core.saver.html#lingvo.core.saver.Saver._GetCheckpointId">_GetCheckpointId() (lingvo.core.saver.Saver method)</a>
 </li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer._GetCheckpointIdForDecodeOut">_GetCheckpointIdForDecodeOut() (in module lingvo.trainer)</a>
+      <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl._GetCheckpointIdForDecodeOut">_GetCheckpointIdForDecodeOut() (in module lingvo.trainer_impl)</a>
 </li>
       <li><a href="lingvo.trainer.html#lingvo.trainer._GetClusterSpecDict">_GetClusterSpecDict() (in module lingvo.trainer)</a>
 </li>
@@ -1925,8 +1925,6 @@
       <ul>
         <li><a href="lingvo.trainer.html#lingvo.trainer.Controller._Loop">(lingvo.trainer.Controller method)</a>
 </li>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder._Loop">(lingvo.trainer.Decoder method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.Evaler._Loop">(lingvo.trainer.Evaler method)</a>
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Controller._Loop">(lingvo.trainer.RunnerManager.Controller method)</a>
@@ -1941,9 +1939,11 @@
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.TrainerTpu._Loop">(lingvo.trainer.RunnerManager.TrainerTpu method)</a>
 </li>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Trainer._Loop">(lingvo.trainer.Trainer method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.TrainerTpu._Loop">(lingvo.trainer.TrainerTpu method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder._Loop">(lingvo.trainer_impl.Decoder method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Trainer._Loop">(lingvo.trainer_impl.Trainer method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner._LoopEnqueue">_LoopEnqueue() (lingvo.base_runner.BaseRunner method)</a>
@@ -1953,9 +1953,9 @@
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.TrainerTpu._LoopEnqueue">(lingvo.trainer.RunnerManager.TrainerTpu method)</a>
 </li>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Trainer._LoopEnqueue">(lingvo.trainer.Trainer method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.TrainerTpu._LoopEnqueue">(lingvo.trainer.TrainerTpu method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Trainer._LoopEnqueue">(lingvo.trainer_impl.Trainer method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.DecoderOutput._make">_make() (lingvo.core.base_decoder.DecoderOutput class method)</a>
@@ -2693,9 +2693,9 @@
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.TrainerTpu._SummarizeValue">(lingvo.trainer.RunnerManager.TrainerTpu method)</a>
 </li>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Trainer._SummarizeValue">(lingvo.trainer.Trainer method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.TrainerTpu._SummarizeValue">(lingvo.trainer.TrainerTpu method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Trainer._SummarizeValue">(lingvo.trainer_impl.Trainer method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.core.program.html#lingvo.core.program.BaseProgram._summary_writer">_summary_writer() (lingvo.core.program.BaseProgram property)</a>
@@ -4266,10 +4266,10 @@
 </li>
       <li><a href="lingvo.core.base_model.html#lingvo.core.base_model.DecodeFinalizeArgs.decode_out_path">decode_out_path (lingvo.core.base_model.DecodeFinalizeArgs attribute)</a>
 </li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder.DecodeCheckpoint">DecodeCheckpoint() (lingvo.trainer.Decoder method)</a>
+      <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.DecodeCheckpoint">DecodeCheckpoint() (lingvo.trainer.RunnerManager.Decoder method)</a>
 
       <ul>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.DecodeCheckpoint">(lingvo.trainer.RunnerManager.Decoder method)</a>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder.DecodeCheckpoint">(lingvo.trainer_impl.Decoder method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.DecodeFinalize">DecodeFinalize() (lingvo.core.base_model.BaseTask method)</a>
@@ -4282,15 +4282,15 @@
 </li>
       <li><a href="lingvo.tools.audio_lib.html#lingvo.tools.audio_lib.DecodeFlacToWav">DecodeFlacToWav() (in module lingvo.tools.audio_lib)</a>
 </li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder.DecodeLatestCheckpoint">DecodeLatestCheckpoint() (lingvo.trainer.Decoder method)</a>
+      <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.DecodeLatestCheckpoint">DecodeLatestCheckpoint() (lingvo.trainer.RunnerManager.Decoder method)</a>
 
       <ul>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.DecodeLatestCheckpoint">(lingvo.trainer.RunnerManager.Decoder method)</a>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder.DecodeLatestCheckpoint">(lingvo.trainer_impl.Decoder method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.core.program.html#lingvo.core.program.DecodeProgram">DecodeProgram (class in lingvo.core.program)</a>
 </li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder">Decoder (class in lingvo.trainer)</a>
+      <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder">Decoder (class in lingvo.trainer_impl)</a>
 </li>
       <li><a href="lingvo.tools.gke_launch.html#lingvo.tools.gke_launch.decoder_template">decoder_template() (in module lingvo.tools.gke_launch)</a>
 </li>
@@ -5714,10 +5714,10 @@
 </li>
       <li><a href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GetBpropVariableFilters">GetBpropVariableFilters() (lingvo.core.base_input_generator.BaseInputGenerator method)</a>
 </li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder.GetCkptIdFromFile">GetCkptIdFromFile() (lingvo.trainer.Decoder method)</a>
+      <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.GetCkptIdFromFile">GetCkptIdFromFile() (lingvo.trainer.RunnerManager.Decoder method)</a>
 
       <ul>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.GetCkptIdFromFile">(lingvo.trainer.RunnerManager.Decoder method)</a>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder.GetCkptIdFromFile">(lingvo.trainer_impl.Decoder method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.model_registry.html#lingvo.model_registry.GetClass">GetClass() (in module lingvo.model_registry)</a>
@@ -5754,13 +5754,13 @@
 </li>
       <li><a href="lingvo.datasets.html#lingvo.datasets.GetDatasets">GetDatasets() (in module lingvo.datasets)</a>
 </li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder.GetDecodeOutPath">GetDecodeOutPath() (lingvo.trainer.Decoder class method)</a>
+      <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.GetDecodeOutPath">GetDecodeOutPath() (lingvo.trainer.RunnerManager.Decoder class method)</a>
 
       <ul>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Decoder.GetDecodeOutPath">(lingvo.trainer.RunnerManager.Decoder class method)</a>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder.GetDecodeOutPath">(lingvo.trainer_impl.Decoder class method)</a>
 </li>
       </ul></li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer.GetDecoderDir">GetDecoderDir() (in module lingvo.trainer)</a>
+      <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.GetDecoderDir">GetDecoderDir() (in module lingvo.trainer_impl)</a>
 </li>
       <li><a href="lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta">GetDecoderEmbeddingsDefaultTheta() (lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerEmbeddingLayer method)</a>
 
@@ -8279,6 +8279,13 @@
         <li><a href="lingvo.trainer.html#module-lingvo.trainer">module</a>
 </li>
       </ul></li>
+      <li>
+    lingvo.trainer_impl
+
+      <ul>
+        <li><a href="lingvo.trainer_impl.html#module-lingvo.trainer_impl">module</a>
+</li>
+      </ul></li>
       <li><a href="lingvo.core.hyperparams_pb2.html#lingvo.core.hyperparams_pb2.HyperparamValue.list_val">list_val (lingvo.core.hyperparams_pb2.HyperparamValue attribute)</a>
 </li>
       <li><a href="lingvo.core.cluster.html#lingvo.core.cluster._Cluster.ListDevices">ListDevices() (lingvo.core.cluster._Cluster class method)</a>
@@ -9062,6 +9069,8 @@
         <li><a href="lingvo.tools.wpm_encode_file.html#module-lingvo.tools.wpm_encode_file">lingvo.tools.wpm_encode_file</a>
 </li>
         <li><a href="lingvo.trainer.html#module-lingvo.trainer">lingvo.trainer</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#module-lingvo.trainer_impl">lingvo.trainer_impl</a>
 </li>
       </ul></li>
   </ul></td>
@@ -11481,8 +11490,6 @@
       <ul>
         <li><a href="lingvo.trainer.html#lingvo.trainer.Controller.Start">(lingvo.trainer.Controller method)</a>
 </li>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Decoder.Start">(lingvo.trainer.Decoder method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.Evaler.Start">(lingvo.trainer.Evaler method)</a>
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.Start">(lingvo.trainer.RunnerManager method)</a>
@@ -11499,9 +11506,11 @@
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.TrainerTpu.Start">(lingvo.trainer.RunnerManager.TrainerTpu method)</a>
 </li>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Trainer.Start">(lingvo.trainer.Trainer method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.TrainerTpu.Start">(lingvo.trainer.TrainerTpu method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Decoder.Start">(lingvo.trainer_impl.Decoder method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Trainer.Start">(lingvo.trainer_impl.Trainer method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.trainer.html#lingvo.trainer.Controller.StartEnqueueOp">StartEnqueueOp() (lingvo.trainer.Controller method)</a>
@@ -11513,9 +11522,9 @@
 </li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.TrainerTpu.StartEnqueueOp">(lingvo.trainer.RunnerManager.TrainerTpu method)</a>
 </li>
-        <li><a href="lingvo.trainer.html#lingvo.trainer.Trainer.StartEnqueueOp">(lingvo.trainer.Trainer method)</a>
-</li>
         <li><a href="lingvo.trainer.html#lingvo.trainer.TrainerTpu.StartEnqueueOp">(lingvo.trainer.TrainerTpu method)</a>
+</li>
+        <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Trainer.StartEnqueueOp">(lingvo.trainer_impl.Trainer method)</a>
 </li>
       </ul></li>
       <li><a href="lingvo.trainer.html#lingvo.trainer.RunnerManager.StartRunners">StartRunners() (lingvo.trainer.RunnerManager method)</a>
@@ -11950,7 +11959,7 @@
       </ul></li>
       <li><a href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.train_op">train_op() (lingvo.core.base_model.BaseTask property)</a>
 </li>
-      <li><a href="lingvo.trainer.html#lingvo.trainer.Trainer">Trainer (class in lingvo.trainer)</a>
+      <li><a href="lingvo.trainer_impl.html#lingvo.trainer_impl.Trainer">Trainer (class in lingvo.trainer_impl)</a>
 </li>
       <li><a href="lingvo.trainer.html#lingvo.trainer.TrainerTpu">TrainerTpu (class in lingvo.trainer)</a>
 </li>

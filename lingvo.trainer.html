@@ -36,6 +36,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.trainer_impl module" href="lingvo.trainer_impl.html" />
     <link rel="prev" title="lingvo.models_test_helper module" href="lingvo.models_test_helper.html" /> 
 </head>
 
@@ -95,6 +96,7 @@
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry.html">lingvo.model_registry module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.models_test_helper.html">lingvo.models_test_helper module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.trainer module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.trainer_impl.html">lingvo.trainer_impl module</a></li>
 </ul>
 </li>
 </ul>
@@ -216,39 +218,6 @@ $ bazel-bin/lingvo/trainer --logtostderr <span class="se">\</span>
 <dl class="py method">
 <dt id="lingvo.trainer.Controller._SummarizeValue">
 <code class="sig-name descname">_SummarizeValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">step</span></em>, <em class="sig-param"><span class="n">tag</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._SummarizeValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._SummarizeValue" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="lingvo.trainer.Trainer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.trainer.</code><code class="sig-name descname">Trainer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
-<p>Trainer on non-TPU.</p>
-<dl class="py method">
-<dt id="lingvo.trainer.Trainer._SummarizeValue">
-<code class="sig-name descname">_SummarizeValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">steps</span></em>, <em class="sig-param"><span class="n">tag</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">writer</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer._SummarizeValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer._SummarizeValue" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Trainer.Start">
-<code class="sig-name descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer.Start" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Trainer.StartEnqueueOp">
-<code class="sig-name descname">StartEnqueueOp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">op</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer.StartEnqueueOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer.StartEnqueueOp" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Trainer._LoopEnqueue">
-<code class="sig-name descname">_LoopEnqueue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">op</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer._LoopEnqueue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer._LoopEnqueue" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs the enqueue op in a loop.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Trainer._Loop">
-<code class="sig-name descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer._Loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -377,76 +346,6 @@ $ bazel-bin/lingvo/trainer --logtostderr <span class="se">\</span>
 <dd class="field-even"><p>should_stop.</p>
 </dd>
 </dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.trainer.GetDecoderDir">
-<code class="sig-prename descclassname">lingvo.trainer.</code><code class="sig-name descname">GetDecoderDir</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logdir</span></em>, <em class="sig-param"><span class="n">decoder_type</span></em>, <em class="sig-param"><span class="n">model_task_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#GetDecoderDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.GetDecoderDir" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.trainer._GetCheckpointIdForDecodeOut">
-<code class="sig-prename descclassname">lingvo.trainer.</code><code class="sig-name descname">_GetCheckpointIdForDecodeOut</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ckpt_id_from_file</span></em>, <em class="sig-param"><span class="n">global_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_GetCheckpointIdForDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._GetCheckpointIdForDecodeOut" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve the checkpoint id for the decoder out file.</p>
-<p>Compares the checkpoint id found in the checkpoint file name to global
-step. If they diverge, uses the retrieved id and prints a warning.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ckpt_id_from_file</strong> – Checkpoint Id from the checkpoint file path.</p></li>
-<li><p><strong>global_step</strong> – int specifying the global step of the model.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Checkpoint id as int.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py class">
-<dt id="lingvo.trainer.Decoder">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.trainer.</code><code class="sig-name descname">Decoder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoder_type</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
-<p>Decoder.</p>
-<dl class="py method">
-<dt id="lingvo.trainer.Decoder._CreateCheckpointer">
-<code class="sig-name descname">_CreateCheckpointer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_dir</span></em>, <em class="sig-param"><span class="n">model</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder._CreateCheckpointer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder._CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrapper method for override purposes.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Decoder.Start">
-<code class="sig-name descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.Start" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Decoder._Loop">
-<code class="sig-name descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder._Loop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Decoder.GetDecodeOutPath">
-<em class="property">classmethod </em><code class="sig-name descname">GetDecodeOutPath</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoder_dir</span></em>, <em class="sig-param"><span class="n">checkpoint_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.GetDecodeOutPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.GetDecodeOutPath" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gets the path to decode out file.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Decoder.GetCkptIdFromFile">
-<code class="sig-name descname">GetCkptIdFromFile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.GetCkptIdFromFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.GetCkptIdFromFile" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Decoder.DecodeCheckpoint">
-<code class="sig-name descname">DecodeCheckpoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">checkpoint_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.DecodeCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.DecodeCheckpoint" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">samples_per_summary</span></code> examples using <code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint_path</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.trainer.Decoder.DecodeLatestCheckpoint">
-<code class="sig-name descname">DecodeLatestCheckpoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">last_path</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.DecodeLatestCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.DecodeLatestCheckpoint" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs decoder on the latest checkpoint.</p>
 </dd></dl>
 
 </dd></dl>
@@ -918,6 +817,8 @@ stopping.</p></li>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.trainer_impl.html" class="btn btn-neutral float-right" title="lingvo.trainer_impl module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.models_test_helper.html" class="btn btn-neutral float-left" title="lingvo.models_test_helper module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
