@@ -282,15 +282,10 @@ and should be paired with the model’s input format and encoder expectations.</
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
 children layers.</p></li>
-<li><p><strong>input_batch</strong> – <p>A NestedMap with fields:</p>
-<ul>
-<li><p>’src_inputs’ - The inputs tensor,
-compatible with model input. Expected to be of shape
-[batch, time, …].</p></li>
-<li><p>’paddings’ - The paddings tensor. It is expected to be of shape
+<li><p><strong>input_batch</strong> – A NestedMap with fields:  - ‘src_inputs’ - The inputs tensor,
+compatible with model input. Expected to be of shape [batch, time, …].
+- ‘paddings’ - The paddings tensor. It is expected to be of shape
 [batch, time].</p></li>
-</ul>
-</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -332,15 +327,10 @@ and should be paired with the model’s input format and encoder expectations.</
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
 children layers.</p></li>
-<li><p><strong>input_batch</strong> – <p>A NestedMap with fields:</p>
-<ul>
-<li><p>’src_inputs’ - The inputs tensor,
-compatible with model input. Expected to be of shape
-[batch, time, …].</p></li>
-<li><p>’paddings’ - The paddings tensor. It is expected to be of shape
+<li><p><strong>input_batch</strong> – A NestedMap with fields:  - ‘src_inputs’ - The inputs tensor,
+compatible with model input. Expected to be of shape [batch, time, …].
+- ‘paddings’ - The paddings tensor. It is expected to be of shape
 [batch, time].</p></li>
-</ul>
-</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -448,27 +438,19 @@ are accepted for compatibility with the super-class.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – Layer theta.</p></li>
-<li><p><strong>input_batch</strong> – <p>PCM input map:</p>
-<ul>
-<li><p>’src_inputs’: int16 or float32 tensor of PCM audio data, scaled to
-+/-32768 (versus [-1..1)!). See class comments for supported input
-shapes.</p></li>
-<li><p>’paddings’: per frame 0/1 paddings. Shaped: [batch, frame].</p></li>
-</ul>
-</p></li>
+<li><p><strong>input_batch</strong> – PCM input map:</p></li>
+<li><p><strong>'src_inputs'</strong> (<em>-</em>) – int16 or float32 tensor of PCM audio data, scaled to</p></li>
+<li><p><strong>[</strong><strong>-32768..32768</strong><strong>]</strong> (<em>versus</em><em> [</em><em>-1..1</em><em>)</em><em>!</em>) – </p></li>
+<li><p><strong>shapes.</strong> (<em>input</em>) – </p></li>
+<li><p><strong>'paddings'</strong> (<em>-</em>) – per frame 0/1 paddings. Shaped: [batch, frame].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>NestedMap of encoder inputs which can be passed directly to a
-compatible encoder and contains:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>’src_inputs’: inputs to the encoder, minimally of shape
-[batch, time, …].</p></li>
-<li><p>’paddings’: a 0/1 tensor of shape [batch, time].</p></li>
-</ul>
-</div></blockquote>
-</p>
+<dd class="field-even"><p>NestedMap of encoder inputs which can be passed directly to a
+compatible encoder and contains:
+- ‘src_inputs’: inputs to the encoder, minimally of shape
+[batch, time, …].
+- ‘paddings’: a 0/1 tensor of shape [batch, time].</p>
 </dd>
 </dl>
 </dd></dl>

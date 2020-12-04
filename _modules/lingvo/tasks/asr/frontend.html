@@ -169,7 +169,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
-
 <span class="c1"># AsrFrontendConfig which defines characteristics of the frontend that may</span>
 <span class="c1"># be relevant to interfacing code which needs to reason about inputs and</span>
 <span class="c1"># outputs.</span>
@@ -227,13 +226,10 @@
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
 <span class="sd">        children layers.</span>
-<span class="sd">      input_batch: A NestedMap with fields:</span>
-
-<span class="sd">        - &#39;src_inputs&#39; - The inputs tensor,</span>
-<span class="sd">          compatible with model input. Expected to be of shape</span>
-<span class="sd">          [batch, time, ...].</span>
+<span class="sd">      input_batch: A NestedMap with fields:  - &#39;src_inputs&#39; - The inputs tensor,</span>
+<span class="sd">        compatible with model input. Expected to be of shape [batch, time, ...].</span>
 <span class="sd">        - &#39;paddings&#39; - The paddings tensor. It is expected to be of shape</span>
-<span class="sd">          [batch, time].</span>
+<span class="sd">        [batch, time].</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      NestedMap of encoder inputs which can be passed directly to a</span>
@@ -328,6 +324,14 @@
              <span class="s1">&#39;Number of right context frames to stack.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;frame_stride&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The frame stride for sub-sampling.&#39;</span><span class="p">)</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fft_overdrive&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to use twice the minimum fft resolution.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_floor&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+             <span class="s1">&#39;Minimum output of filterbank output prior to taking logarithm.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;compute_energy&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to compute filterbank output on the energy of spectrum &#39;</span>
+        <span class="s1">&#39;rather than just the magnitude.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="MelAsrFrontend.GetConfigFromParams"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -361,9 +365,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_frame_step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">frame_step_ms</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">frame_size_ms</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
                        <span class="p">)</span>  <span class="c1"># +1 for the preemph</span>
-    <span class="c1"># Overdrive means double FFT size.</span>
-    <span class="c1"># Note: 2* because of overdrive</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_fft_size</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">_NextPowerOfTwo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span><span class="p">)))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fft_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">_NextPowerOfTwo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fft_overdrive</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_fft_size</span> <span class="o">*=</span> <span class="mi">2</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_CreateWindowFunction</span><span class="p">()</span>
 
@@ -452,18 +457,17 @@
 <span class="sd">    Args:</span>
 <span class="sd">      theta: Layer theta.</span>
 <span class="sd">      input_batch: PCM input map:</span>
+<span class="sd">      - &#39;src_inputs&#39;: int16 or float32 tensor of PCM audio data, scaled to</span>
+<span class="sd">      [-32768..32768] (versus [-1..1)!). See class comments for supported</span>
+<span class="sd">      input shapes.</span>
+<span class="sd">      - &#39;paddings&#39;: per frame 0/1 paddings. Shaped: [batch, frame].</span>
 
-<span class="sd">        - &#39;src_inputs&#39;: int16 or float32 tensor of PCM audio data, scaled to</span>
-<span class="sd">          +/-32768 (versus [-1..1)!). See class comments for supported input</span>
-<span class="sd">          shapes.</span>
-<span class="sd">        - &#39;paddings&#39;: per frame 0/1 paddings. Shaped: [batch, frame].</span>
 <span class="sd">    Returns:</span>
 <span class="sd">      NestedMap of encoder inputs which can be passed directly to a</span>
 <span class="sd">      compatible encoder and contains:</span>
-
-<span class="sd">        - &#39;src_inputs&#39;: inputs to the encoder, minimally of shape</span>
-<span class="sd">          [batch, time, ...].</span>
-<span class="sd">        - &#39;paddings&#39;: a 0/1 tensor of shape [batch, time].</span>
+<span class="sd">      - &#39;src_inputs&#39;: inputs to the encoder, minimally of shape</span>
+<span class="sd">      [batch, time, ...].</span>
+<span class="sd">      - &#39;paddings&#39;: a 0/1 tensor of shape [batch, time].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropDefault</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div>
@@ -582,9 +586,8 @@
 
     <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MelSpectrogram</span><span class="p">(</span><span class="n">windowed_signal</span><span class="p">)</span>
 
-    <span class="n">output_floor</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="n">mel_spectrogram_log</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">output_floor</span><span class="p">),</span> <span class="n">mel_spectrogram</span><span class="p">))</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">output_floor</span><span class="p">),</span> <span class="n">mel_spectrogram</span><span class="p">))</span>
 
     <span class="c1"># Mean and stddev.</span>
     <span class="n">mel_spectrogram_norm</span> <span class="o">=</span> <span class="p">(</span>
@@ -605,6 +608,8 @@
     <span class="c1"># FFT.</span>
     <span class="n">real_frequency_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_fft_size</span><span class="p">])</span>
     <span class="n">magnitude_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">real_frequency_spectrogram</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_energy</span><span class="p">:</span>
+      <span class="n">magnitude_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">magnitude_spectrogram</span><span class="p">)</span>
 
     <span class="c1"># Shape of magnitude_spectrogram is num_frames x (fft_size/2+1)</span>
     <span class="c1"># Mel_weight is [num_spectrogram_bins, num_mel_bins]</span>
