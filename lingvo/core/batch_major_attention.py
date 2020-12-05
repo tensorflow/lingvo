@@ -4449,6 +4449,41 @@ class Builder(builder.Base):
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
 
+  def GatedGlueFeedforward(self, name, is_causal=False, ff_hidden_dim=None):
+    del is_causal
+    p = self.params
+    if ff_hidden_dim is None:
+      ff_hidden_dim = p.ff_hidden_dim
+
+    def GatedGlue(x, y):
+      return tf.math.multiply(tf.nn.gelu(x, approximate=True), y)
+
+    sub_list = [
+        ('i.vec->after_gelu', self._Graph(
+            'feedforward', ['x'], ['y'],
+            ('x->x1', self._DefaultLN('ln')),
+            ('x1->h0', self._Linear('wi0', p.model_dim, ff_hidden_dim)),
+            ('x1->h1', self._Linear('wi1', p.model_dim, ff_hidden_dim)),
+            ('h0,h1->h', self._Fn('gelu', fn=GatedGlue)),
+            ('h->h_dropout', self._Dropout('dropout', p.relu_dropout_prob)),
+            ('h_dropout->y', self._Linear('wo', ff_hidden_dim, p.model_dim)))),
+        ('after_gelu->y', self._Dropout('dropout', p.residual_dropout_prob)),
+        ('i.vec,y->added',
+         self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
+        ('added,i.paddings->o.vec', self._Pad('pad')),
+        ('i.paddings->o.paddings', self._Id('id')),
+    ]
+
+    if p.packed_input:
+      sub_list.append(('i.segment_mask->o.segment_mask',
+                       self._Id('segment_mask')))
+
+    return self._Graph(
+        name,
+        ['i'],  # input NestedMap with {vec, paddings, segment_mask}
+        ['o'],  # output NestedMap with {vec, paddings, segment_mask}
+        *sub_list)
+
   def Feedforward(self, name, is_causal=False, ff_hidden_dim=None):
     del is_causal
     p = self.params

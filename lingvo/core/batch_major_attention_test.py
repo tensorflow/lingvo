@@ -3014,6 +3014,34 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       tf.global_variables_initializer().run()
       self.assertAllClose(20.82248, sess.run(tf.reduce_sum(enc_out)))
 
+  def testTransformerEncoderWithGatedGelu(self):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder = attention.Builder.Params().Set(
+          model_dim=d, num_heads=2, ff_hidden_dim=5).Instantiate()
+      encoder_block = atten_builder.Seq(
+          'block', atten_builder._StridedAttention('self_atten', num_heads=2),
+          atten_builder.GatedGlueFeedforward('ff', ff_hidden_dim=5))
+      layers = []
+      for layer_i in range(2):
+        layers.append(
+            atten_builder.Seq('atten_{}'.format(layer_i), encoder_block))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      enc_out = l_out.vec
+      tf.global_variables_initializer().run()
+      actual_enc_out = sess.run(enc_out)
+      self.assertAllEqual([bs, sl, d], actual_enc_out.shape)
+
   def testEncoderLayerWithPerLayerParam(self):
     with self.session(use_gpu=False) as sess:
       bs = 2
