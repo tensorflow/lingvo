@@ -3022,9 +3022,11 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       tf.random.set_seed(12345)
       atten_builder = attention.Builder.Params().Set(
           model_dim=d, num_heads=2, ff_hidden_dim=5).Instantiate()
+      # TODO(huangyp): Change to GatedGeluFeedforward once tf.nn.gelu is in
+      # latest release of tensorflow.
       encoder_block = atten_builder.Seq(
           'block', atten_builder._StridedAttention('self_atten', num_heads=2),
-          atten_builder.GatedGlueFeedforward('ff', ff_hidden_dim=5))
+          atten_builder.Feedforward('ff', ff_hidden_dim=5))
       layers = []
       for layer_i in range(2):
         layers.append(

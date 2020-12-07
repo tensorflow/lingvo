@@ -4449,13 +4449,13 @@ class Builder(builder.Base):
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
 
-  def GatedGlueFeedforward(self, name, is_causal=False, ff_hidden_dim=None):
+  def GatedGeluFeedforward(self, name, is_causal=False, ff_hidden_dim=None):
     del is_causal
     p = self.params
     if ff_hidden_dim is None:
       ff_hidden_dim = p.ff_hidden_dim
 
-    def GatedGlue(x, y):
+    def GatedGelu(x, y):
       return tf.math.multiply(tf.nn.gelu(x, approximate=True), y)
 
     sub_list = [
@@ -4464,7 +4464,7 @@ class Builder(builder.Base):
             ('x->x1', self._DefaultLN('ln')),
             ('x1->h0', self._Linear('wi0', p.model_dim, ff_hidden_dim)),
             ('x1->h1', self._Linear('wi1', p.model_dim, ff_hidden_dim)),
-            ('h0,h1->h', self._Fn('gelu', fn=GatedGlue)),
+            ('h0,h1->h', self._Fn('gelu', fn=GatedGelu)),
             ('h->h_dropout', self._Dropout('dropout', p.relu_dropout_prob)),
             ('h_dropout->y', self._Linear('wo', ff_hidden_dim, p.model_dim)))),
         ('after_gelu->y', self._Dropout('dropout', p.residual_dropout_prob)),
