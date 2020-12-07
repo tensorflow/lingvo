@@ -89,6 +89,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     #  - single host (use_per_host_infeed=False, tpu_infeed_parallelism=1))
     #  - multi host (use_per_host_infeed=False, tpu_infeed_parallelism>1)
     #  - per host (use_per_host_infeed=True)
+    #    - unsharded inputs (_InputBatch returns a single NestedMap)
+    #    - sharded inputs (_InputBatch returns a list containing
+    #      tpu_number_of_shards NestedMaps)
     # Model parallelism (num_partitions>1 where)
     #  - non-partitioned infeed (use_partitioned_infeed_queue=False):
     #    - Only first partition gets infeed (e.g. manual partition)
@@ -167,7 +170,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # A list of InfeedQueues.
     self._tpu_queues = []
 
-    # Set to true in GetProcessedInputBatch() (and thus _InputBatch())
+    # Set to true in GetPreprocessedInputBatch() (and thus _InputBatch())
     self._in_get_processed_input_batch = False
 
     self._init_ops = []
@@ -210,8 +213,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     Callers should use `GetPreprocessedInputBatch()`.
 
     Returns:
-      A `.NestedMap` of input tensors. Each tensor's dim-0 must be the same
-      and denotes the batch dimension.
+      A NestedMap (or list of NestedMaps when using TPU sharded infeed) of
+      input tensors.
     """
     raise NotImplementedError('Abstract method')
 
@@ -219,8 +222,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """Preprocesses input batch from _InputBatch.
 
     Args:
-      batch: A NestedMap containing input tensors in the format returned by
-        _InputBatch.
+      batch: A NestedMap (or list of NestedMaps when using TPU sharded infeed)
+        containing input tensors in the format returned by _InputBatch.
 
     Returns:
       A NestedMap containing preprocessed inputs to feed to the model.
@@ -228,7 +231,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     return batch
 
   def GetPreprocessedInputBatch(self):
-    """Returns a NestedMap containing a preprocessed batch of inputs.
+    """Returns preprocessed batch of inputs.
 
     These are the actual inputs fed to the model.
 
@@ -242,6 +245,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
   @property
   def tpu_number_of_shards(self):
+    """Number of shards to split the input batch into."""
     p = self.params
     cluster = self.cluster
     num_tpu_hosts = cluster.num_tpu_hosts
@@ -314,30 +318,41 @@ class BaseInputGenerator(base_layer.BaseLayer):
       with tf.device(host_device), InfeedContextScope(
           infeed_host_index=task_id, num_infeed_hosts=num_infeed_hosts):
         batch = self.GetPreprocessedInputBatch()
-        if isinstance(batch, py_utils.NestedMap):
+        if not isinstance(batch, (list, tuple)):
+          batch = [batch]
+
+        for i in range(len(batch)):
+          b = batch[i]
+          assert isinstance(b, py_utils.NestedMap)
           # Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.
           # Note that when MultiTaskData is used, bucket_keys will be at the
           # second level of the dictionary.
-          batch = batch.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
+          b = b.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
 
           # Split out any keys that are meant for CPU passthrough only.
           self._per_host_passthrough_batches.append(
-              batch.FilterKeyVal(lambda k, _: k in cpu_passthrough_keys))
-          batch = batch.FilterKeyVal(lambda k, _: k not in cpu_passthrough_keys)
+              b.FilterKeyVal(lambda k, _: k in cpu_passthrough_keys))
+          b = b.FilterKeyVal(lambda k, _: k not in cpu_passthrough_keys)
+          batch[i] = b
+          if i > 0:
+            # If the input batch is already sharded, check that the shards are
+            # compatible with each other.
+            assert py_utils.IsCompatible(b, batch[0])
         tf.logging.info('CPU passthrough keys: %s', cpu_passthrough_keys)
 
-        self._batch_nm_types = batch
+        self._batch_nm_types = batch[0]
         tf.logging.info('host_device: %s, batch: %r', host_device, batch)
         self._per_host_batches.append(batch)
 
-        for k, x in batch.FlattenItems():
-          assert x.shape.is_fully_defined(), (
-              'Shape must be fully defined: %s: %s' % (k, x))
+        for b in batch:
+          for k, x in b.FlattenItems():
+            assert x.shape.is_fully_defined(), (
+                'Shape must be fully defined: %s: %s' % (k, x))
           # TODO(cwhipkey): if it's a string (or other type not supported on
           # TPU), drop it from feeding and on the other end add in an op that
           # fails if used.
-        shapes = batch.Transform(lambda x: x.shape).Flatten()
-        dtypes = batch.Transform(lambda x: x.dtype).Flatten()
+        shapes = batch[0].Transform(lambda x: x.shape).Flatten()
+        dtypes = batch[0].Transform(lambda x: x.dtype).Flatten()
 
         tf.logging.info('host_device: %s infeed shapes: %r', host_device,
                         shapes)
@@ -367,6 +382,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
                 tuple_types=dtypes,
                 tuple_shapes=shapes,
                 number_of_partitions=p.num_partitions)
+          elif len(batch) > 1:
+            # When the input batch is sharded, the unsharded dtypes and shapes
+            # will be determined later by the generate_enqueue_ops() call.
+            q = tpu_feed.InfeedQueue(
+                number_of_tuple_elements=len(batch[0].Flatten()))
           else:
             q = tpu_feed.InfeedQueue(tuple_types=dtypes, tuple_shapes=shapes)
           assert shards is not None
@@ -375,7 +395,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
         self._tpu_queues.append(q)
 
         if p.use_partitioned_infeed_queue:
-          input_ops = q.generate_enqueue_ops([batch.Flatten()])
+          assert len(batch) == 1
+          input_ops = q.generate_enqueue_ops([batch[0].Flatten()])
         elif p.use_per_host_infeed:
           # TODO(ylc/zhifengc): Add this to a policy module and test it.
           def TPUOrdinalFunction(shard_index_in_host):
@@ -390,13 +411,20 @@ class BaseInputGenerator(base_layer.BaseLayer):
             else:
               return shard_index_in_host
 
-          input_ops = q.split_inputs_and_generate_enqueue_ops(
-              batch.Flatten(),
-              placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
-              tpu_ordinal_function=TPUOrdinalFunction)
+          if len(batch) > 1:
+            input_ops = q.generate_enqueue_ops(
+                [b.Flatten() for b in batch],
+                placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
+                tpu_ordinal_function=TPUOrdinalFunction)
+          else:
+            input_ops = q.split_inputs_and_generate_enqueue_ops(
+                batch[0].Flatten(),
+                placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
+                tpu_ordinal_function=TPUOrdinalFunction)
         else:
+          assert len(batch) == 1
           input_ops = q.split_inputs_and_generate_enqueue_ops(
-              batch.Flatten(),
+              batch[0].Flatten(),
               device_assignment=py_utils.GetTpuDeviceAssignment(job_name))
         input_ops_list += input_ops
 
@@ -458,6 +486,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
       batch = self._per_host_batches[task_id]
+      assert len(batch) == 1, "Tpu Embedding doesn't support sharded inputs."
+      batch = batch[0]
       with tf.device(host_device):
         tf.logging.info('host_device: %s, batch: %r', host_device, batch)
 
