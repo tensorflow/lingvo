@@ -36,9 +36,11 @@ import traceback
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import ops
+from lingvo.core import py_utils_flags
 from lingvo.core import retry
 from lingvo.core import symbolic
 from lingvo.core import tshape
+from lingvo.core import xla_sharding_utils
 import numpy as np
 import six
 
@@ -55,92 +57,18 @@ from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
 # pylint: enable=g-direct-tensorflow-import
 
-tf.flags.DEFINE_bool('enable_asserts', True,
-                     'If False, we disable all asserts.')
-
-tf.flags.DEFINE_bool('enable_check_numerics', True,
-                     'If False, we bypass calls to CheckNumerics.')
-
-tf.flags.DEFINE_bool('print_debug_tensors', False,
-                     'Whether to print debug tensors.')
-
-tf.flags.DEFINE_bool(
-    'testonly_skip_norm_layers', False,
-    'Disable normalization layers, used for checking goldens '
-    'in unittests. Normalizations make differences harder to '
-    'catch.')
-
-tf.flags.DEFINE_string(
-    'xla_device', '', 'If non-empty, can be cpu, gpu, or tpu (case sensitive)')
-
-tf.flags.DEFINE_bool(
-    'tpu_compatible', False, 'Create variables in a way compatible with TPU. '
-    'This should be true for any job that will interact '
-    'with variables or a checkpoint that will be produced '
-    'or consumed by TPU')
-
-tf.flags.DEFINE_bool(
-    'tflite_compatible', False,
-    'Uses tflite converter-friendly ops at applicable places. This so far '
-    '(08/2020) is a only best-effort option.')
-
-tf.flags.DEFINE_bool(
-    'pin_vars_to_cpu', False,
-    'Pin variables to cpu:0.  This is useful for weight-sharing / multi-core '
-    'inference on TPUs in which TPU core variables are managed via '
-    'TPUPartitionedCallOp.')
-
-tf.flags.DEFINE_bool('disable_py_utils_debug', False,
-                     'If True disables all py_utils.Debug() logs.')
-
-tf.flags.DEFINE_bool(
-    'stateless_vars_init', False,
-    'Use stateless TensorFlow random number generators (RNG) (e.g. '
-    'tf.random.stateless_uniform) to initialize variables instead of the '
-    'default ones (e.g. tf.random.uniform). This is useful to make variable '
-    'initialization deterministic on different replicas such as on TPUs, '
-    'since XLA does not fully respect the contract with respect to '
-    'user-specified seeds, when using TensorFlow stateful RNGs.')
-
-# NOTE: Using absl flags in libraries are frowned upon for several reasons:
-#
-# 1) They require app.run() or explicit flag parsing, preventing the use of
-# these libraries in environments that don't look like normal binaries (colab
-# notebooks).
-#
-# 2) They are process-level globals that cannot be scoped or configured except
-# once during binary startup.
-#
-# Because py_utils is a library, no more flags should be used in this file; the
-# existing flags are present for backwards compatibility.  Instead, consider
-# using a stack-scoped configuration object such as the Cluster object. We guard
-# against issue 1 above by using _FromGlobal below, which uses the default value
-# of the FLAG even if flags are unparsed.
 
 FLAGS = tf.flags.FLAGS
 
 
-def _FromGlobal(field_name):
-  """Get 'field_name' from a global configuration object.
-
-  Currently the global configuration object used is FLAGS, but this may
-  change to Cluster() or an equivalent stack-scoped config object.
-
-  Args:
-    field_name: The string field name to look up.
-
-  Returns:
-    The value associated with the global configuration string 'field_name'.
-  """
-  # TODO(b/145831327): check the field name in the current cluster object.
-  # If explicitly set, use that value instead of using the FLAG value.
-
-  # Now check the FLAGS object for backwards compatibility.
-  #
-  # If not explicitly set, get the field from the FLAGS object.  If FLAGS
-  # have not been parsed yet, the default value of the flag will be used.
-  return FLAGS[field_name].value
-
+# pylint: disable=protected-access
+_FromGlobal = py_utils_flags._FromGlobal
+# pylint: enable=protected-access
+use_xla = py_utils_flags.use_xla
+use_tpu = py_utils_flags.use_tpu
+testonly_skip_norm_layers = py_utils_flags.testonly_skip_norm_layers
+tpu_compat = py_utils_flags.tpu_compat
+use_stateless_vars_init = py_utils_flags.use_stateless_vars_init
 
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
 
@@ -647,34 +575,8 @@ def CausalSelfAttenPadding(seqlen, dtype):
         tf.ones([seqlen, seqlen], dtype=dtype), -1, 0)
 
 
-def use_xla():  # pylint: disable=invalid-name
-  res = _FromGlobal('xla_device')
-  if res:
-    assert res in ('', 'cpu', 'gpu', 'tpu')
-  return res
-
-
-def use_tpu():  # pylint: disable=invalid-name
-  res = _FromGlobal('xla_device') == 'tpu'
-  if res:
-    assert not _FromGlobal('enable_asserts')  # asserts not supported on tpu
-  return res
-
-
-def testonly_skip_norm_layers():  # pylint: disable=invalid-name
-  return _FromGlobal('testonly_skip_norm_layers')
-
-
-def tpu_compat():  # pylint: disable=invalid-name
-  return use_tpu() or _FromGlobal('tpu_compatible')
-
-
 def outside_all_rewrites():  # pylint: disable=invalid-name
   return tf.control_dependencies(None)
-
-
-def use_stateless_vars_init():  # pylint: disable=invalid-name
-  return _FromGlobal('stateless_vars_init')
 
 
 # TODO(jamesqin): remove once b/147439702 is fixed.
@@ -1516,7 +1418,12 @@ def IsDefaultParamInit(p):
           abs(p.scale - _DEFAULT_XAVIER_INIT) < 1e-7 and p.seed is None)
 
 
-def WeightParams(shape, init=None, dtype=None, collections=None):
+def WeightParams(shape,
+                 init=None,
+                 dtype=None,
+                 collections=None,
+                 device_mesh=None,
+                 tensor_split_dims_mapping=None):
   """Returns a hyperparams for a weight variable given the shape/init/dtype."""
   if init is None:
     init = WeightInit.Xavier(_DEFAULT_XAVIER_INIT)
@@ -1524,12 +1431,39 @@ def WeightParams(shape, init=None, dtype=None, collections=None):
     dtype = tf.float32
   if collections is None:
     collections = []
+  if device_mesh is not None:
+    assert tensor_split_dims_mapping is not None
+    assert len(tensor_split_dims_mapping) == len(shape)
+
   p = hyperparams.Params()
   p.Define('dtype', dtype, 'The weight data type.')
   p.Define('shape', shape, 'The weight shape.')
   p.Define('init', init, 'Initialization method.')
   p.Define('collections', collections,
            'Variable collections this weight belongs to.')
+  p.Define(
+      'device_mesh', device_mesh,
+      'A numpy.ndarray describing the topology of a device mesh to partition'
+      ' this variable onto. Each element in the np.ndarray is the ID of a'
+      ' device in the topology. device_mesh and tensor_split_dims_mapping below'
+      ' together specifies how this weight tensor should be sharded across'
+      ' different tpu cores. If None, this variable is not sharded.'
+      ' Here are examples: np.array([0, 1, 2, 3, 4, 5, 6, 7]) which is a 1d'
+      ' mesh with 8 devices, np.array([[0, 1, 2, 3], [4, 5, 6, 7]]) which is'
+      ' 2d matrix of 8 devices.')
+  p.Define(
+      'tensor_split_dims_mapping', tensor_split_dims_mapping,
+      'A list of integers that map each tensor axis to the device mesh axis'
+      ' along which it is sharded. Its length is the tensor rank, and'
+      ' split_dims_mapping[i] is device mesh axis for tensor dimension i. Use'
+      ' -1 for tensor dimensions that are not sharded. If the list is set to'
+      ' None and a device_mesh is specified, the sharding will be treated as'
+      ' replicated. Here is a concrete examples: '
+      '   device_mesh=np.array([[0, 1, 2, 3] [4, 5, 6, 7]]), of shape [2, 4]'
+      '   shape=[x, y, z], so this is a 3d variable.'
+      '   tensor_split_dims_mapping=[-1, -1, 1], in this case, the third dim'
+      '   of the variable is split along the second dim of the mesh. Each '
+      '   split of the variable is of the shape [x, y, z/4].')
   return p
 
 
@@ -2010,6 +1944,11 @@ def _CreateVariableStateful(name,
             synchronization=synchronization,
             aggregation=aggregation)
 
+  if p.device_mesh is not None:
+    # Shard the variable according to the sharding spec.
+    var = xla_sharding_utils.MeshSplit(
+        var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
+
   return var
 
 
@@ -2117,6 +2056,11 @@ def _CreateVariableStateless(name,
         synchronization=synchronization,
         aggregation=aggregation)
 
+  if p.device_mesh is not None:
+    # Shard the variable according to the sharding spec.
+    var = xla_sharding_utils.MeshSplit(
+        var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
+
   return var
 
 
@@ -2199,6 +2143,7 @@ def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
   elif method in ['constant']:
     v_init = init_ops.constant_initializer(value=scale, dtype=init_dtype)
   elif method in ['xavier', 'geo_mean_xavier']:
+
     def XavierUniform(shape, dtype, partition_info):
       """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
       del partition_info  # Unused.
@@ -2902,11 +2847,12 @@ def ComputeGradients(
       search. Only applicable on TPU.
       Possible values are:
 
-        * None: do not skip zero gradients;
-        * `variable`: skip if the entire variable's gradients are almost zero;
+        - None: do not skip zero gradients;
+        - `variable`: skip if the entire variable's gradients are almost zero;
           reduce_sum(abs(grads)) < 1e-8.
-        * `weight`: skip if the individual weight's gradients are almost zero:
+        - `weight`: skip if the individual weight's gradients are almost zero:
           abs(grad) < 1e-8.
+
     use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients
       all-reduce. This applies to TPU only.
     skip_none_gradients: Whether to skip gradients that are None.
@@ -4245,8 +4191,8 @@ def PadOrTrimTo(x, shape, pad_val=0, pad_after_contents=True):
     x: A tensor.
     shape: The shape of the returned tensor.
     pad_val: An int or float used to pad x.
-    pad_after_contents: Whether to pad and trim after the original contents
-      of each dimension.
+    pad_after_contents: Whether to pad and trim after the original contents of
+      each dimension.
 
   Returns:
     'x' is padded with pad_val and sliced so that the result has the given
@@ -4979,11 +4925,7 @@ def TensorSpecs(nmap, keep_shape=True):
   return Transform(fn, nmap)
 
 
-def _DefineDefun(fwd,
-                 fwd_sig,
-                 bak=None,
-                 bak_as_function=False,
-                 device=None):
+def _DefineDefun(fwd, fwd_sig, bak=None, bak_as_function=False, device=None):
   """Wraps fwd in a defun with custom gradient bak.
 
   Args:
@@ -5192,11 +5134,7 @@ def _WrapFunction(func=None, input_signature=None):
   return Decorated
 
 
-def _DefineFunction(fwd,
-                    fwd_sig,
-                    bak=None,
-                    bak_as_function=False,
-                    device=None):
+def _DefineFunction(fwd, fwd_sig, bak=None, bak_as_function=False, device=None):
   """Wraps fwd in a defun with custom gradient bak.
 
   Args:
@@ -5346,7 +5284,6 @@ def _DefineFunction(fwd,
 # details.
 # TODO(laigd): remove after b/169869929 is fixed.
 _USE_TF_FUNCTION = ThreadLocalStack()
-
 
 # Constants for propagating framework tensors through Function.
 _FRAMEWORK_TENSOR_GLOBAL_STEP = '_global_step'

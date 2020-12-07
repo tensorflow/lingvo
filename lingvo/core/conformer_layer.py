@@ -29,6 +29,8 @@ from lingvo.core import moe_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 
+import numpy as np
+
 
 class LConvLayer(base_layer.BaseLayer):
   r"""Lightweight conv layer.
@@ -118,16 +120,18 @@ class LConvLayer(base_layer.BaseLayer):
     self.CreateChild('ln', ln_p)
 
     if p.split_act_gated_linear_start:
+      device_mesh = (None if not p.xla_num_partitions else np.arange(
+          p.xla_num_partitions))
       linear_start_act_p = p.linear_start_tpl.Copy().Set(
           input_dim=p.input_dim,
           output_dim=p.input_dim,
-          xla_num_partitions=p.xla_num_partitions,
-          xla_split_dim=1)
+          device_mesh=device_mesh,
+          weight_split_dims_mapping=[-1, 0])
       linear_start_gated_p = p.linear_start_tpl.Copy().Set(
           input_dim=p.input_dim,
           output_dim=p.input_dim,
-          xla_num_partitions=p.xla_num_partitions,
-          xla_split_dim=1)
+          device_mesh=device_mesh,
+          weight_split_dims_mapping=[-1, 0])
       self.CreateChild('linear_start_act', linear_start_act_p)
       self.CreateChild('linear_start_gated', linear_start_gated_p)
     else:
@@ -643,20 +647,18 @@ class ConformerLayer(base_layer.BaseLayer):
 
 def ApplyGshard(conformer_tpl,
                 atten_num_partitions=None,
-                ffn_num_partitions=None,
-                ffn_split_dims=None,
                 lconv_num_partitions=None):
   """Applies gshard on conformer params."""
   # Not all attention class supports gshard. If not, errors would be throw here.
-  conformer_tpl.trans_atten_tpl.atten_tpl.xla_num_partitions = (
-      atten_num_partitions)
+  device_mesh = np.arange(atten_num_partitions)
+  conformer_tpl.trans_atten_tpl.atten_tpl.device_mesh = device_mesh
   # TODO(jamesqin): support residual_proj xla sharding too.
   conformer_tpl.fflayer_start_tpl.fflayer_tpl.Set(
-      proj_xla_num_partitions=ffn_num_partitions,
-      proj_xla_split_dim=ffn_split_dims)
+      device_mesh=device_mesh,
+      weight_split_dims_mapping_list=[[-1, 0], [0, -1]])
   conformer_tpl.fflayer_end_tpl.fflayer_tpl.Set(
-      proj_xla_num_partitions=ffn_num_partitions,
-      proj_xla_split_dim=ffn_split_dims)
+      device_mesh=device_mesh,
+      weight_split_dims_mapping_list=[[-1, 0], [0, -1]])
   conformer_tpl.lconv_tpl.Set(xla_num_partitions=lconv_num_partitions)
   conformer_tpl.lconv_tpl.Set(split_act_gated_linear_start=True)
   return conformer_tpl

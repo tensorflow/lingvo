@@ -198,6 +198,7 @@ py_library(
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
         "//lingvo/core:moe_layers",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -311,6 +312,7 @@ py_library(
         ":cluster_factory",
         ":hyperparams",
         ":py_utils",
+        ":xla_sharding_utils",
         "//lingvo:compat",
     ],
 )
@@ -1222,14 +1224,25 @@ py_library(
 )
 
 py_library(
+    name = "py_utils_flags",
+    srcs = ["py_utils_flags.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
     srcs_version = "PY3",
     deps = [
         ":hyperparams",
+        ":py_utils_flags",
         ":retry",
         ":symbolic",
         ":tshape",
+        ":xla_sharding_utils",
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
@@ -1975,9 +1988,7 @@ py_library(
     srcs = ["xla_sharding_utils.py"],
     srcs_version = "PY3",
     deps = [
-        ":base_layer",
-        ":py_utils",
-        ":tpu_summary",
+        ":py_utils_flags",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

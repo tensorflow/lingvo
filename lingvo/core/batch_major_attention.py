@@ -187,7 +187,20 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         'This is useful in combining different types of attention heads where'
         'mixing is done after getting all the different attention outputs.')
     p.Define('use_bias', True, 'If to add bias in projection.')
-    p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
+    p.Define(
+        'device_mesh', None,
+        'A numpy.ndarray describing the topology of a device mesh. Each'
+        ' element is the ID of a device in the topology. device_mesh and'
+        ' weight_split_dims_mapping together specify how the projection '
+        ' matrix should be sharded across different tpu cores. The sharding'
+        ' of the bias variable is inferred from that of the projection matrix.'
+        ' If None, the projection weight matrix is not sharded.')
+    p.Define(
+        'weight_split_dims_mapping', None,
+        ' Relevant only if device_mesh is specified. If specified, it must be a'
+        ' list of integers if size 3 specifying how the weight tensor should be'
+        ' sharded over the device mesh. The sharding annotations of the bias'
+        ' variables are derived from that of the projection weight tensor.')
     return p
 
   def _CreateLayerVariables(self):
@@ -202,20 +215,36 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
         init=p.params_init,
         dtype=p.dtype,
+        device_mesh=p.device_mesh,
+        tensor_split_dims_mapping=p.weight_split_dims_mapping,
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('w', pc)
     if p.use_bias:
       if p.is_output_projection:
+        if p.device_mesh is not None:
+          bias_split_dims_mapping = [p.weight_split_dims_mapping[0]]
+        else:
+          bias_split_dims_mapping = None
         pc_bias = py_utils.WeightParams(
             shape=[p.input_dim],
             init=py_utils.WeightInit.Constant(0.0),
             dtype=p.dtype,
+            device_mesh=p.device_mesh,
+            tensor_split_dims_mapping=bias_split_dims_mapping,
             collections=[self.__class__.__name__ + '_vars'])
       else:
+        if p.device_mesh is not None:
+          bias_split_dims_mapping = [
+              p.weight_split_dims_mapping[1], p.weight_split_dims_mapping[2]
+          ]
+        else:
+          bias_split_dims_mapping = None
         pc_bias = py_utils.WeightParams(
             shape=[p.num_heads, p.dim_per_head],
             init=py_utils.WeightInit.Constant(0.0),
             dtype=p.dtype,
+            device_mesh=p.device_mesh,
+            tensor_split_dims_mapping=bias_split_dims_mapping,
             collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('b', pc_bias)
 
@@ -236,9 +265,6 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       if p.make_output_proj_no_op:
         return inputs
-      if p.xla_num_partitions:
-        theta.w = moe_layers.Split(
-            theta.w, 1, p.xla_num_partitions, use_sharding_op=True)
       if p.is_output_projection:
         inputs = py_utils.HasShape(
             inputs, [-1, -1, p.num_heads,
@@ -249,9 +275,6 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
             inputs, [-1, -1, symbolic.ToStatic(p.input_dim)])
         ret = tf.einsum('BTD,DNH->BTNH', inputs, theta.w)
       if p.use_bias:
-        if p.xla_num_partitions and not p.is_output_projection:
-          theta.b = moe_layers.Split(
-              theta.b, 0, p.xla_num_partitions, use_sharding_op=True)
         ret += theta.b
       return ret
 
@@ -308,7 +331,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
              'projection layer.')
     p.Define('packed_input', False, 'Whether there is packed input.')
     p.Define('use_bias', True, 'Whether to use bias for projection layers.')
-    p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
+    p.Define(
+        'device_mesh', None,
+        'A np.ndarray specifying the device mesh to partition the'
+        ' computations onto.')
     p.Define(
         'enable_scaling_code_motion', False, 'Move scalings from the side '
         'of T^2 to the side of T for better performance. This may result '
@@ -330,12 +356,21 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       dim_per_head = p.hidden_dim // p.num_heads
       p.proj_tpl.dim_per_head = dim_per_head
 
+    if p.device_mesh is not None:
+      # TODO(yonghui): support more generic 2d mesh.
+      assert p.device_mesh.ndim == 1
+      # Split on attention heads.
+      weight_split_dims_mapping = [-1, 0, -1]
+    else:
+      weight_split_dims_mapping = None
+
     def ProjectInput():
       return p.proj_tpl.Copy().Set(
           input_dim=p.input_dim,
           num_heads=p.num_heads,
           use_bias=p.use_bias,
-          xla_num_partitions=p.xla_num_partitions,
+          device_mesh=p.device_mesh,
+          weight_split_dims_mapping=weight_split_dims_mapping,
           make_output_proj_no_op=False)
 
     self.CreateChild('key', ProjectInput())
@@ -357,7 +392,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
             num_heads=p.num_heads,
             is_output_projection=True,
             use_bias=p.use_bias,
-            xla_num_partitions=p.xla_num_partitions))
+            device_mesh=p.device_mesh,
+            weight_split_dims_mapping=weight_split_dims_mapping))
 
   def _AttenLogits(self, theta, query, key):
     """Computes attention logits.
@@ -2737,8 +2773,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define('ln_tpl', layers.LayerNorm.Params(),
              'Layer norm default params. No layernorm if set to None.')
     p.Define(
-        'atten_tpl',
-        MultiHeadedAttention.Params().Set(),
+        'atten_tpl', MultiHeadedAttention.Params(),
         'Multi-Headed Dot-Product Attention default params. This can be'
         'a list in the case of mixture of attentions, must be of same size'
         'as num_heads')
@@ -2874,7 +2909,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
               is_output_projection=True,
               make_output_proj_no_op=False,
               use_bias=p.atten_tpl[0].use_bias,
-              xla_num_partitions=p.atten_tpl[0].xla_num_partitions))
+              device_mesh=p.atten_tpl[0].device_mesh))
     else:
       _LocalAttentionError(params)
       self.CreateChild('atten', params)
@@ -4370,6 +4405,9 @@ class Builder(builder.Base):
         'of T^2 to the side of T for better performance. This may result '
         'in model quality drops when using bf16 for some models due to '
         'different XLA fusion decisions.')
+    p.Define('device_mesh', None,
+             'A np.ndarray specifying a device mesh to partition the'
+             ' computations onto.')
     return p
 
   def __init__(self, params):
@@ -4444,7 +4482,7 @@ class Builder(builder.Base):
         fprop_dtype=p.fprop_dtype,
         use_bias=p.use_bias,
         enable_scaling_code_motion=p.enable_scaling_code_motion,
-    )
+        device_mesh=p.device_mesh)
     if p.deterministic_dropout:
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
@@ -4489,17 +4527,28 @@ class Builder(builder.Base):
     p = self.params
     if ff_hidden_dim is None:
       ff_hidden_dim = p.ff_hidden_dim
+    if p.device_mesh is not None:
+      # TODO(yonghui): Support more generic 2d mesh.
+      assert p.device_mesh.ndim == 1
     sub_list = [
         ('i.vec->after_feedforward',
          self._Seq(
              'feedforward',
              self._DefaultLN('ln'),  # LN with default params.
-             self._Linear('linear01', p.model_dim, ff_hidden_dim),
-             self._Bias('bias01', ff_hidden_dim),
+             self._Linear('linear01', p.model_dim, ff_hidden_dim,
+                          device_mesh=p.device_mesh,
+                          weight_split_dims_mapping=[-1, 0]),
+             self._Bias('bias01', ff_hidden_dim,
+                        device_mesh=p.device_mesh,
+                        weight_split_dims_mapping=[0]),
              self._Activation('act', p.ff_activation_fn),
              self._Dropout('relu_dropout', p.relu_dropout_prob),
-             self._Linear('linear02', ff_hidden_dim, p.model_dim),
-             self._Bias('bias02', p.model_dim),
+             self._Linear('linear02', ff_hidden_dim, p.model_dim,
+                          device_mesh=p.device_mesh,
+                          weight_split_dims_mapping=[0, -1]),
+             self._Bias('bias02', p.model_dim,
+                        device_mesh=p.device_mesh,
+                        weight_split_dims_mapping=[-1]),
              self._Dropout('dropout', p.residual_dropout_prob))),
         ('i.vec,after_feedforward->added',
          self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
@@ -4793,7 +4842,6 @@ class LmBuilder(Builder):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
     p.Define('dtype', tf.float32, 'Datatype to use.')
     return p
 
@@ -4809,12 +4857,10 @@ class LmBuilder(Builder):
                                   dtype=v.dtype,
                                   collections=v.collections,
                                   tensor_split_dims_mapping=dims_mapping)))
-    device_mesh = (None if self.params.xla_num_partitions is None else
-                   np.arange(self.params.xla_num_partitions))
     return moe_layers.ShardedVarLayer.Params().Set(
         name=name,
         weights=sharded_weights,
-        device_mesh=device_mesh,
+        device_mesh=self.params.device_mesh,
         fprop_dtype=self.params.fprop_dtype)
 
   def _LinearWeight(self, name, input_dim, output_dim, split_dim):
@@ -4916,7 +4962,7 @@ class LmBuilder(Builder):
     tr_atten_p.atten_tpl.use_bias = p.use_bias
     tr_atten_p.atten_tpl.enable_value_proj = p.selfatten_enable_value_proj
     tr_atten_p.atten_tpl.enable_per_dim_scale = p.enable_per_dim_scale
-    tr_atten_p.atten_tpl.xla_num_partitions = p.xla_num_partitions
+    tr_atten_p.atten_tpl.device_mesh = p.device_mesh
     if p.deterministic_dropout:
       tr_atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
       tr_atten_p.atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()

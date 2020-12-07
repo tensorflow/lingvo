@@ -26,7 +26,6 @@ from lingvo.core import bn_layers
 from lingvo.core import builder_layers
 from lingvo.core import computation_cost
 from lingvo.core import conv_layers_with_time_padding
-from lingvo.core import moe_layers
 from lingvo.core import pruning_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -879,8 +878,20 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'multiplications. This allows for weight updates to be paralellized'
         ' across the cores for Shampoo optimizer.')
     p.Define('block_dim', 1024, 'Dimension of the block')
-    p.Define('xla_num_partitions', None, 'Number of Gshard partitions.')
-    p.Define('xla_split_dim', None, 'Which dim to g-shard.')
+    p.Define(
+        'device_mesh', None,
+        'A numpy.ndarray describing the topology of a device mesh to partition'
+        ' this projection onto. Each element in this ndarray is the ID of a'
+        ' device in the topology. device_mesh and weight_split_dims_mapping'
+        ' (defined below) together specify how the projection matrix should be'
+        ' sharded across different tpu cores. The sharding of the bias'
+        ' variable is inferred from that of the projection matrix variable.'
+        ' If None, the projection weight matrix is not sharded.')
+    p.Define(
+        'weight_split_dims_mapping', None,
+        'Relevant only if device_mesh above is not None. If not None, it is a'
+        ' list of integers (of length 2) specifying how the 2d weight'
+        ' projection matrix should be sharded over device mesh.')
     # Non-default quantization behaviour for weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
@@ -893,8 +904,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
     assert p.activation == 'NONE' or activations.IsSupported(p.activation)
-    if p.xla_num_partitions:
-      assert p.xla_split_dim is not None
 
     if p.batch_norm is None:
       raise RuntimeError(
@@ -913,6 +922,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if p.use_einsum:
       assert not p.use_blocked_matmul, (
           'use_einsum requires use_blocked_matmul = False')
+
+    if p.device_mesh is not None:
+      assert not p.use_blocked_matmul, (
+          'Enabling xla_sharding requires use_blocked_matmul = False')
+      assert p.weight_split_dims_mapping is not None
+      assert len(p.weight_split_dims_mapping) == 2
 
     if p.batch_norm:
       bn_params = p.bn_params.Copy()
@@ -972,6 +987,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           shape=[p.input_dim, p.output_dim],
           init=p.params_init,
           dtype=p.dtype,
+          device_mesh=p.device_mesh,
+          tensor_split_dims_mapping=p.weight_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
 
     if p.apply_pruning:
@@ -982,10 +999,16 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                                              py_utils.WeightInit.Constant(0.0),
                                              tf.float32)
     if p.has_bias:
+      if p.device_mesh is not None:
+        bias_split_dims_mapping = [p.weight_split_dims_mapping[1]]
+      else:
+        bias_split_dims_mapping = None
       b_pc = py_utils.WeightParams(
           shape=[p.output_dim],
           init=py_utils.WeightInit.Constant(scale=p.bias_init),
           dtype=p.dtype,
+          device_mesh=p.device_mesh,
+          tensor_split_dims_mapping=bias_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
     if p.weight_norm:
       g_pc = py_utils.WeightParams(
@@ -1133,14 +1156,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       disabled.
     """
     p = self.params
-    if p.xla_num_partitions:
-      theta.w = moe_layers.Split(
-          theta.w, p.xla_split_dim, p.xla_num_partitions, use_sharding_op=True)
     w = theta.w
     if p.has_bias:
-      if p.xla_num_partitions:
-        theta.b = moe_layers.Split(
-            theta.b, 0, p.xla_num_partitions, use_sharding_op=True)
       b = theta.b
     else:
       b = None
@@ -1349,9 +1366,12 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     p.Define(
         'bn_fold_weights', None, 'Force folding the batch normalization '
         'weights in the projection layer.')
-    p.Define('proj_xla_num_partitions', [],
-             'Gshard number of partitions for the proj layers.')
-    p.Define('proj_xla_split_dim', [], 'Gshard split dims for the proj layers.')
+    p.Define(
+        'device_mesh', None,
+        'A np.ndarray specifying the topology of a device mesh to split '
+        ' computation onto.')
+    p.Define('weight_split_dims_mapping_list', None,
+             'A list of weight_split_dims_mapping for each sub-layer.')
     # Non-default quantization behaviour for the weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
@@ -1397,12 +1417,11 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     else:
       params_dropout_layers = [params_dropout_layers] * num_layers
 
-    if not p.proj_xla_num_partitions:
-      p.proj_xla_num_partitions = [None] * num_layers
-    if not p.proj_xla_split_dim:
-      p.proj_xla_split_dim = [None] * num_layers
-    assert len(p.proj_xla_num_partitions) == num_layers
-    assert len(p.proj_xla_split_dim) == num_layers
+    if p.device_mesh is not None:
+      weight_split_dims_mapping_list = p.weight_split_dims_mapping_list
+    else:
+      weight_split_dims_mapping_list = [None] * num_layers
+    assert len(weight_split_dims_mapping_list) == num_layers
 
     # Residual connections work better in the form of:
     #   y = x + Affine(Activation(BatchNorm(x)))
@@ -1420,8 +1439,8 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
           input_dim=in_dim,
           output_dim=proj_out_dim,
           bn_fold_weights=p.bn_fold_weights,
-          xla_num_partitions=p.proj_xla_num_partitions[i],
-          xla_split_dim=p.proj_xla_split_dim[i],
+          device_mesh=p.device_mesh,
+          weight_split_dims_mapping=weight_split_dims_mapping_list[i],
           name=name)
       params_fc_layers.append(params_i)
       in_dim = out_dim
@@ -2678,7 +2697,20 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     p.Define(
         'chunk_size', 0, 'If non-zero, computes the per example '
         'xent by small chunks along the batch dimension.')
-
+    p.Define(
+        'device_mesh', None,
+        'A numpy.ndarray describing the topology of a device mesh to partition'
+        ' this projection onto. Each element in this ndarray is the ID of a'
+        ' device in the topology. device_mesh and weight_split_dims_mapping'
+        ' (defined below) together specify how the projection matrix should be'
+        ' sharded across different tpu cores. The sharding of the bias'
+        ' variable is inferred from that of the projection matrix variable.'
+        ' If None, the projection weight matrix is not sharded.')
+    p.Define(
+        'weight_split_dims_mapping', None,
+        'Relevant only if device_mesh above is not None. If not None, it is a'
+        ' list of integers (of length 2) specifying how the 2d weight'
+        ' projection matrix should be sharded over device mesh.')
     p.qdomain.Define('logits', None, 'Quantization domain for logits.')
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
     return p
@@ -2820,6 +2852,9 @@ class SimpleFullSoftmax(SoftmaxLayer):
     super().__init__(params)
     p = self.params
     assert p.name
+
+    # TODO(yonghui): add support for device_mesh in SimpleFullSoftmax.
+    assert p.device_mesh is None
     # We shard params across the class dimension.
     assert p.num_classes % p.num_shards == 0
     if not p.use_bias:
@@ -3202,11 +3237,25 @@ class SingleShardFullSoftmax(SoftmaxLayer):
     super().__init__(params)
     p = self.params
     assert p.name
+    if p.device_mesh is not None:
+      assert p.weight_split_dims_mapping is not None
+      assert len(p.weight_split_dims_mapping) == 2
     linear_p = builder_layers.LinearLayer.Params().Set(
-        name='linear', input_dims=p.input_dim, output_dims=p.num_classes)
+        name='linear',
+        input_dims=p.input_dim,
+        output_dims=p.num_classes,
+        device_mesh=p.device_mesh,
+        weight_split_dims_mapping=p.weight_split_dims_mapping)
     self.CreateChild('linear', linear_p)
+    if p.device_mesh is not None:
+      bias_split_dims_mapping = [p.weight_split_dims_mapping[1]]
+    else:
+      bias_split_dims_mapping = None
     bias_p = builder_layers.BiasLayer.Params().Set(
-        name='bias', dims=p.num_classes)
+        name='bias',
+        dims=p.num_classes,
+        device_mesh=p.device_mesh,
+        weight_split_dims_mapping=bias_split_dims_mapping)
     self.CreateChild('bias', bias_p)
 
   def Logits(self, theta, inputs):

@@ -29,6 +29,10 @@ class MTBaseModel(base_model.BaseTask):
 
   def _EncoderDevice(self):
     """Returns the device to run the encoder computation."""
+    if self.params.device_mesh is not None:
+      # We perform spmd based partitioning, in which case, we don't specifically
+      # assign any operation to a particular device.
+      return tf.device('')
     if py_utils.use_tpu():
       return tf.device(self.cluster.WorkerDeviceInModelSplit(0))
     else:
@@ -36,6 +40,10 @@ class MTBaseModel(base_model.BaseTask):
 
   def _DecoderDevice(self):
     """Returns the device to run the decoder computation."""
+    if self.params.device_mesh is not None:
+      # We perform spmd based partitioning, in which case, we don't specifically
+      # assign any operation to a particular device.
+      return tf.device('')
     if py_utils.use_tpu():
       return tf.device(self.cluster.WorkerDeviceInModelSplit(1))
     else:

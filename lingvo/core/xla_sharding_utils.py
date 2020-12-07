@@ -16,7 +16,7 @@
 """Utilities for applying xla-sharding to a model."""
 
 from lingvo import compat as tf
-from lingvo.core import py_utils
+from lingvo.core import py_utils_flags
 import numpy as np
 
 # pylint: disable=g-direct-tensorflow-import
@@ -53,7 +53,7 @@ def Split(x,
   Returns:
     Tensor conditionally annotated with sharding.
   """
-  if not py_utils.use_tpu() or num_devices is None or not num_devices > 1:
+  if not py_utils_flags.use_tpu() or num_devices is None or not num_devices > 1:
     return x
   return xla_sharding.split(
       x,
@@ -66,7 +66,7 @@ def Split(x,
 
 def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
   """Wrapper of xla_sharding.mesh_split()."""
-  if (not py_utils.use_tpu() or tensor_split_dims_mapping is None or
+  if (not py_utils_flags.use_tpu() or tensor_split_dims_mapping is None or
       device_mesh.size <= 1):
     return x
   num_tiles = np.prod(

@@ -266,18 +266,29 @@ class Base:
         noise_shape_broadcast_dims=noise_shape_broadcast_dims,
         fprop_dtype=self.params.fprop_dtype)
 
-  def _Linear(self, name, idims, odims):
+  def _Linear(self,
+              name,
+              idims,
+              odims,
+              device_mesh=None,
+              weight_split_dims_mapping=None):
     """Linear layer. y = matmul([..., idims], [idims, odims])."""
     return builder_layers.LinearLayer.Params().Set(
         name=name,
         input_dims=idims,
         output_dims=odims,
-        fprop_dtype=self.params.fprop_dtype)
+        fprop_dtype=self.params.fprop_dtype,
+        device_mesh=device_mesh,
+        weight_split_dims_mapping=weight_split_dims_mapping)
 
-  def _Bias(self, name, dims):
+  def _Bias(self, name, dims, device_mesh=None, weight_split_dims_mapping=None):
     """Bias layer. The bias is added to the last dimension of the input."""
     return builder_layers.BiasLayer.Params().Set(
-        name=name, dims=dims, fprop_dtype=self.params.fprop_dtype)
+        name=name,
+        dims=dims,
+        fprop_dtype=self.params.fprop_dtype,
+        device_mesh=device_mesh,
+        weight_split_dims_mapping=weight_split_dims_mapping)
 
   def _Activation(self, name, fn='RELU'):
     """Activation layer."""

@@ -1003,17 +1003,34 @@ class LinearLayer(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dims', 0, 'Depth of the input.')
     p.Define('output_dims', 0, 'Depth of the output.')
+    p.Define(
+        'device_mesh', None,
+        'A numpy.ndarray describing the topology of a device mesh. Each'
+        ' element is the ID of a device in the topology. device_mesh and'
+        ' weight_split_dims_mapping together specify how the weight projection'
+        ' matrix should be sharded across different tpu cores. If None, the'
+        ' projection weight matrix is not sharded.')
+    p.Define(
+        'weight_split_dims_mapping', None,
+        'Relevant only if device_mesh is not None. If not None, it must be a'
+        ' list of integers of size 2 specifying how the 2d projection weight'
+        ' projection matrix should be sharded over the device mesh.')
     return p
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    if p.device_mesh is not None:
+      assert p.weight_split_dims_mapping is not None
+      assert len(p.weight_split_dims_mapping) == 2
     self.CreateVariable(
         'w',
         py_utils.WeightParams(
             shape=[p.input_dims, p.output_dims],
             init=p.params_init,
             dtype=p.dtype,
+            device_mesh=p.device_mesh,
+            tensor_split_dims_mapping=p.weight_split_dims_mapping,
             collections=[self.__class__.__name__ + '_vars']))
 
   def FProp(self, theta, inputs):
@@ -1054,17 +1071,34 @@ class BiasLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('dims', 0, 'Depth of the input.')
+    p.Define(
+        'device_mesh', None,
+        'A numpy.ndarray describing the topology of a device mesh. Each'
+        ' element is the ID of a device in the topology. device_mesh and'
+        ' weight_split_dims_mapping together specify how the bias variable'
+        ' should be sharded across different tpu cores. If None, the bias'
+        ' variable is not sharded.')
+    p.Define(
+        'weight_split_dims_mapping', None,
+        'Relevant only if device_mesh is not None. If not None, it must be a'
+        ' list of size 1 specifying how the bias weight variable should be'
+        ' sharded over the device mesh.')
     return p
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    if p.device_mesh is not None:
+      assert p.weight_split_dims_mapping
+      assert len(p.weight_split_dims_mapping) == 1
     self.CreateVariable(
         'b',
         py_utils.WeightParams(
             shape=[p.dims],
             init=py_utils.WeightInit.Constant(0.0),
             dtype=p.dtype,
+            device_mesh=p.device_mesh,
+            tensor_split_dims_mapping=p.weight_split_dims_mapping,
             collections=[self.__class__.__name__ + '_vars']))
 
   def FProp(self, theta, inputs):

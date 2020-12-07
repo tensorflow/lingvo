@@ -96,12 +96,12 @@ def ShardedWeightParams(shape,
                         collections=None,
                         tensor_split_dims_mapping=None):
   """Returns a hyperparams for a weight variable with optional XLA sharding."""
-  p = py_utils.WeightParams(shape, init, dtype, collections)
-  p.Define(
-      'tensor_split_dims_mapping', tensor_split_dims_mapping,
-      'The tensor_split_dims_mapping argument for xla_sharding.mesh_split. '
-      'E.g., [-1, 1, 0] means dim_0 is not sharded, dim_1 is sharded across '
-      'mesh dimension 1, and dim_2 is sharded across mesh dimension 0.')
+  p = py_utils.WeightParams(
+      shape,
+      init,
+      dtype,
+      collections,
+      tensor_split_dims_mapping=tensor_split_dims_mapping)
   return p
 
 

@@ -25,6 +25,7 @@ import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+from lingvo.core import xla_sharding_utils
 
 FLAGS = tf.flags.FLAGS
 
@@ -773,8 +774,20 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     else:
       # Pass the resource variable directly into the training loop.
       value = var
+
+    # Due to b/174956514, we have to annotate the use of the variable once,
+    # otherwise, the sharding annotation on the var will be ignored.
+    # TODO(yonghui): Get rid of this once b/174956514 is fixed.
+    if meta.var_params.device_mesh is not None:
+      value = xla_sharding_utils.MeshSplit(
+          value,
+          meta.var_params.device_mesh,
+          meta.var_params.tensor_split_dims_mapping,
+          use_sharding_op=True)
+
     if meta.theta_fn is not None:
       value = meta.theta_fn(value)
+
     self._private_theta[name] = value
 
   @contextlib.contextmanager
