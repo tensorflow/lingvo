@@ -337,12 +337,19 @@ py_test(
     ],
 )
 
+lingvo_cc_library(
+    name = "thread_local_runner",
+    srcs = ["thread_local_runner.cc"],
+    hdrs = ["thread_local_runner.h"],
+)
+
 custom_kernel_library(
     name = "generic_input_op_kernels",
     srcs = ["generic_input_op_kernels.cc"],
     op_def_lib = [":x_ops"],
     deps = [
         ":input_common",
+        ":thread_local_runner",
         # Implicit absl.memory dependency.
     ],
 )

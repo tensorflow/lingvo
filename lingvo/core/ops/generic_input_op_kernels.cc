@@ -17,8 +17,8 @@ limitations under the License.
 #include <memory>
 
 #include "absl/memory/memory.h"
-#include "tensorflow/core/lib/strings/strcat.h"
 #include "lingvo/core/ops/input_common.h"
+#include "lingvo/core/ops/thread_local_runner.h"
 #include "tensorflow/core/common_runtime/function.h"
 #include "tensorflow/core/framework/function.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -26,6 +26,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/lib/core/threadpool.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/util/work_sharder.h"
@@ -36,44 +37,6 @@ namespace {
 
 typedef std::function<void()> Closure;
 typedef std::function<void(Closure)> Runner;
-
-// ThreadLocalRunner::PerThread() is a thread local object which owns a thread
-// pool with one thread. That thread is configured to disable as much
-// TensorFlow runtime parallelism as we can.
-//
-// NOTE: Maybe a cpu-local object will work better, and the thread in
-// ThreadLocalRunner can be affined to one cpu.
-class ThreadLocalRunner {
- public:
-  static ThreadLocalRunner& PerThread() {
-    thread_local ThreadLocalRunner tl_runner;
-    return tl_runner;
-  }
-
-  ThreadLocalRunner() : pool_(Env::Default(), "single", 1) {
-    runner_ = [this](Closure c) { pool_.Schedule(Wrapper(c)); };
-  }
-
-  Runner* runner() { return &runner_; }
-
- private:
-  thread::ThreadPool pool_;
-  Runner runner_;
-
-  class Wrapper : Closure {
-   public:
-    explicit Wrapper(Closure c) : c_(std::move(c)) {}
-
-    void operator()() const {
-      ScopedPerThreadMaxParallelism scope(1);
-      c_();
-    }
-
-   private:
-    Closure c_;
-  };
-};
-
 // Creates a self-contained function library definition.
 // This allows us to e.g. call functions when invoked from a tf.data.Dataset.
 Status CreateFunctionLibraryDefinition(
