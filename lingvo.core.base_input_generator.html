@@ -301,8 +301,8 @@ otherwise num_infeed_hosts is 1.</p></li>
 Callers should use <a class="reference internal" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch" title="lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors. Each tensor’s dim-0 must be the same
-and denotes the batch dimension.</p>
+<dd class="field-odd"><p>A NestedMap (or list of NestedMaps when using TPU sharded infeed) of
+input tensors.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -313,8 +313,8 @@ and denotes the batch dimension.</p>
 <dd><p>Preprocesses input batch from _InputBatch.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>batch</strong> – A NestedMap containing input tensors in the format returned by
-_InputBatch.</p>
+<dd class="field-odd"><p><strong>batch</strong> – A NestedMap (or list of NestedMaps when using TPU sharded infeed)
+containing input tensors in the format returned by _InputBatch.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A NestedMap containing preprocessed inputs to feed to the model.</p>
@@ -325,7 +325,7 @@ _InputBatch.</p>
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch">
 <code class="sig-name descname">GetPreprocessedInputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GetPreprocessedInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a NestedMap containing a preprocessed batch of inputs.</p>
+<dd><p>Returns preprocessed batch of inputs.</p>
 <p>These are the actual inputs fed to the model.</p>
 <p>Subclasses generally should not override this function directly. Instead,
 override _InputBatch and maybe _PreprocessInputBatch.</p>
@@ -334,7 +334,8 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.tpu_number_of_shards">
 <em class="property">property </em><code class="sig-name descname">tpu_number_of_shards</code><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.tpu_number_of_shards" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Number of shards to split the input batch into.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps">
@@ -663,8 +664,8 @@ for the i-th sequence.</p></li>
 Callers should use <code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors. Each tensor’s dim-0 must be the same
-and denotes the batch dimension.</p>
+<dd class="field-odd"><p>A NestedMap (or list of NestedMaps when using TPU sharded infeed) of
+input tensors.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -803,7 +804,7 @@ implementation returns an empty dict.</p>
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseDataExampleInputGenerator.GetPreprocessedInputBatch">
 <code class="sig-name descname">GetPreprocessedInputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseDataExampleInputGenerator.GetPreprocessedInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.GetPreprocessedInputBatch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a NestedMap containing a preprocessed batch of inputs.</p>
+<dd><p>Returns preprocessed batch of inputs.</p>
 <p>These are the actual inputs fed to the model.</p>
 <p>Subclasses generally should not override this function directly. Instead,
 override _InputBatch and maybe _PreprocessInputBatch.</p>
