@@ -50,7 +50,7 @@ class Bfloat16VariablesTest(test_utils.TestCase):
           v0, tf.float32, "", "v0")
       saver = tf.train.Saver({"v0": saveable}, restore_sequentially=True)
       saver.restore(sess, checkpoint_path)
-      self.assertAlmostEqual(fl, v0.eval())
+      self.assertAlmostEqual(fl, v0.eval(), places=2)
 
 
 if __name__ == "__main__":
