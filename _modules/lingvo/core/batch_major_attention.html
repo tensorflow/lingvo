@@ -3517,7 +3517,8 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The fflayer output with shape [target_batch, target_time, dim].</span>
-<span class="sd">      atten_probs: [B, N, T, S].</span>
+<span class="sd">      atten_probs: A NestedMap with keys `self_atten` &lt;float&gt;[B, N, T, T], and</span>
+<span class="sd">      `aux_atten` (optional): &lt;float&gt;[B, N, T, S].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_flops</span><span class="p">:</span>
@@ -3541,13 +3542,14 @@
                                               <span class="s1">&#39;for packed input.&#39;</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">):</span>
-      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">self_atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
           <span class="n">query_vec</span><span class="p">,</span>
           <span class="kc">None</span><span class="p">,</span>
           <span class="n">paddings</span><span class="p">,</span>
           <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
           <span class="n">per_step_padding_override</span><span class="o">=</span><span class="n">per_step_padding_override</span><span class="p">)</span>
+      <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">self_atten</span><span class="o">=</span><span class="n">self_atten_probs</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_atten&#39;</span><span class="p">):</span>
@@ -3560,22 +3562,24 @@
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
-        <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">atten_vec</span><span class="p">,</span> <span class="n">aux_atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span>
             <span class="n">atten_vec</span><span class="p">,</span>
             <span class="n">aux_vec</span><span class="p">,</span>
             <span class="n">aux_paddings</span><span class="p">,</span>
             <span class="n">segment_mask</span><span class="o">=</span><span class="n">aux_segment_mask</span><span class="p">)</span>
-        <span class="n">num_heads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">atten_probs</span><span class="p">,</span>
+        <span class="n">num_heads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_atten_probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">aux_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">aux_atten_probs</span><span class="p">,</span>
             <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">source_time</span><span class="p">])</span>
-        <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
-        <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">atten_probs</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">source_time</span><span class="p">])</span>
+        <span class="n">aux_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">aux_atten_probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+        <span class="n">aux_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">aux_atten_probs</span><span class="p">,</span>
+            <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">source_time</span><span class="p">])</span>
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+        <span class="n">atten_probs</span><span class="o">.</span><span class="n">aux_atten</span> <span class="o">=</span> <span class="n">aux_atten_probs</span>
 
     <span class="c1"># Finally the feed-forward layer.</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fflayer&#39;</span><span class="p">):</span>
