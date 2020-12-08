@@ -3369,7 +3369,8 @@ class TransformerLayer(base_layer.BaseLayer):
 
     Returns:
       The fflayer output with shape [target_batch, target_time, dim].
-      atten_probs: [B, N, T, S].
+      atten_probs: A NestedMap with keys `self_atten` <float>[B, N, T, T], and
+      `aux_atten` (optional): <float>[B, N, T, S].
     """
     p = self.params
     if p.compute_flops:
@@ -3393,13 +3394,14 @@ class TransformerLayer(base_layer.BaseLayer):
                                               'for packed input.')
 
     with tf.name_scope('self_atten'):
-      atten_vec, atten_probs = self.self_atten.FProp(
+      atten_vec, self_atten_probs = self.self_atten.FProp(
           theta.self_atten,
           query_vec,
           None,
           paddings,
           segment_mask=segment_mask,
           per_step_padding_override=per_step_padding_override)
+      atten_probs = py_utils.NestedMap(self_atten=self_atten_probs)
 
     if p.has_aux_atten:
       with tf.name_scope('aux_atten'):
@@ -3412,22 +3414,24 @@ class TransformerLayer(base_layer.BaseLayer):
         atten_vec = tf.reshape(atten_vec, [-1, source_batch, target_time, dim])
         atten_vec = tf.reshape(
             tf.transpose(atten_vec, [1, 0, 2, 3]), [source_batch, -1, dim])
-        atten_vec, atten_probs = self.cross_atten.FProp(
+        atten_vec, aux_atten_probs = self.cross_atten.FProp(
             theta.cross_atten,
             atten_vec,
             aux_vec,
             aux_paddings,
             segment_mask=aux_segment_mask)
-        num_heads = py_utils.GetShape(atten_probs)[1]
-        atten_probs = tf.reshape(
-            atten_probs,
+        num_heads = py_utils.GetShape(aux_atten_probs)[1]
+        aux_atten_probs = tf.reshape(
+            aux_atten_probs,
             [source_batch, -1, num_heads, target_time, source_time])
-        atten_probs = tf.transpose(atten_probs, [1, 0, 2, 3, 4])
-        atten_probs = tf.reshape(
-            atten_probs, [target_batch, num_heads, target_time, source_time])
+        aux_atten_probs = tf.transpose(aux_atten_probs, [1, 0, 2, 3, 4])
+        aux_atten_probs = tf.reshape(
+            aux_atten_probs,
+            [target_batch, num_heads, target_time, source_time])
         atten_vec = tf.reshape(atten_vec, [source_batch, -1, target_time, dim])
         atten_vec = tf.transpose(atten_vec, [1, 0, 2, 3])
         atten_vec = tf.reshape(atten_vec, [target_batch, target_time, dim])
+        atten_probs.aux_atten = aux_atten_probs
 
     # Finally the feed-forward layer.
     with tf.name_scope('fflayer'):
