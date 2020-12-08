@@ -36,7 +36,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.quant_test_lib module" href="lingvo.core.quant_test_lib.html" />
+    <link rel="next" title="lingvo.core.py_utils_flags module" href="lingvo.core.py_utils_flags.html" />
     <link rel="prev" title="lingvo.core.pruning_utils module" href="lingvo.core.pruning_utils.html" /> 
 </head>
 
@@ -169,22 +169,6 @@
   <div class="section" id="module-lingvo.core.py_utils">
 <span id="lingvo-core-py-utils-module"></span><h1>lingvo.core.py_utils module<a class="headerlink" href="#module-lingvo.core.py_utils" title="Permalink to this headline">¶</a></h1>
 <p>Common utilities.</p>
-<dl class="py function">
-<dt id="lingvo.core.py_utils._FromGlobal">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_FromGlobal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">field_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_FromGlobal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._FromGlobal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get ‘field_name’ from a global configuration object.</p>
-<p>Currently the global configuration object used is FLAGS, but this may
-change to Cluster() or an equivalent stack-scoped config object.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>field_name</strong> – The string field name to look up.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The value associated with the global configuration string ‘field_name’.</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py class">
 <dt id="lingvo.core.py_utils.ThreadLocalStack">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ThreadLocalStack</code><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ThreadLocalStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ThreadLocalStack" title="Permalink to this definition">¶</a></dt>
@@ -442,33 +426,8 @@ error if dynamic shape checks fail.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.py_utils.use_xla">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">use_xla</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#use_xla"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.use_xla" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.py_utils.use_tpu">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">use_tpu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#use_tpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.use_tpu" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.py_utils.testonly_skip_norm_layers">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">testonly_skip_norm_layers</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#testonly_skip_norm_layers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.testonly_skip_norm_layers" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.py_utils.tpu_compat">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">tpu_compat</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#tpu_compat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.tpu_compat" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt id="lingvo.core.py_utils.outside_all_rewrites">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">outside_all_rewrites</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#outside_all_rewrites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.outside_all_rewrites" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="lingvo.core.py_utils.use_stateless_vars_init">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">use_stateless_vars_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#use_stateless_vars_init"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.use_stateless_vars_init" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
@@ -1125,7 +1084,7 @@ See tf.keras.initializers.VarianceScaling for details.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.WeightParams">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">WeightParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">init</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">collections</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightParams" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">WeightParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">init</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">collections</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a hyperparams for a weight variable given the shape/init/dtype.</p>
 </dd></dl>
 
@@ -2442,8 +2401,8 @@ right with pad_val.</p>
 <li><p><strong>x</strong> – A tensor.</p></li>
 <li><p><strong>shape</strong> – The shape of the returned tensor.</p></li>
 <li><p><strong>pad_val</strong> – An int or float used to pad x.</p></li>
-<li><p><strong>pad_after_contents</strong> – Whether to pad and trim after the original contents
-of each dimension.</p></li>
+<li><p><strong>pad_after_contents</strong> – Whether to pad and trim after the original contents of
+each dimension.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -3273,7 +3232,7 @@ of size 1.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.quant_test_lib.html" class="btn btn-neutral float-right" title="lingvo.core.quant_test_lib module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.py_utils_flags.html" class="btn btn-neutral float-right" title="lingvo.core.py_utils_flags module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.core.pruning_utils.html" class="btn btn-neutral float-left" title="lingvo.core.pruning_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

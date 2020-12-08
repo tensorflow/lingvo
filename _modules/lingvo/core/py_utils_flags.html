@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.py_utils_flags &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.py_utils_flags</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.py_utils_flags</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Common utilities.&quot;&quot;&quot;</span>
+
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># Note: Avoid adding dependencies to py_utils beyond standard python packages</span>
+<span class="c1">#       and tensorflow.</span>
+<span class="c1"># ==============================================================================</span>
+
+
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+                     <span class="s1">&#39;If False, we disable all asserts.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;enable_check_numerics&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+                     <span class="s1">&#39;If False, we bypass calls to CheckNumerics.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;print_debug_tensors&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;Whether to print debug tensors.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;testonly_skip_norm_layers&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Disable normalization layers, used for checking goldens &#39;</span>
+    <span class="s1">&#39;in unittests. Normalizations make differences harder to &#39;</span>
+    <span class="s1">&#39;catch.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;If non-empty, can be cpu, gpu, or tpu (case sensitive)&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;tpu_compatible&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Create variables in a way compatible with TPU. &#39;</span>
+    <span class="s1">&#39;This should be true for any job that will interact &#39;</span>
+    <span class="s1">&#39;with variables or a checkpoint that will be produced &#39;</span>
+    <span class="s1">&#39;or consumed by TPU&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;tflite_compatible&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Uses tflite converter-friendly ops at applicable places. This so far &#39;</span>
+    <span class="s1">&#39;(08/2020) is a only best-effort option.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Pin variables to cpu:0.  This is useful for weight-sharing / multi-core &#39;</span>
+    <span class="s1">&#39;inference on TPUs in which TPU core variables are managed via &#39;</span>
+    <span class="s1">&#39;TPUPartitionedCallOp.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;disable_py_utils_debug&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;If True disables all py_utils.Debug() logs.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Use stateless TensorFlow random number generators (RNG) (e.g. &#39;</span>
+    <span class="s1">&#39;tf.random.stateless_uniform) to initialize variables instead of the &#39;</span>
+    <span class="s1">&#39;default ones (e.g. tf.random.uniform). This is useful to make variable &#39;</span>
+    <span class="s1">&#39;initialization deterministic on different replicas such as on TPUs, &#39;</span>
+    <span class="s1">&#39;since XLA does not fully respect the contract with respect to &#39;</span>
+    <span class="s1">&#39;user-specified seeds, when using TensorFlow stateful RNGs.&#39;</span><span class="p">)</span>
+
+<span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
+<span class="c1">#</span>
+<span class="c1"># 1) They require app.run() or explicit flag parsing, preventing the use of</span>
+<span class="c1"># these libraries in environments that don&#39;t look like normal binaries (colab</span>
+<span class="c1"># notebooks).</span>
+<span class="c1">#</span>
+<span class="c1"># 2) They are process-level globals that cannot be scoped or configured except</span>
+<span class="c1"># once during binary startup.</span>
+<span class="c1">#</span>
+<span class="c1"># Because py_utils is a library, no more flags should be used in this file; the</span>
+<span class="c1"># existing flags are present for backwards compatibility.  Instead, consider</span>
+<span class="c1"># using a stack-scoped configuration object such as the Cluster object. We guard</span>
+<span class="c1"># against issue 1 above by using _FromGlobal below, which uses the default value</span>
+<span class="c1"># of the FLAG even if flags are unparsed.</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="_FromGlobal"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags._FromGlobal">[docs]</a><span class="k">def</span> <span class="nf">_FromGlobal</span><span class="p">(</span><span class="n">field_name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get &#39;field_name&#39; from a global configuration object.</span>
+
+<span class="sd">  Currently the global configuration object used is FLAGS, but this may</span>
+<span class="sd">  change to Cluster() or an equivalent stack-scoped config object.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    field_name: The string field name to look up.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The value associated with the global configuration string &#39;field_name&#39;.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># TODO(b/145831327): check the field name in the current cluster object.</span>
+  <span class="c1"># If explicitly set, use that value instead of using the FLAG value.</span>
+
+  <span class="c1"># Now check the FLAGS object for backwards compatibility.</span>
+  <span class="c1">#</span>
+  <span class="c1"># If not explicitly set, get the field from the FLAGS object.  If FLAGS</span>
+  <span class="c1"># have not been parsed yet, the default value of the flag will be used.</span>
+  <span class="k">return</span> <span class="n">FLAGS</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span><span class="o">.</span><span class="n">value</span></div>
+<span class="c1"># pylint: enable=invalid-name</span>
+
+
+<div class="viewcode-block" id="use_xla"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.use_xla">[docs]</a><span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">res</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="s1">&#39;gpu&#39;</span><span class="p">,</span> <span class="s1">&#39;tpu&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="use_tpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.use_tpu">[docs]</a><span class="k">def</span> <span class="nf">use_tpu</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span>
+  <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">)</span>  <span class="c1"># asserts not supported on tpu</span>
+  <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="testonly_skip_norm_layers"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.testonly_skip_norm_layers">[docs]</a><span class="k">def</span> <span class="nf">testonly_skip_norm_layers</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;testonly_skip_norm_layers&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="tpu_compat"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.tpu_compat">[docs]</a><span class="k">def</span> <span class="nf">tpu_compat</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">return</span> <span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;tpu_compatible&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="use_stateless_vars_init"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.use_stateless_vars_init">[docs]</a><span class="k">def</span> <span class="nf">use_stateless_vars_init</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;stateless_vars_init&#39;</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -414,18 +414,29 @@
         <span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="n">noise_shape_broadcast_dims</span><span class="p">,</span>
         <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Base._Linear"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Linear">[docs]</a>  <span class="k">def</span> <span class="nf">_Linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">):</span>
+<div class="viewcode-block" id="Base._Linear"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Linear">[docs]</a>  <span class="k">def</span> <span class="nf">_Linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">name</span><span class="p">,</span>
+              <span class="n">idims</span><span class="p">,</span>
+              <span class="n">odims</span><span class="p">,</span>
+              <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Linear layer. y = matmul([..., idims], [idims, odims]).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">LinearLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">input_dims</span><span class="o">=</span><span class="n">idims</span><span class="p">,</span>
         <span class="n">output_dims</span><span class="o">=</span><span class="n">odims</span><span class="p">,</span>
-        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Base._Bias"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Bias">[docs]</a>  <span class="k">def</span> <span class="nf">_Bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+<div class="viewcode-block" id="Base._Bias"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Bias">[docs]</a>  <span class="k">def</span> <span class="nf">_Bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Bias layer. The bias is added to the last dimension of the input.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">BiasLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Base._Activation"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Activation">[docs]</a>  <span class="k">def</span> <span class="nf">_Activation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Activation layer.&quot;&quot;&quot;</span>

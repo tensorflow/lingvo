@@ -174,7 +174,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">computation_cost</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">moe_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">pruning_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
@@ -1027,8 +1026,20 @@
         <span class="s1">&#39;multiplications. This allows for weight updates to be paralellized&#39;</span>
         <span class="s1">&#39; across the cores for Shampoo optimizer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Dimension of the block&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of Gshard partitions.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_split_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Which dim to g-shard.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A numpy.ndarray describing the topology of a device mesh to partition&#39;</span>
+        <span class="s1">&#39; this projection onto. Each element in this ndarray is the ID of a&#39;</span>
+        <span class="s1">&#39; device in the topology. device_mesh and weight_split_dims_mapping&#39;</span>
+        <span class="s1">&#39; (defined below) together specify how the projection matrix should be&#39;</span>
+        <span class="s1">&#39; sharded across different tpu cores. The sharding of the bias&#39;</span>
+        <span class="s1">&#39; variable is inferred from that of the projection matrix variable.&#39;</span>
+        <span class="s1">&#39; If None, the projection weight matrix is not sharded.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it is a&#39;</span>
+        <span class="s1">&#39; list of integers (of length 2) specifying how the 2d weight&#39;</span>
+        <span class="s1">&#39; projection matrix should be sharded over device mesh.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour for weights.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
 
@@ -1041,8 +1052,6 @@
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">activations</span><span class="o">.</span><span class="n">IsSupported</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_split_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
@@ -1061,6 +1070,12 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;use_einsum requires use_blocked_matmul = False&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Enabling xla_sharding requires use_blocked_matmul = False&#39;</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
       <span class="n">bn_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -1120,6 +1135,8 @@
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
@@ -1130,10 +1147,16 @@
                                              <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
                                              <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bias_split_dims_mapping</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">bias_split_dims_mapping</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">b_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
       <span class="n">g_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -1281,14 +1304,8 @@
 <span class="sd">      disabled.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
-      <span class="n">theta</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_split_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">b</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1497,9 +1514,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bn_fold_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Force folding the batch normalization &#39;</span>
         <span class="s1">&#39;weights in the projection layer.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;proj_xla_num_partitions&#39;</span><span class="p">,</span> <span class="p">[],</span>
-             <span class="s1">&#39;Gshard number of partitions for the proj layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;proj_xla_split_dim&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Gshard split dims for the proj layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A np.ndarray specifying the topology of a device mesh to split &#39;</span>
+        <span class="s1">&#39; computation onto.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_split_dims_mapping_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;A list of weight_split_dims_mapping for each sub-layer.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour for the weights.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
 
@@ -1545,12 +1565,11 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">params_dropout_layers</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">weight_split_dims_mapping_list</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping_list</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">weight_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_split_dims_mapping_list</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
 
     <span class="c1"># Residual connections work better in the form of:</span>
     <span class="c1">#   y = x + Affine(Activation(BatchNorm(x)))</span>
@@ -1568,8 +1587,8 @@
           <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
           <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
           <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
-          <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_num_partitions</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-          <span class="n">xla_split_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">proj_xla_split_dim</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
       <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
       <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
@@ -2826,7 +2845,20 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, computes the per example &#39;</span>
         <span class="s1">&#39;xent by small chunks along the batch dimension.&#39;</span><span class="p">)</span>
-
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A numpy.ndarray describing the topology of a device mesh to partition&#39;</span>
+        <span class="s1">&#39; this projection onto. Each element in this ndarray is the ID of a&#39;</span>
+        <span class="s1">&#39; device in the topology. device_mesh and weight_split_dims_mapping&#39;</span>
+        <span class="s1">&#39; (defined below) together specify how the projection matrix should be&#39;</span>
+        <span class="s1">&#39; sharded across different tpu cores. The sharding of the bias&#39;</span>
+        <span class="s1">&#39; variable is inferred from that of the projection matrix variable.&#39;</span>
+        <span class="s1">&#39; If None, the projection weight matrix is not sharded.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it is a&#39;</span>
+        <span class="s1">&#39; list of integers (of length 2) specifying how the 2d weight&#39;</span>
+        <span class="s1">&#39; projection matrix should be sharded over device mesh.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for logits.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -2968,6 +3000,9 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="c1"># TODO(yonghui): add support for device_mesh in SimpleFullSoftmax.</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="c1"># We shard params across the class dimension.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
@@ -3350,11 +3385,25 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
     <span class="n">linear_p</span> <span class="o">=</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">LinearLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">input_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+        <span class="n">input_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">output_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">linear_p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">bias_split_dims_mapping</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">bias_split_dims_mapping</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">bias_p</span> <span class="o">=</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">BiasLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
+        <span class="n">dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">bias_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SingleShardFullSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardFullSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>

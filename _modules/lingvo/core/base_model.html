@@ -212,6 +212,14 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Encoder Params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;online_encoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Online Encoder Params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Decoder Params.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(yonghui): move device_mesh to BaseLayer.Params and have it</span>
+    <span class="c1"># automatically inheritted by sub-layers.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If not None, a np.ndarray describing the topology of a device&#39;</span>
+        <span class="s1">&#39; mesh to partition the model onto. Each element in the&#39;</span>
+        <span class="s1">&#39; np.ndarray is the ID of the device in the topology. Note here&#39;</span>
+        <span class="s1">&#39; we assume spmd partition only.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;task_global_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether or not to use task-specific global steps, which causes each &#39;</span>

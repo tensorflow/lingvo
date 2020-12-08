@@ -244,12 +244,12 @@
                         <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a hyperparams for a weight variable with optional XLA sharding.&quot;&quot;&quot;</span>
-  <span class="n">p</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">collections</span><span class="p">)</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-      <span class="s1">&#39;tensor_split_dims_mapping&#39;</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
-      <span class="s1">&#39;The tensor_split_dims_mapping argument for xla_sharding.mesh_split. &#39;</span>
-      <span class="s1">&#39;E.g., [-1, 1, 0] means dim_0 is not sharded, dim_1 is sharded across &#39;</span>
-      <span class="s1">&#39;mesh dimension 1, and dim_2 is sharded across mesh dimension 0.&#39;</span><span class="p">)</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+      <span class="n">shape</span><span class="p">,</span>
+      <span class="n">init</span><span class="p">,</span>
+      <span class="n">dtype</span><span class="p">,</span>
+      <span class="n">collections</span><span class="p">,</span>
+      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">tensor_split_dims_mapping</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
