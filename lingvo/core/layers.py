@@ -892,6 +892,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'Relevant only if device_mesh above is not None. If not None, it is a'
         ' list of integers (of length 2) specifying how the 2d weight'
         ' projection matrix should be sharded over device mesh.')
+    p.Define('xla_num_partitions', None,
+             'Obsolete. Kept for backwards compatibility.')
     # Non-default quantization behaviour for weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
