@@ -1031,11 +1031,11 @@
         <span class="s1">&#39;Relevant only if device_mesh is not None. If not None, it is a&#39;</span>
         <span class="s1">&#39; list of integers (of length 2) specifying how the 2d weight&#39;</span>
         <span class="s1">&#39; projection matrix should be sharded over device mesh.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;Obsolete. Kept for backwards compatibility.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour for weights.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Obsolete. Kept for backwards compatibility.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1045,6 +1045,7 @@
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">STATIC_VALUES</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">activations</span><span class="o">.</span><span class="n">IsSupported</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span> <span class="ow">is</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
