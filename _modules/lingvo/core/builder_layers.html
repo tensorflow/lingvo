@@ -1152,13 +1152,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A numpy.ndarray describing the topology of a device mesh. Each&#39;</span>
-        <span class="s1">&#39; element is the ID of a device in the topology. device_mesh and&#39;</span>
-        <span class="s1">&#39; weight_split_dims_mapping together specify how the weight projection&#39;</span>
-        <span class="s1">&#39; matrix should be sharded across different tpu cores. If None, the&#39;</span>
-        <span class="s1">&#39; projection weight matrix is not sharded.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Relevant only if device_mesh is not None. If not None, it must be a&#39;</span>
         <span class="s1">&#39; list of integers of size 2 specifying how the 2d projection weight&#39;</span>
@@ -1219,13 +1212,6 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A numpy.ndarray describing the topology of a device mesh. Each&#39;</span>
-        <span class="s1">&#39; element is the ID of a device in the topology. device_mesh and&#39;</span>
-        <span class="s1">&#39; weight_split_dims_mapping together specify how the bias variable&#39;</span>
-        <span class="s1">&#39; should be sharded across different tpu cores. If None, the bias&#39;</span>
-        <span class="s1">&#39; variable is not sharded.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Relevant only if device_mesh is not None. If not None, it must be a&#39;</span>

@@ -336,14 +336,6 @@
         <span class="s1">&#39;mixing is done after getting all the different attention outputs.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If to add bias in projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A numpy.ndarray describing the topology of a device mesh. Each&#39;</span>
-        <span class="s1">&#39; element is the ID of a device in the topology. device_mesh and&#39;</span>
-        <span class="s1">&#39; weight_split_dims_mapping together specify how the projection &#39;</span>
-        <span class="s1">&#39; matrix should be sharded across different tpu cores. The sharding&#39;</span>
-        <span class="s1">&#39; of the bias variable is inferred from that of the projection matrix.&#39;</span>
-        <span class="s1">&#39; If None, the projection weight matrix is not sharded.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39; Relevant only if device_mesh is specified. If specified, it must be a&#39;</span>
         <span class="s1">&#39; list of integers if size 3 specifying how the weight tensor should be&#39;</span>
@@ -479,10 +471,6 @@
              <span class="s1">&#39;projection layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether there is packed input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use bias for projection layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A np.ndarray specifying the device mesh to partition the&#39;</span>
-        <span class="s1">&#39; computations onto.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;enable_scaling_code_motion&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Move scalings from the side &#39;</span>
         <span class="s1">&#39;of T^2 to the side of T for better performance. This may result &#39;</span>

@@ -261,12 +261,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;[(name, ShardedWeightParams)..] list.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Numpy array of device mesh. E.g., Use a 1D array containing all &#39;</span>
-        <span class="s1">&#39;device IDs to represent simple 1D sharding; use a 2D array of &#39;</span>
-        <span class="s1">&#39;4x8 devices to shard tensors on the 2D mesh of devices, where &#39;</span>
-        <span class="s1">&#39;the 4 and 8 dimensiosn can be mapped to tensor dimensions.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cast_to_fprop_dtype&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether to cast variables to fprop_dtype&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>

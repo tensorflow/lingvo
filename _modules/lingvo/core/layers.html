@@ -1027,17 +1027,8 @@
         <span class="s1">&#39; across the cores for Shampoo optimizer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Dimension of the block&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A numpy.ndarray describing the topology of a device mesh to partition&#39;</span>
-        <span class="s1">&#39; this projection onto. Each element in this ndarray is the ID of a&#39;</span>
-        <span class="s1">&#39; device in the topology. device_mesh and weight_split_dims_mapping&#39;</span>
-        <span class="s1">&#39; (defined below) together specify how the projection matrix should be&#39;</span>
-        <span class="s1">&#39; sharded across different tpu cores. The sharding of the bias&#39;</span>
-        <span class="s1">&#39; variable is inferred from that of the projection matrix variable.&#39;</span>
-        <span class="s1">&#39; If None, the projection weight matrix is not sharded.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it is a&#39;</span>
+        <span class="s1">&#39;Relevant only if device_mesh is not None. If not None, it is a&#39;</span>
         <span class="s1">&#39; list of integers (of length 2) specifying how the 2d weight&#39;</span>
         <span class="s1">&#39; projection matrix should be sharded over device mesh.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -1516,10 +1507,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bn_fold_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Force folding the batch normalization &#39;</span>
         <span class="s1">&#39;weights in the projection layer.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A np.ndarray specifying the topology of a device mesh to split &#39;</span>
-        <span class="s1">&#39; computation onto.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_split_dims_mapping_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;A list of weight_split_dims_mapping for each sub-layer.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour for the weights.</span>
@@ -2847,15 +2834,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, computes the per example &#39;</span>
         <span class="s1">&#39;xent by small chunks along the batch dimension.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A numpy.ndarray describing the topology of a device mesh to partition&#39;</span>
-        <span class="s1">&#39; this projection onto. Each element in this ndarray is the ID of a&#39;</span>
-        <span class="s1">&#39; device in the topology. device_mesh and weight_split_dims_mapping&#39;</span>
-        <span class="s1">&#39; (defined below) together specify how the projection matrix should be&#39;</span>
-        <span class="s1">&#39; sharded across different tpu cores. The sharding of the bias&#39;</span>
-        <span class="s1">&#39; variable is inferred from that of the projection matrix variable.&#39;</span>
-        <span class="s1">&#39; If None, the projection weight matrix is not sharded.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it is a&#39;</span>
