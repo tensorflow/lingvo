@@ -998,15 +998,18 @@
 <span class="sd">      The value for the given nested key.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">      KeyError if a key is not present.</span>
+<span class="sd">      KeyError: if a key is not present.</span>
+<span class="sd">      IndexError: when an intermediate item is a list and we try to access</span>
+<span class="sd">        an element which is out of range.</span>
+<span class="sd">      TypeError: when an intermediate item is a list and we try to access</span>
+<span class="sd">        an element of it with a string.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">current</span> <span class="o">=</span> <span class="bp">self</span>
-    <span class="c1"># Note: This can&#39;t support lists. List keys are ambiguous as underscore is</span>
-    <span class="c1"># not reserved for list indexing but also allowed to be used in keys.</span>
-    <span class="c1"># E.g., this is a valid nested map where the key &#39;a_0&#39; is not well defined</span>
-    <span class="c1"># {&#39;a_0&#39;: 3, &#39;a&#39;: [4]}.</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+      <span class="n">k</span><span class="p">,</span> <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SquareBracketIndex</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
       <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">current</span></div>
 
 <div class="viewcode-block" id="NestedMap.Get"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Get">[docs]</a>  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1025,9 +1028,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-    <span class="c1"># TypeError is raised when an intermediate item is a list and we try to</span>
-    <span class="c1"># access an element of it with a string.</span>
-    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">default</span></div>
 
 <div class="viewcode-block" id="NestedMap.Set"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
