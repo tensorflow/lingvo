@@ -18,6 +18,7 @@
 import abc
 import collections
 import contextlib
+import copy
 import enum
 import itertools
 import re
@@ -261,6 +262,14 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         'If None/False, only variables explicitly in the '
         'SKIP_LP_REGULARIZATION collection will skip Lp regularization. '
         'Also propagated to child layers with default settings (None).')
+    p.Define(
+        'device_mesh', None,
+        'A numpy.ndarray specifying the topology of a device mesh to place the'
+        ' computations onto. If device_mesh is None, it is assumed to be a'
+        ' single device. Here are some examples:'
+        ' np.array([0, 1, 2, 3, 4, 5, 6, 7]) which is a 1d mesh with 8 devices,'
+        ' np.array([[0, 1, 2, 3], [4, 5, 6, 7]]) which is 2d matrix of 8'
+        ' devices.')
     return p
 
   @staticmethod
@@ -281,6 +290,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       to_params.allow_implicit_capture = from_params.allow_implicit_capture
     if to_params.skip_lp_regularization is None:
       to_params.skip_lp_regularization = from_params.skip_lp_regularization
+
+    if to_params.device_mesh is None:
+      to_params.device_mesh = copy.deepcopy(from_params.device_mesh)
 
     # Only copy from base when vn config is using the default setting.
     if to_params.vn == py_utils.DefaultVN():

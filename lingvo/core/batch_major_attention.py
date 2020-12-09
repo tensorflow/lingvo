@@ -188,14 +188,6 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         'mixing is done after getting all the different attention outputs.')
     p.Define('use_bias', True, 'If to add bias in projection.')
     p.Define(
-        'device_mesh', None,
-        'A numpy.ndarray describing the topology of a device mesh. Each'
-        ' element is the ID of a device in the topology. device_mesh and'
-        ' weight_split_dims_mapping together specify how the projection '
-        ' matrix should be sharded across different tpu cores. The sharding'
-        ' of the bias variable is inferred from that of the projection matrix.'
-        ' If None, the projection weight matrix is not sharded.')
-    p.Define(
         'weight_split_dims_mapping', None,
         ' Relevant only if device_mesh is specified. If specified, it must be a'
         ' list of integers if size 3 specifying how the weight tensor should be'
@@ -331,10 +323,6 @@ class MultiHeadedAttention(base_layer.BaseLayer):
              'projection layer.')
     p.Define('packed_input', False, 'Whether there is packed input.')
     p.Define('use_bias', True, 'Whether to use bias for projection layers.')
-    p.Define(
-        'device_mesh', None,
-        'A np.ndarray specifying the device mesh to partition the'
-        ' computations onto.')
     p.Define(
         'enable_scaling_code_motion', False, 'Move scalings from the side '
         'of T^2 to the side of T for better performance. This may result '

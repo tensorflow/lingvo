@@ -879,17 +879,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         ' across the cores for Shampoo optimizer.')
     p.Define('block_dim', 1024, 'Dimension of the block')
     p.Define(
-        'device_mesh', None,
-        'A numpy.ndarray describing the topology of a device mesh to partition'
-        ' this projection onto. Each element in this ndarray is the ID of a'
-        ' device in the topology. device_mesh and weight_split_dims_mapping'
-        ' (defined below) together specify how the projection matrix should be'
-        ' sharded across different tpu cores. The sharding of the bias'
-        ' variable is inferred from that of the projection matrix variable.'
-        ' If None, the projection weight matrix is not sharded.')
-    p.Define(
         'weight_split_dims_mapping', None,
-        'Relevant only if device_mesh above is not None. If not None, it is a'
+        'Relevant only if device_mesh is not None. If not None, it is a'
         ' list of integers (of length 2) specifying how the 2d weight'
         ' projection matrix should be sharded over device mesh.')
     p.Define('xla_num_partitions', None,
@@ -1368,10 +1359,6 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     p.Define(
         'bn_fold_weights', None, 'Force folding the batch normalization '
         'weights in the projection layer.')
-    p.Define(
-        'device_mesh', None,
-        'A np.ndarray specifying the topology of a device mesh to split '
-        ' computation onto.')
     p.Define('weight_split_dims_mapping_list', None,
              'A list of weight_split_dims_mapping for each sub-layer.')
     # Non-default quantization behaviour for the weights.
@@ -2699,15 +2686,6 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     p.Define(
         'chunk_size', 0, 'If non-zero, computes the per example '
         'xent by small chunks along the batch dimension.')
-    p.Define(
-        'device_mesh', None,
-        'A numpy.ndarray describing the topology of a device mesh to partition'
-        ' this projection onto. Each element in this ndarray is the ID of a'
-        ' device in the topology. device_mesh and weight_split_dims_mapping'
-        ' (defined below) together specify how the projection matrix should be'
-        ' sharded across different tpu cores. The sharding of the bias'
-        ' variable is inferred from that of the projection matrix variable.'
-        ' If None, the projection weight matrix is not sharded.')
     p.Define(
         'weight_split_dims_mapping', None,
         'Relevant only if device_mesh above is not None. If not None, it is a'

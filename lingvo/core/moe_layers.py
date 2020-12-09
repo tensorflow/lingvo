@@ -113,12 +113,6 @@ class ShardedVarLayer(VarLayer):
     p = super().Params()
     p.Delete('weights')
     p.Define('weights', None, '[(name, ShardedWeightParams)..] list.')
-    p.Define(
-        'device_mesh', None,
-        'Numpy array of device mesh. E.g., Use a 1D array containing all '
-        'device IDs to represent simple 1D sharding; use a 2D array of '
-        '4x8 devices to shard tensors on the 2D mesh of devices, where '
-        'the 4 and 8 dimensiosn can be mapped to tensor dimensions.')
     p.Define('cast_to_fprop_dtype', True,
              'Whether to cast variables to fprop_dtype')
     return p

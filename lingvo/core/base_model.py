@@ -64,14 +64,6 @@ class BaseTask(base_layer.BaseLayer):
     p.Define('encoder', None, 'Encoder Params.')
     p.Define('online_encoder', None, 'Online Encoder Params.')
     p.Define('decoder', None, 'Decoder Params.')
-    # TODO(yonghui): move device_mesh to BaseLayer.Params and have it
-    # automatically inheritted by sub-layers.
-    p.Define(
-        'device_mesh', None,
-        'If not None, a np.ndarray describing the topology of a device'
-        ' mesh to partition the model onto. Each element in the'
-        ' np.ndarray is the ID of the device in the topology. Note here'
-        ' we assume spmd partition only.')
     p.Define(
         'task_global_step', False,
         'Whether or not to use task-specific global steps, which causes each '
