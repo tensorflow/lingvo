@@ -883,11 +883,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'Relevant only if device_mesh is not None. If not None, it is a'
         ' list of integers (of length 2) specifying how the 2d weight'
         ' projection matrix should be sharded over device mesh.')
-    p.Define('xla_num_partitions', None,
-             'Obsolete. Kept for backwards compatibility.')
     # Non-default quantization behaviour for weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
+    p.Define('xla_num_partitions', None,
+             'Obsolete. Kept for backwards compatibility.')
     return p
 
   def __init__(self, params):
@@ -897,6 +897,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
     assert p.activation == 'NONE' or activations.IsSupported(p.activation)
+    assert p.xla_num_partitions is None
 
     if p.batch_norm is None:
       raise RuntimeError(
