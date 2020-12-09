@@ -850,15 +850,18 @@ class NestedMap(dict):
       The value for the given nested key.
 
     Raises:
-      KeyError if a key is not present.
+      KeyError: if a key is not present.
+      IndexError: when an intermediate item is a list and we try to access
+        an element which is out of range.
+      TypeError: when an intermediate item is a list and we try to access
+        an element of it with a string.
     """
     current = self
-    # Note: This can't support lists. List keys are ambiguous as underscore is
-    # not reserved for list indexing but also allowed to be used in keys.
-    # E.g., this is a valid nested map where the key 'a_0' is not well defined
-    # {'a_0': 3, 'a': [4]}.
     for k in key.split('.'):
+      k, idx = self.SquareBracketIndex(k)
       current = current[k]
+      if idx is not None:
+        current = current[idx]
     return current
 
   def Get(self, key, default=None):
@@ -877,9 +880,7 @@ class NestedMap(dict):
     """
     try:
       return self.GetItem(key)
-    # TypeError is raised when an intermediate item is a list and we try to
-    # access an element of it with a string.
-    except (KeyError, TypeError):
+    except (KeyError, IndexError, TypeError):
       return default
 
   def Set(self, key, value):

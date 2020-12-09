@@ -74,8 +74,13 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     nested_map['b'] = py_utils.NestedMap({'y_0': 4, 'y': [3]})
     self.assertEqual(nested_map.GetItem('a.x'), nested_map.a.x)
     self.assertEqual(nested_map.GetItem('b.y_0'), 4)
+    self.assertEqual(nested_map.GetItem('b.y[0]'), 3)
     with self.assertRaises(KeyError):
       nested_map.GetItem('o')
+    with self.assertRaises(IndexError):
+      nested_map.GetItem('b.y[1]')
+    with self.assertRaises(TypeError):
+      nested_map.GetItem('b.y.c')
 
   def testNestedMapGet(self):
     nested_map = py_utils.NestedMap({'a': {'b': 0}})
@@ -83,6 +88,14 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertIsNone(nested_map.Get('a.b.c'))
     self.assertIsNone(nested_map.Get('x'))
     self.assertEqual(nested_map.Get('x', 0), 0)
+
+  def testNestedMapGetFromNestedList(self):
+    nested_map = py_utils.NestedMap({'a': {'b': [0, 1, {'c': 2}]}})
+    self.assertEqual(nested_map.Get('a.b'), [0, 1, {'c': 2}])
+    self.assertEqual(nested_map.Get('a.b[1]'), 1)
+    self.assertEqual(nested_map.Get('a.b[2].c'), 2)
+    self.assertIsNone(nested_map.Get('a.b[3]'))
+    self.assertIsNone(nested_map.Get('a.b.c'))
 
   def testNestedMapDir(self):
     nested_map = py_utils.NestedMap({'a': {'b': 0}})
