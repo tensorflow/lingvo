@@ -357,13 +357,34 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps">
 <code class="sig-name descname">CreateTpuEmbeddingEnqueueOps</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode_override</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEmbeddingEnqueueOps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates the TpuEmbedding enqueue ops on the host.</p>
+<dd><p>Creates the TpuEmbedding enqueue ops on all hosts.</p>
 <p>Note that this must be called after the instantiation of the
 monolithic TPUEmbeddingLayer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>mode_override</strong> – String to override TPU embedding mode. See
 TPUEmbedding.generate_enqueue_ops()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator._CreateTpuEmbeddingEnqueueOpsForHost">
+<code class="sig-name descname">_CreateTpuEmbeddingEnqueueOpsForHost</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tpu_embedding</span></em>, <em class="sig-param"><span class="n">input_batch</span></em>, <em class="sig-param"><span class="n">mode_override</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator._CreateTpuEmbeddingEnqueueOpsForHost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator._CreateTpuEmbeddingEnqueueOpsForHost" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook for creating TPU embedding enqueue ops for a single host.</p>
+<p>Used by CreateTpuEmbeddingEnqueueOps(). Override this method in input
+generators to control how embedding inputs are enqueued onto TPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tpu_embedding</strong> – The monolithic TpuEmbedding object.</p></li>
+<li><p><strong>input_batch</strong> – The input batch for this host.</p></li>
+<li><p><strong>mode_override</strong> – String to override TPU embedding mode. See
+TPUEmbedding.generate_enqueue_ops()</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of TPU Embedding enqueue ops.</p>
 </dd>
 </dl>
 </dd></dl>
