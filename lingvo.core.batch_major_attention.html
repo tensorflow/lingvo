@@ -2642,6 +2642,77 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.batch_major_attention.FunnelPoolingLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">FunnelPoolingLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelPoolingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelPoolingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.StrideLayer" title="lingvo.core.batch_major_attention.StrideLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.StrideLayer</span></code></a></p>
+<p>A layer that does pooling in Funnel-Transformer.</p>
+<p><a class="reference external" href="https://arxiv.org/pdf/2006.03236.pdf">https://arxiv.org/pdf/2006.03236.pdf</a> section 2.2. for query-only pooling and
+section A.1 for begin_intact &amp; trunc_seq.</p>
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.FunnelPoolingLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelPoolingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelPoolingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for <a class="reference internal" href="#lingvo.core.batch_major_attention.FunnelPoolingLayer" title="lingvo.core.batch_major_attention.FunnelPoolingLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FunnelPoolingLayer</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelPoolingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies pooling to the inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – weights defined in this layer.</p></li>
+<li><p><strong>x</strong> – input tensor of shape [batch, time, dim] or [batch, time], where the
+pooling is applied to the time dim.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Pooled tensor, with the pooling applied to the second dim in x.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.batch_major_attention.FunnelUpsampleLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">FunnelUpsampleLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelUpsampleLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelUpsampleLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer that does upsampling in Funnel-Transformer.</p>
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.FunnelUpsampleLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelUpsampleLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelUpsampleLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for <a class="reference internal" href="#lingvo.core.batch_major_attention.FunnelUpsampleLayer" title="lingvo.core.batch_major_attention.FunnelUpsampleLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FunnelUpsampleLayer</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.FunnelUpsampleLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelUpsampleLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelUpsampleLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.FunnelUpsampleLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelUpsampleLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelUpsampleLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upsample to the inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – weights defined in this layer.</p></li>
+<li><p><strong>x</strong> – input tensor, [batch, time, dim] upsampling is applied to the time dim.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Upsampled tensor, with the upsampling applied to the second dim in x.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.batch_major_attention.Builder">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">Builder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.builder.html#lingvo.core.builder.Base" title="lingvo.core.builder.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder.Base</span></code></a></p>
@@ -2812,6 +2883,82 @@ used.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A self attention layer params.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.Builder._Pool">
+<code class="sig-name descname">_Pool</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._Pool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._Pool" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs pooling on the input sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of this layer.</p></li>
+<li><p><strong>stride</strong> – To pool every k token, set the stride to k. When stride == 1,
+returns every token in the input. When stride == 0, only returns the
+first token of the input without perform any pooling.</p></li>
+<li><p><strong>first_n</strong> – only considers the first N tokens for the output. We only pool
+[:first_n] input tokens. If first_n is None, this flag is a no-op.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A layer params that does stride.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.Builder._FunnelAttention">
+<code class="sig-name descname">_FunnelAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">num_heads</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._FunnelAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._FunnelAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes self attention with optional stride.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of this layer.</p></li>
+<li><p><strong>stride</strong> – If omitted, the default is 1: use every token in the query. To use
+every k-th token, set the stride to k. When set to 0, only use the first
+token of the query.</p></li>
+<li><p><strong>first_n</strong> – only considers the first N tokens for the output. We use
+[:first_n:stride] to select the output tokens. If first_n is None, this
+flag is a no-op. If stride is positive, the output sequence length is
+“(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
+1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
+used.</p></li>
+<li><p><strong>num_heads</strong> – the number of heads.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A self attention layer params.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.Builder.FunnelEncoderLayer">
+<code class="sig-name descname">FunnelEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ff_hidden_dim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">num_heads</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.FunnelEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.FunnelEncoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>(inputs, paddings) -&gt; (encoded, paddings).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – the string name of the encoder layer params.</p></li>
+<li><p><strong>stride</strong> – To pool every k tokens, set the stride to k. When stride == 0,
+only returns the first token of the input. When stride == 1, returns
+every token in the input.</p></li>
+<li><p><strong>first_n</strong> – only considers the first N tokens for the output. We use
+pool([:first_n]) to select the output tokens. If first_n is None, this
+flag is a no-op. If stride is positive, the output sequence length is
+“(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
+1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
+used.</p></li>
+<li><p><strong>ff_hidden_dim</strong> – The feed forward layer’s hidden dimension. If specified,
+this will override p.ff_hidden_dim.</p></li>
+<li><p><strong>num_heads</strong> – The number of heads for the multi-head attention module. If
+specified, this will override p.num_heads.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A transformer encoder layer params that supports optional stride.</p>
 </dd>
 </dl>
 </dd></dl>

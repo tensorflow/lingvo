@@ -168,6 +168,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">bisect</span>
+<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention_util</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -4479,6 +4480,199 @@
                                  <span class="n">x</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]),))</span></div></div>
 
 
+<div class="viewcode-block" id="FunnelPoolingLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer">[docs]</a><span class="k">class</span> <span class="nc">FunnelPoolingLayer</span><span class="p">(</span><span class="n">StrideLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that does pooling in Funnel-Transformer.</span>
+
+<span class="sd">    https://arxiv.org/pdf/2006.03236.pdf section 2.2. for query-only pooling and</span>
+<span class="sd">    section A.1 for begin_intact &amp; trunc_seq.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FunnelPoolingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params for `FunnelPoolingLayer`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;begin_intact&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;Number of starting tokens which we do not apply pooling to, i.e. &#39;</span>
+        <span class="s1">&#39;y = concat([x[:, :begin_intact], pool(x[:, begin_intact:])])&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;trunc_seq&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Truncate ending tokens of the sequence when `begin_intact &gt; 0` for &#39;</span>
+        <span class="s1">&#39;TPU efficieny.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pool_window&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Size of the pooling window.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pooling_type&#39;</span><span class="p">,</span> <span class="s1">&#39;AVG&#39;</span><span class="p">,</span> <span class="s1">&#39;Pooling type: MAX|AVG&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;padding_algorithm&#39;</span><span class="p">,</span> <span class="s1">&#39;SAME&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Padding algorithm. See the &quot;returns&quot; section of &#39;</span>
+        <span class="s1">&#39;`tf.nn.convolution` for details. &#39;</span>
+        <span class="s1">&#39;Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="FunnelPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies pooling to the inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: weights defined in this layer.</span>
+<span class="sd">      x: input tensor of shape [batch, time, dim] or [batch, time], where the</span>
+<span class="sd">        pooling is applied to the time dim.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Pooled tensor, with the pooling applied to the second dim in x.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Notes:</span>
+    <span class="c1"># - The output shape is [batch, out_len, dim], where:</span>
+    <span class="c1">#     inp_len = x.shape[2] - p.first_n</span>
+    <span class="c1">#     if begin_intact == 0:</span>
+    <span class="c1">#       out_len = inp_len / stride</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#       if not trunc_seq:</span>
+    <span class="c1">#         out_len = begin_intact + (inp_len - begin_intact) / stride</span>
+    <span class="c1">#       else:</span>
+    <span class="c1">#         pooled_time = begin_intact + pool(</span>
+    <span class="c1">#             inp_len - begin_intact - num_trunc, stride)</span>
+    <span class="c1"># - How to compute `num_trunc`:</span>
+    <span class="c1">#     Truncate last tokens of x[:, begin_intact:] such that `len_a == len_b`</span>
+    <span class="c1">#       len_a = inp_len / stride (if begin_intact = 0)</span>
+    <span class="c1">#       len_b = begin_intact + (inp_len - begin_intact - num_trunc) / stride</span>
+    <span class="c1">#           (if begin_intact &gt; 0 and trunc_seq)</span>
+    <span class="c1">#     Solve the equality `len_a == len_b`, we get:</span>
+    <span class="c1">#       num_trunc = stride * begin_intact - begin_intact</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">axis</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FunnelPoolingLayer only supports axis = 1 but got &#39;</span>
+                       <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">==</span> <span class="mi">1</span>
+      <span class="k">return</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">intact</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">trunc_seq</span><span class="p">:</span>
+        <span class="n">num_trunc</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span><span class="p">:</span><span class="o">-</span><span class="n">num_trunc</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span><span class="p">:]</span>
+
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="n">pool_window</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pool_window</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+          <span class="n">x</span><span class="p">,</span>
+          <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="n">pool_window</span><span class="p">],</span>
+          <span class="n">pooling_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span><span class="p">,</span>
+          <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">],</span>
+          <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># This branch is only for rank-2 padding tensors, hence we do not allow</span>
+      <span class="c1"># tensors with any tensor that has a higher rank</span>
+      <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Funnel pooling only allows 3D sequence or 2D padding,&#39;</span>
+                         <span class="s1">&#39;but got a tensor of rank </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span><span class="p">))</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">::</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">intact</span><span class="p">,</span> <span class="n">out</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_intact_pooled&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="FunnelUpsampleLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer">[docs]</a><span class="k">class</span> <span class="nc">FunnelUpsampleLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that does upsampling in Funnel-Transformer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FunnelUpsampleLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params for `FunnelUpsampleLayer`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;The static size of 3rd dimenson of both the input and output, &#39;</span>
+        <span class="s1">&#39;which is usually the same as the Transformer hidden dimension &#39;</span>
+        <span class="s1">&#39;when used together. This will be used for the shape of weights &#39;</span>
+        <span class="s1">&#39;for DECONV upsampling.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;upsample_rate&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+             <span class="s1">&#39;The length multiplier for the upsampled sequence.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;begin_intact&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;Number of starting tokens which we do not upsample. This value &#39;</span>
+        <span class="s1">&#39;should be the same as the `begin_intact` used in the Funnel &#39;</span>
+        <span class="s1">&#39;pooling layers to ensure correctness.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;trunc_seq&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Truncate sequence for efficiency. This is only effective when &#39;</span>
+        <span class="s1">&#39;`begin_intact &gt; 0`&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;upsample_type&#39;</span><span class="p">,</span> <span class="s1">&#39;REPEAT&#39;</span><span class="p">,</span> <span class="s1">&#39;upsample type: REPEAT|DECONV&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="FunnelUpsampleLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_type</span> <span class="o">==</span> <span class="s1">&#39;DECONV&#39;</span><span class="p">:</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunnelUpsampleLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Upsample to the inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: weights defined in this layer.</span>
+<span class="sd">      x: input tensor, [batch, time, dim] upsampling is applied to the time dim.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Upsampled tensor, with the upsampling applied to the second dim in x.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FunnelUpsampleLayer expects input to be rank 3, but &#39;</span>
+                       <span class="s1">&#39;got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;REPEAT&#39;</span><span class="p">,</span> <span class="s1">&#39;DECONV&#39;</span><span class="p">]:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only supports upsample_type REPEAT and DECONV, but &#39;</span>
+                       <span class="s1">&#39;got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">upsample_type</span><span class="p">))</span>
+
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">intact</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span><span class="p">]</span>
+      <span class="n">hid</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span><span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">hid</span> <span class="o">=</span> <span class="n">x</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_type</span> <span class="o">==</span> <span class="s1">&#39;REPEAT&#39;</span><span class="p">:</span>
+      <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">hid</span><span class="p">,</span> <span class="n">repeats</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_type</span> <span class="o">==</span> <span class="s1">&#39;DECONV&#39;</span><span class="p">:</span>
+      <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLD,DNH-&gt;BLNH&#39;</span><span class="p">,</span> <span class="n">hid</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+      <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">upsampled</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">hid</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span> <span class="o">*</span> <span class="n">hid</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">sep_len</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">trunc_seq</span><span class="p">:</span>
+        <span class="n">num_pad</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span>
+        <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">upsampled</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_pad</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">upsampled</span> <span class="o">=</span> <span class="n">upsampled</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="n">sep_len</span><span class="p">]</span>
+      <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">intact</span><span class="p">,</span> <span class="n">upsampled</span><span class="p">],</span>
+                            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_upsampled&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">upsampled</span></div></div>
+
+
 <span class="c1"># pyformat: disable</span>
 <div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Builder for self-attention layers.&quot;&quot;&quot;</span>
@@ -4548,6 +4742,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;A np.ndarray specifying a device mesh to partition the&#39;</span>
              <span class="s1">&#39; computations onto.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;funnel_pool_tpl&#39;</span><span class="p">,</span> <span class="n">FunnelPoolingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Template for the Funnel Pooling layer.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -4927,6 +5123,121 @@
         <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>  <span class="c1"># input NestedMap with {vec, paddings, segment_mask}</span>
         <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings, segment_mask}</span>
         <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._Pool"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Pool">[docs]</a>  <span class="k">def</span> <span class="nf">_Pool</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs pooling on the input sequence.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of this layer.</span>
+<span class="sd">      stride: To pool every k token, set the stride to k. When stride == 1,</span>
+<span class="sd">        returns every token in the input. When stride == 0, only returns the</span>
+<span class="sd">        first token of the input without perform any pooling.</span>
+<span class="sd">      first_n: only considers the first N tokens for the output. We only pool</span>
+<span class="sd">        [:first_n] input tokens. If first_n is None, this flag is a no-op.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A layer params that does stride.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">funnel_pool_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+        <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._FunnelAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._FunnelAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_FunnelAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes self attention with optional stride.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of this layer.</span>
+<span class="sd">      stride: If omitted, the default is 1: use every token in the query. To use</span>
+<span class="sd">        every k-th token, set the stride to k. When set to 0, only use the first</span>
+<span class="sd">        token of the query.</span>
+<span class="sd">      first_n: only considers the first N tokens for the output. We use</span>
+<span class="sd">        [:first_n:stride] to select the output tokens. If first_n is None, this</span>
+<span class="sd">        flag is a no-op. If stride is positive, the output sequence length is</span>
+<span class="sd">        &quot;(first_n-1) // stride + 1&quot;. If stride is 0, first_n has to be None or</span>
+<span class="sd">        1. first_n can&#39;t be 0. If first_n &lt;= stride, only the first token is</span>
+<span class="sd">        used.</span>
+<span class="sd">      num_heads: the number of heads.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A self attention layer params.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">selfatten_add_unnormalized_input</span><span class="p">:</span>
+      <span class="n">input_to_add</span> <span class="o">=</span> <span class="s1">&#39;i.vec&#39;</span>
+      <span class="n">strided_input_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pool</span><span class="p">(</span><span class="s1">&#39;before_add_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Reuse &#39;strided_query&#39; to avoid doing the pooling twice</span>
+      <span class="n">input_to_add</span> <span class="o">=</span> <span class="s1">&#39;strided_query&#39;</span>
+      <span class="n">strided_input_param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;identity_strided_query&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Note that only query vectors are pooled and key/value vectors are kept</span>
+    <span class="c1"># the same (not pooled) to allow attention to retain more information</span>
+    <span class="n">attention_inputs</span> <span class="o">=</span> <span class="s1">&#39;strided_query,after_ln,after_ln,i.paddings&#39;</span>
+
+    <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+
+    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_ln&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;LN&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;after_ln-&gt;strided_query&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Pool</span><span class="p">(</span><span class="s1">&#39;query_after_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;after_att,prob&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attention_inputs</span><span class="p">),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_MultiHeadedAtten</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;after_att-&gt;after_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;strided_input&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_to_add</span><span class="p">),</span>
+         <span class="n">strided_input_param</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;strided_input,after_dropout-&gt;o.vec&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Pool</span><span class="p">(</span><span class="s1">&#39;padding_after_Stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">)),</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>  <span class="c1"># input NestedMap with {vec, paddings, segment_mask}</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings, segment_mask}</span>
+        <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.FunnelEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.FunnelEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">FunnelEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;(inputs, paddings) -&gt; (encoded, paddings).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: the string name of the encoder layer params.</span>
+<span class="sd">      stride: To pool every k tokens, set the stride to k. When stride == 0,</span>
+<span class="sd">        only returns the first token of the input. When stride == 1, returns</span>
+<span class="sd">        every token in the input.</span>
+<span class="sd">      first_n: only considers the first N tokens for the output. We use</span>
+<span class="sd">        pool([:first_n]) to select the output tokens. If first_n is None, this</span>
+<span class="sd">        flag is a no-op. If stride is positive, the output sequence length is</span>
+<span class="sd">        &quot;(first_n-1) // stride + 1&quot;. If stride is 0, first_n has to be None or</span>
+<span class="sd">        1. first_n can&#39;t be 0. If first_n &lt;= stride, only the first token is</span>
+<span class="sd">        used.</span>
+<span class="sd">      ff_hidden_dim: The feed forward layer&#39;s hidden dimension. If specified,</span>
+<span class="sd">        this will override p.ff_hidden_dim.</span>
+<span class="sd">      num_heads: The number of heads for the multi-head attention module. If</span>
+<span class="sd">        specified, this will override p.num_heads.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A transformer encoder layer params that supports optional stride.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FunnelEncoderLayer does not support packed input.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ff_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span>
+    <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="s1">&#39;block&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FunnelAttention</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span>
+                              <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="n">ff_hidden_dim</span><span class="p">)))</span></div>
 
 <div class="viewcode-block" id="Builder.TransformerEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                               <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
