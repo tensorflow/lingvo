@@ -20,6 +20,7 @@
 """
 
 import bisect
+import math
 from lingvo import compat as tf
 from lingvo.core import attention_util
 from lingvo.core import base_layer
@@ -4331,6 +4332,199 @@ class StrideLayer(base_layer.BaseLayer):
                                  x[p.axis + 1:]),))
 
 
+class FunnelPoolingLayer(StrideLayer):
+  """A layer that does pooling in Funnel-Transformer.
+
+    https://arxiv.org/pdf/2006.03236.pdf section 2.2. for query-only pooling and
+    section A.1 for begin_intact & trunc_seq.
+  """
+
+  @classmethod
+  def Params(cls):
+    """Params for `FunnelPoolingLayer`."""
+    p = super().Params()
+    p.Define(
+        'begin_intact', 0,
+        'Number of starting tokens which we do not apply pooling to, i.e. '
+        'y = concat([x[:, :begin_intact], pool(x[:, begin_intact:])])')
+    p.Define(
+        'trunc_seq', True,
+        'Truncate ending tokens of the sequence when `begin_intact > 0` for '
+        'TPU efficieny.')
+    p.Define('pool_window', None, 'Size of the pooling window.')
+    p.Define('pooling_type', 'AVG', 'Pooling type: MAX|AVG')
+    p.Define(
+        'padding_algorithm', 'SAME',
+        'Padding algorithm. See the "returns" section of '
+        '`tf.nn.convolution` for details. '
+        'Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT')
+    return p
+
+  def FProp(self, theta, x):
+    """Applies pooling to the inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      x: input tensor of shape [batch, time, dim] or [batch, time], where the
+        pooling is applied to the time dim.
+
+    Returns:
+      Pooled tensor, with the pooling applied to the second dim in x.
+    """
+    # Notes:
+    # - The output shape is [batch, out_len, dim], where:
+    #     inp_len = x.shape[2] - p.first_n
+    #     if begin_intact == 0:
+    #       out_len = inp_len / stride
+    #     else:
+    #       if not trunc_seq:
+    #         out_len = begin_intact + (inp_len - begin_intact) / stride
+    #       else:
+    #         pooled_time = begin_intact + pool(
+    #             inp_len - begin_intact - num_trunc, stride)
+    # - How to compute `num_trunc`:
+    #     Truncate last tokens of x[:, begin_intact:] such that `len_a == len_b`
+    #       len_a = inp_len / stride (if begin_intact = 0)
+    #       len_b = begin_intact + (inp_len - begin_intact - num_trunc) / stride
+    #           (if begin_intact > 0 and trunc_seq)
+    #     Solve the equality `len_a == len_b`, we get:
+    #       num_trunc = stride * begin_intact - begin_intact
+
+    p = self.params
+    assert p.first_n is None or p.first_n > 0
+    assert p.stride >= 0
+    if p.axis != 1:
+      raise ValueError('FunnelPoolingLayer only supports axis = 1 but got '
+                       '%d' % (p.axis))
+
+    if p.stride == 0:
+      assert p.first_n is None or p.first_n == 1
+      return x[:, :1]
+
+    if p.first_n:
+      x = x[:, :p.first_n]
+
+    if p.stride == 1:
+      return x
+
+    if p.begin_intact > 0:
+      intact = x[:, :p.begin_intact]
+      if p.trunc_seq:
+        num_trunc = p.begin_intact * p.stride - p.begin_intact
+        x = x[:, p.begin_intact:-num_trunc]
+      else:
+        x = x[:, p.begin_intact:]
+
+    if x.shape.rank == 3:
+      pool_window = p.pool_window or p.stride
+      out = tf.nn.pool(
+          x,
+          window_shape=[pool_window],
+          pooling_type=p.pooling_type,
+          strides=[p.stride],
+          padding=p.padding_algorithm)
+    else:
+      # This branch is only for rank-2 padding tensors, hence we do not allow
+      # tensors with any tensor that has a higher rank
+      if x.shape.rank is not None and x.shape.rank >= 4:
+        raise ValueError('Funnel pooling only allows 3D sequence or 2D padding,'
+                         'but got a tensor of rank %s' % (x.shape.rank))
+      out = x[:, ::p.stride]
+
+    if p.begin_intact > 0:
+      out = tf.concat([intact, out], axis=1, name='concat_intact_pooled')
+
+    return out
+
+
+class FunnelUpsampleLayer(base_layer.BaseLayer):
+  """A layer that does upsampling in Funnel-Transformer."""
+
+  @classmethod
+  def Params(cls):
+    """Params for `FunnelUpsampleLayer`."""
+    p = super().Params()
+    p.Define(
+        'hidden_dim', 0,
+        'The static size of 3rd dimenson of both the input and output, '
+        'which is usually the same as the Transformer hidden dimension '
+        'when used together. This will be used for the shape of weights '
+        'for DECONV upsampling.')
+    p.Define('upsample_rate', 1,
+             'The length multiplier for the upsampled sequence.')
+    p.Define(
+        'begin_intact', 0,
+        'Number of starting tokens which we do not upsample. This value '
+        'should be the same as the `begin_intact` used in the Funnel '
+        'pooling layers to ensure correctness.')
+    p.Define(
+        'trunc_seq', True,
+        'Truncate sequence for efficiency. This is only effective when '
+        '`begin_intact > 0`')
+    p.Define('upsample_type', 'REPEAT', 'upsample type: REPEAT|DECONV')
+    return p
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+    if p.upsample_type == 'DECONV':
+      pc = py_utils.WeightParams(
+          shape=[p.hidden_dim, p.upsample_rate, p.hidden_dim],
+          init=py_utils.WeightInit.Gaussian(1.0 / math.sqrt(p.hidden_dim)),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('weight', pc)
+
+  def FProp(self, theta, x):
+    """Upsample to the inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      x: input tensor, [batch, time, dim] upsampling is applied to the time dim.
+
+    Returns:
+      Upsampled tensor, with the upsampling applied to the second dim in x.
+    """
+    p = self.params
+    if x.shape.ndims != 3:
+      raise ValueError('FunnelUpsampleLayer expects input to be rank 3, but '
+                       'got %d' % (x.shape.ndims))
+    if p.upsample_type not in ['REPEAT', 'DECONV']:
+      raise ValueError('Only supports upsample_type REPEAT and DECONV, but '
+                       'got %s' % (p.upsample_type))
+
+    assert isinstance(p.upsample_rate, int)
+    if p.upsample_rate == 1:
+      return x
+
+    if p.begin_intact > 0:
+      intact = x[:, :p.begin_intact]
+      hid = x[:, p.begin_intact:]
+    else:
+      hid = x
+
+    if p.upsample_type == 'REPEAT':
+      upsampled = tf.repeat(hid, repeats=p.upsample_rate, axis=1)
+    elif p.upsample_type == 'DECONV':
+      upsampled = tf.einsum('BLD,DNH->BLNH', hid, theta.weight)
+      upsampled = tf.reshape(
+          upsampled,
+          [hid.shape[0], p.upsample_rate * hid.shape[1], p.hidden_dim])
+
+    if p.begin_intact > 0:
+      sep_len = 1
+      if p.trunc_seq:
+        num_pad = p.begin_intact * p.upsample_rate - p.begin_intact
+        upsampled = tf.pad(upsampled, [[0, 0], [0, num_pad], [0, 0]])
+      else:
+        upsampled = upsampled[:, :-sep_len]
+      upsampled = tf.concat([intact, upsampled],
+                            axis=1,
+                            name='concat_upsampled')
+
+    return upsampled
+
+
 # pyformat: disable
 class Builder(builder.Base):
   """Builder for self-attention layers."""
@@ -4400,6 +4594,8 @@ class Builder(builder.Base):
     p.Define('device_mesh', None,
              'A np.ndarray specifying a device mesh to partition the'
              ' computations onto.')
+    p.Define('funnel_pool_tpl', FunnelPoolingLayer.Params(),
+             'Template for the Funnel Pooling layer.')
     return p
 
   def __init__(self, params):
@@ -4779,6 +4975,121 @@ class Builder(builder.Base):
         ['i'],  # input NestedMap with {vec, paddings, segment_mask}
         ['o'],  # output NestedMap with {vec, paddings, segment_mask}
         *sub_list)
+
+  def _Pool(self, name, stride, first_n=None):
+    """Performs pooling on the input sequence.
+
+    Args:
+      name: name of this layer.
+      stride: To pool every k token, set the stride to k. When stride == 1,
+        returns every token in the input. When stride == 0, only returns the
+        first token of the input without perform any pooling.
+      first_n: only considers the first N tokens for the output. We only pool
+        [:first_n] input tokens. If first_n is None, this flag is a no-op.
+
+    Returns:
+      A layer params that does stride.
+    """
+    p = self.params
+    return p.funnel_pool_tpl.Copy().Set(
+        stride=stride,
+        first_n=first_n,
+        name=name)
+
+  def _FunnelAttention(self, name, stride=1, first_n=None, num_heads=None):
+    """Computes self attention with optional stride.
+
+    Args:
+      name: name of this layer.
+      stride: If omitted, the default is 1: use every token in the query. To use
+        every k-th token, set the stride to k. When set to 0, only use the first
+        token of the query.
+      first_n: only considers the first N tokens for the output. We use
+        [:first_n:stride] to select the output tokens. If first_n is None, this
+        flag is a no-op. If stride is positive, the output sequence length is
+        "(first_n-1) // stride + 1". If stride is 0, first_n has to be None or
+        1. first_n can't be 0. If first_n <= stride, only the first token is
+        used.
+      num_heads: the number of heads.
+
+    Returns:
+      A self attention layer params.
+    """
+    p = self.params
+
+    if p.selfatten_add_unnormalized_input:
+      input_to_add = 'i.vec'
+      strided_input_param = self._Pool('before_add_stride', stride, first_n)
+    else:
+      # Reuse 'strided_query' to avoid doing the pooling twice
+      input_to_add = 'strided_query'
+      strided_input_param = self._Id('identity_strided_query')
+
+    # Note that only query vectors are pooled and key/value vectors are kept
+    # the same (not pooled) to allow attention to retain more information
+    attention_inputs = 'strided_query,after_ln,after_ln,i.paddings'
+
+    if num_heads is None:
+      num_heads = p.num_heads
+
+    sub_list = [
+        ('i.vec->after_ln',
+         self._DefaultLN('LN')),
+        ('after_ln->strided_query',
+         self._Pool('query_after_stride', stride, first_n)),
+        ('{}->after_att,prob'.format(attention_inputs),
+         self._MultiHeadedAtten('atten', num_heads)),
+        ('after_att->after_dropout',
+         self._Dropout('dropout', p.residual_dropout_prob)),
+        ('{}->strided_input'.format(input_to_add),
+         strided_input_param),
+        ('strided_input,after_dropout->o.vec',
+         self._Add('add')),
+        ('i.paddings->o.paddings',
+         self._Pool('padding_after_Stride', stride, first_n)),
+    ]
+
+    return self._Graph(
+        name,
+        ['i'],  # input NestedMap with {vec, paddings, segment_mask}
+        ['o'],  # output NestedMap with {vec, paddings, segment_mask}
+        *sub_list)
+
+  def FunnelEncoderLayer(self, name, stride=1, first_n=None,
+                         ff_hidden_dim=None, num_heads=None):
+    """(inputs, paddings) -> (encoded, paddings).
+
+    Args:
+      name: the string name of the encoder layer params.
+      stride: To pool every k tokens, set the stride to k. When stride == 0,
+        only returns the first token of the input. When stride == 1, returns
+        every token in the input.
+      first_n: only considers the first N tokens for the output. We use
+        pool([:first_n]) to select the output tokens. If first_n is None, this
+        flag is a no-op. If stride is positive, the output sequence length is
+        "(first_n-1) // stride + 1". If stride is 0, first_n has to be None or
+        1. first_n can't be 0. If first_n <= stride, only the first token is
+        used.
+      ff_hidden_dim: The feed forward layer's hidden dimension. If specified,
+        this will override p.ff_hidden_dim.
+      num_heads: The number of heads for the multi-head attention module. If
+        specified, this will override p.num_heads.
+
+    Returns:
+      A transformer encoder layer params that supports optional stride.
+    """
+    p = self.params
+    if p.packed_input:
+      raise ValueError('FunnelEncoderLayer does not support packed input.')
+    if ff_hidden_dim is None:
+      ff_hidden_dim = p.ff_hidden_dim
+    if num_heads is None:
+      num_heads = p.num_heads
+    return self._Seq(name, self._Seq(
+        'block',
+        self._FunnelAttention('self_atten', stride=stride, first_n=first_n,
+                              num_heads=num_heads),
+        self.Feedforward('ff', ff_hidden_dim=ff_hidden_dim)))
 
   def TransformerEncoderLayer(self, name, stride=1, first_n=None,
                               ff_hidden_dim=None, num_heads=None):

@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for batch_major_attention."""
 
+import math
 from absl.testing import flagsaver
 from absl.testing import parameterized
 from lingvo import compat as tf
@@ -2853,6 +2854,146 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       ]
       for ng, sg in zip(num_grads, sym_grads):
         self.assertAllClose(ng, sg, rtol=5e-02, atol=5e-02)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_baseline',
+          'strides': [1, 1],
+      }, {
+          'testcase_name': '_stride_2',
+          'strides': [1, 2],
+      }, {
+          'testcase_name': '_first_token',
+          'strides': [2, 0],
+      }, {
+          'testcase_name': '_stride_2_begin_intact_1_no_trunc',
+          'strides': [1, 2],
+          'begin_intact': 1,
+          'trunc_seq': False,
+      }, {
+          'testcase_name': '_stride_2_begin_intact_1_trunc',
+          'strides': [1, 2],
+          'begin_intact': 1,
+          'trunc_seq': True,
+      })
+  def testFunnelTransformerStack(self, strides, begin_intact=0, trunc_seq=True):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder_params = attention.Builder.Params().Set(
+          model_dim=d,
+          num_heads=2,
+          ff_hidden_dim=5,
+          funnel_pool_tpl=attention.FunnelPoolingLayer.Params().Set(
+              begin_intact=begin_intact, trunc_seq=trunc_seq))
+      atten_builder = atten_builder_params.Instantiate()
+      layers = []
+      accumulate_stride = 1
+      for layer_i, stride in enumerate(strides):
+        accumulate_stride *= stride
+        layers.append(
+            atten_builder.FunnelEncoderLayer(
+                name='atten_{}'.format(layer_i), stride=stride))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      enc_out = l_out.vec
+      tf.global_variables_initializer().run()
+      actual_enc_out = sess.run(enc_out)
+      if accumulate_stride == 0:
+        self.assertAllEqual([bs, 1, d], actual_enc_out.shape)
+      elif (not begin_intact) or (begin_intact and trunc_seq):
+        seq_len = sl // accumulate_stride
+        self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+      elif begin_intact and not trunc_seq:
+        seq_len = sl
+        for stride in strides:
+          if stride > 1:
+            seq_len = begin_intact + int(
+                math.ceil((seq_len - begin_intact) / stride))
+        self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_baseline',
+          'strides': [1, 1],
+      }, {
+          'testcase_name': '_stride_2',
+          'strides': [1, 2],
+      }, {
+          'testcase_name': '_stride_2_begin_intact_1_no_trunc',
+          'strides': [1, 2],
+          'begin_intact': 1,
+          'trunc_seq': False,
+      }, {
+          'testcase_name': '_stride_2_begin_intact_1_trunc',
+          'strides': [1, 2],
+          'begin_intact': 1,
+          'trunc_seq': True,
+      })
+  def testFunnelTransformerStackWithUpsampling(self,
+                                               strides,
+                                               begin_intact=0,
+                                               trunc_seq=True):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder_params = attention.Builder.Params().Set(
+          model_dim=d,
+          num_heads=2,
+          ff_hidden_dim=5,
+          funnel_pool_tpl=attention.FunnelPoolingLayer.Params().Set(
+              begin_intact=begin_intact, trunc_seq=trunc_seq))
+      atten_builder = atten_builder_params.Instantiate()
+      layers = []
+      accumulate_stride = 1
+      for layer_i, stride in enumerate(strides):
+        accumulate_stride *= stride
+        layers.append(
+            atten_builder.FunnelEncoderLayer(
+                name='atten_{}'.format(layer_i), stride=stride))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      upsample_p = attention.FunnelUpsampleLayer.Params().Set(
+          name='funnel_upsample',
+          begin_intact=begin_intact,
+          trunc_seq=trunc_seq,
+          upsample_rate=accumulate_stride)
+      l_upsample = upsample_p.Instantiate()
+
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      enc_out = l_out.vec
+      upsampled_out = l_upsample.FPropDefaultTheta(enc_out)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out, actual_upsample_out = sess.run([enc_out, upsampled_out])
+      if (begin_intact == 0) or (begin_intact > 0 and trunc_seq):
+        seq_len = sl // accumulate_stride
+      elif begin_intact > 0 and not trunc_seq:
+        seq_len = sl
+        for stride in strides:
+          if stride > 1:
+            seq_len = begin_intact + int(
+                math.ceil((seq_len - begin_intact) / stride))
+      tf.logging.info('Pool out: %s, Upsample out: %s', actual_enc_out.shape,
+                      actual_upsample_out.shape)
+      self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+      self.assertAllEqual([bs, sl, d], actual_upsample_out.shape)
 
   @parameterized.named_parameters(
       {
