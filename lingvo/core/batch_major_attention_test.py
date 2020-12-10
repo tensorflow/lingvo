@@ -1711,7 +1711,6 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def testSelfAtten(self, fast_path):
-    tf.random.set_seed(12345)
     batch_size = 4
     target_length = 8
     num_heads = 4
@@ -1734,9 +1733,8 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
         attention_window=attention_window,
         query_group_size_factor=1.0,
         fast_path=fast_path)
-    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
     atten = p.Instantiate()
-    with self.session() as sess:
+    with self.session() as sess, self.SetEval(True):
       tf.global_variables_initializer().run()
       # self attention path
       encoded_self_t, probs_self_t = atten._DotAtten(
