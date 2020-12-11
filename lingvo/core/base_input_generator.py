@@ -1051,6 +1051,10 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       - labels[i, j] is the target token id of i-th sample for j-th step.
       - paddings[i, j] is 1 iff i-th sample's j-th step is padded.
 
+      Usually ids[i, 0] == SOS, ids[i, j+1] == labels[i, j], and labels[i, :]
+      ends with EOS. That is, `ids` and `labels` are inputs and ground-truth
+      labels for step-by-step teacher-forcing training, respectively.
+
     Raises:
       ValueError: If unknown token type.
     """
