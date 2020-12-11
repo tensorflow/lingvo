@@ -5204,7 +5204,8 @@
         <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder.FunnelEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.FunnelEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">FunnelEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                         <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                         <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">gated_gelu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;(inputs, paddings) -&gt; (encoded, paddings).</span>
 
 <span class="sd">    Args:</span>
@@ -5222,6 +5223,7 @@
 <span class="sd">        this will override p.ff_hidden_dim.</span>
 <span class="sd">      num_heads: The number of heads for the multi-head attention module. If</span>
 <span class="sd">        specified, this will override p.num_heads.</span>
+<span class="sd">      gated_gelu: Use gated_gelu feedforward layer nor not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A transformer encoder layer params that supports optional stride.</span>
@@ -5233,11 +5235,15 @@
       <span class="n">ff_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span>
     <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="k">if</span> <span class="n">gated_gelu</span><span class="p">:</span>
+      <span class="n">ff_l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GatedGeluFeedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="n">ff_hidden_dim</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">ff_l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="n">ff_hidden_dim</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
         <span class="s1">&#39;block&#39;</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_FunnelAttention</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span>
                               <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">),</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="n">ff_hidden_dim</span><span class="p">)))</span></div>
+        <span class="n">ff_l</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Builder.TransformerEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                               <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
