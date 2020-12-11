@@ -95,7 +95,7 @@ class RecordBatcher {
     int64 num_threads = 1;
 
     // Errors to treat as fatal.
-    std::vector<int64> fatal_errors;
+    std::vector<string> fatal_errors;
   };
   RecordBatcher(const Options& opts, RecordYielder* yielder,
                 RecordProcessor* processor);

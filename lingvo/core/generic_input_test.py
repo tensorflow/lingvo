@@ -318,7 +318,7 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
           file_pattern=f'tfrecord:{tmp}',
           bucket_upper_bound=[1],
           bucket_batch_limit=[1],
-          fatal_errors=[tf.errors.INVALID_ARGUMENT])
+          fatal_errors=['StringToNumberOp could not correctly convert string:'])
 
       # NOTE: There is no way to catch LOG(FATAL) from python side, so running
       # this test will cause a crash.

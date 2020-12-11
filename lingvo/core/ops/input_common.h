@@ -48,7 +48,6 @@ class InputOp : public OpKernel {
 
  public:
   explicit InputOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    typedef std::vector<int64> Int64Vec;
     BasicRecordYielder::Options yopts;
     GetBasicRecordYielderOptions(ctx, &yopts);
 #define GETATTR(TYPE, FIELD) \
@@ -57,15 +56,15 @@ class InputOp : public OpKernel {
 
     GETATTR(string, file_pattern);
     GETATTR(std::vector<float>, input_source_weights);
-    GETATTR(Int64Vec, bucket_upper_bound);
-    GETATTR(Int64Vec, bucket_batch_limit);
+    GETATTR(std::vector<int64>, bucket_upper_bound);
+    GETATTR(std::vector<int64>, bucket_batch_limit);
     GETATTR(int64, bucket_adjust_every_n);
     GETATTR(int64, flush_every_n);
     GETATTR(int64, num_threads);
     GETATTR(bool, require_sequential_order);
     GETATTR(int64, repeat_count);
     GETATTR(bool, use_chaining);
-    GETATTR(Int64Vec, fatal_errors);
+    GETATTR(std::vector<string>, fatal_errors);
 #undef GETATTR
     OP_REQUIRES(
         ctx,

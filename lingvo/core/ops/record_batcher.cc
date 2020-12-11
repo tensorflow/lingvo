@@ -338,20 +338,27 @@ void RecordBatcher::ProcessorLoop() {
             LOG(WARNING) << s;
           }
         }
-      } else if (std::count(opts_.fatal_errors.begin(),
-                            opts_.fatal_errors.end(),
-                            static_cast<int64>(s.code()))) {
-        // The error is in the list of fatal errors.
-        LOG(FATAL) << s;
-      } else if (errors::IsNotFound(s) || errors::IsPermissionDenied(s)) {
-        // Terminates program if an unregistered custom op is used by
-        // the processor, or any access permission denied error.
-        //
-        // Consider setting *out_status with s and returning, instead
-        // of killing program?
-        LOG(FATAL) << s;
       } else {
-        LOG(WARNING) << s;
+        for (const auto& msg : opts_.fatal_errors) {
+          if (absl::StrContains(s.error_message(), msg)) {
+            // The error is in the list of fatal errors.
+            LOG(FATAL) << s;
+          }
+        }
+        if (errors::IsNotFound(s) || errors::IsPermissionDenied(s)) {
+          // Terminates program if an unregistered custom op is used by
+          // the processor, or any access permission denied error.
+          //
+          // Consider setting *out_status with s and returning, instead
+          // of killing program?
+          LOG(FATAL) << s;
+        } else {
+          LOG(WARNING) << s;
+          {
+            absl::MutexLock l(&mu_);
+            ++total_records_skipped_;
+          }
+        }
       }
       continue;
     }

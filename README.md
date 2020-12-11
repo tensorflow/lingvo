@@ -63,6 +63,8 @@ Details for older releases are unavailable.
     *   theta.global_step has been removed in favor of py_utils.GetGlobalStep().
     *   py_utils.GenerateStepSeedPair() no longer takes a global_step arg.
     *   PostTrainingStepUpdate() no longer takes a global_step arg.
+    *   The fatal_errors argument to custom input ops now takes error message
+        substrings rather than integer error codes.
 
 #### 0.8.2
 
@@ -242,8 +244,8 @@ for more information.
 
 To train a GShard language model with one trillion parameters on GCP using
 CloudTPUs v3-512 using 512-way model parallelism, please refer to
-[`third_party/py/lingvo/tasks/lm/README.md`](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/README.md) for more information.
-
+[`third_party/py/lingvo/tasks/lm/README.md`](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/README.md)
+for more information.
 
 ### Running the 3d object detection model
 
@@ -304,10 +306,10 @@ Yann LeCun, Leon Bottou, Yoshua Bengio, and Patrick Haffner. IEEE 1998.
 Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui Wu.
 arXiv, 2016.
 
-\[6]:
-[GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding](https://arxiv.org/pdf/2006.16668.pdf).
-Dmitry Lepikhin, HyoukJoong Lee, Yuanzhong Xu, Dehao Chen, Orhan Firat, Yanping Huang, Maxim Krikun, Noam Shazeer and Zhifeng Chen
-arXiv, 2020.
+\[6]: [GShard: Scaling Giant Models with Conditional Computation and Automatic
+Sharding](https://arxiv.org/pdf/2006.16668.pdf). Dmitry Lepikhin, HyoukJoong
+Lee, Yuanzhong Xu, Dehao Chen, Orhan Firat, Yanping Huang, Maxim Krikun, Noam
+Shazeer and Zhifeng Chen arXiv, 2020.
 
 \[7]: [The Best of Both Worlds: Combining Recent Advances in Neural Machine
 Translation](http://aclweb.org/anthology/P18-1008). Mia X. Chen, Orhan Firat,
