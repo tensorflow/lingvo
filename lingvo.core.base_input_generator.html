@@ -614,6 +614,9 @@ symbol will be added to tokens.</p></li>
 <li><p>labels[i, j] is the target token id of i-th sample for j-th step.</p></li>
 <li><p>paddings[i, j] is 1 iff i-th sample’s j-th step is padded.</p></li>
 </ul>
+<p>Usually ids[i, 0] == SOS, ids[i, j+1] == labels[i, j], and labels[i, :]
+ends with EOS. That is, <code class="xref py py-obj docutils literal notranslate"><span class="pre">ids</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> are inputs and ground-truth
+labels for step-by-step teacher-forcing training, respectively.</p>
 </p>
 </dd>
 <dt class="field-odd">Raises</dt>

@@ -1199,6 +1199,10 @@
 <span class="sd">      - labels[i, j] is the target token id of i-th sample for j-th step.</span>
 <span class="sd">      - paddings[i, j] is 1 iff i-th sample&#39;s j-th step is padded.</span>
 
+<span class="sd">      Usually ids[i, 0] == SOS, ids[i, j+1] == labels[i, j], and labels[i, :]</span>
+<span class="sd">      ends with EOS. That is, `ids` and `labels` are inputs and ground-truth</span>
+<span class="sd">      labels for step-by-step teacher-forcing training, respectively.</span>
+
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
