@@ -2921,6 +2921,56 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       {
           'testcase_name': '_baseline',
+          'split': 1,
+          'num_micro_batches': 1,
+      }, {
+          'testcase_name': '_split',
+          'split': 2,
+          'num_micro_batches': 1,
+      }, {
+          'testcase_name': '_gpipe',
+          'split': 2,
+          'num_micro_batches': 2,
+      })
+  def testFunnelTransformerStackWithSplit(self, split, num_micro_batches):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder_params = attention.Builder.Params().Set(
+          model_dim=d,
+          num_heads=2,
+          ff_hidden_dim=5,
+          num_splits=split,
+          num_micro_batches=num_micro_batches,
+          deterministic_dropout=split > 1 or num_micro_batches > 1,
+          funnel_pool_tpl=attention.FunnelPoolingLayer.Params())
+      atten_builder = atten_builder_params.Instantiate()
+      layers = []
+      accumulate_stride = 1
+      for layer_i, stride in enumerate([1, 2]):
+        accumulate_stride *= stride
+        layers.append(
+            atten_builder.FunnelEncoderLayer(
+                name='atten_{}'.format(layer_i), stride=stride))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      enc_out = l_out.vec
+      tf.global_variables_initializer().run()
+      actual_enc_out = sess.run(enc_out)
+      seq_len = sl // accumulate_stride
+      self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_baseline',
           'strides': [1, 1],
       }, {
           'testcase_name': '_stride_2',

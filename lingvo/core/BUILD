@@ -285,9 +285,9 @@ py_test(
 
 py_test(
     name = "batch_major_attention_test",
-    size = "large",
     srcs = ["batch_major_attention_test.py"],
     python_version = "PY3",
+    shard_count = 4,
     srcs_version = "PY3",
     deps = [
         ":attention",

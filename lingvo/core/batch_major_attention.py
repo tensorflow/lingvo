@@ -5056,7 +5056,8 @@ class Builder(builder.Base):
         *sub_list)
 
   def FunnelEncoderLayer(self, name, stride=1, first_n=None,
-                         ff_hidden_dim=None, num_heads=None):
+                         ff_hidden_dim=None, num_heads=None,
+                         gated_gelu=False):
     """(inputs, paddings) -> (encoded, paddings).
 
     Args:
@@ -5074,6 +5075,7 @@ class Builder(builder.Base):
         this will override p.ff_hidden_dim.
       num_heads: The number of heads for the multi-head attention module. If
         specified, this will override p.num_heads.
+      gated_gelu: Use gated_gelu feedforward layer nor not.
 
     Returns:
       A transformer encoder layer params that supports optional stride.
@@ -5085,11 +5087,15 @@ class Builder(builder.Base):
       ff_hidden_dim = p.ff_hidden_dim
     if num_heads is None:
       num_heads = p.num_heads
+    if gated_gelu:
+      ff_l = self.GatedGeluFeedforward('ff', ff_hidden_dim=ff_hidden_dim)
+    else:
+      ff_l = self.Feedforward('ff', ff_hidden_dim=ff_hidden_dim)
     return self._Seq(name, self._Seq(
         'block',
         self._FunnelAttention('self_atten', stride=stride, first_n=first_n,
                               num_heads=num_heads),
-        self.Feedforward('ff', ff_hidden_dim=ff_hidden_dim)))
+        ff_l))
 
   def TransformerEncoderLayer(self, name, stride=1, first_n=None,
                               ff_hidden_dim=None, num_heads=None):
