@@ -4802,7 +4802,7 @@ class GluLayer(base_layer.BaseLayer):
     return glu_output
 
 
-class MultitaskAdapterLayer(base_layer.BaseLayer):
+class MultitaskAdapterBaseLayer(base_layer.BaseLayer):
   """Residual adapter layer for multilingual models.
 
   Residual adapters can be used to fine-tune a single model to multiple
@@ -4826,16 +4826,25 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
     p.Define('bottleneck_dim', 0, 'Dimension of the bottleneck.')
     p.Define('layer_norm_tpl', LayerNorm.Params(), 'Layer norm default params.')
     p.Define(
-        'projection_params_init', None,
-        'Weight initialization for up and down projections. Only used for '
-        'weights, not biases.  If None, uses default weight init, which is '
-        'typically Xavier with scale of 1.0.')
-    p.Define(
         'data_format', 'TBC', 'String(enum) specifying the input and output '
         'data format for this layer. Supported formats: '
         '"TBC": [time, batch, input_dim] and "BTC": [batch, time, input_dim].')
     p.Define('clip_task_ids', False,
              'If True, clips the given task ids to [0, p.num_tasks - 1].')
+    return p
+
+
+class MultitaskAdapterLayer(MultitaskAdapterBaseLayer):
+  """MultitaskAdapterBaseLayer implemented with EmbeddingLayers."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'projection_params_init', None,
+        'Weight initialization for up and down projections. Only used for '
+        'weights, not biases.  If None, uses default weight init, which is '
+        'typically Xavier with scale of 1.0.')
     return p
 
   def __init__(self, params):
@@ -4965,6 +4974,102 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
     if per_timestep_task:
       output = tf.reshape(output, inputs_shape)
     return output
+
+
+class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
+  """MultitaskAdapterBaseLayer implemented with Einsum.
+
+  The embedding-based solution sometimes triggers b/175464137.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.data_format = 'BTC'
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.data_format == 'BTC'
+    params = p.layer_norm_tpl.Copy()
+    params.input_dim = p.input_dim
+    self.CreateChild('layer_norm', params)
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+    down_w_pc = py_utils.WeightParams(
+        shape=[p.num_tasks, p.input_dim, p.bottleneck_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('down_w', down_w_pc)
+    down_b_pc = py_utils.WeightParams(
+        shape=[p.num_tasks, p.bottleneck_dim],
+        init=py_utils.WeightInit.Constant(0.),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('down_b', down_b_pc)
+    up_w_pc = py_utils.WeightParams(
+        shape=[p.num_tasks, p.bottleneck_dim, p.input_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('up_w', up_w_pc)
+    up_b_pc = py_utils.WeightParams(
+        shape=[p.num_tasks, p.input_dim],
+        init=py_utils.WeightInit.Constant(0.),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('up_b', up_b_pc)
+
+  def FProp(self, theta, inputs, tasks):
+    """Fprop for multitask adapter.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      inputs: A tensor containing the activations from the previous layer.
+        [batch, time, input_dim].
+      tasks: An int32 tensor containing the task ID for each input. [batch].
+
+    Returns:
+      A tensor containing the adapted activations with the same shape as inputs.
+    """
+    p = self.params
+    assert tasks.shape.ndims == 1
+    if p.clip_task_ids:
+      tasks = tf.clip_by_value(tasks, 0, p.num_tasks - 1)
+    # [batch, num_tasks].
+    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1)
+
+    # Einsum axis names:
+    # b - batch
+    # t - time
+    # k - task
+    # i - input_dim
+    # n - bottleneck_dim
+
+    # [batch, input_dim, bottleneck_dim].
+    down_w = tf.einsum('bk,kin->bin', tasks_onehot, theta.down_w)
+    # [batch, 1, bottleneck_dim].
+    down_b = tf.einsum('bk,kn->bn', tasks_onehot, theta.down_b)[:, None, :]
+    # [batch, bottleneck_dim, input_dim].
+    up_w = tf.einsum('bk,kni->bni', tasks_onehot, theta.up_w)
+    # [batch, 1, input_dim].
+    up_b = tf.einsum('bk,ki->bi', tasks_onehot, theta.up_b)[:, None, :]
+
+    # Layer norm -> down-projection -> non-linearity -> up-projection
+    norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
+    # [batch, time, bottleneck_dim].
+    down_projected = tf.einsum('bti,bin->btn', norm_inputs, down_w) + down_b
+    # ReLU.
+    down_projected = tf.nn.relu(down_projected)
+    # [batch, time, input_dim].
+    up_projected = tf.einsum('btn,bni->bti', down_projected, up_w) + up_b
+    # Residual.
+    return inputs + up_projected
 
 
 class CCTGatingNetwork(quant_utils.QuantizableLayer):
