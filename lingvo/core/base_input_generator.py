@@ -113,7 +113,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
     p.Define('tpu_infeed_parallelism', 1,
              'Uses these many python threads to drive infeed concurrently.')
     p.Define('use_partitioned_infeed_queue', False, 'Use partitioned infeed')
-    p.Define('num_partitions', None, 'Num partitions')
+    p.Define(
+        'num_partitions', None,
+        'Number of partitions to split the model graph into. Used with '
+        'model parallelism. When >1, it specifies the number of devices '
+        'used to place one replica of the model graph nodes.')
 
   @classmethod
   def Params(cls):

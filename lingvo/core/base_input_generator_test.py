@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for base_input_generator."""
 
+import contextlib
 import os
 import shutil
 import tempfile
@@ -31,6 +32,10 @@ import numpy as np
 
 import tensorflow.compat.v1 as tf1
 import tensorflow.compat.v2 as tf2
+
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.tpu import device_assignment
+# pylint: enable=g-direct-tensorflow-import
 
 
 def _CreateFakeTFRecordFiles(record_count=10):
@@ -49,10 +54,10 @@ def _CreateFakeTFRecordFiles(record_count=10):
   return tmpdir, data_path
 
 
-class BaseInputGeneratorBatchSizeTest(test_utils.TestCase):
+class BaseInputGeneratorTest(test_utils.TestCase):
 
   @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
-  def testSingleHostInfeed(self):
+  def testBatchSizeSingleHostInfeed(self):
     with cluster_factory.ForTestingWorker(tpus=128):
       p = base_input_generator.BaseInputGenerator.Params()
       p.batch_size = 16
@@ -63,7 +68,7 @@ class BaseInputGeneratorBatchSizeTest(test_utils.TestCase):
       self.assertEqual(2048, input_generator.GlobalBatchSize())
 
   @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
-  def testPerHostInfeed(self):
+  def testBatchSizePerHostInfeed(self):
     with cluster_factory.ForTestingWorker(tpus=128, num_tpu_hosts=8):
       p = base_input_generator.BaseInputGenerator.Params()
       p.batch_size = 16
@@ -72,6 +77,85 @@ class BaseInputGeneratorBatchSizeTest(test_utils.TestCase):
 
       self.assertEqual(256, input_generator.InfeedBatchSize())
       self.assertEqual(2048, input_generator.GlobalBatchSize())
+
+  @contextlib.contextmanager
+  def _DeviceAssignment(self):
+    """A context for tpu device assignment of a JF 8x8 slice."""
+    mesh_shape = [8, 8, 1, 2]
+    device_coordinates = np.zeros([16, 8, 4], dtype=np.int32)
+    for i in range(np.prod(mesh_shape)):
+      x = i // 16
+      y = i % 16 // 2
+      core = i % 2
+      task = x // 2 * 4 + y // 2
+      device = x % 2 * 4 + y % 2 * 2 + core
+      device_coordinates[task, device] = [x, y, 0, core]
+    topology = tf.tpu.experimental.Topology(
+        mesh_shape=mesh_shape, device_coordinates=device_coordinates)
+    assignment = device_assignment.device_assignment(
+        topology, computation_shape=[1, 1, 1, 1], num_replicas=128)
+    py_utils.SetTpuDeviceAssignment(assignment)
+    try:
+      yield
+    finally:
+      py_utils.SetTpuDeviceAssignment(None)
+
+  @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
+  def testCreateTpuEnqueueOpsSingleHostInfeed(self):
+
+    class FooInputGenerator(base_input_generator.BaseInputGenerator):
+
+      def _InputBatch(self):
+        return py_utils.NestedMap(
+            inp=tf.constant(1.0, shape=[2048, 3], dtype=tf.float32))
+
+    with cluster_factory.ForTestingWorker(tpus=128, num_tpu_hosts=16):
+      with self._DeviceAssignment():
+        p = FooInputGenerator.Params()
+        p.use_per_host_infeed = False
+        input_generator = p.Instantiate()
+        input_generator.CreateTpuEnqueueOps()
+        batch = input_generator.TpuDequeueBatch()
+        self.assertEqual(batch.inp.shape.as_list(), [16, 3])
+
+  @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
+  def testCreateTpuEnqueueOpsPerHostInfeed(self):
+
+    class FooInputGenerator(base_input_generator.BaseInputGenerator):
+
+      def _InputBatch(self):
+        return py_utils.NestedMap(
+            inp=tf.constant(1.0, shape=[128, 3], dtype=tf.float32))
+
+    with cluster_factory.ForTestingWorker(tpus=128, num_tpu_hosts=16):
+      with self._DeviceAssignment():
+        p = FooInputGenerator.Params()
+        p.use_per_host_infeed = True
+        input_generator = p.Instantiate()
+        input_generator.CreateTpuEnqueueOps()
+        batch = input_generator.TpuDequeueBatch()
+        self.assertEqual(batch.inp.shape.as_list(), [16, 3])
+
+  @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
+  def testCreateTpuEnqueueOpsPerHostInfeed_Sharded(self):
+
+    class FooInputGenerator(base_input_generator.BaseInputGenerator):
+
+      def _InputBatch(self):
+        return [
+            py_utils.NestedMap(
+                inp=tf.constant(1.0, shape=[16, 3], dtype=tf.float32))
+            for _ in range(8)
+        ]
+
+    with cluster_factory.ForTestingWorker(tpus=128, num_tpu_hosts=16):
+      with self._DeviceAssignment():
+        p = FooInputGenerator.Params()
+        p.use_per_host_infeed = True
+        input_generator = p.Instantiate()
+        input_generator.CreateTpuEnqueueOps()
+        batch = input_generator.TpuDequeueBatch()
+        self.assertEqual(batch.inp.shape.as_list(), [16, 3])
 
 
 class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
