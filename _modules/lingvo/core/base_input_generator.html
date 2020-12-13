@@ -261,7 +261,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_infeed_parallelism&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
              <span class="s1">&#39;Uses these many python threads to drive infeed concurrently.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_partitioned_infeed_queue&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use partitioned infeed&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Num partitions&#39;</span><span class="p">)</span></div>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Number of partitions to split the model graph into. Used with &#39;</span>
+        <span class="s1">&#39;model parallelism. When &gt;1, it specifies the number of devices &#39;</span>
+        <span class="s1">&#39;used to place one replica of the model graph nodes.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.Params"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
