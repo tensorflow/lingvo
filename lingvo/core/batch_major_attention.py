@@ -1324,8 +1324,8 @@ class LocalSelfAttention(MultiHeadedAttention):
       per_step_padding: Not used.
 
     Returns:
-      probs: [B, U, N, W, 2 * W]
-      probs_sum: [B, U, N, W, 1].
+      probs: [B, N, U, W, C]
+      probs_sum: [B, N, U, W, 1].
     """
     del per_step_padding
     p = self.params
@@ -1447,7 +1447,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     Returns:
       encoded: [B, T, D].
-      atten_probs: [B, N, T, S].
+      probs: [B, N, U, W, C].
 
     Raises:
       ValueError: If value projection is disabled.
