@@ -135,7 +135,10 @@ class AsrModel(base_model.BaseTask):
     encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch_src)
     tgt = self._GetDecoderTargets(input_batch)
     decoder_theta = self._MakeDecoderTheta(theta, input_batch)
-    return self.decoder.ComputePredictions(decoder_theta, encoder_outputs, tgt)
+    predictions = self.decoder.ComputePredictions(decoder_theta,
+                                                  encoder_outputs, tgt)
+    predictions.encoder_outputs = encoder_outputs
+    return predictions
 
   def ComputeLoss(self, theta, predictions, input_batch):
     tgt = self._GetDecoderTargets(input_batch)

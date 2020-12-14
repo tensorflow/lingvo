@@ -371,6 +371,15 @@ class AsrModelTest(test_utils.TestCase):
     self.assertAllClose(res1[0], res2[0])
     self.assertAllEqual(res1[1], res2[1])
 
+  def testComputePredictions(self):
+    with self.session():
+      p = self._testParams()
+      mdl = p.Instantiate()
+      input_batch = mdl.input.GetPreprocessedInputBatch()
+      predictions = mdl.ComputePredictions(mdl.theta, input_batch)
+      self.assertIn('encoder_outputs', predictions)
+      self.assertIn('encoded', predictions.encoder_outputs)
+
   def testInference(self):
 
     def _CreateModelParamsForTest():
