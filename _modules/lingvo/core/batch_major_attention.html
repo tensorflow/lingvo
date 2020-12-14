@@ -1472,8 +1472,8 @@
 <span class="sd">      per_step_padding: Not used.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      probs: [B, U, N, W, 2 * W]</span>
-<span class="sd">      probs_sum: [B, U, N, W, 1].</span>
+<span class="sd">      probs: [B, N, U, W, C]</span>
+<span class="sd">      probs_sum: [B, N, U, W, 1].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">per_step_padding</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1595,7 +1595,7 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      encoded: [B, T, D].</span>
-<span class="sd">      atten_probs: [B, N, T, S].</span>
+<span class="sd">      probs: [B, N, U, W, C].</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If value projection is disabled.</span>
