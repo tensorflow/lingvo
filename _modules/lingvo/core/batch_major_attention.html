@@ -3603,6 +3603,7 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      cur_output: [target_batch, 1, dim]</span>
+<span class="sd">      atten_probs: [target_batch, num_heads, target_time=1, source_time]</span>
 <span class="sd">      updated_states: A `.NestedMap` object containing the updated states.</span>
 <span class="sd">      key   - [target_time, target_batch, num_heads, dim_per_head].</span>
 <span class="sd">      value - [target_time, target_batch, num_heads, dim_per_head].</span>
@@ -3617,15 +3618,17 @@
       <span class="n">source_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSourceBatchSize</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)</span>
       <span class="c1"># Next the cross-attention layer.</span>
       <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
-      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
-                                            <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">)</span>
+      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">cross_atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">)</span>
       <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">cross_atten_probs</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># Finally the feed-forward layer.</span>
     <span class="n">cur_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">atten_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">cur_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
+    <span class="k">return</span> <span class="n">cur_output</span><span class="p">,</span> <span class="n">cross_atten_probs</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
 
 
 <span class="c1"># TODO(garrettaxel): Distribute the computation to downstream layers.</span>
@@ -4007,7 +4010,7 @@
       <span class="n">decoder_input</span> <span class="o">=</span> <span class="n">query_vec</span>
       <span class="k">for</span> <span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span><span class="p">,</span> <span class="n">layer_states</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_layers</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">x_layers</span><span class="p">,</span>
                                                   <span class="n">cached_states</span><span class="o">.</span><span class="n">x_layers</span><span class="p">):</span>
-        <span class="n">decoder_output</span><span class="p">,</span> <span class="n">updated_layer_states</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
+        <span class="n">decoder_output</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">updated_layer_states</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
             <span class="n">layer_theta</span><span class="p">,</span> <span class="n">decoder_input</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">layer_states</span><span class="p">,</span>
             <span class="n">time_step</span><span class="p">,</span> <span class="n">use_short_seq_opt</span><span class="p">)</span>
         <span class="n">updated_states</span><span class="o">.</span><span class="n">x_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">updated_layer_states</span><span class="p">)</span>
