@@ -409,8 +409,6 @@ class TrainProgram(BaseProgram):
     return self.tpu_ops
 
   def Run(self, sess):
-    global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage('Executing train program at step %d' % global_step)
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
@@ -432,8 +430,13 @@ class TrainProgram(BaseProgram):
     self._SummarizeValue(global_step, 'total_samples', total_examples)
     self._SummarizeValue(global_step, 'total_num_params',
                          self._total_num_params)
+    status_strs = []
     for key, (val, _) in sorted(eval_metrics.items()):
       self._SummarizeValue(global_step, key, val)
+      tf.logging.info((global_step, key, val))
+      status_strs.append('%s=%s' % (key, val))
+    self.SetStatusMessage('Executing train program at step %d %s' %
+                          (global_step, ','.join(status_strs)))
 
     task_global_step = sess.run(self._task.global_step)
     summaries = self._task.ProcessFPropResults(sess, task_global_step,
@@ -522,16 +525,20 @@ class EvalProgram(BaseProgram):
 
   def Run(self, sess):
     global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage('Executing eval program at step %d' % global_step)
 
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
     infeed_future.wait()
     values = ary[0]
+    status_strs = []
     self._eval_metrics.PackMetricsValues(values)
     for key, (val, _) in sorted(self._eval_metrics.metrics.items()):
       self._SummarizeValue(global_step, key, val)
+      tf.logging.info((global_step, key, val))
+      status_strs.append('%s=%s' % (key, val))
+    self.SetStatusMessage('Executing eval program at step %d %s' %
+                          (global_step, ','.join(status_strs)))
     self._summary_writer.flush()
     return False
 
