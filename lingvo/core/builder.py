@@ -61,6 +61,25 @@ class Base:
         'tf.bfloat16, which will be propagated to layers that support '
         'bfloat16 activations. Default is None, which will use float32 '
         'activations.')
+    # SPMD partition related params.
+    p.Define(
+        'device_mesh', None,
+        'A numpy.ndarray specifying the topology of a device mesh to place the '
+        'computations onto. If device_mesh is None, it is assumed to be a '
+        'single device. Here are some examples: '
+        'np.array([0, 1, 2, 3, 4, 5, 6, 7]) which is a 1d mesh with 8 devices, '
+        'np.array([[0, 1, 2, 3], [4, 5, 6, 7]]) which is 2d matrix of 8 '
+        'devices.')
+    p.Define(
+        'weight_split_dims_mapping', None,
+        'Relevant only if device_mesh above is not None. If not None, it '
+        'specifies how weight of this layer or those of the sublayers should '
+        'be sharded over device mesh. ')
+    p.Define(
+        'activation_split_dims_mapping', None,
+        'Relevant only if device_mesh above is not None. If not None, it '
+        'specifies how activation of this layer or those of the sublayers '
+        'should be sharded over device mesh. ')
     return p
 
   @property

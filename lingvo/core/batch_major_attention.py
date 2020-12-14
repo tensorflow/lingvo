@@ -35,6 +35,7 @@ from lingvo.core import moe_layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
+from lingvo.core import xla_sharding_utils
 import numpy as np
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import inplace_ops
@@ -188,12 +189,6 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         'This is useful in combining different types of attention heads where'
         'mixing is done after getting all the different attention outputs.')
     p.Define('use_bias', True, 'If to add bias in projection.')
-    p.Define(
-        'weight_split_dims_mapping', None,
-        ' Relevant only if device_mesh is specified. If specified, it must be a'
-        ' list of integers if size 3 specifying how the weight tensor should be'
-        ' sharded over the device mesh. The sharding annotations of the bias'
-        ' variables are derived from that of the projection weight tensor.')
     return p
 
   def _CreateLayerVariables(self):
@@ -346,12 +341,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       p.proj_tpl.dim_per_head = dim_per_head
 
     if p.device_mesh is not None:
-      # TODO(yonghui): support more generic 2d mesh.
-      assert p.device_mesh.ndim == 1
-      # Split on attention heads.
-      weight_split_dims_mapping = [-1, 0, -1]
-    else:
-      weight_split_dims_mapping = None
+      assert p.weight_split_dims_mapping is not None
 
     def ProjectInput():
       return p.proj_tpl.Copy().Set(
@@ -359,7 +349,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
           num_heads=p.num_heads,
           use_bias=p.use_bias,
           device_mesh=p.device_mesh,
-          weight_split_dims_mapping=weight_split_dims_mapping,
+          weight_split_dims_mapping=p.weight_split_dims_mapping,
           make_output_proj_no_op=False)
 
     self.CreateChild('key', ProjectInput())
@@ -382,7 +372,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
             is_output_projection=True,
             use_bias=p.use_bias,
             device_mesh=p.device_mesh,
-            weight_split_dims_mapping=weight_split_dims_mapping))
+            weight_split_dims_mapping=p.weight_split_dims_mapping))
 
   def _AttenLogits(self, theta, query, key):
     """Computes attention logits.
@@ -549,6 +539,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       if p.enable_scaling_code_motion:
         # The 2nd part of the softamx --- scaling.
         encoded = encoded / tf.transpose(probs_sum, [0, 2, 1, 3])
+    if p.device_mesh is not None:
+      encoded = xla_sharding_utils.MeshSplit(encoded, p.device_mesh,
+                                             p.activation_split_dims_mapping)
 
     return encoded, probs
 
@@ -726,6 +719,13 @@ class MultiHeadedAttention(base_layer.BaseLayer):
               tf.one_hot(tf.range(d) % dh, dh, dtype=value_vec.dtype),
               [d, 1, dh])
       value_proj = tf.einsum('BTD,DNH->BTNH', value_vec, rhs)
+    if p.device_mesh is not None:
+      query_proj = xla_sharding_utils.MeshSplit(query_proj, p.device_mesh,
+                                                p.activation_split_dims_mapping)
+      key_proj = xla_sharding_utils.MeshSplit(key_proj, p.device_mesh,
+                                              p.activation_split_dims_mapping)
+      value_proj = xla_sharding_utils.MeshSplit(value_proj, p.device_mesh,
+                                                p.activation_split_dims_mapping)
 
     if p.packed_input and not self.do_eval:
       assert segment_mask is not None
@@ -2898,7 +2898,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
               is_output_projection=True,
               make_output_proj_no_op=False,
               use_bias=p.atten_tpl[0].use_bias,
-              device_mesh=p.atten_tpl[0].device_mesh))
+              device_mesh=p.atten_tpl[0].device_mesh,
+              weight_split_dims_mapping=p.atten_tpl[0].weight_split_dims_mapping
+          ))
     else:
       _LocalAttentionError(params)
       self.CreateChild('atten', params)
@@ -4594,12 +4596,51 @@ class Builder(builder.Base):
         'of T^2 to the side of T for better performance. This may result '
         'in model quality drops when using bf16 for some models due to '
         'different XLA fusion decisions.')
-    p.Define('device_mesh', None,
-             'A np.ndarray specifying a device mesh to partition the'
-             ' computations onto.')
     p.Define('funnel_pool_tpl', FunnelPoolingLayer.Params(),
              'Template for the Funnel Pooling layer.')
+    # SPMD partition related params.
+    #
+    # d - model_dim
+    # n - num_heads
+    # h - attention_dim_per_heads
+    # f - ff_hidden_dim
+    # b - batch_size
+    # l - seq_len
+    p.weight_split_dims_mapping = hyperparams.Params()
+    wp = p.weight_split_dims_mapping
+    wp.Define('dnh', None, 'Mesh split for attention DNH weight with the shape '
+              'of [model_dim, num_heads, dim_per_head].')
+    wp.Define('df', None,
+              'Mesh split for dense input weight with the shape of '
+              '[model_dim, ff_hidden_dim].')
+    wp.Define('fd', None,
+              'Mesh split for dense output weight with the shape of '
+              '[ff_hidden_dim, model_dim].')
+    p.activation_split_dims_mapping = hyperparams.Params()
+    ap = p.activation_split_dims_mapping
+    ap.Define('blnh', None,
+              'Mesh split for query, key, value, and encoded tensors with the '
+              'shape of [batch_size, seq_len, num_heads, dim_per_head].')
+    ap.Define('bld', None,
+              'Mesh split for FeedForward layer input/output with the shape of '
+              '[batch_size, seq_len, model_dim].')
+    ap.Define('blf', None,
+              'Mesh split for FeedForward layer hidden activations with the '
+              'shape of [batch_size, seq_len, ff_hidden_dim].')
     return p
+
+  @classmethod
+  def SetCanonicalShardingParams(cls, params):
+    """Set up canonical SPMD sharding params."""
+    assert params.device_mesh.ndim >= 2
+    wp = params.weight_split_dims_mapping
+    wp.dnh = [0, 1, -1]
+    wp.df = [0, 1]
+    wp.fd = [1, 0]
+    ap = params.activation_split_dims_mapping
+    ap.blnh = [0, -1, 1, -1]
+    ap.bld = [0, -1, -1]
+    ap.blf = [0, -1, 1]
 
   def __init__(self, params):
     super().__init__(params)
@@ -4673,7 +4714,9 @@ class Builder(builder.Base):
         fprop_dtype=p.fprop_dtype,
         use_bias=p.use_bias,
         enable_scaling_code_motion=p.enable_scaling_code_motion,
-        device_mesh=p.device_mesh)
+        device_mesh=p.device_mesh,
+        weight_split_dims_mapping=p.weight_split_dims_mapping.dnh,
+        activation_split_dims_mapping=p.activation_split_dims_mapping.blnh)
     if p.deterministic_dropout:
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
@@ -4719,8 +4762,13 @@ class Builder(builder.Base):
     if ff_hidden_dim is None:
       ff_hidden_dim = p.ff_hidden_dim
     if p.device_mesh is not None:
-      # TODO(yonghui): Support more generic 2d mesh.
-      assert p.device_mesh.ndim == 1
+      assert p.device_mesh.ndim >= 2
+      assert p.weight_split_dims_mapping.df is not None
+      assert p.weight_split_dims_mapping.fd is not None
+    bias_f_split = ([p.weight_split_dims_mapping.df[1]]
+                    if p.weight_split_dims_mapping.df is not None else None)
+    bias_d_split = ([p.weight_split_dims_mapping.fd[1]]
+                    if p.weight_split_dims_mapping.fd is not None else None)
     sub_list = [
         ('i.vec->after_feedforward',
          self._Seq(
@@ -4728,18 +4776,20 @@ class Builder(builder.Base):
              self._DefaultLN('ln'),  # LN with default params.
              self._Linear('linear01', p.model_dim, ff_hidden_dim,
                           device_mesh=p.device_mesh,
-                          weight_split_dims_mapping=[-1, 0]),
+                          weight_split_dims_mapping=(
+                              p.weight_split_dims_mapping.df)),
              self._Bias('bias01', ff_hidden_dim,
                         device_mesh=p.device_mesh,
-                        weight_split_dims_mapping=[0]),
+                        weight_split_dims_mapping=bias_f_split),
              self._Activation('act', p.ff_activation_fn),
              self._Dropout('relu_dropout', p.relu_dropout_prob),
              self._Linear('linear02', ff_hidden_dim, p.model_dim,
                           device_mesh=p.device_mesh,
-                          weight_split_dims_mapping=[0, -1]),
+                          weight_split_dims_mapping=(
+                              p.weight_split_dims_mapping.fd)),
              self._Bias('bias02', p.model_dim,
                         device_mesh=p.device_mesh,
-                        weight_split_dims_mapping=[-1]),
+                        weight_split_dims_mapping=bias_d_split),
              self._Dropout('dropout', p.residual_dropout_prob))),
         ('i.vec,after_feedforward->added',
          self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
@@ -5157,25 +5207,26 @@ class LmBuilder(Builder):
     p.Define('dtype', tf.float32, 'Datatype to use.')
     return p
 
-  def _ShardedVar(self, name, weights, split_dim):
+  def _Var(self, name, weights):
+    return moe_layers.VarLayer.Params().Set(name=name, weights=weights)
+
+  def _ShardedVar(self, name, weights, mesh_split):
     sharded_weights = []
     for k, v in weights:
-      dims_mapping = [-1] * len(v.shape)
-      dims_mapping[split_dim] = 0
       sharded_weights.append((k,
                               moe_layers.ShardedWeightParams(
                                   shape=v.shape,
                                   init=v.init,
                                   dtype=v.dtype,
                                   collections=v.collections,
-                                  tensor_split_dims_mapping=dims_mapping)))
+                                  tensor_split_dims_mapping=mesh_split)))
     return moe_layers.ShardedVarLayer.Params().Set(
         name=name,
         weights=sharded_weights,
         device_mesh=self.params.device_mesh,
         fprop_dtype=self.params.fprop_dtype)
 
-  def _LinearWeight(self, name, input_dim, output_dim, split_dim):
+  def _LinearWeight(self, name, input_dim, output_dim, mesh_split):
     return self._ShardedVar(
         name=name,
         weights=[('w',
@@ -5183,14 +5234,14 @@ class LmBuilder(Builder):
                       shape=[input_dim, output_dim],
                       init=py_utils.WeightInit.Uniform((3. / input_dim)**0.5),
                       dtype=self.params.dtype))],
-        split_dim=split_dim)
+        mesh_split=mesh_split)
 
-  def _Linear(self, name, input_dim, output_dim, split_dim=0):
+  def _Linear(self, name, input_dim, output_dim, mesh_split):
     return self._Graph(
         name,
         ['inputs'],
         ['outputs'],
-        ('->w', self._LinearWeight('w', input_dim, output_dim, split_dim)),
+        ('->w', self._LinearWeight('w', input_dim, output_dim, mesh_split)),
         ('inputs,w->outputs',
          self._Fn(
              'linear',
@@ -5198,14 +5249,13 @@ class LmBuilder(Builder):
     )
 
   def _BiasWeight(self, name, dim):
-    return self._ShardedVar(
+    return self._Var(
         name=name,
         weights=[('b',
                   py_utils.WeightParams(
                       shape=[dim],
                       init=py_utils.WeightInit.Constant(0.0),
-                      dtype=self.params.dtype))],
-        split_dim=0)
+                      dtype=self.params.dtype))])
 
   def _Bias(self, name, dim):
     return self._Graph(
@@ -5217,28 +5267,47 @@ class LmBuilder(Builder):
                                        fn=lambda inputs, b: inputs + b)),
     )
 
+  def _MeshSplit(self, x, tensor_split_dims_mapping):
+    p = self.params
+    if tensor_split_dims_mapping is None or p.device_mesh is None:
+      return x
+    return xla_sharding_utils.MeshSplit(x, p.device_mesh,
+                                        tensor_split_dims_mapping)
+
+  def MeshSplit(self, name, tensor_split_dims_mapping):
+    return self._Fn(name,
+                    lambda x: self._MeshSplit(x, tensor_split_dims_mapping))
+
   def Feedforward(self, name):
     p = self.params
 
     ff_list = [
         self._DefaultLN('ln'),
-        self._Linear('linear01', p.model_dim, p.ff_hidden_dim, split_dim=1)
+        self._Linear('linear01', p.model_dim, p.ff_hidden_dim,
+                     p.weight_split_dims_mapping.df)
     ]
     if p.use_bias:
       ff_list.append(self._Bias('bias01', p.ff_hidden_dim))
+    ff_list.append(
+        self.MeshSplit('hidden_split', p.activation_split_dims_mapping.blf))
     ff_list += [
         self._Activation('act', p.ff_activation_fn),
         self._Dropout('relu_dropout', p.relu_dropout_prob),
-        self._Linear('linear02', p.ff_hidden_dim, p.model_dim, split_dim=0)
+        self._Linear('linear02', p.ff_hidden_dim, p.model_dim,
+                     p.weight_split_dims_mapping.fd)
     ]
     if p.use_bias:
       ff_list.append(self._Bias('bias02', p.model_dim))
+    ff_list.append(
+        self.MeshSplit('output_split', p.activation_split_dims_mapping.bld))
     ff_list.append(self._Dropout('dropout', p.residual_dropout_prob))
 
     sub_list = [
-        ('i.vec->after_feedforward', self._Seq('feedforward', *ff_list)),
-        ('i.vec,after_feedforward->added', self._Add('add',
-                                                     p.ff_residual_weight)),
+        ('i.vec->split_i',
+         self.MeshSplit('input_split', p.activation_split_dims_mapping.bld)),
+        ('split_i->after_feedforward', self._Seq('feedforward', *ff_list)),
+        ('split_i,after_feedforward->added',
+         self._Add('add', p.ff_residual_weight)),
         ('added,i.paddings->o.vec', self._Pad('pad')),
         ('i.paddings->o.paddings', self._Id('id')),
     ]
@@ -5275,6 +5344,10 @@ class LmBuilder(Builder):
     tr_atten_p.atten_tpl.enable_value_proj = p.selfatten_enable_value_proj
     tr_atten_p.atten_tpl.enable_per_dim_scale = p.enable_per_dim_scale
     tr_atten_p.atten_tpl.device_mesh = p.device_mesh
+    tr_atten_p.atten_tpl.weight_split_dims_mapping = (
+        p.weight_split_dims_mapping.dnh)
+    tr_atten_p.atten_tpl.activation_split_dims_mapping = (
+        p.activation_split_dims_mapping.blnh)
     if p.deterministic_dropout:
       tr_atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
       tr_atten_p.atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
@@ -5283,7 +5356,11 @@ class LmBuilder(Builder):
         name,
         ['i'],  # input NestedMap with {vec, paddings}
         ['o'],  # output NestedMap with {vec, paddings}
-        ('i.vec,i.vec,i.paddings->o.vec,unused_prob', tr_atten_p),
+        ('i.vec->split_i',
+         self.MeshSplit('input_split', p.activation_split_dims_mapping.bld)),
+        ('split_i,split_i,i.paddings->unsplit_o,unused_prob', tr_atten_p),
+        ('unsplit_o->o.vec',
+         self.MeshSplit('output_split', p.activation_split_dims_mapping.bld)),
         ('i.paddings->o.paddings', self._Id('id')))
 
   def TransformerEncoderLayer(self, name, is_causal=True):

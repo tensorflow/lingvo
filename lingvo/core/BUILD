@@ -198,7 +198,6 @@ py_library(
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
         "//lingvo/core:moe_layers",
-        # Implicit numpy dependency.
     ],
 )
 

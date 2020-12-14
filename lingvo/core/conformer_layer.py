@@ -29,8 +29,6 @@ from lingvo.core import moe_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 
-import numpy as np
-
 
 class LConvLayer(base_layer.BaseLayer):
   r"""Lightweight conv layer.
@@ -84,15 +82,62 @@ class LConvLayer(base_layer.BaseLayer):
     p.Define('linear_end_tpl', layers.FCLayer.Params(), 'Linear end layer.')
     p.Define('dropout_tpl', layers.DropoutLayer.Params(),
              'Residual dropout layer.')
-    p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
     p.Define(
         'split_act_gated_linear_start', False,
         'Separate act and gated linear start to remove data formatting '
         'overheads')
-
     p.linear_start_tpl.Set(activation='NONE', has_bias=True)
     p.linear_end_tpl.Set(activation='NONE', has_bias=True)
+    # SPMD partition related params.
+    #
+    # d - model_dim
+    # f - ff_hidden_dim (here ff_hidden_dim has the same size as model_dim)
+    # h - height
+    # w - width
+    # i - in_channels
+    # m - channel_multiplier
+    # b - batch_size
+    # l - seq_len
+    p.weight_split_dims_mapping = hparams_lib.Params()
+    wp = p.weight_split_dims_mapping
+    wp.Define(
+        'df', None,
+        'Mesh split for lconv linear start weight with the shape of '
+        '[model_dim, ff_hidden_dim], the default hidden_dim is the same as '
+        'the model_dim.')
+    wp.Define(
+        'hwim', None,
+        'Mesh split for lconv depthwise conv weight with the shape of '
+        '[height, width, in_channels, channel_multiplier]. Width and '
+        'channel_multiplier are both 1 for the common use case.')
+    wp.Define(
+        'fd', None, 'Mesh split for lconv linear end weight with the shape of '
+        '[ff_hidden_dim, model_dim], the default hidden_dim is the same as '
+        'the model_dim.')
+    p.activation_split_dims_mapping = hparams_lib.Params()
+    ap = p.activation_split_dims_mapping
+    ap.Define(
+        'blf', None, 'Mesh split for lconv linear start activation and lconv '
+        'depthwise conv after normalization with the shape of '
+        '[batch_size, seq_len, ff_hidden_dim], the default hidden_dim is the '
+        'same as model_dim.')
+    ap.Define(
+        'bld', None,
+        'Mesh split for lconv linear end activation with the shape of '
+        '[batch_size, seq_len, model_dim].')
     return p
+
+  @classmethod
+  def SetCanonicalShardingParams(cls, params):
+    """Set up canonical SPMD sharding params."""
+    assert params.device_mesh.ndim >= 2
+    wp = params.weight_split_dims_mapping
+    wp.df = [0, 1]
+    wp.hwim = [-1, -1, 1, -1]
+    wp.fd = [-1, -1]
+    ap = params.activation_split_dims_mapping
+    ap.blf = [0, -1, 1]
+    ap.bld = [0, -1, -1]
 
   @classmethod
   def CommonParams(cls,
@@ -120,18 +165,18 @@ class LConvLayer(base_layer.BaseLayer):
     self.CreateChild('ln', ln_p)
 
     if p.split_act_gated_linear_start:
-      device_mesh = (None if not p.xla_num_partitions else np.arange(
-          p.xla_num_partitions))
       linear_start_act_p = p.linear_start_tpl.Copy().Set(
           input_dim=p.input_dim,
           output_dim=p.input_dim,
-          device_mesh=device_mesh,
-          weight_split_dims_mapping=[-1, 0])
+          device_mesh=p.device_mesh,
+          weight_split_dims_mapping=p.weight_split_dims_mapping.df,
+          activation_split_dims_mapping=p.activation_split_dims_mapping.blf)
       linear_start_gated_p = p.linear_start_tpl.Copy().Set(
           input_dim=p.input_dim,
           output_dim=p.input_dim,
-          device_mesh=device_mesh,
-          weight_split_dims_mapping=[-1, 0])
+          device_mesh=p.device_mesh,
+          weight_split_dims_mapping=p.weight_split_dims_mapping.df,
+          activation_split_dims_mapping=p.activation_split_dims_mapping.blf)
       self.CreateChild('linear_start_act', linear_start_act_p)
       self.CreateChild('linear_start_gated', linear_start_gated_p)
     else:
@@ -142,7 +187,12 @@ class LConvLayer(base_layer.BaseLayer):
       self.CreateChild('linear_start', linear_start_p)
 
     linear_end_p = p.linear_end_tpl.Copy().Set(
-        name='linear_end', input_dim=p.input_dim, output_dim=p.input_dim)
+        name='linear_end',
+        input_dim=p.input_dim,
+        output_dim=p.input_dim,
+        device_mesh=p.device_mesh,
+        weight_split_dims_mapping=p.weight_split_dims_mapping.fd,
+        activation_split_dims_mapping=p.activation_split_dims_mapping.bld)
     self.CreateChild('linear_end', linear_end_p)
 
     if p.conv_norm_layer_tpl.cls == layers.LayerNorm:
@@ -243,8 +293,10 @@ class LConvLayer(base_layer.BaseLayer):
       # TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.
       # [b, t, d] --> [b, t, 1, d]
       inputs = tf.expand_dims(inputs, 2)
-      theta.depthwise_conv1d.w = moe_layers.Split(theta.depthwise_conv1d.w, 2,
-                                                  p.xla_num_partitions)
+      if p.device_mesh is not None:
+        theta.depthwise_conv1d.w = moe_layers.MeshSplit(
+            theta.depthwise_conv1d.w, p.device_mesh,
+            p.weight_split_dims_mapping.hwim)
       inputs, paddings = self.depthwise_conv1d.FProp(theta.depthwise_conv1d,
                                                      inputs, paddings)
       inputs = self._Normalize(theta, inputs, paddings)
@@ -646,19 +698,66 @@ class ConformerLayer(base_layer.BaseLayer):
 
 
 def ApplyGshard(conformer_tpl,
-                atten_num_partitions=None,
-                lconv_num_partitions=None):
-  """Applies gshard on conformer params."""
+                device_mesh=None,
+                proj_w_split_list=None,
+                proj_activation_split_list=None,
+                atten_dnh_w_split=None,
+                atten_blnh_activation_split=None,
+                lconv_df_w_split=None,
+                lconv_hwim_w_split=None,
+                lconv_fd_w_split=None,
+                lconv_blf_activation_split=None,
+                lconv_bld_activation_split=None):
+  """Applies gshard on conformer params.
+
+  Args:
+    conformer_tpl: A NestedMap of conformer Params.
+    device_mesh: A numpy.ndarray specifying the device mesh on which the
+      computation is sharded.
+    proj_w_split_list: A list of mesh split specifying how weights are sharded
+      for fflayer.
+    proj_activation_split_list: A list of mesh split specifying how activations
+      are sharded for fflayer.
+    atten_dnh_w_split: Mesh split of the attention projection weight with the
+      shape of [model_dim, num_heads, dim_per_head].
+    atten_blnh_activation_split: Mesh split of the attention activation with
+      shape of [batch, seq_len, num_heads, dim_per_head].
+    lconv_df_w_split: Mesh split of the weights in lconv with the shape of
+      [model_dim, ff_hidden_dim].
+    lconv_hwim_w_split: Mesh split of the depthwise conv weight in lconv with
+      the shape of [height, width, in_channels, channel_multiplier].
+    lconv_fd_w_split: Mesh split of the weights in lconv with the shape of
+      [ff_hidden_dim, model_dim].
+    lconv_blf_activation_split: Mesh split of the activations in lconv with the
+      shape of [batch, seq_len, ff_hidden_dim].
+    lconv_bld_activation_split: Mesh split of the activations in lconv with the
+      shape of [batch, seq_len, model_dim].
+
+  Returns:
+    The updated conformer_tpl.
+  """
   # Not all attention class supports gshard. If not, errors would be throw here.
-  device_mesh = np.arange(atten_num_partitions)
   conformer_tpl.trans_atten_tpl.atten_tpl.device_mesh = device_mesh
+  conformer_tpl.trans_atten_tpl.atten_tpl.weight_split_dims_mapping = (
+      atten_dnh_w_split)
+  conformer_tpl.trans_atten_tpl.atten_tpl.activation_split_dims_mapping = (
+      atten_blnh_activation_split)
   # TODO(jamesqin): support residual_proj xla sharding too.
   conformer_tpl.fflayer_start_tpl.fflayer_tpl.Set(
       device_mesh=device_mesh,
-      weight_split_dims_mapping_list=[[-1, 0], [0, -1]])
+      weight_split_dims_mapping_list=proj_w_split_list,
+      activation_split_dims_mapping_list=proj_activation_split_list)
   conformer_tpl.fflayer_end_tpl.fflayer_tpl.Set(
       device_mesh=device_mesh,
-      weight_split_dims_mapping_list=[[-1, 0], [0, -1]])
-  conformer_tpl.lconv_tpl.Set(xla_num_partitions=lconv_num_partitions)
-  conformer_tpl.lconv_tpl.Set(split_act_gated_linear_start=True)
+      weight_split_dims_mapping_list=proj_w_split_list,
+      activation_split_dims_mapping_list=proj_activation_split_list)
+  conformer_tpl.lconv_tpl.Set(
+      split_act_gated_linear_start=True, device_mesh=device_mesh)
+  lconv_w_split = conformer_tpl.lconv_tpl.weight_split_dims_mapping
+  lconv_w_split.df = lconv_df_w_split
+  lconv_w_split.hwim = lconv_hwim_w_split
+  lconv_w_split.fd = lconv_fd_w_split
+  lconv_activation_split = conformer_tpl.lconv_tpl.activation_split_dims_mapping
+  lconv_activation_split.blf = lconv_blf_activation_split
+  lconv_activation_split.bld = lconv_bld_activation_split
   return conformer_tpl

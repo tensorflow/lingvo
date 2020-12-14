@@ -1421,11 +1421,6 @@ class DenseBuilder(MoEBuilder):
     # p.Delete('second_expert_threshold')
     # p.Delete('capacity_factor')
     p.Define('device_mesh_shape', None, 'Device mesh shape.')
-    p.Define(
-        'device_mesh', None,
-        'Device mesh as a numpy ND array of device IDs. If specified, '
-        'device order in the array will be preserved, and the shape must equal '
-        'device_mesh_shape if that is also specified.')
 
     # Weight sharding configs.
     p.Define('emb_w_split', None, 'Mesh split for embedding weights.')

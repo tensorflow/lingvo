@@ -262,6 +262,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         'If None/False, only variables explicitly in the '
         'SKIP_LP_REGULARIZATION collection will skip Lp regularization. '
         'Also propagated to child layers with default settings (None).')
+    # SPMD partition related params.
     p.Define(
         'device_mesh', None,
         'A numpy.ndarray specifying the topology of a device mesh to place the'
@@ -270,6 +271,16 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         ' np.array([0, 1, 2, 3, 4, 5, 6, 7]) which is a 1d mesh with 8 devices,'
         ' np.array([[0, 1, 2, 3], [4, 5, 6, 7]]) which is 2d matrix of 8'
         ' devices.')
+    p.Define(
+        'weight_split_dims_mapping', None,
+        'Relevant only if device_mesh above is not None. If not None, it '
+        'specifies how weight of this layer or those of the sublayers should '
+        'be sharded over device mesh. ')
+    p.Define(
+        'activation_split_dims_mapping', None,
+        'Relevant only if device_mesh above is not None. If not None, it '
+        'specifies how activation of this layer or those of the sublayers '
+        'should be sharded over device mesh. ')
     return p
 
   @staticmethod

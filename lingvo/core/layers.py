@@ -34,6 +34,7 @@ from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
+from lingvo.core import xla_sharding_utils
 import numpy as np
 import sympy
 
@@ -875,14 +876,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         '(b/146421936)')
     p.Define(
         'use_blocked_matmul', False, 'Whether to use blocked matrix '
-        'multiplications. This allows for weight updates to be paralellized'
-        ' across the cores for Shampoo optimizer.')
+        'multiplications. This allows for weight updates to be paralellized '
+        'across the cores for Shampoo optimizer.')
     p.Define('block_dim', 1024, 'Dimension of the block')
-    p.Define(
-        'weight_split_dims_mapping', None,
-        'Relevant only if device_mesh is not None. If not None, it is a'
-        ' list of integers (of length 2) specifying how the 2d weight'
-        ' projection matrix should be sharded over device mesh.')
     # Non-default quantization behaviour for weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
@@ -1151,10 +1147,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """
     p = self.params
     w = theta.w
-    if p.has_bias:
-      b = theta.b
-    else:
-      b = None
+    b = theta.b if p.has_bias else None
     if p.use_blocked_matmul:
       w = self._GetBlockedWeightMatrix(w)
       if p.weight_norm:
@@ -1240,6 +1233,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
+    if p.device_mesh is not None:
+      out = xla_sharding_utils.MeshSplit(out, p.device_mesh,
+                                         p.activation_split_dims_mapping)
     return self._ApplyActivationFunction(out, inputs, with_activation, quant)
 
   def _ApplyActivationFunction(self,
@@ -1362,6 +1358,8 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         'weights in the projection layer.')
     p.Define('weight_split_dims_mapping_list', None,
              'A list of weight_split_dims_mapping for each sub-layer.')
+    p.Define('activation_split_dims_mapping_list', None,
+             'A list of activation_split_dims_mapping for each sub-layer.')
     # Non-default quantization behaviour for the weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
@@ -1409,9 +1407,14 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
 
     if p.device_mesh is not None:
       weight_split_dims_mapping_list = p.weight_split_dims_mapping_list
+      activation_split_dims_mapping_list = p.activation_split_dims_mapping_list
+      if activation_split_dims_mapping_list is None:
+        activation_split_dims_mapping_list = [None] * num_layers
     else:
       weight_split_dims_mapping_list = [None] * num_layers
+      activation_split_dims_mapping_list = [None] * num_layers
     assert len(weight_split_dims_mapping_list) == num_layers
+    assert len(activation_split_dims_mapping_list) == num_layers
 
     # Residual connections work better in the form of:
     #   y = x + Affine(Activation(BatchNorm(x)))
@@ -1431,6 +1434,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
           bn_fold_weights=p.bn_fold_weights,
           device_mesh=p.device_mesh,
           weight_split_dims_mapping=weight_split_dims_mapping_list[i],
+          activation_split_dims_mapping=activation_split_dims_mapping_list[i],
           name=name)
       params_fc_layers.append(params_i)
       in_dim = out_dim
@@ -2687,11 +2691,6 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     p.Define(
         'chunk_size', 0, 'If non-zero, computes the per example '
         'xent by small chunks along the batch dimension.')
-    p.Define(
-        'weight_split_dims_mapping', None,
-        'Relevant only if device_mesh above is not None. If not None, it is a'
-        ' list of integers (of length 2) specifying how the 2d weight'
-        ' projection matrix should be sharded over device mesh.')
     p.qdomain.Define('logits', None, 'Quantization domain for logits.')
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
     return p
@@ -2834,8 +2833,6 @@ class SimpleFullSoftmax(SoftmaxLayer):
     p = self.params
     assert p.name
 
-    # TODO(yonghui): add support for device_mesh in SimpleFullSoftmax.
-    assert p.device_mesh is None
     # We shard params across the class dimension.
     assert p.num_classes % p.num_shards == 0
     if not p.use_bias:

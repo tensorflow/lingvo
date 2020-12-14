@@ -1003,11 +1003,6 @@ class LinearLayer(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dims', 0, 'Depth of the input.')
     p.Define('output_dims', 0, 'Depth of the output.')
-    p.Define(
-        'weight_split_dims_mapping', None,
-        'Relevant only if device_mesh is not None. If not None, it must be a'
-        ' list of integers of size 2 specifying how the 2d projection weight'
-        ' projection matrix should be sharded over the device mesh.')
     return p
 
   def _CreateLayerVariables(self):
@@ -1064,11 +1059,6 @@ class BiasLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('dims', 0, 'Depth of the input.')
-    p.Define(
-        'weight_split_dims_mapping', None,
-        'Relevant only if device_mesh is not None. If not None, it must be a'
-        ' list of size 1 specifying how the bias weight variable should be'
-        ' sharded over the device mesh.')
     return p
 
   def _CreateLayerVariables(self):
