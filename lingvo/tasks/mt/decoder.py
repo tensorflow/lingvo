@@ -2409,7 +2409,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
       for i, (layer, layer_theta) in enumerate(
           zip(self.decoder_trans, theta.decoder_trans)):
         # [target_batch, 1, dim]
-        layer_out, updated_states = layer.ExtendStep(
+        layer_out, _, updated_states = layer.ExtendStep(
             layer_theta, layer_in, aux_vec, aux_paddings,
             prefix_states['layer_%i' % i], time_step, use_short_seq_opt)
         updated_prefix_states['layer_%i' % i] = updated_states

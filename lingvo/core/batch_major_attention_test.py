@@ -2588,21 +2588,29 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       l = self._ConstructTransformerDecoderLayer()
 
-      layer_output1, _ = l.FProp(l.theta, query_vec, paddings, aux_vec,
-                                 aux_paddings)
+      layer_output1, layer_atten_probs1 = l.FProp(l.theta, query_vec, paddings,
+                                                  aux_vec, aux_paddings)
+      layer_atten_probs1 = layer_atten_probs1.aux_atten
 
       layer_output2 = []
+      layer_atten_probs2 = []
       for i in range(5):
-        layer_output, prefix_states = l.ExtendStep(
+        layer_output, cross_atten_probs, prefix_states = l.ExtendStep(
             l.theta, tf.expand_dims(query_vec[:, i, :], 1), aux_vec,
             aux_paddings, prefix_states, i, use_short_seq_opt)
         layer_output2.append(tf.squeeze(layer_output, 1))
+        layer_atten_probs2.append(cross_atten_probs)
       layer_output2 = tf.transpose(tf.stack(layer_output2), [1, 0, 2])
+      # [B, N, T, S].
+      layer_atten_probs2 = tf.concat(layer_atten_probs2, axis=2)
 
       tf.global_variables_initializer().run()
-      actual_layer_output1, actual_layer_output2 = sess.run(
-          [layer_output1, layer_output2])
+      (actual_layer_output1, actual_layer_output2, actual_layer_atten_probs1,
+       actual_layer_atten_probs2) = sess.run([
+           layer_output1, layer_output2, layer_atten_probs1, layer_atten_probs2
+       ])
       self.assertAllClose(actual_layer_output1, actual_layer_output2)
+      self.assertAllClose(actual_layer_atten_probs1, actual_layer_atten_probs2)
 
   def _ConstructMultiSourceTransformerDecoderLayer(self,
                                                    use_relative_atten=False):
@@ -2652,21 +2660,29 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'source_0': aux_paddings,
           'source_1': aux_paddings
       })
-      layer_output1, _ = l.FProp(l.theta, query_vec, paddings, ms_aux_vec,
-                                 ms_aux_paddings)
+      layer_output1, layer_atten_probs1 = l.FProp(l.theta, query_vec, paddings,
+                                                  ms_aux_vec, ms_aux_paddings)
+      layer_atten_probs1 = layer_atten_probs1.aux_atten
 
       layer_output2 = []
+      layer_atten_probs2 = []
       for i in range(5):
-        layer_output, prefix_states = l.ExtendStep(
+        layer_output, cross_atten_probs, prefix_states = l.ExtendStep(
             l.theta, tf.expand_dims(query_vec[:, i, :], 1), ms_aux_vec,
             ms_aux_paddings, prefix_states, i, use_short_seq_opt)
         layer_output2.append(tf.squeeze(layer_output, 1))
+        layer_atten_probs2.append(cross_atten_probs)
       layer_output2 = tf.transpose(tf.stack(layer_output2), [1, 0, 2])
+      # [B, N, T, S].
+      layer_atten_probs2 = tf.concat(layer_atten_probs2, axis=2)
 
       tf.global_variables_initializer().run()
-      actual_layer_output1, actual_layer_output2 = sess.run(
-          [layer_output1, layer_output2])
+      (actual_layer_output1, actual_layer_output2, actual_layer_atten_probs1,
+       actual_layer_atten_probs2) = sess.run([
+           layer_output1, layer_output2, layer_atten_probs1, layer_atten_probs2
+       ])
       self.assertAllClose(actual_layer_output1, actual_layer_output2)
+      self.assertAllClose(actual_layer_atten_probs1, actual_layer_atten_probs2)
 
   def testGPipeTransformerLayerConstruction(self):
     p = attention.GPipeTransformerLayer.Params()

@@ -3455,6 +3455,7 @@ class TransformerLayer(base_layer.BaseLayer):
 
     Returns:
       cur_output: [target_batch, 1, dim]
+      atten_probs: [target_batch, num_heads, target_time=1, source_time]
       updated_states: A `.NestedMap` object containing the updated states.
       key   - [target_time, target_batch, num_heads, dim_per_head].
       value - [target_time, target_batch, num_heads, dim_per_head].
@@ -3469,15 +3470,17 @@ class TransformerLayer(base_layer.BaseLayer):
       source_batch = self._GetSourceBatchSize(aux_vec)
       # Next the cross-attention layer.
       atten_vec = tf.reshape(atten_vec, [source_batch, -1, dim])
-      atten_vec, _ = self.cross_atten.FProp(theta.cross_atten, atten_vec,
-                                            aux_vec, aux_paddings)
+      atten_vec, cross_atten_probs = self.cross_atten.FProp(
+          theta.cross_atten, atten_vec, aux_vec, aux_paddings)
       atten_vec = tf.reshape(atten_vec, [target_batch, 1, -1])
+    else:
+      cross_atten_probs = None
 
     # Finally the feed-forward layer.
     cur_output = self.fflayer.FProp(
         theta.fflayer, atten_vec,
         tf.zeros([target_batch, 1], dtype=atten_vec.dtype))
-    return cur_output, updated_states
+    return cur_output, cross_atten_probs, updated_states
 
 
 # TODO(garrettaxel): Distribute the computation to downstream layers.
@@ -3859,7 +3862,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       decoder_input = query_vec
       for layer, layer_theta, layer_states in zip(self.x_layers, theta.x_layers,
                                                   cached_states.x_layers):
-        decoder_output, updated_layer_states = layer.ExtendStep(
+        decoder_output, _, updated_layer_states = layer.ExtendStep(
             layer_theta, decoder_input, aux_vec, aux_paddings, layer_states,
             time_step, use_short_seq_opt)
         updated_states.x_layers.append(updated_layer_states)
