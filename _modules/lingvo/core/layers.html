@@ -182,6 +182,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tshape</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">xla_sharding_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">sympy</span>
 
@@ -1023,14 +1024,9 @@
         <span class="s1">&#39;(b/146421936)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_blocked_matmul&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use blocked matrix &#39;</span>
-        <span class="s1">&#39;multiplications. This allows for weight updates to be paralellized&#39;</span>
-        <span class="s1">&#39; across the cores for Shampoo optimizer.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;multiplications. This allows for weight updates to be paralellized &#39;</span>
+        <span class="s1">&#39;across the cores for Shampoo optimizer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Dimension of the block&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Relevant only if device_mesh is not None. If not None, it is a&#39;</span>
-        <span class="s1">&#39; list of integers (of length 2) specifying how the 2d weight&#39;</span>
-        <span class="s1">&#39; projection matrix should be sharded over device mesh.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour for weights.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
 
@@ -1299,10 +1295,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
-      <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">b</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">:</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBlockedWeightMatrix</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
@@ -1388,6 +1381,9 @@
 
     <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">+=</span> <span class="n">b</span>  <span class="c1"># NOTE: Bias on matmul is never quantized.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                         <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivationFunction</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">with_activation</span><span class="p">,</span> <span class="n">quant</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer._ApplyActivationFunction"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._ApplyActivationFunction">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyActivationFunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1510,6 +1506,8 @@
         <span class="s1">&#39;weights in the projection layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_split_dims_mapping_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;A list of weight_split_dims_mapping for each sub-layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation_split_dims_mapping_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;A list of activation_split_dims_mapping for each sub-layer.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour for the weights.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
 
@@ -1557,9 +1555,14 @@
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">weight_split_dims_mapping_list</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping_list</span>
+      <span class="n">activation_split_dims_mapping_list</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping_list</span>
+      <span class="k">if</span> <span class="n">activation_split_dims_mapping_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">activation_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">weight_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+      <span class="n">activation_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_split_dims_mapping_list</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">activation_split_dims_mapping_list</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
 
     <span class="c1"># Residual connections work better in the form of:</span>
     <span class="c1">#   y = x + Affine(Activation(BatchNorm(x)))</span>
@@ -1579,6 +1582,7 @@
           <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
           <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">activation_split_dims_mapping</span><span class="o">=</span><span class="n">activation_split_dims_mapping_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
       <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
       <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
@@ -2835,11 +2839,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, computes the per example &#39;</span>
         <span class="s1">&#39;xent by small chunks along the batch dimension.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it is a&#39;</span>
-        <span class="s1">&#39; list of integers (of length 2) specifying how the 2d weight&#39;</span>
-        <span class="s1">&#39; projection matrix should be sharded over device mesh.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for logits.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -2982,8 +2981,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
-    <span class="c1"># TODO(yonghui): add support for device_mesh in SimpleFullSoftmax.</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="c1"># We shard params across the class dimension.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>

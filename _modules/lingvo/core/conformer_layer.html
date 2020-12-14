@@ -177,8 +177,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
 
 <div class="viewcode-block" id="LConvLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer">[docs]</a><span class="k">class</span> <span class="nc">LConvLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lightweight conv layer.</span>
@@ -232,15 +230,62 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;linear_end_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">FCLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Linear end layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Residual dropout layer.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of SPMD partitions.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;split_act_gated_linear_start&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Separate act and gated linear start to remove data formatting &#39;</span>
         <span class="s1">&#39;overheads&#39;</span><span class="p">)</span>
-
     <span class="n">p</span><span class="o">.</span><span class="n">linear_start_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span> <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">linear_end_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span> <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># SPMD partition related params.</span>
+    <span class="c1">#</span>
+    <span class="c1"># d - model_dim</span>
+    <span class="c1"># f - ff_hidden_dim (here ff_hidden_dim has the same size as model_dim)</span>
+    <span class="c1"># h - height</span>
+    <span class="c1"># w - width</span>
+    <span class="c1"># i - in_channels</span>
+    <span class="c1"># m - channel_multiplier</span>
+    <span class="c1"># b - batch_size</span>
+    <span class="c1"># l - seq_len</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">hparams_lib</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">wp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+    <span class="n">wp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;df&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Mesh split for lconv linear start weight with the shape of &#39;</span>
+        <span class="s1">&#39;[model_dim, ff_hidden_dim], the default hidden_dim is the same as &#39;</span>
+        <span class="s1">&#39;the model_dim.&#39;</span><span class="p">)</span>
+    <span class="n">wp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;hwim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Mesh split for lconv depthwise conv weight with the shape of &#39;</span>
+        <span class="s1">&#39;[height, width, in_channels, channel_multiplier]. Width and &#39;</span>
+        <span class="s1">&#39;channel_multiplier are both 1 for the common use case.&#39;</span><span class="p">)</span>
+    <span class="n">wp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fd&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Mesh split for lconv linear end weight with the shape of &#39;</span>
+        <span class="s1">&#39;[ff_hidden_dim, model_dim], the default hidden_dim is the same as &#39;</span>
+        <span class="s1">&#39;the model_dim.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span> <span class="o">=</span> <span class="n">hparams_lib</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;blf&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Mesh split for lconv linear start activation and lconv &#39;</span>
+        <span class="s1">&#39;depthwise conv after normalization with the shape of &#39;</span>
+        <span class="s1">&#39;[batch_size, seq_len, ff_hidden_dim], the default hidden_dim is the &#39;</span>
+        <span class="s1">&#39;same as model_dim.&#39;</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bld&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Mesh split for lconv linear end activation with the shape of &#39;</span>
+        <span class="s1">&#39;[batch_size, seq_len, model_dim].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="LConvLayer.SetCanonicalShardingParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.SetCanonicalShardingParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetCanonicalShardingParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set up canonical SPMD sharding params.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+    <span class="n">wp</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+    <span class="n">wp</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">wp</span><span class="o">.</span><span class="n">hwim</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">wp</span><span class="o">.</span><span class="n">fd</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">blf</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="LConvLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
@@ -268,18 +313,18 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">ln_p</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">split_act_gated_linear_start</span><span class="p">:</span>
-      <span class="n">device_mesh</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">))</span>
       <span class="n">linear_start_act_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">linear_start_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-          <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
-          <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+          <span class="n">activation_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">)</span>
       <span class="n">linear_start_gated_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">linear_start_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-          <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
-          <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+          <span class="n">activation_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;linear_start_act&#39;</span><span class="p">,</span> <span class="n">linear_start_act_p</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;linear_start_gated&#39;</span><span class="p">,</span> <span class="n">linear_start_gated_p</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -290,7 +335,12 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;linear_start&#39;</span><span class="p">,</span> <span class="n">linear_start_p</span><span class="p">)</span>
 
     <span class="n">linear_end_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">linear_end_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;linear_end&#39;</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;linear_end&#39;</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span><span class="p">,</span>
+        <span class="n">activation_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;linear_end&#39;</span><span class="p">,</span> <span class="n">linear_end_p</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_norm_layer_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">:</span>
@@ -391,8 +441,10 @@
       <span class="c1"># TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.</span>
       <span class="c1"># [b, t, d] --&gt; [b, t, 1, d]</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-      <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span>
-                                                  <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">hwim</span><span class="p">)</span>
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="p">,</span>
                                                      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Normalize</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
@@ -794,21 +846,68 @@
 
 
 <div class="viewcode-block" id="ApplyGshard"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ApplyGshard">[docs]</a><span class="k">def</span> <span class="nf">ApplyGshard</span><span class="p">(</span><span class="n">conformer_tpl</span><span class="p">,</span>
-                <span class="n">atten_num_partitions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">lconv_num_partitions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Applies gshard on conformer params.&quot;&quot;&quot;</span>
+                <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">proj_w_split_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">proj_activation_split_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">atten_dnh_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">atten_blnh_activation_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">lconv_df_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">lconv_hwim_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">lconv_fd_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">lconv_blf_activation_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">lconv_bld_activation_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Applies gshard on conformer params.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    conformer_tpl: A NestedMap of conformer Params.</span>
+<span class="sd">    device_mesh: A numpy.ndarray specifying the device mesh on which the</span>
+<span class="sd">      computation is sharded.</span>
+<span class="sd">    proj_w_split_list: A list of mesh split specifying how weights are sharded</span>
+<span class="sd">      for fflayer.</span>
+<span class="sd">    proj_activation_split_list: A list of mesh split specifying how activations</span>
+<span class="sd">      are sharded for fflayer.</span>
+<span class="sd">    atten_dnh_w_split: Mesh split of the attention projection weight with the</span>
+<span class="sd">      shape of [model_dim, num_heads, dim_per_head].</span>
+<span class="sd">    atten_blnh_activation_split: Mesh split of the attention activation with</span>
+<span class="sd">      shape of [batch, seq_len, num_heads, dim_per_head].</span>
+<span class="sd">    lconv_df_w_split: Mesh split of the weights in lconv with the shape of</span>
+<span class="sd">      [model_dim, ff_hidden_dim].</span>
+<span class="sd">    lconv_hwim_w_split: Mesh split of the depthwise conv weight in lconv with</span>
+<span class="sd">      the shape of [height, width, in_channels, channel_multiplier].</span>
+<span class="sd">    lconv_fd_w_split: Mesh split of the weights in lconv with the shape of</span>
+<span class="sd">      [ff_hidden_dim, model_dim].</span>
+<span class="sd">    lconv_blf_activation_split: Mesh split of the activations in lconv with the</span>
+<span class="sd">      shape of [batch, seq_len, ff_hidden_dim].</span>
+<span class="sd">    lconv_bld_activation_split: Mesh split of the activations in lconv with the</span>
+<span class="sd">      shape of [batch, seq_len, model_dim].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The updated conformer_tpl.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="c1"># Not all attention class supports gshard. If not, errors would be throw here.</span>
-  <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">atten_num_partitions</span><span class="p">)</span>
   <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">device_mesh</span> <span class="o">=</span> <span class="n">device_mesh</span>
+  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">atten_dnh_w_split</span><span class="p">)</span>
+  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">atten_blnh_activation_split</span><span class="p">)</span>
   <span class="c1"># TODO(jamesqin): support residual_proj xla sharding too.</span>
   <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">fflayer_start_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
       <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
-      <span class="n">weight_split_dims_mapping_list</span><span class="o">=</span><span class="p">[[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+      <span class="n">weight_split_dims_mapping_list</span><span class="o">=</span><span class="n">proj_w_split_list</span><span class="p">,</span>
+      <span class="n">activation_split_dims_mapping_list</span><span class="o">=</span><span class="n">proj_activation_split_list</span><span class="p">)</span>
   <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
       <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
-      <span class="n">weight_split_dims_mapping_list</span><span class="o">=</span><span class="p">[[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
-  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">lconv_num_partitions</span><span class="p">)</span>
-  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">split_act_gated_linear_start</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">weight_split_dims_mapping_list</span><span class="o">=</span><span class="n">proj_w_split_list</span><span class="p">,</span>
+      <span class="n">activation_split_dims_mapping_list</span><span class="o">=</span><span class="n">proj_activation_split_list</span><span class="p">)</span>
+  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">split_act_gated_linear_start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span>
+  <span class="n">lconv_w_split</span> <span class="o">=</span> <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+  <span class="n">lconv_w_split</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">lconv_df_w_split</span>
+  <span class="n">lconv_w_split</span><span class="o">.</span><span class="n">hwim</span> <span class="o">=</span> <span class="n">lconv_hwim_w_split</span>
+  <span class="n">lconv_w_split</span><span class="o">.</span><span class="n">fd</span> <span class="o">=</span> <span class="n">lconv_fd_w_split</span>
+  <span class="n">lconv_activation_split</span> <span class="o">=</span> <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
+  <span class="n">lconv_activation_split</span><span class="o">.</span><span class="n">blf</span> <span class="o">=</span> <span class="n">lconv_blf_activation_split</span>
+  <span class="n">lconv_activation_split</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="n">lconv_bld_activation_split</span>
   <span class="k">return</span> <span class="n">conformer_tpl</span></div>
 </pre></div>
 

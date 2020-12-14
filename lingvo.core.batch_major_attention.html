@@ -2725,6 +2725,12 @@ pooling is applied to the time dim.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.Builder.SetCanonicalShardingParams">
+<em class="property">classmethod </em><code class="sig-name descname">SetCanonicalShardingParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.SetCanonicalShardingParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.SetCanonicalShardingParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up canonical SPMD sharding params.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder._Dropout">
 <code class="sig-name descname">_Dropout</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">drop_prob</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._Dropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._Dropout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a DropoutLayer Params.</p>
@@ -3020,18 +3026,23 @@ specified, this will override p.num_heads.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._Var">
+<code class="sig-name descname">_Var</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">weights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._Var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._Var" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LmBuilder._ShardedVar">
-<code class="sig-name descname">_ShardedVar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">weights</span></em>, <em class="sig-param"><span class="n">split_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._ShardedVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._ShardedVar" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_ShardedVar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">weights</span></em>, <em class="sig-param"><span class="n">mesh_split</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._ShardedVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._ShardedVar" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LmBuilder._LinearWeight">
-<code class="sig-name descname">_LinearWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">output_dim</span></em>, <em class="sig-param"><span class="n">split_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._LinearWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._LinearWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_LinearWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">output_dim</span></em>, <em class="sig-param"><span class="n">mesh_split</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._LinearWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._LinearWeight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LmBuilder._Linear">
-<code class="sig-name descname">_Linear</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">output_dim</span></em>, <em class="sig-param"><span class="n">split_dim</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._Linear" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_Linear</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">output_dim</span></em>, <em class="sig-param"><span class="n">mesh_split</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._Linear" title="Permalink to this definition">¶</a></dt>
 <dd><p>Linear layer. y = matmul([…, idims], [idims, odims]).</p>
 </dd></dl>
 
@@ -3045,6 +3056,16 @@ specified, this will override p.num_heads.</p></li>
 <code class="sig-name descname">_Bias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._Bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._Bias" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bias layer. The bias is added to the last dimension of the input.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._MeshSplit">
+<code class="sig-name descname">_MeshSplit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">tensor_split_dims_mapping</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._MeshSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._MeshSplit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder.MeshSplit">
+<code class="sig-name descname">MeshSplit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">tensor_split_dims_mapping</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder.MeshSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder.MeshSplit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LmBuilder.Feedforward">

@@ -209,6 +209,25 @@
         <span class="s1">&#39;tf.bfloat16, which will be propagated to layers that support &#39;</span>
         <span class="s1">&#39;bfloat16 activations. Default is None, which will use float32 &#39;</span>
         <span class="s1">&#39;activations.&#39;</span><span class="p">)</span>
+    <span class="c1"># SPMD partition related params.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;device_mesh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A numpy.ndarray specifying the topology of a device mesh to place the &#39;</span>
+        <span class="s1">&#39;computations onto. If device_mesh is None, it is assumed to be a &#39;</span>
+        <span class="s1">&#39;single device. Here are some examples: &#39;</span>
+        <span class="s1">&#39;np.array([0, 1, 2, 3, 4, 5, 6, 7]) which is a 1d mesh with 8 devices, &#39;</span>
+        <span class="s1">&#39;np.array([[0, 1, 2, 3], [4, 5, 6, 7]]) which is 2d matrix of 8 &#39;</span>
+        <span class="s1">&#39;devices.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;weight_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it &#39;</span>
+        <span class="s1">&#39;specifies how weight of this layer or those of the sublayers should &#39;</span>
+        <span class="s1">&#39;be sharded over device mesh. &#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;activation_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it &#39;</span>
+        <span class="s1">&#39;specifies how activation of this layer or those of the sublayers &#39;</span>
+        <span class="s1">&#39;should be sharded over device mesh. &#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>

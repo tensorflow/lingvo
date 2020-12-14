@@ -200,6 +200,12 @@
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.SetCanonicalShardingParams">
+<em class="property">classmethod </em><code class="sig-name descname">SetCanonicalShardingParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.SetCanonicalShardingParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.SetCanonicalShardingParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up canonical SPMD sharding params.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.conformer_layer.LConvLayer.CommonParams">
 <em class="property">classmethod </em><code class="sig-name descname">CommonParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_dim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">kernel_size</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">conv_activation</span><span class="o">=</span><span class="default_value">'SWISH'</span></em>, <em class="sig-param"><span class="n">dropout_prob</span><span class="o">=</span><span class="default_value">0.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.CommonParams" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -408,8 +414,38 @@ state1: A NestedMap of tensors of the same struct as state0.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.conformer_layer.ApplyGshard">
-<code class="sig-prename descclassname">lingvo.core.conformer_layer.</code><code class="sig-name descname">ApplyGshard</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conformer_tpl</span></em>, <em class="sig-param"><span class="n">atten_num_partitions</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">lconv_num_partitions</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ApplyGshard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ApplyGshard" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.conformer_layer.</code><code class="sig-name descname">ApplyGshard</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conformer_tpl</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">proj_w_split_list</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">proj_activation_split_list</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">atten_dnh_w_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">atten_blnh_activation_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">lconv_df_w_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">lconv_hwim_w_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">lconv_fd_w_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">lconv_blf_activation_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">lconv_bld_activation_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ApplyGshard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ApplyGshard" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies gshard on conformer params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conformer_tpl</strong> – A NestedMap of conformer Params.</p></li>
+<li><p><strong>device_mesh</strong> – A numpy.ndarray specifying the device mesh on which the
+computation is sharded.</p></li>
+<li><p><strong>proj_w_split_list</strong> – A list of mesh split specifying how weights are sharded
+for fflayer.</p></li>
+<li><p><strong>proj_activation_split_list</strong> – A list of mesh split specifying how activations
+are sharded for fflayer.</p></li>
+<li><p><strong>atten_dnh_w_split</strong> – Mesh split of the attention projection weight with the
+shape of [model_dim, num_heads, dim_per_head].</p></li>
+<li><p><strong>atten_blnh_activation_split</strong> – Mesh split of the attention activation with
+shape of [batch, seq_len, num_heads, dim_per_head].</p></li>
+<li><p><strong>lconv_df_w_split</strong> – Mesh split of the weights in lconv with the shape of
+[model_dim, ff_hidden_dim].</p></li>
+<li><p><strong>lconv_hwim_w_split</strong> – Mesh split of the depthwise conv weight in lconv with
+the shape of [height, width, in_channels, channel_multiplier].</p></li>
+<li><p><strong>lconv_fd_w_split</strong> – Mesh split of the weights in lconv with the shape of
+[ff_hidden_dim, model_dim].</p></li>
+<li><p><strong>lconv_blf_activation_split</strong> – Mesh split of the activations in lconv with the
+shape of [batch, seq_len, ff_hidden_dim].</p></li>
+<li><p><strong>lconv_bld_activation_split</strong> – Mesh split of the activations in lconv with the
+shape of [batch, seq_len, model_dim].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The updated conformer_tpl.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
