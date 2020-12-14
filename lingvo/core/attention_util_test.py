@@ -209,12 +209,12 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
       ('other_case_1', 6, 3, 4, 1),
       ('other_case_2', 6, 4, 2, 4),
   )
-  def testMakeCausalPadding(self, seq_len, block_size, left_context,
-                            right_context):
+  def testMakeLocalPadding(self, seq_len, block_size, left_context,
+                           right_context):
     with self.session() as sess:
       seq_len_t = tf.convert_to_tensor(seq_len)
-      padding = attention_util.MakeCausalPadding(seq_len_t, block_size,
-                                                 left_context, right_context)
+      padding = attention_util.MakeLocalPadding(seq_len_t, block_size,
+                                                left_context, right_context)
       padding_val = sess.run(padding)
 
     ref_padding = self._getReferenceCausalPadding(seq_len, block_size,

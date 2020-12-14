@@ -101,11 +101,11 @@ def ExtractBlockContext(x,
   return tf.concat(concat_list, axis=2)
 
 
-def MakeCausalPadding(seq_len,
-                      block_size,
-                      left_context,
-                      right_context,
-                      dtype=tf.float32):
+def MakeLocalPadding(seq_len,
+                     block_size,
+                     left_context,
+                     right_context,
+                     dtype=tf.float32):
   """Makes the causal padding tensor for a full sequence.
 
   Args:

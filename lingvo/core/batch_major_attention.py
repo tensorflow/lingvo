@@ -1361,7 +1361,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # Make local causal paddings.
     # -> [U, W, C]
-    local_causal_padding = attention_util.MakeCausalPadding(
+    local_causal_padding = attention_util.MakeLocalPadding(
         seq_len=t,
         block_size=p.block_size,
         left_context=p.left_context,
