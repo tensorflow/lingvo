@@ -981,7 +981,7 @@ def FeedForwardNetworksApplyGating(gating,
 
   Returns:
     outputs: G`SM Tensor.
-    aux_loss: scalar auxilliar loss.
+    aux_loss: scalar auxiliary loss.
   """
   if device_mesh is not None:
     assert gsm_split is not None

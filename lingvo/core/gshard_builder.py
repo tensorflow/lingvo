@@ -582,6 +582,7 @@ class MoEBuilder(builder.Base):
     )
 
   def MoE(self, name, decoder=False):
+    """Returns layer params to compute (outputs, scalar_aux_loss)."""
     input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
       input_endpoints += [
