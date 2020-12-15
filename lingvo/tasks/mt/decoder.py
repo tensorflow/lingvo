@@ -2122,9 +2122,12 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
         'model_dim', 1024, 'Model dimension that applies to embedding '
         'layers and all Transformer layers.')
     p.Define('num_trans_layers', 6, 'Number of Transformer layers.')
-    p.Define('trans_decoder_tpl',
-             batch_major_attention.TransformerDecoderLayer.Params(),
-             'Transformer layer params.')
+    p.Define(
+        'trans_decoder_tpl',
+        batch_major_attention.TransformerDecoderLayer.Params(),
+        'Transformer layer params. This can be a list of params '
+        'of length equal to num_trans_layers or a factor of it, '
+        'in which case the params are tiled as [a, a, ..., b, b, ...]')
     p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
     p.Define('input_dropout_tpl', layers.DropoutLayer.Params(),
              'Input dropout layer params.')
@@ -2186,10 +2189,20 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
     self.CreateChild('input_dropout', dropout_tpl)
 
-    p.trans_decoder_tpl.packed_input = p.packed_input
+    if isinstance(p.trans_decoder_tpl, list):
+      if p.num_trans_layers % len(p.trans_decoder_tpl):
+        raise ValueError('num_trans_layers should be divisible by '
+                         'len(p.trans_decoder_tpl)')
+
     params_trans_layers = []
     for i in range(p.num_trans_layers):
-      params = p.trans_decoder_tpl.Copy()
+      if isinstance(p.trans_decoder_tpl, list):
+        idx = i // len(p.trans_decoder_tpl)
+        params = p.trans_decoder_tpl[idx].Copy()
+        params.packed_input = p.packed_input
+      else:
+        params = p.trans_decoder_tpl.Copy()
+        params.packed_input = p.packed_input
       params.name = 'decoder_trans_layer_%d' % i
       params_trans_layers.append(params)
     self.CreateChildren('decoder_trans', params_trans_layers)

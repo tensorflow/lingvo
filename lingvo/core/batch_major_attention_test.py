@@ -1519,11 +1519,11 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(encoded.shape,
                        (batch_size, target_length, num_heads, dim_per_head))
       self.assertEqual(probs.shape,
-                       (batch_size, target_length, num_heads, source_length))
+                       (batch_size, num_heads, target_length, source_length))
       # attention weights sum to 1.
       self.assertAllClose(
           np.sum(probs, axis=-1),
-          np.ones([batch_size, target_length, num_heads]))
+          np.ones([batch_size, num_heads, target_length]))
 
   def testDotAttenFast(self):
     batch_size = 6
@@ -1570,7 +1570,7 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(encoded.shape,
                        (batch_size, target_length, num_heads, dim_per_head))
       self.assertEqual(probs.shape,
-                       (batch_size, target_length, num_heads, source_length))
+                       (batch_size, num_heads, target_length, source_length))
       _, probs2 = sess.run(
           atten2._DotAtten(
               atten2.theta, q, k, v, k_paddings, query_paddings=q_paddings))
@@ -1579,7 +1579,6 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
       k_ln = attention_util.KMeansClusteringForAtten.LayerNorm(k)
       full_encoded_t, full_probs_t = full_atten._DotAtten(
           full_atten.theta, q_ln, k_ln, v, k_paddings, None)
-      full_probs_t = tf.transpose(full_probs_t, [0, 2, 1, 3])
       full_probs, full_encoded = sess.run([full_probs_t, full_encoded_t])
 
     # When we increase p.query_group_size_factor, the number of left out queries
@@ -1588,15 +1587,15 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
     for batch_idx in range(batch_size):
       for time_idx in range(target_length):
         for head_idx in range(num_heads):
-          sub_probs = probs[batch_idx, time_idx, head_idx, :]
+          sub_probs = probs[batch_idx, head_idx, time_idx, :]
           sub_encoded = encoded[batch_idx, time_idx, head_idx, :]
           # encoded output is either 0 or matching full attention output
           # for each query position.
           if np.allclose(sub_probs, np.zeros_like(sub_probs)):
             self.assertAllClose(sub_encoded, np.zeros_like(sub_encoded))
             continue
-          self.assertAllClose(sub_probs, full_probs[batch_idx, time_idx,
-                                                    head_idx, :])
+          self.assertAllClose(sub_probs, full_probs[batch_idx, head_idx,
+                                                    time_idx, :])
           self.assertAllClose(sub_encoded, full_encoded[batch_idx, time_idx,
                                                         head_idx, :])
 
@@ -1653,7 +1652,6 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
       k_ln = attention_util.KMeansClusteringForAtten.LayerNorm(k)
       full_encoded_t, full_probs_t = full_atten._DotAtten(
           full_atten.theta, q_ln, k_ln, v, k_paddings, None)
-      full_probs_t = tf.transpose(full_probs_t, [0, 2, 1, 3])
       full_gradients_t = tf.gradients(full_encoded_t, [q, k, v])
       (encoded, probs, full_encoded, full_probs, gradients,
        full_gradients) = sess.run([
@@ -1720,12 +1718,11 @@ class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
           k_paddings,
           segment_mask=None,
           per_step_padding=per_step_padding)
-      full_probs = tf.transpose(full_probs, [0, 2, 1, 3])
       self.assertAllClose(probs, full_probs.eval())
       self.assertAllClose(encoded, full_encoded.eval())
 
     # Verify that the first token only attends to position 0.
-    first_token_probs = probs[:, 0, :, :]
+    first_token_probs = probs[:, :, 0, :]
     expected = np.zeros_like(first_token_probs)
     expected[:, :, 0] = 1.
     self.assertAllClose(first_token_probs, expected)
@@ -2036,8 +2033,9 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       p = attention.TransformerAttentionLayer.Params().Set(
           name='transformer_masked_self_atten',
           input_dim=4,
+          hidden_dim=8,
           is_masked=True,
-          num_heads=[2, 2])
+          num_heads=[2, 3])
       p.atten_tpl = [
           attention.MultiHeadedAttention.Params().Set(),
           attention.MultiHeadedAttention.Params().Set()
@@ -2050,7 +2048,7 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual_ctx = sess.run(ctx_vec)
       actual_ctx = np.reshape(actual_ctx, (10, 4))
       tf.logging.info(np.array_repr(actual_ctx))
-      expected_ctx = [6.8377337, 7.65435, 1.4364471, 2.5929067]
+      expected_ctx = [12.3041725, 5.4454093, 1.684509, 10.300517]
       self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=0))
 
   def testAttentionLayerFPropMaskedSelfAttentionPaddingOverride(self):

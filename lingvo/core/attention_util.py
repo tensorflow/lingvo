@@ -492,7 +492,10 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     dists = tf.where(paddings_tiled > 0.0, very_large_dists, dists)
 
     # Shape [B, L, N, K], the same as 'dists' above.
-    nearest_one_hot = tf.one_hot(tf.math.argmin(dists, axis=-1), p.num_clusters)
+    nearest_one_hot = tf.one_hot(
+        tf.math.argmin(dists, axis=-1),
+        p.num_clusters,
+        dtype=py_utils.FPropDtype(p))
     # Same shape as the input 'x'.
     nearest_centroid = tf.einsum('BLNK, NKH -> BLNH', nearest_one_hot,
                                  theta.means)
@@ -553,7 +556,8 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     #
     # Note that we intentionally do not normalize the means after this update
     # as empirically this works better.
-    update_means_diff = (1.0 - p.decay) * (new_means - theta.means)
+    update_means_diff = tf.cast((1.0 - p.decay) * (new_means - theta.means),
+                                self.vars.means.dtype)
     return py_utils.with_dependencies(
         [tf.assign_add(self.vars.means, update_means_diff)],
         dists), k_means_loss

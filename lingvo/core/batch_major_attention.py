@@ -306,6 +306,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Number of key nodes.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     p.Define('num_heads', 1, 'Num of attention heads.')
+    p.Define(
+        'dim_per_head', None, 'Hidden dim of each attention head. If None, '
+        'defaults to p.hidden_dim // p.num_heads')
     p.Define('dropout_tpl', layers.DropoutLayer.Params(),
              'Params for dropout layer.')
     p.Define(
@@ -337,7 +340,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     assert p.hidden_dim, 'hidden_dim is {}'.format(p.hidden_dim)
     # if proj_tpl does not have dim_per_head set, set it
     if p.proj_tpl.dim_per_head == 0:
-      dim_per_head = p.hidden_dim // p.num_heads
+      dim_per_head = p.dim_per_head or p.hidden_dim // p.num_heads
       p.proj_tpl.dim_per_head = dim_per_head
 
     if p.device_mesh is not None:
@@ -2083,7 +2086,6 @@ class RoutingAttention(MultiHeadedAttention):
     * supporting packed inputs;
     * support attention dropout;
     * support relative position encoding;
-    * support using local attention on some heads.
 
   We use the following capital letters to denote shape parameters:
     B = batch size
@@ -2135,7 +2137,7 @@ class RoutingAttention(MultiHeadedAttention):
     clustering_p = p.clustering
     clustering_p.num_clusters = p.num_clusters
     clustering_p.num_heads = p.num_heads
-    clustering_p.dim_per_head = p.hidden_dim // p.num_heads
+    clustering_p.dim_per_head = p.dim_per_head or p.hidden_dim // p.num_heads
     # We normalize manually prior so that we can reuse the same normalized
     # query/key to compute attention probs later.
     clustering_p.apply_layer_norm = False
@@ -2179,7 +2181,7 @@ class RoutingAttention(MultiHeadedAttention):
 
     Returns:
       encoded: [B, T, N, H].
-      atten_probs: [B, T, N, S].
+      atten_probs: [B, N, T, S].
     """
     p = self.params
     if segment_mask is not None or per_step_padding is not None:
@@ -2207,11 +2209,16 @@ class RoutingAttention(MultiHeadedAttention):
       k_dists, _ = self.clustering.FProp(
           theta.clustering, key, key_paddings, update=update)
     if p.fast_path:
-      return self._DotAttenFastPath(theta, query, key, value, q_dists, k_dists,
-                                    query_paddings, key_paddings)
+      encoded, probs = self._DotAttenFastPath(theta, query, key, value, q_dists,
+                                              k_dists, query_paddings,
+                                              key_paddings)
     else:
-      return self._DotAttenSlowPath(theta, query, key, value, q_dists, k_dists,
-                                    query_paddings, key_paddings)
+      encoded, probs = self._DotAttenSlowPath(theta, query, key, value, q_dists,
+                                              k_dists, query_paddings,
+                                              key_paddings)
+    # 'probs' has shape [B, T, N, S]
+    atten_probs = tf.transpose(probs, perm=[0, 2, 1, 3])
+    return encoded, atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
     """Initialize 'states' with .key, .value, and .key_dists."""
@@ -2484,9 +2491,9 @@ class RoutingAttention(MultiHeadedAttention):
 
     q_length = py_utils.GetShape(query, 2)[1]
     k_length = py_utils.GetShape(key, 2)[1]
-    assert isinstance(q_length, int)
-    assert isinstance(k_length, int)
-    q_cluster_size = int(p.query_group_size_factor * q_length / p.num_clusters)
+    q_cluster_size = tf.cast(
+        p.query_group_size_factor / p.num_clusters *
+        tf.cast(q_length, py_utils.FPropDtype(p)), tf.int32)
     # Of shape [B, N, K, T]
     q_dists = tf.transpose(q_dists, [0, 2, 3, 1])
     # closest_q of shape [B, N, K, V], where V = q_cluster_size
@@ -2542,7 +2549,7 @@ class RoutingAttention(MultiHeadedAttention):
           is_key_padded, tf.math.greater(c_key_positions, c_query_positions))
 
     logits = tf.einsum('BNKVD,BNKWD->BNKVW', c_query, c_key)
-    logits *= tf.math.rsqrt(tf.cast(dim_per_head, p.dtype))
+    logits *= tf.math.rsqrt(tf.cast(dim_per_head, py_utils.FPropDtype(p)))
 
     very_negative_logits = (
         tf.ones_like(logits) * logits.dtype.max *
@@ -2624,7 +2631,7 @@ class RoutingAttention(MultiHeadedAttention):
       times = tf.scatter_nd(
           times_idx, tf.cast(tf.ones_like(closest_q), scattered_prob.dtype),
           [B, q_length, N])
-      times = tf.maximum(1.0, times[:, :, :, None])
+      times = tf.maximum(tf.cast(1.0, times.dtype), times[:, :, :, None])
       out = scattered_prob / times
       return out
 
@@ -2868,17 +2875,13 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     """Returns an initialized transformer attention parameters."""
     p = self.params
 
-    # Make sure atten_tpl and num_heads are scalars or lists of same size
-    def _RaiseTypeError():
+    if isinstance(p.num_heads, list) != isinstance(atten_tpl, list):
+      raise ValueError('p.num_heads and p.atten_tpl should both be lists '
+                       f'or both scalars for {p.name} num_heads={p.num_heads}.')
+    if isinstance(p.num_heads, list) and (len(p.num_heads) != len(atten_tpl)):
       raise ValueError('num_heads and atten_tpl should both be lists '
-                       'of the same size or both scalars.')
-
-    if isinstance(p.num_heads, list) == isinstance(atten_tpl, list):
-      if isinstance(p.num_heads, list):
-        if len(p.num_heads) != len(atten_tpl):
-          _RaiseTypeError()
-    else:
-      _RaiseTypeError()
+                       'of the equal sizes: '
+                       f'{len(p.num_heads)} vs {len(atten_tpl)}')
 
     def _SetCommonParams(params, name, num_heads):
       params.name = name
@@ -3334,7 +3337,7 @@ class TransformerLayer(base_layer.BaseLayer):
     params.name = 'multihead_self_atten'
     params.input_dim = p.input_dim
     params.is_masked = p.mask_self_atten
-    if p.num_heads:
+    if p.num_heads and not isinstance(params.num_heads, list):
       params.num_heads = p.num_heads
     if isinstance(params.atten_tpl, list):
       for atten in params.atten_tpl:
@@ -3348,7 +3351,7 @@ class TransformerLayer(base_layer.BaseLayer):
       params = p.tr_atten_tpl.Copy()
       params.name = 'multihead_cross_atten'
       params.input_dim = p.input_dim
-      if p.num_heads:
+      if p.num_heads and not isinstance(params.num_heads, list):
         params.num_heads = p.num_heads
       if isinstance(params.atten_tpl, list):
         for atten in params.atten_tpl:
@@ -3777,7 +3780,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       p_ii.input_dim = p.mdl_dim
       p_ii.output_dim = p.mdl_dim
       p_ii.packed_input = p.packed_input
-      p_ii.tr_atten_tpl.num_heads = p.num_atten_heads
+      if not isinstance(p_ii.tr_atten_tpl.num_heads, list):
+        p_ii.tr_atten_tpl.num_heads = p.num_atten_heads
       p_ii.tr_atten_tpl.atten_dropout_prob = p.dropout_prob
       p_ii.tr_atten_tpl.residual_dropout_prob = p.dropout_prob
       p_ii.tr_atten_tpl.add_unnormalized_input = p.add_unnormalized_input
