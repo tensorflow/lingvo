@@ -2270,9 +2270,12 @@
         <span class="s1">&#39;model_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Model dimension that applies to embedding &#39;</span>
         <span class="s1">&#39;layers and all Transformer layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_trans_layers&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Number of Transformer layers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;trans_decoder_tpl&#39;</span><span class="p">,</span>
-             <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">TransformerDecoderLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-             <span class="s1">&#39;Transformer layer params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;trans_decoder_tpl&#39;</span><span class="p">,</span>
+        <span class="n">batch_major_attention</span><span class="o">.</span><span class="n">TransformerDecoderLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Transformer layer params. This can be a list of params &#39;</span>
+        <span class="s1">&#39;of length equal to num_trans_layers or a factor of it, &#39;</span>
+        <span class="s1">&#39;in which case the params are tiled as [a, a, ..., b, b, ...]&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Prob at which we do input dropout.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dropout_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Input dropout layer params.&#39;</span><span class="p">)</span>
@@ -2334,10 +2337,20 @@
     <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_trans_layers should be divisible by &#39;</span>
+                         <span class="s1">&#39;len(p.trans_decoder_tpl)&#39;</span><span class="p">)</span>
+
     <span class="n">params_trans_layers</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">):</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">i</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;decoder_trans_layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
       <span class="n">params_trans_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;decoder_trans&#39;</span><span class="p">,</span> <span class="n">params_trans_layers</span><span class="p">)</span>

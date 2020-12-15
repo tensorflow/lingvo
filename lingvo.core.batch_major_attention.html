@@ -1392,7 +1392,6 @@ dot product.</p>
 <li><p>supporting packed inputs;</p></li>
 <li><p>support attention dropout;</p></li>
 <li><p>support relative position encoding;</p></li>
-<li><p>support using local attention on some heads.</p></li>
 </ul>
 </dd>
 <dt>We use the following capital letters to denote shape parameters:</dt><dd><p>B = batch size
@@ -1441,7 +1440,7 @@ for both. (For the inference path only ‘key_paddings’ is useful.)</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>[B, T, N, H].
-atten_probs: [B, T, N, S].</p>
+atten_probs: [B, N, T, S].</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>encoded</p>

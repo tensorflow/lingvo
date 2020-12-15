@@ -454,6 +454,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of key nodes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of hidden nodes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Num of attention heads.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dim_per_head&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Hidden dim of each attention head. If None, &#39;</span>
+        <span class="s1">&#39;defaults to p.hidden_dim // p.num_heads&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Params for dropout layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -485,7 +488,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="s1">&#39;hidden_dim is </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span>
     <span class="c1"># if proj_tpl does not have dim_per_head set, set it</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+      <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
       <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">dim_per_head</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2231,7 +2234,6 @@
 <span class="sd">    * supporting packed inputs;</span>
 <span class="sd">    * support attention dropout;</span>
 <span class="sd">    * support relative position encoding;</span>
-<span class="sd">    * support using local attention on some heads.</span>
 
 <span class="sd">  We use the following capital letters to denote shape parameters:</span>
 <span class="sd">    B = batch size</span>
@@ -2283,7 +2285,7 @@
     <span class="n">clustering_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">clustering</span>
     <span class="n">clustering_p</span><span class="o">.</span><span class="n">num_clusters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span>
     <span class="n">clustering_p</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">clustering_p</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">clustering_p</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
     <span class="c1"># We normalize manually prior so that we can reuse the same normalized</span>
     <span class="c1"># query/key to compute attention probs later.</span>
     <span class="n">clustering_p</span><span class="o">.</span><span class="n">apply_layer_norm</span> <span class="o">=</span> <span class="kc">False</span>
@@ -2327,7 +2329,7 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      encoded: [B, T, N, H].</span>
-<span class="sd">      atten_probs: [B, T, N, S].</span>
+<span class="sd">      atten_probs: [B, N, T, S].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">per_step_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2355,11 +2357,16 @@
       <span class="n">k_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fast_path</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenFastPath</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">q_dists</span><span class="p">,</span> <span class="n">k_dists</span><span class="p">,</span>
-                                    <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">)</span>
+      <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenFastPath</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">q_dists</span><span class="p">,</span>
+                                              <span class="n">k_dists</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span>
+                                              <span class="n">key_paddings</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenSlowPath</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">q_dists</span><span class="p">,</span> <span class="n">k_dists</span><span class="p">,</span>
-                                    <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">)</span></div>
+      <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenSlowPath</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">q_dists</span><span class="p">,</span>
+                                              <span class="n">k_dists</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span>
+                                              <span class="n">key_paddings</span><span class="p">)</span>
+    <span class="c1"># &#39;probs&#39; has shape [B, T, N, S]</span>
+    <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="RoutingAttention.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initialize &#39;states&#39; with .key, .value, and .key_dists.&quot;&quot;&quot;</span>
@@ -2632,9 +2639,9 @@
 
     <span class="n">q_length</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">k_length</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q_length</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k_length</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-    <span class="n">q_cluster_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">query_group_size_factor</span> <span class="o">*</span> <span class="n">q_length</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">)</span>
+    <span class="n">q_cluster_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">query_group_size_factor</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span> <span class="o">*</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">q_length</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="c1"># Of shape [B, N, K, T]</span>
     <span class="n">q_dists</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">q_dists</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="c1"># closest_q of shape [B, N, K, V], where V = q_cluster_size</span>
@@ -2690,7 +2697,7 @@
           <span class="n">is_key_padded</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">c_key_positions</span><span class="p">,</span> <span class="n">c_query_positions</span><span class="p">))</span>
 
     <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNKVD,BNKWD-&gt;BNKVW&#39;</span><span class="p">,</span> <span class="n">c_query</span><span class="p">,</span> <span class="n">c_key</span><span class="p">)</span>
-    <span class="n">logits</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dim_per_head</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="n">logits</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dim_per_head</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
 
     <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span>
@@ -2772,7 +2779,7 @@
       <span class="n">times</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">(</span>
           <span class="n">times_idx</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">closest_q</span><span class="p">),</span> <span class="n">scattered_prob</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
           <span class="p">[</span><span class="n">B</span><span class="p">,</span> <span class="n">q_length</span><span class="p">,</span> <span class="n">N</span><span class="p">])</span>
-      <span class="n">times</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">times</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">])</span>
+      <span class="n">times</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">times</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">times</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">])</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">scattered_prob</span> <span class="o">/</span> <span class="n">times</span>
       <span class="k">return</span> <span class="n">out</span>
 
@@ -3016,17 +3023,13 @@
     <span class="sd">&quot;&quot;&quot;Returns an initialized transformer attention parameters.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="c1"># Make sure atten_tpl and num_heads are scalars or lists of same size</span>
-    <span class="k">def</span> <span class="nf">_RaiseTypeError</span><span class="p">():</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.num_heads and p.atten_tpl should both be lists &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;or both scalars for </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> num_heads=</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">)):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_heads and atten_tpl should both be lists &#39;</span>
-                       <span class="s1">&#39;of the same size or both scalars.&#39;</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">):</span>
-          <span class="n">_RaiseTypeError</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">_RaiseTypeError</span><span class="p">()</span>
+                       <span class="s1">&#39;of the equal sizes: &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span><span class="si">}</span><span class="s1"> vs </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">atten_tpl</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_SetCommonParams</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">):</span>
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
@@ -3482,7 +3485,7 @@
     <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_self_atten&#39;</span>
     <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
     <span class="n">params</span><span class="o">.</span><span class="n">is_masked</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">atten</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">:</span>
@@ -3496,7 +3499,7 @@
       <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_cross_atten&#39;</span>
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">atten</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">:</span>
@@ -3925,7 +3928,8 @@
       <span class="n">p_ii</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">mdl_dim</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">mdl_dim</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
-      <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_atten_heads</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_atten_heads</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span>
