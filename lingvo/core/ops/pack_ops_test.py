@@ -146,6 +146,19 @@ class PackSequencesOpTest(test_utils.TestCase):
         self.assertAllEqual(r[4], test.tgt_segment_pos, name)
         self.assertAllEqual(r[5], test.tgt_indices_in_input, name)
 
+  def testPackSequencesShapeUnknown(self):
+    actual_seq_len = tf.compat.v1.placeholder(tf.int32, shape=None)
+    with self.session() as sess:
+      output = ops.pack_sequences(actual_seq_len, actual_seq_len, 2, 5, 5)
+      r = sess.run(output, feed_dict={actual_seq_len: np.array([1, 2, 1])})
+    self.assertEqual(6, len(r))
+    self.assertAllEqual(r[0], [[1, 2, 0, 0, 0], [1, 1, 0, 0, 0]])
+    self.assertAllEqual(r[1], [[0, 0, 0, 0, 0], [0, 1, 0, 0, 0]])
+    self.assertAllEqual(r[2], [[0, 2, 0, 0, 0], [1, 1, 0, 0, 0]])
+    self.assertAllEqual(r[3], r[0])
+    self.assertAllEqual(r[4], r[1])
+    self.assertAllEqual(r[5], r[2])
+
   def testPackSequencesErrors(self):
     test_cases = {
         'actual_seq_len must be the same shape':
@@ -299,6 +312,16 @@ class ApplyPackingOpTest(test_utils.TestCase):
             tf.constant(test.segment_ids, tf.int32),
             tf.constant(test.indices_in_input, tf.int32)).eval()
         self.assertAllEqual(output, test.output, name)
+
+  def testApplyPackingUnknownShape(self):
+    x = tf.compat.v1.placeholder(tf.int32, shape=[None, None])
+    self.assertAllEqual(x.shape.as_list(), [None, None])
+    with self.session():
+      x_val = np.array([[0, 1], [2, 3]])
+      output = ops.apply_packing(
+          x, 0, tf.constant([[1, 1], [1, 1]], tf.int32),
+          tf.constant([[1, 1], [0, 0]], tf.int32)).eval(feed_dict={x: x_val})
+    self.assertAllEqual(output, [[2, 3], [0, 1]])
 
   def testApplyPackingTypes(self):
     test = ApplyPackingTestCase([[0, 1], [2, 3]], 99, [[1, 1, 0], [1, 1, 0]],

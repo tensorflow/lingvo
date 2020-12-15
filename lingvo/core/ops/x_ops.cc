@@ -916,6 +916,8 @@ REGISTER_OP("ApplyPacking")
         c->set_output(0, c->Vector(batch_size));
       } else if (c->Rank(c->input(0)) == 2) {
         c->set_output(0, c->input(2));
+      } else {
+        return shape_inference::UnknownShape(c);
       }
       return Status::OK();
     })
