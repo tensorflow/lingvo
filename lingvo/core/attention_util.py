@@ -106,7 +106,10 @@ def MakeLocalPadding(seq_len,
                      left_context,
                      right_context,
                      dtype=tf.float32):
-  """Makes the causal padding tensor for a full sequence.
+  """Makes the padding tensor for a full sequence.
+
+  The returned padding reflects the given context sizes, where position i
+  attends to tokens in the range [i - (left_context-1), i + right_context].
 
   Args:
     seq_len: int or scalar int tensor. Sequence length.

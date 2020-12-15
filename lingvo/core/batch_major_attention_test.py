@@ -1173,10 +1173,25 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           'left_context': 4,
           'right_context': 1
       }, {
+          'testcase_name': 'block_size_long',
+          'block_size': 5,
+          'left_context': 3,
+          'right_context': 4
+      }, {
+          'testcase_name': 'mimic_full_attention',
+          'block_size': None,
+          'left_context': 6,
+          'right_context': 5
+      }, {
           'testcase_name': 'left_context_only',
           'block_size': 3,
           'left_context': 4,
           'right_context': 0,
+      }, {
+          'testcase_name': 'right_context_only',
+          'block_size': 4,
+          'left_context': 1,
+          'right_context': 4,
       }, {
           'testcase_name': 'block_longer_than_sequence',
           'block_size': 10,
@@ -1239,7 +1254,8 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           hidden_dim=hidden_dim,
           block_size=block_size,
           left_context=left_context,
-          right_context=right_context)
+          right_context=right_context,
+          force_consistent_probs_shape=True)
       expected_p = expected_p_cls.Params().Set(
           name='expected_self_atten',
           num_heads=num_heads,
@@ -1255,7 +1271,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       expected_l = expected_p.Instantiate()
 
       tf.global_variables_initializer().run()
-      ctx_vec, _ = l.FProp(
+      ctx_vec, probs = l.FProp(
           l.theta,
           query_vec,
           query_vec,
@@ -1263,15 +1279,16 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           paddings,
           segment_mask=None,
           per_step_padding=additional_per_step_padding)
-      context_vec_out = sess.run(ctx_vec)
+      context_vec_out, probs_out = sess.run([ctx_vec, probs])
       per_step_padding = self._LocalCasualPadding(6, 6, left_context,
                                                   right_context)
       if additional_per_step_padding is not None:
         per_step_padding += additional_per_step_padding
-      expected_ctx_vec, _ = expected_l.FProp(expected_l.theta, query_vec,
-                                             query_vec, query_vec, paddings,
-                                             None, per_step_padding)
-      expected_context_vec_out = sess.run(expected_ctx_vec)
+      expected_ctx_vec, expected_probs = expected_l.FProp(
+          expected_l.theta, query_vec, query_vec, query_vec, paddings, None,
+          per_step_padding)
+      expected_context_vec_out, expected_probs_out = sess.run(
+          [expected_ctx_vec, expected_probs])
 
       # Don't compare if the query position is padded, or if all key positions
       # are padded.
@@ -1282,6 +1299,10 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       dont_compare = np.sum(
           per_step_padding_val > 0, axis=-1) == per_step_padding_val.shape[-1]
+      factor = (1 - dont_compare)[:, None, :, None]
+      expected_probs_out *= factor
+      probs_out *= factor
+      self.assertAllClose(probs_out, expected_probs_out)
       expected_context_vec_out *= (1 - dont_compare)[..., np.newaxis]
       context_vec_out *= (1 - dont_compare)[..., np.newaxis]
       self.assertAllClose(context_vec_out, expected_context_vec_out)

@@ -1225,7 +1225,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
 
 
 class LocalSelfAttention(MultiHeadedAttention):
-  """Dot-product causal self attention using a sliding window.
+  """Dot-product self attention using a sliding window.
 
   We use the following capital letters to denote certain
   tensor parameters.
@@ -1241,6 +1241,13 @@ class LocalSelfAttention(MultiHeadedAttention):
     F = L + R = context size of one position.
     C = L + R + W - 1 = context size of a block of W positions.
     U = ceiling(T/W).
+
+  For each position, its attention range includes from the left
+  L-1 tokens before it (up to the beginning of the sequence),
+  the self, and the right R tokens after it (up to the end of the
+  sequence). This is not affected by the block size.
+
+  Causality is enabled when right context size R=0.
 
   The key difference to base class is on calculating logits:
     Base class:
@@ -1273,6 +1280,12 @@ class LocalSelfAttention(MultiHeadedAttention):
         'left_context', None, 'Number of left positions to attend '
         '(including current position).')
     p.Define('right_context', 0, 'Number of right positions to attend.')
+    p.Define(
+        'force_consistent_probs_shape', False,
+        'Bool, whether to force the attention_probs tensor returned from '
+        'FProp() to have shape [B N T S] to be consistent with the MHA '
+        'parent class. Default returns a custom rank-5 tensor with '
+        'shape [B, N, U, W, C].')
 
     # The following are for streaming inference only.
     p.Define(
@@ -1458,7 +1471,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     value_vec = py_utils.HasShape(value_vec, [b, t, d])
     key_vec = py_utils.HasShape(key_vec, [b, t, d])
     paddings = py_utils.HasShape(paddings, [b, t])
-    return super().FProp(
+    encoded, probs = super().FProp(
         theta,
         query_vec,
         key_vec,
@@ -1466,6 +1479,31 @@ class LocalSelfAttention(MultiHeadedAttention):
         paddings,
         segment_mask=segment_mask,
         per_step_padding=per_step_padding)
+    p = self.params
+    if not p.force_consistent_probs_shape:
+      return encoded, probs
+
+    # We turn 'probs' into shape [B, N, T, S] before turning it.
+    # probs has shape [B N U W C].
+    _, n, u, w, _ = py_utils.GetShape(probs, 5)
+    # shape [B N W U C]
+    probs = tf.transpose(probs, [0, 1, 3, 2, 4])
+    # Maximum length needed to keep track of probs along the T axis.
+    m = t + p.left_context - 1 + p.right_context
+    # shape [B N W U M+W], where M = (L-1) + T + R
+    probs = py_utils.PadOrTrimTo(probs, [b, n, w, u, m + w])
+    probs = tf.reshape(probs, [b, n, w, u * (m + w)])
+    # Now each row is shifted by W from its previous row. This recovers
+    # the true position of the C axis into the now expanded T axis.
+    probs = tf.reshape(probs[:, :, :, :u * m], [b, n, w, u, m])
+    # Shape [B N U W M]
+    probs = tf.transpose(probs, [0, 1, 3, 2, 4])
+    # Shape [B N U W T]
+    probs = probs[:, :, :, :, p.left_context - 1:m - p.right_context]
+    probs = tf.reshape(probs, [b, n, w * u, t])
+    # Truncate to shape [B N T T]
+    probs = probs[:, :, :t, :]
+    return encoded, probs
 
   def ExtendStep(self,
                  theta,
