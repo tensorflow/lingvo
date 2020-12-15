@@ -919,7 +919,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">LocalSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.MultiHeadedAttention" title="lingvo.core.batch_major_attention.MultiHeadedAttention"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.MultiHeadedAttention</span></code></a></p>
-<p>Dot-product causal self attention using a sliding window.</p>
+<p>Dot-product self attention using a sliding window.</p>
 <p>We use the following capital letters to denote certain
 tensor parameters.</p>
 <blockquote>
@@ -935,6 +935,11 @@ F = L + R = context size of one position.
 C = L + R + W - 1 = context size of a block of W positions.
 U = ceiling(T/W).</p>
 </div></blockquote>
+<p>For each position, its attention range includes from the left
+L-1 tokens before it (up to the beginning of the sequence),
+the self, and the right R tokens after it (up to the end of the
+sequence). This is not affected by the block size.</p>
+<p>Causality is enabled when right context size R=0.</p>
 <dl class="simple">
 <dt>The key difference to base class is on calculating logits:</dt><dd><dl class="simple">
 <dt>Base class:</dt><dd><ol class="arabic simple">

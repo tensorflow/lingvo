@@ -254,7 +254,10 @@
                      <span class="n">left_context</span><span class="p">,</span>
                      <span class="n">right_context</span><span class="p">,</span>
                      <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Makes the causal padding tensor for a full sequence.</span>
+  <span class="sd">&quot;&quot;&quot;Makes the padding tensor for a full sequence.</span>
+
+<span class="sd">  The returned padding reflects the given context sizes, where position i</span>
+<span class="sd">  attends to tokens in the range [i - (left_context-1), i + right_context].</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    seq_len: int or scalar int tensor. Sequence length.</span>

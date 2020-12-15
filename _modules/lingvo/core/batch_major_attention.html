@@ -1373,7 +1373,7 @@
 
 
 <div class="viewcode-block" id="LocalSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention">[docs]</a><span class="k">class</span> <span class="nc">LocalSelfAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Dot-product causal self attention using a sliding window.</span>
+  <span class="sd">&quot;&quot;&quot;Dot-product self attention using a sliding window.</span>
 
 <span class="sd">  We use the following capital letters to denote certain</span>
 <span class="sd">  tensor parameters.</span>
@@ -1389,6 +1389,13 @@
 <span class="sd">    F = L + R = context size of one position.</span>
 <span class="sd">    C = L + R + W - 1 = context size of a block of W positions.</span>
 <span class="sd">    U = ceiling(T/W).</span>
+
+<span class="sd">  For each position, its attention range includes from the left</span>
+<span class="sd">  L-1 tokens before it (up to the beginning of the sequence),</span>
+<span class="sd">  the self, and the right R tokens after it (up to the end of the</span>
+<span class="sd">  sequence). This is not affected by the block size.</span>
+
+<span class="sd">  Causality is enabled when right context size R=0.</span>
 
 <span class="sd">  The key difference to base class is on calculating logits:</span>
 <span class="sd">    Base class:</span>
@@ -1421,6 +1428,12 @@
         <span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of left positions to attend &#39;</span>
         <span class="s1">&#39;(including current position).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;right_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of right positions to attend.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;force_consistent_probs_shape&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Bool, whether to force the attention_probs tensor returned from &#39;</span>
+        <span class="s1">&#39;FProp() to have shape [B N T S] to be consistent with the MHA &#39;</span>
+        <span class="s1">&#39;parent class. Default returns a custom rank-5 tensor with &#39;</span>
+        <span class="s1">&#39;shape [B, N, U, W, C].&#39;</span><span class="p">)</span>
 
     <span class="c1"># The following are for streaming inference only.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -1606,14 +1619,39 @@
     <span class="n">value_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">value_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
     <span class="n">key_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">key_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+    <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span>
         <span class="n">query_vec</span><span class="p">,</span>
         <span class="n">key_vec</span><span class="p">,</span>
         <span class="n">value_vec</span><span class="p">,</span>
         <span class="n">paddings</span><span class="p">,</span>
         <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
-        <span class="n">per_step_padding</span><span class="o">=</span><span class="n">per_step_padding</span><span class="p">)</span></div>
+        <span class="n">per_step_padding</span><span class="o">=</span><span class="n">per_step_padding</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">force_consistent_probs_shape</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span>
+
+    <span class="c1"># We turn &#39;probs&#39; into shape [B, N, T, S] before turning it.</span>
+    <span class="c1"># probs has shape [B N U W C].</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="c1"># shape [B N W U C]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+    <span class="c1"># Maximum length needed to keep track of probs along the T axis.</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">t</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
+    <span class="c1"># shape [B N W U M+W], where M = (L-1) + T + R</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">w</span><span class="p">])</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span> <span class="o">*</span> <span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">w</span><span class="p">)])</span>
+    <span class="c1"># Now each row is shifted by W from its previous row. This recovers</span>
+    <span class="c1"># the true position of the C axis into the now expanded T axis.</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">u</span> <span class="o">*</span> <span class="n">m</span><span class="p">],</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">m</span><span class="p">])</span>
+    <span class="c1"># Shape [B N U W M]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+    <span class="c1"># Shape [B N U W T]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span><span class="n">m</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">u</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+    <span class="c1"># Truncate to shape [B N T T]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
