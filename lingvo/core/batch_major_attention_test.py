@@ -2684,17 +2684,6 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(actual_layer_output1, actual_layer_output2)
       self.assertAllClose(actual_layer_atten_probs1, actual_layer_atten_probs2)
 
-  def testGPipeTransformerLayerConstruction(self):
-    p = attention.GPipeTransformerLayer.Params()
-    p.name = 'gpipe_transformer_layer'
-    p.input_dim = 4
-    p.tr_fflayer_tpl.hidden_dim = 7
-    p.tr_atten_tpl.num_heads = 2
-    p.tr_atten_tpl.residual_dropout_prob = 0.1
-    p.cls.SetupDeterministicDropout(p)
-    layer = p.Instantiate()
-    self.assertEqual(0.1, layer.params.tr_atten_tpl.residual_dropout_prob)
-
 
 class GPipeBatchMajorTransformerLayerTest(test_utils.TestCase,
                                           parameterized.TestCase):
@@ -2815,7 +2804,7 @@ class GPipeBatchMajorTransformerLayerTest(test_utils.TestCase,
 
       layer_output2 = []
       for i in range(5):
-        layer_output, prefix_states = l.ExtendStep(
+        layer_output, _, prefix_states = l.ExtendStep(
             l.theta, tf.expand_dims(target_vec[:, i, :], 1), aux_vec,
             aux_paddings, prefix_states, i)
         layer_output2.append(tf.squeeze(layer_output, 1))

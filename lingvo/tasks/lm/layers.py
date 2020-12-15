@@ -1178,8 +1178,9 @@ class GPipeTransformerLm(BaseLanguageModel):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('stack', layers_with_gpipe.GPipeTransformerStack.Params(),
-             'GPipeTransformerStack Layer params.')
+    p.Define('stack',
+             layers_with_gpipe.GPipeBatchMajorTransformerStack.Params(),
+             'GPipeBatchMajorTransformerStack Layer params.')
     return p
 
   @classmethod
@@ -1236,8 +1237,8 @@ class GPipeTransformerLm(BaseLanguageModel):
     p.stack.micro_batch_size = micro_batch_size
     p.stack.num_encoder_layers = num_layers
     p.stack.batch_dim = 0
+    p.stack.packed_input = False
     emb_params_init = py_utils.WeightInit.Gaussian(1.0 / math.sqrt(model_dim))
-    p.stack.emb_tpl.ret_task_ids = True
     p.stack.emb_tpl.token_emb.Set(
         use_matmul=False,
         use_3d_weight_tensor=False,
@@ -1248,7 +1249,7 @@ class GPipeTransformerLm(BaseLanguageModel):
         embedding_dim=model_dim, trainable_scaling=False)
     p.stack.emb_tpl.input_dropout_prob = input_dropout_prob
 
-    trans_tpl = batch_major_attention.GPipeTransformerLayer.Params()
+    trans_tpl = batch_major_attention.GPipeBatchMajorTransformerLayer.Params()
     trans_tpl.has_aux_atten = False
     trans_tpl.mask_self_atten = True
     trans_tpl.input_dim = model_dim
@@ -1308,7 +1309,8 @@ class GPipeTransformerLm(BaseLanguageModel):
     per_example_xent, logits = self.stack.FProp(theta.stack, ids, paddings,
                                                 None, None, None, None,
                                                 labels.class_ids,
-                                                labels.class_weights)
+                                                labels.class_weights, None,
+                                                None)
     per_example_argmax = py_utils.ArgMax(logits)
     total_xent = tf.reduce_sum(per_example_xent * labels.class_weights)
     total_weights = tf.reduce_sum(labels.class_weights)

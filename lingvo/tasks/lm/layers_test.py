@@ -887,7 +887,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     p.name = 'transformerlm'
     p.vocab_size = vocab
     p.stack.num_encoder_layers = 2
-    p.stack.emb_tpl.ret_task_ids = True
+    p.stack.packed_input = False
     p.stack.emb_tpl.token_emb.vocab_size = vocab
     p.stack.emb_tpl.token_emb.embedding_dim = dims
     p.stack.emb_tpl.position_emb.embedding_dim = dims
@@ -896,7 +896,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     p.stack.softmax_tpl.input_dim = dims
     p.stack.softmax_tpl.num_classes = vocab
     p.stack.batch_dim = 0
-    trans_tpl = batch_major_attention.GPipeTransformerLayer.Params()
+    trans_tpl = batch_major_attention.GPipeBatchMajorTransformerLayer.Params()
     trans_tpl.has_aux_atten = False
     trans_tpl.mask_self_atten = True
     trans_tpl.input_dim = dims
@@ -948,7 +948,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
       xent_output_val = self.evaluate(xent_output)
 
       print('xent_output_val', xent_output_val)
-      test_utils.CompareToGoldenSingleFloat(self, 5.12745,
+      test_utils.CompareToGoldenSingleFloat(self, 3.083209,
                                             xent_output_val.avg_xent)
       self.assertAllEqual(xent_output_val.per_example_argmax,
                           np.argmax(xent_output_val.logits, axis=-1))
