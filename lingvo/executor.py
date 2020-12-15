@@ -281,16 +281,19 @@ class ExecutorTpu(base_runner.BaseRunner):
           for program in self._programs:
             program.BuildTpuSubgraph()
             py_utils.ClearTpuSummaryTensors()
-        for program in self._programs:
-          program.SetStatusMessageFn(self._SetStatusMessage)
-          program.CreateCheckpointer()
 
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
+        self._initialize_global_vars = tf.global_variables_initializer()
+
+        for program in self._programs:
+          program.SetStatusMessageFn(self._SetStatusMessage)
+          program.CreateCheckpointer(init_op=self._initialize_global_vars)
 
         self.save_only_checkpointer = checkpointer.Checkpointer(
             self._checkpoint_dir,
             model=None,
+            init_op=self._initialize_global_vars,
             train_params=train_cfg.train,
             save_only=True)
 

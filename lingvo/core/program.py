@@ -202,9 +202,9 @@ class BaseProgram:
     """Runs any necessary cleanup (potentially blocking)."""
     pass
 
-  def CreateCheckpointer(self):
-    self._checkpointer = checkpointer.Checkpointer(self._checkpoint_dir,
-                                                   self._model)
+  def CreateCheckpointer(self, init_op=None):
+    self._checkpointer = checkpointer.Checkpointer(
+        self._checkpoint_dir, self._model, init_op=init_op)
 
   def RestoreIfNeeded(self, sess):
     self._checkpointer.RestoreIfNeeded(sess)
