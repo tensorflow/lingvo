@@ -429,16 +429,19 @@
           <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
             <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">ClearTpuSummaryTensors</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
-          <span class="n">program</span><span class="o">.</span><span class="n">SetStatusMessageFn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">)</span>
-          <span class="n">program</span><span class="o">.</span><span class="n">CreateCheckpointer</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
+          <span class="n">program</span><span class="o">.</span><span class="n">SetStatusMessageFn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">)</span>
+          <span class="n">program</span><span class="o">.</span><span class="n">CreateCheckpointer</span><span class="p">(</span><span class="n">init_op</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
             <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">init_op</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span><span class="p">,</span>
             <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">save_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
