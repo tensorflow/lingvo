@@ -2631,6 +2631,78 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(actual_layer_output1, actual_layer_output2)
       self.assertAllClose(actual_layer_atten_probs1, actual_layer_atten_probs2)
 
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_short_seq',
+          'use_short_seq_opt': True,
+      }, {
+          'testcase_name': '_long_seq',
+          'use_short_seq_opt': False,
+      })
+  def testTransformerDecoderLayerExtendStepDifferentBatchSizes(
+      self, use_short_seq_opt):
+    with self.session(use_gpu=True) as sess:
+      l = self._ConstructTransformerDecoderLayer()
+
+      (query_vec, _, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs()
+      paddings = tf.zeros([2, 5])
+
+      layer_output1, layer_atten_probs1 = l.FProp(l.theta, query_vec, paddings,
+                                                  aux_vec, aux_paddings)
+      layer_atten_probs1 = layer_atten_probs1.aux_atten
+
+      source_batch, source_length = py_utils.GetShape(aux_paddings, 2)
+      batch_multiplier = 2
+      target_batch = source_batch * batch_multiplier
+      num_heads = l.params.tr_atten_tpl.num_heads
+      cached_key = tf.constant(
+          np.random.normal(0.1, 0.5, [5, target_batch, num_heads, 2]),
+          dtype=tf.float32)
+      cached_value = tf.constant(
+          np.random.normal(0.1, 0.5, [5, target_batch, num_heads, 2]),
+          dtype=tf.float32)
+      prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
+
+      def _TileByBatchMultiplier(x):
+        """Tile 'x' along the batch dim by batch_multiplier."""
+        b, t, d = py_utils.GetShape(x)
+        # [b, batch_multiplier, t, d].
+        x = tf.tile(tf.expand_dims(x, axis=1), [1, batch_multiplier, 1, 1])
+        return tf.reshape(x, [b * batch_multiplier, t, d])
+
+      tiled_query_vec = _TileByBatchMultiplier(query_vec)
+
+      layer_output2 = []
+      layer_atten_probs2 = []
+      for i in range(5):
+        layer_output, cross_atten_probs, prefix_states = l.ExtendStep(
+            l.theta, tiled_query_vec[:, i:i + 1, :], aux_vec, aux_paddings,
+            prefix_states, i, use_short_seq_opt)
+        layer_output2.append(tf.squeeze(layer_output, 1))
+        layer_atten_probs2.append(
+            py_utils.HasShape(cross_atten_probs,
+                              [target_batch, num_heads, 1, source_length]))
+      layer_output2 = tf.transpose(tf.stack(layer_output2), [1, 0, 2])
+      # [B, N, T, S].
+      layer_atten_probs2 = tf.concat(layer_atten_probs2, axis=2)
+
+      tf.global_variables_initializer().run()
+      (actual_layer_output1, actual_layer_output2, actual_layer_atten_probs1,
+       actual_layer_atten_probs2) = sess.run([
+           layer_output1, layer_output2, layer_atten_probs1, layer_atten_probs2
+       ])
+      for i in range(source_batch):
+        for j in range(batch_multiplier):
+          tf.logging.info('Expected (%s): %s', i, actual_layer_output1[i])
+          tf.logging.info('Actual (%s, %s): %s', i, j,
+                          actual_layer_output2[i * batch_multiplier + j])
+          self.assertAllClose(actual_layer_output1[i],
+                              actual_layer_output2[i * batch_multiplier + j])
+          self.assertAllClose(
+              actual_layer_atten_probs1[i],
+              actual_layer_atten_probs2[i * batch_multiplier + j])
+
   def _ConstructMultiSourceTransformerDecoderLayer(self,
                                                    use_relative_atten=False):
     p = attention.MultiSourceTransformerDecoderLayer.Params().Set(num_source=2)

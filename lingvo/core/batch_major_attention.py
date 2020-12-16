@@ -3483,6 +3483,16 @@ class TransformerLayer(base_layer.BaseLayer):
                  use_short_seq_opt=False):
     """Transformer decoder layer, extend one step in autoregressive decoding.
 
+    query_vec and aux_* may have different batch sizes, e.g., during a beam
+    search. target_batch must be a multiple of source_batch and
+    query_vec[i * batch_multiplier + j] corresponds to aux_vec[i], where
+    batch_multiplier = target_batch / source_batch, 0 <= i < source_batch,
+    0 <= j < batch_multiplier.
+
+    WARNING: note the DIFFERENCE between FProp and ExtendStep:
+    FProp:      target_batch = [batch_multiplier, batch]
+    ExtendStep: target_batch = [batch, batch_multiplier]
+
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
@@ -3504,17 +3514,31 @@ class TransformerLayer(base_layer.BaseLayer):
       value - [target_time, target_batch, num_heads, dim_per_head].
     """
     target_batch, _, dim = py_utils.GetShape(query_vec, 3)
+    query_vec = py_utils.HasShape(query_vec, [target_batch, 1, dim])
 
     # First the self-attention layer.
     atten_vec, updated_states = self.self_atten.ExtendStep(
         theta.self_atten, query_vec, cached_states, time_step,
         use_short_seq_opt)
+    atten_vec = py_utils.HasShape(atten_vec, [target_batch, 1, dim])
     if self.params.has_aux_atten:
       source_batch = self._GetSourceBatchSize(aux_vec)
+      source_length = self._GetSourceLength(aux_vec)
+      batch_multiplier = target_batch // source_batch
       # Next the cross-attention layer.
       atten_vec = tf.reshape(atten_vec, [source_batch, -1, dim])
       atten_vec, cross_atten_probs = self.cross_atten.FProp(
           theta.cross_atten, atten_vec, aux_vec, aux_paddings)
+      cross_atten_probs = py_utils.HasShape(
+          cross_atten_probs,
+          # [source_batch, num_heads, batch_multiplier, source_length].
+          [source_batch, -1, batch_multiplier, source_length])
+      _, num_heads, _, _ = py_utils.GetShape(cross_atten_probs)
+      # [source_batch, batch_multiplier, num_heads, source_length].
+      cross_atten_probs = tf.transpose(cross_atten_probs, [0, 2, 1, 3])
+      # Reshape to [target_batch, num_heads, 1, source_length].
+      cross_atten_probs = tf.reshape(
+          cross_atten_probs, [target_batch, num_heads, 1, source_length])
       atten_vec = tf.reshape(atten_vec, [target_batch, 1, -1])
     else:
       cross_atten_probs = None
