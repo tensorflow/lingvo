@@ -332,6 +332,8 @@
         <span class="s1">&#39;compute_energy&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether to compute filterbank output on the energy of spectrum &#39;</span>
         <span class="s1">&#39;rather than just the magnitude.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_divide_stream&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether use a divide stream to the input signal.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="MelAsrFrontend.GetConfigFromParams"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -558,6 +560,9 @@
 <div class="viewcode-block" id="MelAsrFrontend._FPropChunk"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropChunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pcm_audio_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_divide_stream</span><span class="p">:</span>
+      <span class="n">pcm_audio_chunk</span> <span class="o">=</span> <span class="n">pcm_audio_chunk</span> <span class="o">/</span> <span class="mf">32768.0</span>
+
     <span class="c1"># shape: [batch, time, _frame_size]</span>
     <span class="n">framed_signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">frame</span><span class="p">(</span><span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span><span class="p">,</span>
                                     <span class="bp">self</span><span class="o">.</span><span class="n">_frame_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_end</span><span class="p">)</span>
