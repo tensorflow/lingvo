@@ -392,7 +392,11 @@
         <span class="s1">&#39;ExtendStep computation and the cache is stored following this order. &#39;</span>
         <span class="s1">&#39;So the topk indices into the cache for ReOrderHyps needs to be &#39;</span>
         <span class="s1">&#39;reordered before usage. Otherwise, the indices will be directly used &#39;</span>
-        <span class="s1">&#39;without extra transformation.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;without extra transformation. &#39;</span>
+        <span class="s1">&#39;Setting batch_major_compute=True does not change the ordering of &#39;</span>
+        <span class="s1">&#39;ids and logits of beam search callbacks. &#39;</span>
+        <span class="s1">&#39;The target_batch dim for those tensors will remain num_hyps_per_beam &#39;</span>
+        <span class="s1">&#39;* num_beams.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;short_seq_limit&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
         <span class="s1">&#39;An integer, the sequence length limit for using early stop &#39;</span>
@@ -489,6 +493,7 @@
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out_hyps</span><span class="p">[</span><span class="n">cur_step</span><span class="p">,</span> <span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">))</span>
     <span class="n">new_step_ids</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">step_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
 
+    <span class="c1"># [num_hyps_per_beam * num_beams].</span>
     <span class="n">old_hyp_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">begin</span><span class="o">=</span><span class="p">[</span><span class="n">cur_step</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
@@ -499,6 +504,7 @@
       <span class="c1"># from the old_hyp_ids assumption (num_hyps_per_beam by num_beams).</span>
       <span class="c1"># Both transpose and recomputation are required to correct the indices.</span>
       <span class="n">num_beams</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">best_scores</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="c1"># [num_beams * num_hyps_per_beam].</span>
       <span class="n">old_hyp_ids_in_cache_order</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">old_hyp_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="n">old_hyp_ids_in_cache_order</span> <span class="o">=</span> <span class="p">(</span>
