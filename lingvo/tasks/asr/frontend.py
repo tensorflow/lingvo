@@ -184,6 +184,8 @@ class MelAsrFrontend(BaseAsrFrontend):
         'compute_energy', False,
         'Whether to compute filterbank output on the energy of spectrum '
         'rather than just the magnitude.')
+    p.Define('use_divide_stream', False,
+             'Whether use a divide stream to the input signal.')
     return p
 
   @staticmethod
@@ -410,6 +412,9 @@ class MelAsrFrontend(BaseAsrFrontend):
   def _FPropChunk(self, pcm_audio_chunk, pcm_audio_paddings):
     p = self.params
     pcm_audio_chunk = tf.cast(pcm_audio_chunk, tf.float32)
+    if p.use_divide_stream:
+      pcm_audio_chunk = pcm_audio_chunk / 32768.0
+
     # shape: [batch, time, _frame_size]
     framed_signal = tf.signal.frame(pcm_audio_chunk, self._frame_size,
                                     self._frame_step, p.pad_end)
