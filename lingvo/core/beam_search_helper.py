@@ -244,7 +244,11 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'ExtendStep computation and the cache is stored following this order. '
         'So the topk indices into the cache for ReOrderHyps needs to be '
         'reordered before usage. Otherwise, the indices will be directly used '
-        'without extra transformation.')
+        'without extra transformation. '
+        'Setting batch_major_compute=True does not change the ordering of '
+        'ids and logits of beam search callbacks. '
+        'The target_batch dim for those tensors will remain num_hyps_per_beam '
+        '* num_beams.')
     p.Define(
         'short_seq_limit', 0,
         'An integer, the sequence length limit for using early stop '
@@ -341,6 +345,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
     new_step_ids = tf.reshape(out_hyps[cur_step, :], tf.shape(step_ids))
     new_step_ids.set_shape(step_ids.get_shape())
 
+    # [num_hyps_per_beam * num_beams].
     old_hyp_ids = tf.reshape(
         tf.slice(out_prev_hyps, begin=[cur_step, 0], size=[1, -1]), [-1])
 
@@ -351,6 +356,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
       # from the old_hyp_ids assumption (num_hyps_per_beam by num_beams).
       # Both transpose and recomputation are required to correct the indices.
       num_beams = tf.shape(best_scores)[0]
+      # [num_beams * num_hyps_per_beam].
       old_hyp_ids_in_cache_order = tf.reshape(
           tf.transpose(tf.reshape(old_hyp_ids, [num_hyps_per_beam, -1])), [-1])
       old_hyp_ids_in_cache_order = (
