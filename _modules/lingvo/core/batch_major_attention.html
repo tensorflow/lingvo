@@ -3631,6 +3631,16 @@
                  <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer decoder layer, extend one step in autoregressive decoding.</span>
 
+<span class="sd">    query_vec and aux_* may have different batch sizes, e.g., during a beam</span>
+<span class="sd">    search. target_batch must be a multiple of source_batch and</span>
+<span class="sd">    query_vec[i * batch_multiplier + j] corresponds to aux_vec[i], where</span>
+<span class="sd">    batch_multiplier = target_batch / source_batch, 0 &lt;= i &lt; source_batch,</span>
+<span class="sd">    0 &lt;= j &lt; batch_multiplier.</span>
+
+<span class="sd">    WARNING: note the DIFFERENCE between FProp and ExtendStep:</span>
+<span class="sd">    FProp:      target_batch = [batch_multiplier, batch]</span>
+<span class="sd">    ExtendStep: target_batch = [batch, batch_multiplier]</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
@@ -3652,17 +3662,31 @@
 <span class="sd">      value - [target_time, target_batch, num_heads, dim_per_head].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">target_batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
 
     <span class="c1"># First the self-attention layer.</span>
     <span class="n">atten_vec</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">cached_states</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span>
         <span class="n">use_short_seq_opt</span><span class="p">)</span>
+    <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
       <span class="n">source_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSourceBatchSize</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)</span>
+      <span class="n">source_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSourceLength</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)</span>
+      <span class="n">batch_multiplier</span> <span class="o">=</span> <span class="n">target_batch</span> <span class="o">//</span> <span class="n">source_batch</span>
       <span class="c1"># Next the cross-attention layer.</span>
       <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
       <span class="n">atten_vec</span><span class="p">,</span> <span class="n">cross_atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">)</span>
+      <span class="n">cross_atten_probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+          <span class="n">cross_atten_probs</span><span class="p">,</span>
+          <span class="c1"># [source_batch, num_heads, batch_multiplier, source_length].</span>
+          <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_multiplier</span><span class="p">,</span> <span class="n">source_length</span><span class="p">])</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cross_atten_probs</span><span class="p">)</span>
+      <span class="c1"># [source_batch, batch_multiplier, num_heads, source_length].</span>
+      <span class="n">cross_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">cross_atten_probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+      <span class="c1"># Reshape to [target_batch, num_heads, 1, source_length].</span>
+      <span class="n">cross_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">cross_atten_probs</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">source_length</span><span class="p">])</span>
       <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">cross_atten_probs</span> <span class="o">=</span> <span class="kc">None</span>

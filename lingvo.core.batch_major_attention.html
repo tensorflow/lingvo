@@ -1931,6 +1931,14 @@ atten_probs: A NestedMap with keys <code class="xref py py-obj docutils literal 
 <dt id="lingvo.core.batch_major_attention.TransformerLayer.ExtendStep">
 <code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">aux_vec</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer decoder layer, extend one step in autoregressive decoding.</p>
+<p>query_vec and aux_* may have different batch sizes, e.g., during a beam
+search. target_batch must be a multiple of source_batch and
+query_vec[i * batch_multiplier + j] corresponds to aux_vec[i], where
+batch_multiplier = target_batch / source_batch, 0 &lt;= i &lt; source_batch,
+0 &lt;= j &lt; batch_multiplier.</p>
+<p>WARNING: note the DIFFERENCE between FProp and ExtendStep:
+FProp:      target_batch = [batch_multiplier, batch]
+ExtendStep: target_batch = [batch, batch_multiplier]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
