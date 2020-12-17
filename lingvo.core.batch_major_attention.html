@@ -1929,7 +1929,7 @@ atten_probs: A NestedMap with keys <code class="xref py py-obj docutils literal 
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.TransformerLayer.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">aux_vec</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">aux_vec</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">compute_atten_probs</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer decoder layer, extend one step in autoregressive decoding.</p>
 <p>query_vec and aux_* may have different batch sizes, e.g., during a beam
 search. target_batch must be a multiple of source_batch and
@@ -1953,17 +1953,18 @@ results of previous attentions, used for fast decoding. key   -
 [target_time, target_batch, num_heads, dim_per_head].</p></li>
 <li><p><strong>time_step</strong> – A scalar, the current decode step, 0-based.</p></li>
 <li><p><strong>use_short_seq_opt</strong> – A bool, whether using short sequence optimization.</p></li>
+<li><p><strong>compute_atten_probs</strong> – A bool, whether attention probabilities should be
+computed. If false, returns None for atten_probs.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>[target_batch, 1, dim]
-atten_probs: [target_batch, num_heads, target_time=1, source_time]
-updated_states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing the updated states.
+<dd class="field-even"><p>(cur_output, atten_probs, updated_states)
+* cur_output: [target_batch, 1, dim]
+* atten_probs: [target_batch, num_heads, target_time=1, source_time] if
+compute_atten_probs is True and p.has_aux_atten=True. None otherwise.
+* updated_states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing the updated states.
 key   - [target_time, target_batch, num_heads, dim_per_head].
 value - [target_time, target_batch, num_heads, dim_per_head].</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>cur_output</p>
 </dd>
 </dl>
 </dd></dl>
