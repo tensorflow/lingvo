@@ -5057,7 +5057,8 @@
 <span class="sd">      name: name of this layer.</span>
 <span class="sd">      stride: If omitted, the default is 1: use every token in the query. To use</span>
 <span class="sd">        every k-th token, set the stride to k. When set to 0, only use the first</span>
-<span class="sd">        token of the query.</span>
+<span class="sd">        token of the query. When packed_input is true, need to make sure that</span>
+<span class="sd">        each segment has length divisible by stride.</span>
 <span class="sd">      first_n: only considers the first N tokens for the output. We use</span>
 <span class="sd">        [:first_n:stride] to select the output tokens. If first_n is None, this</span>
 <span class="sd">        flag is a no-op. If stride is positive, the output sequence length is</span>
@@ -5076,6 +5077,10 @@
     <span class="n">attention_inputs</span> <span class="o">=</span> <span class="s1">&#39;strided_query,after_ln,after_ln,i.paddings&#39;</span>
     <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">stride</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># TODO(huangyp): Make sure striding won&#39;t cross segment boundaries.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Each segment in the packed input should has length &#39;</span>
+                           <span class="s1">&#39;divisible by stride.&#39;</span><span class="p">)</span>
       <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
           <span class="p">(</span><span class="s1">&#39;i.segment_mask-&gt;strided_segment_mask&#39;</span><span class="p">,</span>
            <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;segment_mask_query_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)),</span>
@@ -5138,15 +5143,15 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: name of this layer.</span>
-<span class="sd">      stride: If omitted, the default is 1: use every token in the query. To use</span>
-<span class="sd">        every k-th token, set the stride to k. When set to 0, only use the first</span>
-<span class="sd">        token of the query.</span>
-<span class="sd">      first_n: only considers the first N tokens for the output. We use</span>
-<span class="sd">        [:first_n:stride] to select the output tokens. If first_n is None, this</span>
-<span class="sd">        flag is a no-op. If stride is positive, the output sequence length is</span>
-<span class="sd">        &quot;(first_n-1) // stride + 1&quot;. If stride is 0, first_n has to be None or</span>
-<span class="sd">        1. first_n can&#39;t be 0. If first_n &lt;= stride, only the first token is</span>
-<span class="sd">        used.</span>
+<span class="sd">      stride: If omitted, the default is 1: use every token in the query. To</span>
+<span class="sd">        pool every k-th token, set the stride to k. When set to 0, only use the</span>
+<span class="sd">        first token of the query. When packed_input is true, need to make sure</span>
+<span class="sd">        that each segment has length divisible by stride.</span>
+<span class="sd">      first_n: only considers the first N tokens for the output.If first_n is</span>
+<span class="sd">        None, this flag is a no-op. If stride is positive, the output sequence</span>
+<span class="sd">        length is  &quot;(first_n-1) // stride + 1&quot;. If stride is 0, first_n has to</span>
+<span class="sd">        be None or 1. first_n can&#39;t be 0. If first_n &lt;= stride, only the first</span>
+<span class="sd">        token is used.</span>
 <span class="sd">      num_heads: the number of heads.</span>
 
 <span class="sd">    Returns:</span>
@@ -5168,8 +5173,19 @@
 
     <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-
-    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">stride</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">funnel_pool_tpl</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="c1"># TODO(huangyp): Make sure striding won&#39;t cross segment boundaries.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Each segment in the packed input should has length &#39;</span>
+                           <span class="s1">&#39;divisible by stride.&#39;</span><span class="p">)</span>
+      <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;i.segment_mask-&gt;strided_segment_mask&#39;</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;segment_mask_query_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)),</span>
+      <span class="p">]</span>
+      <span class="n">attention_inputs</span> <span class="o">+=</span> <span class="s1">&#39;,strided_segment_mask&#39;</span>
+    <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_ln&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;LN&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;after_ln-&gt;strided_query&#39;</span><span class="p">,</span>
@@ -5185,6 +5201,11 @@
         <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Pool</span><span class="p">(</span><span class="s1">&#39;padding_after_Stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">)),</span>
     <span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;strided_segment_mask-&gt;o.segment_mask&#39;</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;segment_mask_context_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)),</span>
+      <span class="p">]</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
@@ -5218,8 +5239,6 @@
 <span class="sd">      A transformer encoder layer params that supports optional stride.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FunnelEncoderLayer does not support packed input.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">ff_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span>
     <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

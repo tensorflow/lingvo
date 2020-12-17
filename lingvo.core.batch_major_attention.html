@@ -2770,7 +2770,8 @@ used.</p></li>
 <li><p><strong>name</strong> – name of this layer.</p></li>
 <li><p><strong>stride</strong> – If omitted, the default is 1: use every token in the query. To use
 every k-th token, set the stride to k. When set to 0, only use the first
-token of the query.</p></li>
+token of the query. When packed_input is true, need to make sure that
+each segment has length divisible by stride.</p></li>
 <li><p><strong>first_n</strong> – only considers the first N tokens for the output. We use
 [:first_n:stride] to select the output tokens. If first_n is None, this
 flag is a no-op. If stride is positive, the output sequence length is
@@ -2815,15 +2816,15 @@ first token of the input without perform any pooling.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>name</strong> – name of this layer.</p></li>
-<li><p><strong>stride</strong> – If omitted, the default is 1: use every token in the query. To use
-every k-th token, set the stride to k. When set to 0, only use the first
-token of the query.</p></li>
-<li><p><strong>first_n</strong> – only considers the first N tokens for the output. We use
-[:first_n:stride] to select the output tokens. If first_n is None, this
-flag is a no-op. If stride is positive, the output sequence length is
-“(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
-1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
-used.</p></li>
+<li><p><strong>stride</strong> – If omitted, the default is 1: use every token in the query. To
+pool every k-th token, set the stride to k. When set to 0, only use the
+first token of the query. When packed_input is true, need to make sure
+that each segment has length divisible by stride.</p></li>
+<li><p><strong>first_n</strong> – only considers the first N tokens for the output.If first_n is
+None, this flag is a no-op. If stride is positive, the output sequence
+length is  “(first_n-1) // stride + 1”. If stride is 0, first_n has to
+be None or 1. first_n can’t be 0. If first_n &lt;= stride, only the first
+token is used.</p></li>
 <li><p><strong>num_heads</strong> – the number of heads.</p></li>
 </ul>
 </dd>
