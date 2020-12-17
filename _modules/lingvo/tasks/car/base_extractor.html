@@ -240,6 +240,10 @@
         <span class="s1">&#39;preprocessors.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;record_type&#39;</span><span class="p">,</span> <span class="s1">&#39;EXAMPLE&#39;</span><span class="p">,</span>
              <span class="s1">&#39;Raw record format, default to tf.Example.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;batched_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, ProcessFeatures() is expected to receive batches of Tensors, &#39;</span>
+        <span class="s1">&#39;rather than single example Tensors.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">64</span>
     <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="o">=</span> <span class="kc">True</span>
@@ -306,6 +310,10 @@
     <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Shape</span><span class="p">())</span>
     <span class="k">for</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">:</span>
       <span class="n">shapes</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformShapes</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batched_input</span><span class="p">:</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">()]</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">shapes</span></div>
 
 <div class="viewcode-block" id="_BaseExtractor.DType"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.DType">[docs]</a>  <span class="k">def</span> <span class="nf">DType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -360,9 +368,15 @@
             <span class="n">filtered_features</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">filtered_keys</span>
             <span class="p">}</span>
-          <span class="n">extracted</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Extract</span><span class="p">(</span><span class="n">filtered_features</span><span class="p">)</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batched_input</span><span class="p">:</span>
+            <span class="n">extracted</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">ExtractBatch</span><span class="p">(</span><span class="n">filtered_features</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">extracted</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Extract</span><span class="p">(</span><span class="n">filtered_features</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;filter&#39;</span><span class="p">):</span>
-          <span class="n">bucket</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batched_input</span><span class="p">:</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">FilterBatch</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">extracted</span>
 
     <span class="n">bucket_extracted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extractors</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ExtractAndFilter</span><span class="p">)</span>
@@ -398,7 +412,10 @@
       <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">preprocessor</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">preprocessors_order</span><span class="p">,</span>
                                    <span class="bp">self</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-          <span class="n">extracted</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batched_input</span><span class="p">:</span>
+            <span class="n">extracted</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformBatchedFeatures</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">extracted</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">(</span><span class="n">extracted</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">extracted</span>
 
     <span class="c1"># If the extractor wants to filter the example, don&#39;t run the preprocessor.</span>

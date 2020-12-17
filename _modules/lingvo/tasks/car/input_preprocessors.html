@@ -255,6 +255,22 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="Preprocessor.TransformBatchedFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.Preprocessor.TransformBatchedFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformBatchedFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transforms the features for a batch of examples.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      features: A `NestedMap` of batched tensors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `NestedMap` of tensors corresponding.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TransformDTypes</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span>
+    <span class="c1"># Default impl uses map_fn.</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TransformFeatures</span><span class="p">,</span> <span class="n">elems</span><span class="o">=</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="p">,</span> <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
 <div class="viewcode-block" id="Preprocessor.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.Preprocessor.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets correct shapes corresponding to TransformFeatures.</span>
 

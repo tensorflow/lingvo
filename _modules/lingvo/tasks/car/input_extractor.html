@@ -259,6 +259,26 @@
         <span class="n">outputs</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">outputs</span></div>
 
+<div class="viewcode-block" id="FieldsExtractor.ExtractBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.ExtractBatch">[docs]</a>  <span class="k">def</span> <span class="nf">ExtractBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given &#39;features&#39; batched Tensors, output Tensors for consumption.</span>
+
+<span class="sd">    NOTE: Implementation provided by subclasses&#39;s _ExtractBatch() method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      features: A dictionary of Tensors which includes tensors from this</span>
+<span class="sd">        extractor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap of batched output Tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ExtractBatch</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="c1"># Add batch dimension to shape.</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">outputs</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">shapes</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">outputs</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">outputs</span></div>
+
 <div class="viewcode-block" id="FieldsExtractor.Filter"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.Filter">[docs]</a>  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return the bucket based on the result of Extract().</span>
 
@@ -270,6 +290,23 @@
 <span class="sd">      outputs: The NestedMap returned by this extractor&#39;s _Extract() function.</span>
 <span class="sd">        This is useful to implement filtering based on the values of the</span>
 <span class="sd">        extracted example.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A scalar bucket id.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">outputs</span>
+    <span class="k">return</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor.FilterBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor.FilterBatch">[docs]</a>  <span class="k">def</span> <span class="nf">FilterBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Like Filter but runs over batches of outputs.</span>
+
+<span class="sd">    This function should be called to decide whether the entire batch should be</span>
+<span class="sd">    dropped.  Downstream implementations that do not run within an input</span>
+<span class="sd">    pipeline must figure out how to handle these outputs, if filtering at the</span>
+<span class="sd">    batch level is desired.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      outputs: A NestedMap of preprocessed Tensors.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A scalar bucket id.</span>
@@ -289,13 +326,28 @@
     <span class="sd">&quot;&quot;&quot;The subclass-defined implementation of Extract().</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      features: A dictionary of (Sparse)Tensors which includes tensors from all</span>
-<span class="sd">        extractors.</span>
+<span class="sd">      features: A dictionary of (Sparse)Tensors which includes tensors from this</span>
+<span class="sd">        extractor.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A NestedMap of output Tensors whose key names match self.Shape()&#39;s keys.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="FieldsExtractor._ExtractBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.FieldsExtractor._ExtractBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_ExtractBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The subclass-defined implementation of ExtractBatch().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      features: A dictionary of batched Tensors including tensors from this</span>
+<span class="sd">        extractor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap of output Tensors whose key names match self.Shape()&#39;s keys.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Default implementation uses map_fn.</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Extract</span><span class="p">,</span> <span class="n">elems</span><span class="o">=</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">(),</span> <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LaserExtractor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_extractor.html#lingvo.tasks.car.input_extractor.LaserExtractor">[docs]</a><span class="k">class</span> <span class="nc">LaserExtractor</span><span class="p">(</span><span class="n">FieldsExtractor</span><span class="p">):</span>

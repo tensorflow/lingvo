@@ -246,6 +246,22 @@ extractors.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.tasks.car.input_extractor.FieldsExtractor.ExtractBatch">
+<code class="sig-name descname">ExtractBatch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">features</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_extractor.html#FieldsExtractor.ExtractBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_extractor.FieldsExtractor.ExtractBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given ‘features’ batched Tensors, output Tensors for consumption.</p>
+<p>NOTE: Implementation provided by subclasses’s _ExtractBatch() method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – A dictionary of Tensors which includes tensors from this
+extractor.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap of batched output Tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.tasks.car.input_extractor.FieldsExtractor.Filter">
 <code class="sig-name descname">Filter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_extractor.html#FieldsExtractor.Filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_extractor.FieldsExtractor.Filter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the bucket based on the result of Extract().</p>
@@ -257,6 +273,24 @@ should be dropped.  Currently no other bucketing strategies are supported.</p>
 <dd class="field-odd"><p><strong>outputs</strong> – The NestedMap returned by this extractor’s _Extract() function.
 This is useful to implement filtering based on the values of the
 extracted example.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A scalar bucket id.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.car.input_extractor.FieldsExtractor.FilterBatch">
+<code class="sig-name descname">FilterBatch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_extractor.html#FieldsExtractor.FilterBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_extractor.FieldsExtractor.FilterBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like Filter but runs over batches of outputs.</p>
+<p>This function should be called to decide whether the entire batch should be
+dropped.  Downstream implementations that do not run within an input
+pipeline must figure out how to handle these outputs, if filtering at the
+batch level is desired.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>outputs</strong> – A NestedMap of preprocessed Tensors.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A scalar bucket id.</p>
@@ -282,8 +316,23 @@ extracted example.</p>
 <dd><p>The subclass-defined implementation of Extract().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>features</strong> – A dictionary of (Sparse)Tensors which includes tensors from all
-extractors.</p>
+<dd class="field-odd"><p><strong>features</strong> – A dictionary of (Sparse)Tensors which includes tensors from this
+extractor.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap of output Tensors whose key names match self.Shape()’s keys.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.car.input_extractor.FieldsExtractor._ExtractBatch">
+<code class="sig-name descname">_ExtractBatch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">features</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_extractor.html#FieldsExtractor._ExtractBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_extractor.FieldsExtractor._ExtractBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>The subclass-defined implementation of ExtractBatch().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>features</strong> – A dictionary of batched Tensors including tensors from this
+extractor.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A NestedMap of output Tensors whose key names match self.Shape()’s keys.</p>
