@@ -111,6 +111,26 @@ class FieldsExtractor(base_layer.BaseLayer):
         outputs.DebugString(), shapes.DebugString())
     return outputs
 
+  def ExtractBatch(self, features):
+    """Given 'features' batched Tensors, output Tensors for consumption.
+
+    NOTE: Implementation provided by subclasses's _ExtractBatch() method.
+
+    Args:
+      features: A dictionary of Tensors which includes tensors from this
+        extractor.
+
+    Returns:
+      A NestedMap of batched output Tensors.
+    """
+    shapes = self.Shape()
+    outputs = self._ExtractBatch(features)
+    # Add batch dimension to shape.
+    shapes = shapes.Transform(lambda x: [None] + x)
+    assert outputs.IsCompatible(shapes), '{} vs. {}'.format(
+        outputs.DebugString(), shapes.DebugString())
+    return outputs
+
   def Filter(self, outputs):
     """Return the bucket based on the result of Extract().
 
@@ -122,6 +142,23 @@ class FieldsExtractor(base_layer.BaseLayer):
       outputs: The NestedMap returned by this extractor's _Extract() function.
         This is useful to implement filtering based on the values of the
         extracted example.
+
+    Returns:
+      A scalar bucket id.
+    """
+    del outputs
+    return 1
+
+  def FilterBatch(self, outputs):
+    """Like Filter but runs over batches of outputs.
+
+    This function should be called to decide whether the entire batch should be
+    dropped.  Downstream implementations that do not run within an input
+    pipeline must figure out how to handle these outputs, if filtering at the
+    batch level is desired.
+
+    Args:
+      outputs: A NestedMap of preprocessed Tensors.
 
     Returns:
       A scalar bucket id.
@@ -141,13 +178,28 @@ class FieldsExtractor(base_layer.BaseLayer):
     """The subclass-defined implementation of Extract().
 
     Args:
-      features: A dictionary of (Sparse)Tensors which includes tensors from all
-        extractors.
+      features: A dictionary of (Sparse)Tensors which includes tensors from this
+        extractor.
 
     Returns:
       A NestedMap of output Tensors whose key names match self.Shape()'s keys.
     """
     raise NotImplementedError()
+
+  def _ExtractBatch(self, features):
+    """The subclass-defined implementation of ExtractBatch().
+
+    Args:
+      features: A dictionary of batched Tensors including tensors from this
+        extractor.
+
+    Returns:
+      A NestedMap of output Tensors whose key names match self.Shape()'s keys.
+    """
+    # Default implementation uses map_fn.
+    result = tf.map_fn(
+        self._Extract, elems=features, dtype=self.DType(), back_prop=False)
+    return py_utils.NestedMap(result)
 
 
 class LaserExtractor(FieldsExtractor):

@@ -92,6 +92,41 @@ class InputExtractorTest(test_utils.TestCase):
     self.assertEqual(self.evaluate(result.e1.foo), 1.)
     self.assertEqual(self.evaluate(result.e2.bar), 2.)
 
+  def testBatchedInterface(self):
+
+    class AddTen(input_extractor.FieldsExtractor):
+
+      def FeatureMap(self):
+        return {'foo': tf.io.FixedLenFeature([], dtype=tf.float32)}
+
+      def DType(self):
+        return py_utils.NestedMap({'foo': tf.float32})
+
+      def Shape(self):
+        return py_utils.NestedMap({'foo': tf.TensorShape([])})
+
+      def _Extract(self, features):
+        return py_utils.NestedMap({'foo': features['foo'] + 10.})
+
+    fe = AddTen.Params().Instantiate()
+    tensor_input = {'foo': tf.constant([1., 2., 3.], shape=(3,))}
+    result = fe.ExtractBatch(tensor_input)
+    result_np = self.evaluate(result)
+    self.assertAllClose([11., 12., 13.], result_np.foo)
+
+    class Add20Batch(AddTen):
+
+      def _ExtractBatch(self, features):
+        # A pretend implementation that may be more efficient for batches.
+        #
+        # Returns a different result to ensure that it is exercised.
+        return py_utils.NestedMap(features).Transform(lambda x: x + 20.)
+
+    fe2 = Add20Batch.Params().Instantiate()
+    result2 = fe2.ExtractBatch(tensor_input)
+    result2_np = self.evaluate(result2)
+    self.assertAllClose([21., 22., 23.], result2_np.foo)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -92,6 +92,10 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
         'preprocessors.')
     p.Define('record_type', 'EXAMPLE',
              'Raw record format, default to tf.Example.')
+    p.Define(
+        'batched_input', False,
+        'If true, ProcessFeatures() is expected to receive batches of Tensors, '
+        'rather than single example Tensors.')
 
     p.batch_size = 64
     p.use_per_host_infeed = True
@@ -158,6 +162,10 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     shapes = self._extractors.Transform(lambda x: x.Shape())
     for preprocessor in self.preprocessors:
       shapes = preprocessor.TransformShapes(shapes)
+
+    if self.params.batched_input:
+      shapes = shapes.Transform(lambda x: [self.InfeedBatchSize()] + x)
+
     return shapes
 
   def DType(self):
@@ -212,9 +220,15 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
             filtered_features = {
                 k: v for k, v in features.items() if k in filtered_keys
             }
-          extracted = e.Extract(filtered_features)
+          if self.params.batched_input:
+            extracted = e.ExtractBatch(filtered_features)
+          else:
+            extracted = e.Extract(filtered_features)
         with tf.name_scope('filter'):
-          bucket = e.Filter(extracted)
+          if self.params.batched_input:
+            bucket = e.FilterBatch(extracted)
+          else:
+            bucket = e.Filter(extracted)
       return bucket, extracted
 
     bucket_extracted = self._extractors.Transform(ExtractAndFilter)
@@ -250,7 +264,10 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       for key, preprocessor in zip(self.params.preprocessors_order,
                                    self.preprocessors):
         with tf.name_scope(key), tf.name_scope(preprocessor.params.name):
-          extracted = preprocessor.TransformFeatures(extracted)
+          if self.params.batched_input:
+            extracted = preprocessor.TransformBatchedFeatures(extracted)
+          else:
+            extracted = preprocessor.TransformFeatures(extracted)
       return extracted
 
     # If the extractor wants to filter the example, don't run the preprocessor.

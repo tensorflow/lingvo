@@ -107,6 +107,22 @@ class Preprocessor(base_layer.BaseLayer):
     """
     raise NotImplementedError()
 
+  def TransformBatchedFeatures(self, features):
+    """Transforms the features for a batch of examples.
+
+    Args:
+      features: A `NestedMap` of batched tensors.
+
+    Returns:
+      A `NestedMap` of tensors corresponding.
+    """
+    dtypes = features.Transform(lambda v: v.dtype)
+    dtypes = self.TransformDTypes(dtypes)
+    # Default impl uses map_fn.
+    result = tf.map_fn(
+        self.TransformFeatures, elems=features, dtype=dtypes, back_prop=False)
+    return result
+
   def TransformShapes(self, shapes):
     """Sets correct shapes corresponding to TransformFeatures.
 
