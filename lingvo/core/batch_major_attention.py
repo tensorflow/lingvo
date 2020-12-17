@@ -4909,7 +4909,8 @@ class Builder(builder.Base):
       name: name of this layer.
       stride: If omitted, the default is 1: use every token in the query. To use
         every k-th token, set the stride to k. When set to 0, only use the first
-        token of the query.
+        token of the query. When packed_input is true, need to make sure that
+        each segment has length divisible by stride.
       first_n: only considers the first N tokens for the output. We use
         [:first_n:stride] to select the output tokens. If first_n is None, this
         flag is a no-op. If stride is positive, the output sequence length is
@@ -4928,6 +4929,10 @@ class Builder(builder.Base):
     attention_inputs = 'strided_query,after_ln,after_ln,i.paddings'
     sub_list = []
     if p.packed_input:
+      if stride > 1:
+        # TODO(huangyp): Make sure striding won't cross segment boundaries.
+        tf.logging.warning('Each segment in the packed input should has length '
+                           'divisible by stride.')
       sub_list += [
           ('i.segment_mask->strided_segment_mask',
            self._Stride('segment_mask_query_stride', stride, first_n, axis=2)),
@@ -4990,15 +4995,15 @@ class Builder(builder.Base):
 
     Args:
       name: name of this layer.
-      stride: If omitted, the default is 1: use every token in the query. To use
-        every k-th token, set the stride to k. When set to 0, only use the first
-        token of the query.
-      first_n: only considers the first N tokens for the output. We use
-        [:first_n:stride] to select the output tokens. If first_n is None, this
-        flag is a no-op. If stride is positive, the output sequence length is
-        "(first_n-1) // stride + 1". If stride is 0, first_n has to be None or
-        1. first_n can't be 0. If first_n <= stride, only the first token is
-        used.
+      stride: If omitted, the default is 1: use every token in the query. To
+        pool every k-th token, set the stride to k. When set to 0, only use the
+        first token of the query. When packed_input is true, need to make sure
+        that each segment has length divisible by stride.
+      first_n: only considers the first N tokens for the output.If first_n is
+        None, this flag is a no-op. If stride is positive, the output sequence
+        length is  "(first_n-1) // stride + 1". If stride is 0, first_n has to
+        be None or 1. first_n can't be 0. If first_n <= stride, only the first
+        token is used.
       num_heads: the number of heads.
 
     Returns:
@@ -5020,8 +5025,19 @@ class Builder(builder.Base):
 
     if num_heads is None:
       num_heads = p.num_heads
-
-    sub_list = [
+    sub_list = []
+    if p.packed_input:
+      if stride > 1:
+        assert p.funnel_pool_tpl.begin_intact == 0
+        # TODO(huangyp): Make sure striding won't cross segment boundaries.
+        tf.logging.warning('Each segment in the packed input should has length '
+                           'divisible by stride.')
+      sub_list += [
+          ('i.segment_mask->strided_segment_mask',
+           self._Stride('segment_mask_query_stride', stride, first_n, axis=2)),
+      ]
+      attention_inputs += ',strided_segment_mask'
+    sub_list += [
         ('i.vec->after_ln',
          self._DefaultLN('LN')),
         ('after_ln->strided_query',
@@ -5037,6 +5053,11 @@ class Builder(builder.Base):
         ('i.paddings->o.paddings',
          self._Pool('padding_after_Stride', stride, first_n)),
     ]
+    if p.packed_input:
+      sub_list += [
+          ('strided_segment_mask->o.segment_mask',
+           self._Stride('segment_mask_context_stride', stride, first_n, axis=3)),
+      ]
 
     return self._Graph(
         name,
@@ -5070,8 +5091,6 @@ class Builder(builder.Base):
       A transformer encoder layer params that supports optional stride.
     """
     p = self.params
-    if p.packed_input:
-      raise ValueError('FunnelEncoderLayer does not support packed input.')
     if ff_hidden_dim is None:
       ff_hidden_dim = p.ff_hidden_dim
     if num_heads is None:
