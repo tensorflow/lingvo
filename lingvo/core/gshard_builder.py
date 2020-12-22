@@ -133,6 +133,10 @@ class MoEBuilder(builder.Base):
 
     # attention params
     p.Define('attention_num_heads', 1, 'Attention number of heads.')
+    p.Define(
+        'attention_num_memory_heads', None,
+        'Attention number of memory heads. We only support '
+        'attention_num_memory_heads of 1 or None (default).')
     p.Define('attention_key_value_dim', None,
              'Shared dimensionality for Attention keys, values.')
     p.Define('attention_dropout_prob', 0.0, 'Attention dropout probability.')
@@ -549,7 +553,7 @@ class MoEBuilder(builder.Base):
                       tensor_split_dims_mapping=wo_mesh_split))],
         device_mesh=device_mesh)
 
-  def DenseReluDenseGatedGELU(self, name, decoder=False):
+  def DenseReluDenseGated(self, name, activation_fn, decoder=False):
     # Need to unify.
     input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
@@ -561,7 +565,7 @@ class MoEBuilder(builder.Base):
 
     def _Impl(wi_0, wi_1, inputs):
       return tf.math.multiply(
-          tf.nn.gelu(tf.einsum('MH,BLM->BLH', wi_0, inputs), approximate=True),
+          activation_fn(tf.einsum('MH,BLM->BLH', wi_0, inputs)),
           # linear / pass-through
           tf.einsum('MH,BLM->BLH', wi_1, inputs))
 
@@ -580,6 +584,13 @@ class MoEBuilder(builder.Base):
         ('outputs_pre_split->outputs', self.Split('outputs_split')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
     )
+
+  def DenseReluDenseGatedGELU(self, name, decoder=False):
+    return self.DenseReluDenseGated(
+        name, lambda x: tf.nn.gelu(x, approximate=True), decoder=decoder)
+
+  def DenseReluDenseGatedSILU(self, name, decoder=False):
+    return self.DenseReluDenseGated(name, tf.nn.silu, decoder=decoder)
 
   def MoE(self, name, decoder=False):
     """Returns layer params to compute (outputs, scalar_aux_loss)."""
@@ -1158,25 +1169,43 @@ class MoEBuilder(builder.Base):
     """Helper for '->wq,wk,wv,wo' Graph edge."""
 
     p = self.params
-    hd_dims = ([p.attention_num_heads *
-                p.attention_key_value_dim] if p.attention_combine_dims else
-               [p.attention_num_heads, p.attention_key_value_dim])
+    h = p.attention_num_heads
+    hd_dims = ([h * p.attention_key_value_dim]
+               if p.attention_combine_dims else [h, p.attention_key_value_dim])
+    h = p.attention_num_memory_heads or p.attention_num_heads
+    kv_hd_dims = ([h * p.attention_key_value_dim] if p.attention_combine_dims
+                  else [h, p.attention_key_value_dim])
     q_stddev = (p.model_dim * p.attention_key_value_dim)**-0.5
 
     if p.attention_combine_dims:
       if w_qkv_mhd_mesh_split is None:
         w_qkv_mesh_split = None
       else:
-        assert (w_qkv_mhd_mesh_split[2] < 0 and
-                'Cannot combine heads when partitioning each head.')
-        w_qkv_mesh_split = w_qkv_mhd_mesh_split[:-1]
+        # hd can not be both sharded
+        assert (w_qkv_mhd_mesh_split[2] < 0 or
+                w_qkv_mhd_mesh_split[1] < 0), ('hd can not be both sharded %s' %
+                                               w_qkv_mhd_mesh_split)
+        w_qkv_mesh_split = [
+            w_qkv_mhd_mesh_split[0],
+            max(w_qkv_mhd_mesh_split[2], w_qkv_mhd_mesh_split[1])
+        ]
 
       if wo_hdm_mesh_split is None:
         wo_mesh_split = None
       else:
-        assert (wo_hdm_mesh_split[1] < 0 and
-                'Cannot combine heads when partitioning each head.')
-        wo_mesh_split = [wo_hdm_mesh_split[0], wo_hdm_mesh_split[2]]
+        # wo_hdm_mesh_split is almost always set via
+        # DenseBuilder._attention_output_hdm_w_split, e.g.
+        #   [p.mhd_w_split[1], p.mhd_w_split[2], p.mhd_w_split[0]]
+        #
+        # TODO(lepikhin): this logic needs to be explicit, e.g. via
+        # SetSplitsForCombinedAttentionDims utility function.
+        assert (wo_hdm_mesh_split[0] < 0 or
+                wo_hdm_mesh_split[1] < 0), ('hd can not be both sharded %s' %
+                                            wo_hdm_mesh_split)
+        wo_mesh_split = [
+            max(wo_hdm_mesh_split[0], wo_hdm_mesh_split[1]),
+            wo_hdm_mesh_split[2],
+        ]
     else:
       w_qkv_mesh_split = w_qkv_mhd_mesh_split
       wo_mesh_split = wo_hdm_mesh_split
@@ -1188,7 +1217,7 @@ class MoEBuilder(builder.Base):
         tensor_split_dims_mapping=w_qkv_mesh_split)
     kv_stddev = (p.model_dim)**-0.5
     wkv_tpl = moe_layers.ShardedWeightParams(
-        shape=[p.model_dim] + hd_dims,
+        shape=[p.model_dim] + kv_hd_dims,
         dtype=self.params.dtype,
         init=py_utils.WeightInit.Gaussian(kv_stddev),
         tensor_split_dims_mapping=w_qkv_mesh_split)
@@ -1221,17 +1250,24 @@ class MoEBuilder(builder.Base):
 
     def _Compute(x, wq, wk, wv):
 
-      def _GetW(w):
+      def _GetW(w, h):
         if p.attention_combine_dims:
-          w = tf.reshape(
-              w,
-              [p.model_dim, p.attention_num_heads, p.attention_key_value_dim])
-        return tf.expand_dims(w, 0)
+          w = tf.reshape(w, [p.model_dim, h, p.attention_key_value_dim])
+        return w
 
-      wq = _GetW(wq)
-      wk = _GetW(wk)
-      wv = _GetW(wv)
-      wc = tf.concat([wq, wk, wv], 0)
+      wq = _GetW(wq, p.attention_num_heads)
+      wk = _GetW(wk, p.attention_num_memory_heads or p.attention_num_heads)
+      wv = _GetW(wv, p.attention_num_memory_heads or p.attention_num_heads)
+      wc = [wq, wk, wv]
+
+      if (p.attention_num_memory_heads and
+          p.attention_num_heads != p.attention_num_memory_heads):
+        # Combined tf.einsum is not possible, falling back to individual
+        # einsum ops.
+        return [tf.einsum('BLM,MHD->BLHD', x, w) for w in wc]
+
+      wc = [tf.expand_dims(w, 0) for w in wc]
+      wc = tf.concat(wc, 0)
       return [
           tf.squeeze(y, 0)
           for y in tf.split(tf.einsum('BLM,KMHD->KBLHD', x, wc), 3, 0)
@@ -1443,6 +1479,8 @@ class DenseBuilder(MoEBuilder):
     p.Define('emh_split', [0, -1, -1], 'Mesh split for EMH.')
     p.Define('ehm_split', [0, -1, -1], 'Mesh split for EHM.')
     p.Define('logits_split', [0, -1, -1], 'Mesh split for logits.')
+    p.Define('experimental_fix_split_dims_mapping', False,
+             'Mesh split dims mapping could require a fix for special cases.')
     p.Define('model_dim_reshape_segments', None,
              'Size of N when reshaping model dimension M to Nm')
     p.attention_combine_dims = False
@@ -1525,6 +1563,26 @@ class DenseBuilder(MoEBuilder):
   def _MeshSplit(self, x, tensor_split_dims_mapping):
     if tensor_split_dims_mapping is None:
       return x
+
+    if self.params.experimental_fix_split_dims_mapping:
+      # TODO(lepikhin,yuanxz): fix me.
+      # Required for split by attention head dim which could be 1 in special
+      # cases.
+      tensor_split_dims_mapping = tensor_split_dims_mapping.copy()
+      for dim, idx in enumerate(tensor_split_dims_mapping):
+        if idx < 0:
+          continue
+
+        d = x.shape.as_list()[dim]
+        if d == 1:
+          tf.logging.info('Fixing bad tensor_split_dims_mapping %s %s', x,
+                          tensor_split_dims_mapping)
+          tensor_split_dims_mapping[dim] = -1
+          continue
+        m = self._device_mesh.shape[idx]
+        assert (d % m == 0), (x, self._device_mesh.shape,
+                              tensor_split_dims_mapping)
+
     return moe_layers.MeshSplit(x, self._device_mesh, tensor_split_dims_mapping)
 
   def MeshSplit(self, name, tensor_split_dims_mapping):
@@ -1693,23 +1751,38 @@ class DenseBuilder(MoEBuilder):
       #   return tf.nn.softmax(x)
       return tf.math.exp(_LogSoftmax(x))
 
+    # p.attention_num_memory_heads == 1 special case is simple, we omit the
+    # "heads" dimension H from the projection matrices wk and wv.
+    #
+    # Then remove the heads dimension H of wk, vv, k, or v in any einsum
+    # formula in which it appears.
+    def _LogitsFn(q, k):
+      if p.attention_num_memory_heads == 1:
+        return tf.einsum('BLHD,BMD->BLHM', q, tf.squeeze(k, -2))
+      assert p.attention_num_memory_heads is None, p.attention_num_memory_heads
+      return tf.einsum(
+          'BLHD,BMHD->BLHM', q, k, name='dense_relu_dense_gated_logits')
+
+    def _OutputsFn(weights, v):
+      if p.attention_num_memory_heads == 1:
+        return tf.einsum('BLHM,BMD->BLHD', weights, tf.squeeze(v, -2))
+      assert p.attention_num_memory_heads is None, p.attention_num_memory_heads
+      return tf.einsum(
+          'BLHM,BMHD->BLHD', weights, v, name='dense_relu_dense_gated_output')
+
     return self._Graph(
         name, ['_q', '_k', '_v', 'bias'], ['outputs'],
         ('_q->q', self.MeshSplit('_q', p.qkv_split)),
         ('_k->k', self.MeshSplit('_k', p.qkv_split)),
         ('_v->v', self.MeshSplit('_v', p.qkv_split)),
-        ('q,k->l',
-         self._Fn('logits',
-                  fn=lambda q, k: tf.einsum('BLHD,BMHD->BLHM', q, k))),
+        ('q,k->l', self._Fn('logits', fn=_LogitsFn)),
         ('l,bias->logits', self._Fn('bias', fn=_AddBias)),
         ('logits->w', self._Fn('weights', _Softmax)),
         ('w->weights',
          self._Dropout('dropout', 1 - self.params.attention_dropout_prob)),
         ('weights->weights_split', self.MeshSplit('_wsplit', p.qkv_split)),
         ('weights_split,v->outputs_unsplitted',
-         self._Fn(
-             'outputs',
-             fn=lambda weights, v: tf.einsum('BLHM,BMHD->BLHD', weights, v))),
+         self._Fn('outputs', fn=_OutputsFn)),
         ('outputs_unsplitted->outputs', self.MeshSplit('_o', p.qkv_split)))
 
   def _ComputeQKV(self, name):
@@ -1730,20 +1803,27 @@ class DenseBuilder(MoEBuilder):
 
     def _Compute(x, wq, wk, wv):
 
-      def _GetW(w):
+      def _GetW(w, h):
         if p.attention_combine_dims:
           combined_split = None if p.mhd_w_split is None else p.mhd_w_split[:-1]
           w = self._MeshSplit(w, combined_split)
-          w = tf.reshape(
-              w,
-              [p.model_dim, p.attention_num_heads, p.attention_key_value_dim])
+          w = tf.reshape(w, [p.model_dim, h, p.attention_key_value_dim])
         w = self._MeshSplit(w, p.mhd_w_split)
-        return tf.expand_dims(self._ReshapeM(w, 0), 0)
+        return self._ReshapeM(w, 0)
 
-      wq = _GetW(wq)
-      wk = _GetW(wk)
-      wv = _GetW(wv)
-      wc = tf.concat([wq, wk, wv], 0)
+      wq = _GetW(wq, p.attention_num_heads)
+      wk = _GetW(wk, p.attention_num_memory_heads or p.attention_num_heads)
+      wv = _GetW(wv, p.attention_num_memory_heads or p.attention_num_heads)
+      wc = [wq, wk, wv]
+
+      if (p.attention_num_memory_heads and
+          p.attention_num_heads != p.attention_num_memory_heads):
+        # Combined tf.einsum is not possible, falling back to individual
+        # einsum ops.
+        return [self._EinsumWithModelDim('BLM,MHD->BLHD', x, w) for w in wc]
+
+      wc = [tf.expand_dims(w, 0) for w in [wq, wk, wv]]
+      wc = tf.concat(wc, 0)
       return [
           tf.squeeze(y, 0) for y in tf.split(
               self._EinsumWithModelDim('BLM,KMHD->KBLHD', x, wc), 3, 0)
@@ -1796,7 +1876,7 @@ class DenseBuilder(MoEBuilder):
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
     )
 
-  def DenseReluDenseGatedGELU(self, name, decoder=False):
+  def DenseReluDenseGated(self, name, activation_fn, decoder=False):
     # Need to unify.
     input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
@@ -1812,7 +1892,9 @@ class DenseBuilder(MoEBuilder):
           tf.squeeze(o, 0) for o in tf.split(
               self._EinsumWithModelDim('KMH,BLM->KBLH', wi, inputs), 2, 0)
       ]
-      return tf.math.multiply(tf.nn.gelu(o1, approximate=True), o2)
+      # To match historic behavior use approximate=True with tf.nn.gelu
+      # activation.
+      return tf.math.multiply(activation_fn(o1), o2)
 
     p = self.params
     return self._Graph(
@@ -1874,7 +1956,9 @@ class UniTransformer(base_model.BaseTask):
         'z_loss', 1e-4, 'if z_loss is nonzero, we add a loss equal to '
         'z_loss * tf.math.square(tf.math.reduce_logsumexp(logits, -1))')
     p.Define('positional_embedding', True, 'Positional embs.')
-    p.Define('gated_gelu', False, 'FFN gated GELU.')
+    p.Define('gated_gelu', False, 'FFN gated GELU. '
+             'Deprecated. Use gated_ffn_activation=gelu.')
+    p.Define('gated_ffn_activation', None, 'Transformer gated FFN activation.')
     return p
 
   def __init__(self, params):
@@ -1884,6 +1968,14 @@ class UniTransformer(base_model.BaseTask):
     b = p.builder.Instantiate()
 
     tgt_vocab_size = p.vocab_size
+
+    if p.gated_gelu or p.gated_ffn_activation == 'gelu':
+      gated_ffn_activation = lambda x: tf.nn.gelu(x, approximate=True)
+    elif p.gated_ffn_activation == 'silu':
+      gated_ffn_activation = tf.nn.silu
+    else:
+      assert not p.gated_ffn_activation, p.gated_ffn_activation
+      gated_ffn_activation = None
 
     dec_emb = b.Embedding('dec_emb', tgt_vocab_size)
     self.CreateChild('dec_emb', dec_emb)
@@ -1896,8 +1988,9 @@ class UniTransformer(base_model.BaseTask):
         (b.DecSelfAttentionRelativeBias('dec_self_attention')
          if not p.positional_embedding else
          b.DecSelfAttention('dec_self_attention')),
-        (b.DenseReluDense('dense_relu_dense', decoder=True) if not p.gated_gelu
-         else b.DenseReluDenseGatedGELU('dense_relu_dense', decoder=True)),
+        (b.DenseReluDense('dense_relu_dense', decoder=True)
+         if gated_ffn_activation is None else b.DenseReluDenseGated(
+             'dense_relu_dense', gated_ffn_activation, decoder=True)),
     ], p.num_transformer_layers)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
