@@ -17,16 +17,20 @@
 
 [1] Attention is all you need.
     https://arxiv.org/pdf/1706.03762.pdf Section 3.
+[2] Rethinking Attention with Performers (FAVOR mechanism).
+    https://arxiv.org/abs/2009.14794
 """
 
 import bisect
 import math
+from absl import logging
 from lingvo import compat as tf
 from lingvo.core import attention_util
 from lingvo.core import base_layer
 from lingvo.core import builder
 from lingvo.core import computation_cost
 from lingvo.core import conv_layers_builder as conv_layers
+from lingvo.core import favor_attention as favor
 from lingvo.core import gpipe
 from lingvo.core import hyperparams
 from lingvo.core import layers
@@ -39,6 +43,8 @@ from lingvo.core import xla_sharding_utils
 import numpy as np
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import inplace_ops
+
+DEFAULT_VALUE_OF_RANDOM_FEATURES = 384
 
 # pylint: enable=g-direct-tensorflow-import
 
@@ -545,8 +551,63 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     if p.device_mesh is not None:
       encoded = xla_sharding_utils.MeshSplit(encoded, p.device_mesh,
                                              p.activation_split_dims_mapping)
-
     return encoded, probs
+
+  def _FavorDotAtten(self,
+                     theta,
+                     query,
+                     key,
+                     value,
+                     paddings,
+                     segment_mask,
+                     per_step_padding=None,
+                     favor_config=None):
+    """Main FAVOR attention function from Rethinking Attention with Performers.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query:    [B, T, N, H].
+      key:      [B, S, N, H].
+      value:    [B, S, N, H].
+      paddings: [B, S].
+      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
+        between different segments. This is already been converted into large
+        negative logits. Only applied if packed_input = True.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, S] if
+        not None.
+      favor_config: dictionary defining parameters of FAVOR attention.
+
+    Returns:
+      encoded: [B, T, N, H].
+      atten_probs: None for FAVOR attention.
+    """
+    # TODO(kchoro): Add segment_mask support when FAVOR mechanism is applied
+    # and per_step_padding (causal FAVOR).
+    if favor_config['attention_type'] == 'relu':
+      kernel_transformation = favor.relu_kernel_transformation
+      encoded = favor.favor_attention(query, key, value, kernel_transformation,
+                                      False)
+    elif favor_config['attention_type'] == 'softmax':
+      if 'num_random_features' in favor_config.keys():
+        num_random_features = favor_config['num_random_features']
+      else:
+        num_random_features = DEFAULT_VALUE_OF_RANDOM_FEATURES
+      kernel_transformation = favor.softmax_kernel_transformation
+      # TODO(kchoro): Add the option of redrawing projection matrices. This
+      # improves in several applications.
+      projection_matrix = favor.create_projection_matrix(
+          num_random_features, query.shape[-1])
+      encoded = favor.favor_attention(query, key, value, kernel_transformation,
+                                      False, projection_matrix)
+    else:
+      logging.info(
+          'FAVOR attention type: %s is not supported,returning query tensor.',
+          favor_config['attention_type'])
+      return query, None
+
+    return encoded, None
 
   def _DotAttenOneStep(self,
                        theta,
@@ -3394,10 +3455,9 @@ class TransformerLayer(base_layer.BaseLayer):
       per_step_padding_override: [target_batch, target_time, target_time].
       segment_mask:     [target_batch, 1, target_time, target_time].
       aux_segment_mask: [source_batch, 1, target_time, source_time].
-
-    target_batch can be a multiple of source_batch, where samples in
-    target_batch are arranged in the order of [m, source_batch] where m =
-    target_batch / source_batch.
+        target_batch can be a multiple of source_batch, where samples in
+        target_batch are arranged in the order of [m, source_batch] where m =
+        target_batch / source_batch.
 
     Returns:
       The fflayer output with shape [target_batch, target_time, dim].
@@ -3914,10 +3974,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         results of previous attentions, used for fast decoding.
         cached_states.x_layers is a list corresponding to self.x_layers, where
         each element is a NestedMap with attention keys and values:
-
         - key: [target_time, target_batch, num_heads, dim_per_head].
         - value: [target_time, target_batch, num_heads, dim_per_head].
-
       time_step: A scalar, the current decode step, 0-based.
       use_short_seq_opt: A bool, whether using short sequence optimization.
 
@@ -4230,8 +4288,8 @@ class StrideLayer(base_layer.BaseLayer):
 
     Args:
       theta: weights defined in this layer.
-      x: input tensor, [..., time, ...]. Stride is applied to the time dim
-        as given by p.axis.
+      x: input tensor, [..., time, ...]. Stride is applied to the time dim as
+        given by p.axis.
 
     Returns:
       Strided tensor, with the stride applied to the time dim in x.

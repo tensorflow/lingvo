@@ -29,6 +29,40 @@ from lingvo.core import test_utils
 import numpy as np
 
 
+class FAVORDotAttenTest(test_utils.TestCase, parameterized.TestCase):
+
+  def test_favor_output(self):
+    p = attention.MultiHeadedAttention.Params().Set(
+        name='atten',
+        input_dim=4,
+        hidden_dim=4,
+        enable_scaling_code_motion=True)
+    multiheadattention = attention.MultiHeadedAttention(p)
+    favor_config = {'attention_type': 'softmax', 'num_random_features': 1000}
+    batch_size = 1
+    length = 2
+    num_heads = 1
+    dim = 8
+    query = tf.random.normal([batch_size, length, num_heads, dim])
+    key = tf.random.normal([batch_size, length, num_heads, dim])
+    value = tf.random.normal([batch_size, length, num_heads, dim])
+    encoded, _ = multiheadattention._FavorDotAtten(
+        None, query, key, value, None, None, favor_config=favor_config)
+
+    query = tf.multiply(query, 1.0 / math.sqrt(float(dim)))
+    attention_scores = tf.einsum('BXHD,BYHD->BXYH', query, key)
+    attention_scores = tf.nn.softmax(attention_scores, axis=2)
+    exact_attention_block_output = tf.einsum('BXYH,BYHD->BXHD',
+                                             attention_scores, value)
+    max_error = 0.5
+    with self.session(use_gpu=False) as sess:
+      favor_output, groundtruth_output = sess.run(
+          [exact_attention_block_output, encoded])
+      error = np.max(
+          np.abs((groundtruth_output - favor_output) / groundtruth_output))
+      self.assertLess(error, max_error)
+
+
 class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
   """Test attention models."""
 
