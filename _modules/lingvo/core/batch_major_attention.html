@@ -164,16 +164,20 @@
 
 <span class="sd">[1] Attention is all you need.</span>
 <span class="sd">    https://arxiv.org/pdf/1706.03762.pdf Section 3.</span>
+<span class="sd">[2] Rethinking Attention with Performers (FAVOR mechanism).</span>
+<span class="sd">    https://arxiv.org/abs/2009.14794</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">bisect</span>
 <span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention_util</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">computation_cost</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_builder</span> <span class="k">as</span> <span class="n">conv_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">favor_attention</span> <span class="k">as</span> <span class="n">favor</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gpipe</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
@@ -186,6 +190,8 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
+
+<span class="n">DEFAULT_VALUE_OF_RANDOM_FEATURES</span> <span class="o">=</span> <span class="mi">384</span>
 
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
@@ -692,8 +698,63 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">encoded</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                                              <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
+
+<div class="viewcode-block" id="MultiHeadedAttention._FavorDotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._FavorDotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_FavorDotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">theta</span><span class="p">,</span>
+                     <span class="n">query</span><span class="p">,</span>
+                     <span class="n">key</span><span class="p">,</span>
+                     <span class="n">value</span><span class="p">,</span>
+                     <span class="n">paddings</span><span class="p">,</span>
+                     <span class="n">segment_mask</span><span class="p">,</span>
+                     <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">favor_config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Main FAVOR attention function from Rethinking Attention with Performers.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query:    [B, T, N, H].</span>
+<span class="sd">      key:      [B, S, N, H].</span>
+<span class="sd">      value:    [B, S, N, H].</span>
+<span class="sd">      paddings: [B, S].</span>
+<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention</span>
+<span class="sd">        between different segments. This is already been converted into large</span>
+<span class="sd">        negative logits. Only applied if packed_input = True.</span>
+<span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
+<span class="sd">        information flow from future (causal padding). It has shape [B, T, S] if</span>
+<span class="sd">        not None.</span>
+<span class="sd">      favor_config: dictionary defining parameters of FAVOR attention.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded: [B, T, N, H].</span>
+<span class="sd">      atten_probs: None for FAVOR attention.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO(kchoro): Add segment_mask support when FAVOR mechanism is applied</span>
+    <span class="c1"># and per_step_padding (causal FAVOR).</span>
+    <span class="k">if</span> <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;attention_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
+      <span class="n">kernel_transformation</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">relu_kernel_transformation</span>
+      <span class="n">encoded</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">favor_attention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">kernel_transformation</span><span class="p">,</span>
+                                      <span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;attention_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;softmax&#39;</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s1">&#39;num_random_features&#39;</span> <span class="ow">in</span> <span class="n">favor_config</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">num_random_features</span> <span class="o">=</span> <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;num_random_features&#39;</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">num_random_features</span> <span class="o">=</span> <span class="n">DEFAULT_VALUE_OF_RANDOM_FEATURES</span>
+      <span class="n">kernel_transformation</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">softmax_kernel_transformation</span>
+      <span class="c1"># TODO(kchoro): Add the option of redrawing projection matrices. This</span>
+      <span class="c1"># improves in several applications.</span>
+      <span class="n">projection_matrix</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">create_projection_matrix</span><span class="p">(</span>
+          <span class="n">num_random_features</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">encoded</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">favor_attention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">kernel_transformation</span><span class="p">,</span>
+                                      <span class="kc">False</span><span class="p">,</span> <span class="n">projection_matrix</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;FAVOR attention type: </span><span class="si">%s</span><span class="s1"> is not supported,returning query tensor.&#39;</span><span class="p">,</span>
+          <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;attention_type&#39;</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">query</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention._DotAttenOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._DotAttenOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAttenOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">theta</span><span class="p">,</span>
@@ -3541,10 +3602,9 @@
 <span class="sd">      per_step_padding_override: [target_batch, target_time, target_time].</span>
 <span class="sd">      segment_mask:     [target_batch, 1, target_time, target_time].</span>
 <span class="sd">      aux_segment_mask: [source_batch, 1, target_time, source_time].</span>
-
-<span class="sd">    target_batch can be a multiple of source_batch, where samples in</span>
-<span class="sd">    target_batch are arranged in the order of [m, source_batch] where m =</span>
-<span class="sd">    target_batch / source_batch.</span>
+<span class="sd">        target_batch can be a multiple of source_batch, where samples in</span>
+<span class="sd">        target_batch are arranged in the order of [m, source_batch] where m =</span>
+<span class="sd">        target_batch / source_batch.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The fflayer output with shape [target_batch, target_time, dim].</span>
@@ -4061,10 +4121,8 @@
 <span class="sd">        results of previous attentions, used for fast decoding.</span>
 <span class="sd">        cached_states.x_layers is a list corresponding to self.x_layers, where</span>
 <span class="sd">        each element is a NestedMap with attention keys and values:</span>
-
 <span class="sd">        - key: [target_time, target_batch, num_heads, dim_per_head].</span>
 <span class="sd">        - value: [target_time, target_batch, num_heads, dim_per_head].</span>
-
 <span class="sd">      time_step: A scalar, the current decode step, 0-based.</span>
 <span class="sd">      use_short_seq_opt: A bool, whether using short sequence optimization.</span>
 
@@ -4377,8 +4435,8 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: weights defined in this layer.</span>
-<span class="sd">      x: input tensor, [..., time, ...]. Stride is applied to the time dim</span>
-<span class="sd">        as given by p.axis.</span>
+<span class="sd">      x: input tensor, [..., time, ...]. Stride is applied to the time dim as</span>
+<span class="sd">        given by p.axis.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Strided tensor, with the stride applied to the time dim in x.</span>

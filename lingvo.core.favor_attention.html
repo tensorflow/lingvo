@@ -1,0 +1,395 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.favor_attention module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.generic_input module" href="lingvo.core.generic_input.html" />
+    <link rel="prev" title="lingvo.core.egdd module" href="lingvo.core.egdd.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.favor_attention module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.favor_attention.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.favor_attention">
+<span id="lingvo-core-favor-attention-module"></span><h1>lingvo.core.favor_attention module<a class="headerlink" href="#module-lingvo.core.favor_attention" title="Permalink to this headline">¶</a></h1>
+<p>Implementation of multiheaded FAVOR-attention &amp; FAVOR-self-attention layers.</p>
+<p>Prefix sum tf implementation by Valerii Likhosherstov.</p>
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.create_projection_matrix">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">create_projection_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nb_random_projections</span></em>, <em class="sig-param"><span class="n">dim</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">scaling</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#create_projection_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.create_projection_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the matrix of random projections.</p>
+<p>Constructs a matrix of random orthogonal projections. Each projection vector
+has direction chosen uniformly at random and either deterministic length
+sqrt{dim} or length taken from the chi(dim) distribution (in the latter
+case marginal distributions of the projections are dim-dimensional Gaussian
+vectors with associated identity covariance matrix).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nb_random_projections</strong> – number of random projections.</p></li>
+<li><p><strong>dim</strong> – dimensionality of each random projection.</p></li>
+<li><p><strong>seed</strong> – random seed used to construct projections.</p></li>
+<li><p><strong>scaling</strong> – 1 if all the random projections need to be renormalized to have
+length sqrt{dim}, 0 if the lengths of random projections should follow
+chi(dim) distribution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The matrix of random projections of the shape [nb_random_projections, dim].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.relu_kernel_transformation">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">relu_kernel_transformation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">is_query</span></em>, <em class="sig-param"><span class="n">projection_matrix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">numerical_stabilizer</span><span class="o">=</span><span class="default_value">0.001</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#relu_kernel_transformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.relu_kernel_transformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes features for the ReLU-kernel.</p>
+<p>Computes random features for the ReLU kernel from
+<a class="reference external" href="https://arxiv.org/pdf/2009.14794.pdf">https://arxiv.org/pdf/2009.14794.pdf</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – input data tensor of the shape [B, L, H, D], where: B - batch
+dimension, L - attention dimensions, H - heads, D - features.</p></li>
+<li><p><strong>is_query</strong> – indicates whether input data is a query oor key tensor.</p></li>
+<li><p><strong>projection_matrix</strong> – random Gaussian matrix of shape [M, D], where M stands
+for the number of random features and each D x D sub-block has pairwise
+orthogonal rows.</p></li>
+<li><p><strong>numerical_stabilizer</strong> – small positive constant for numerical stability.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Corresponding kernel feature map.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.softmax_kernel_transformation">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">softmax_kernel_transformation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">is_query</span></em>, <em class="sig-param"><span class="n">projection_matrix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">numerical_stabilizer</span><span class="o">=</span><span class="default_value">1e-06</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#softmax_kernel_transformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.softmax_kernel_transformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes random features for the softmax kernel using FAVOR+ mechanism.</p>
+<p>Computes random features for the softmax kernel using FAVOR+ mechanism from
+<a class="reference external" href="https://arxiv.org/pdf/2009.14794.pdf">https://arxiv.org/pdf/2009.14794.pdf</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – input data tensor of the shape [B, L, H, D], where: B - batch
+dimension, L - attention dimensions, H - heads, D - features.</p></li>
+<li><p><strong>is_query</strong> – indicates whether input data is a query oor key tensor.</p></li>
+<li><p><strong>projection_matrix</strong> – random Gaussian matrix of shape [M, D], where M stands
+for the number of random features and each D x D sub-block has pairwise
+orthogonal rows.</p></li>
+<li><p><strong>numerical_stabilizer</strong> – small positive constant for numerical stability.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Corresponding kernel feature map.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.noncausal_numerator">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">noncausal_numerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em>, <em class="sig-param"><span class="n">ks</span></em>, <em class="sig-param"><span class="n">vs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#noncausal_numerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.noncausal_numerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes not-normalized FAVOR noncausal attention AV.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>vs</strong> – value tensor of the shape [L,B,H,D].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Not-normalized FAVOR noncausal attention AV.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.noncausal_denominator">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">noncausal_denominator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em>, <em class="sig-param"><span class="n">ks</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#noncausal_denominator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.noncausal_denominator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes FAVOR normalizer in noncausal attention.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>FAVOR normalizer in noncausal attention.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.causal_numerator">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">causal_numerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em>, <em class="sig-param"><span class="n">ks</span></em>, <em class="sig-param"><span class="n">vs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#causal_numerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.causal_numerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes not-normalized FAVOR causal attention A_{masked}V.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>vs</strong> – value tensor of the shape [L,B,H,D].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Not-normalized FAVOR causal attention A_{masked}V.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.causal_denominator">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">causal_denominator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em>, <em class="sig-param"><span class="n">ks</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#causal_denominator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.causal_denominator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes FAVOR normalizer in causal attention.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>FAVOR normalizer in causal attention.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.favor_attention.favor_attention">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">favor_attention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">kernel_transformation</span></em>, <em class="sig-param"><span class="n">causal</span></em>, <em class="sig-param"><span class="n">projection_matrix</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#favor_attention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.favor_attention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes FAVOR normalized attention.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> – query tensor.</p></li>
+<li><p><strong>key</strong> – key tensor.</p></li>
+<li><p><strong>value</strong> – value tensor.</p></li>
+<li><p><strong>kernel_transformation</strong> – transformation used to get finite kernel features.</p></li>
+<li><p><strong>causal</strong> – whether attention is causal or not.</p></li>
+<li><p><strong>projection_matrix</strong> – projection matrix to be used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>FAVOR normalized attention.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.generic_input.html" class="btn btn-neutral float-right" title="lingvo.core.generic_input module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.egdd.html" class="btn btn-neutral float-left" title="lingvo.core.egdd module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

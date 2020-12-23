@@ -1,0 +1,512 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.favor_attention &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.favor_attention</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.favor_attention</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Implementation of multiheaded FAVOR-attention &amp; FAVOR-self-attention layers.</span>
+
+<span class="sd">Prefix sum tf implementation by Valerii Likhosherstov.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+
+<span class="n">BIG_CONSTANT</span> <span class="o">=</span> <span class="mf">1e8</span>
+
+
+<div class="viewcode-block" id="create_projection_matrix"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.create_projection_matrix">[docs]</a><span class="k">def</span> <span class="nf">create_projection_matrix</span><span class="p">(</span><span class="n">nb_random_projections</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Constructs the matrix of random projections.</span>
+
+<span class="sd">  Constructs a matrix of random orthogonal projections. Each projection vector</span>
+<span class="sd">  has direction chosen uniformly at random and either deterministic length</span>
+<span class="sd">  \sqrt{dim} or length taken from the \chi(dim) distribution (in the latter</span>
+<span class="sd">  case marginal distributions of the projections are dim-dimensional Gaussian</span>
+<span class="sd">  vectors with associated identity covariance matrix).</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nb_random_projections: number of random projections.</span>
+<span class="sd">    dim: dimensionality of each random projection.</span>
+<span class="sd">    seed: random seed used to construct projections.</span>
+<span class="sd">    scaling: 1 if all the random projections need to be renormalized to have</span>
+<span class="sd">      length \sqrt{dim}, 0 if the lengths of random projections should follow</span>
+<span class="sd">      \chi(dim) distribution.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The matrix of random projections of the shape [nb_random_projections, dim].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">nb_full_blocks</span> <span class="o">=</span> <span class="n">nb_random_projections</span> <span class="o">//</span> <span class="n">dim</span>
+  <span class="n">block_list</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">current_seed</span> <span class="o">=</span> <span class="n">seed</span>
+  <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nb_full_blocks</span><span class="p">):</span>
+    <span class="n">unstructured_block</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">((</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">),</span> <span class="n">seed</span><span class="o">=</span><span class="n">current_seed</span><span class="p">)</span>
+    <span class="n">q</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">unstructured_block</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">block_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">current_seed</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="n">remaining_rows</span> <span class="o">=</span> <span class="n">nb_random_projections</span> <span class="o">-</span> <span class="n">nb_full_blocks</span> <span class="o">*</span> <span class="n">dim</span>
+  <span class="k">if</span> <span class="n">remaining_rows</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">unstructured_block</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">((</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">),</span> <span class="n">seed</span><span class="o">=</span><span class="n">current_seed</span><span class="p">)</span>
+    <span class="n">q</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">unstructured_block</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">block_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">remaining_rows</span><span class="p">])</span>
+  <span class="n">final_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">block_list</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">current_seed</span> <span class="o">+=</span> <span class="mi">1</span>
+
+  <span class="k">if</span> <span class="n">scaling</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">squares</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">((</span><span class="n">nb_random_projections</span><span class="p">,</span> <span class="n">dim</span><span class="p">),</span> <span class="n">seed</span><span class="o">=</span><span class="n">current_seed</span><span class="p">))</span>
+    <span class="n">squared_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">squares</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">squared_lengths</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">scaling</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">nb_random_projections</span><span class="p">))</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Scaling must be one of {0, 1}. Was </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">scaling</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">multiplier</span><span class="p">),</span> <span class="n">final_matrix</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="relu_kernel_transformation"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.relu_kernel_transformation">[docs]</a><span class="k">def</span> <span class="nf">relu_kernel_transformation</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
+                               <span class="n">is_query</span><span class="p">,</span>
+                               <span class="n">projection_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">numerical_stabilizer</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes features for the ReLU-kernel.</span>
+
+<span class="sd">  Computes random features for the ReLU kernel from</span>
+<span class="sd">  https://arxiv.org/pdf/2009.14794.pdf.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    data: input data tensor of the shape [B, L, H, D], where: B - batch</span>
+<span class="sd">      dimension, L - attention dimensions, H - heads, D - features.</span>
+<span class="sd">    is_query: indicates whether input data is a query oor key tensor.</span>
+<span class="sd">    projection_matrix: random Gaussian matrix of shape [M, D], where M stands</span>
+<span class="sd">      for the number of random features and each D x D sub-block has pairwise</span>
+<span class="sd">      orthogonal rows.</span>
+<span class="sd">    numerical_stabilizer: small positive constant for numerical stability.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Corresponding kernel feature map.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">del</span> <span class="n">is_query</span>
+  <span class="k">if</span> <span class="n">projection_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">+</span> <span class="n">numerical_stabilizer</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">ratio</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">projection_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+    <span class="n">data_dash</span> <span class="o">=</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;blhd,md-&gt;blhm&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">projection_matrix</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">data_dash</span><span class="p">)</span> <span class="o">+</span> <span class="n">numerical_stabilizer</span></div>
+
+
+<div class="viewcode-block" id="softmax_kernel_transformation"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.softmax_kernel_transformation">[docs]</a><span class="k">def</span> <span class="nf">softmax_kernel_transformation</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
+                                  <span class="n">is_query</span><span class="p">,</span>
+                                  <span class="n">projection_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                  <span class="n">numerical_stabilizer</span><span class="o">=</span><span class="mf">0.000001</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes random features for the softmax kernel using FAVOR+ mechanism.</span>
+
+<span class="sd">  Computes random features for the softmax kernel using FAVOR+ mechanism from</span>
+<span class="sd">  https://arxiv.org/pdf/2009.14794.pdf.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    data: input data tensor of the shape [B, L, H, D], where: B - batch</span>
+<span class="sd">      dimension, L - attention dimensions, H - heads, D - features.</span>
+<span class="sd">    is_query: indicates whether input data is a query oor key tensor.</span>
+<span class="sd">    projection_matrix: random Gaussian matrix of shape [M, D], where M stands</span>
+<span class="sd">      for the number of random features and each D x D sub-block has pairwise</span>
+<span class="sd">      orthogonal rows.</span>
+<span class="sd">    numerical_stabilizer: small positive constant for numerical stability.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Corresponding kernel feature map.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">data_normalizer</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))))</span>
+  <span class="n">ratio</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">projection_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+  <span class="n">data_dash</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;blhd,md-&gt;blhm&quot;</span><span class="p">,</span> <span class="n">data_normalizer</span> <span class="o">*</span> <span class="n">data</span><span class="p">,</span>
+                        <span class="n">projection_matrix</span><span class="p">)</span>
+  <span class="n">diag_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+  <span class="n">diag_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+      <span class="n">diag_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">diag_data</span> <span class="o">=</span> <span class="p">(</span><span class="n">diag_data</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">data_normalizer</span> <span class="o">*</span> <span class="n">data_normalizer</span>
+  <span class="n">diag_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">diag_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">is_query</span><span class="p">:</span>
+    <span class="n">last_dims_t</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data_dash</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,)</span>
+    <span class="n">data_dash</span> <span class="o">=</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">data_dash</span> <span class="o">-</span> <span class="n">diag_data</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span>
+            <span class="n">data_dash</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">last_dims_t</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span> <span class="o">+</span> <span class="n">numerical_stabilizer</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">data_dash</span> <span class="o">=</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">data_dash</span> <span class="o">-</span> <span class="n">diag_data</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">data_dash</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">numerical_stabilizer</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">data_dash</span></div>
+
+
+<div class="viewcode-block" id="noncausal_numerator"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.noncausal_numerator">[docs]</a><span class="k">def</span> <span class="nf">noncausal_numerator</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">ks</span><span class="p">,</span> <span class="n">vs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes not-normalized FAVOR noncausal attention AV.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    qs: query_prime tensor of the shape [L,B,H,M].</span>
+<span class="sd">    ks: key_prime tensor of the shape [L,B,H,M].</span>
+<span class="sd">    vs: value tensor of the shape [L,B,H,D].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Not-normalized FAVOR noncausal attention AV.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">kvs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;lbhm,lbhd-&gt;bhmd&quot;</span><span class="p">,</span> <span class="n">ks</span><span class="p">,</span> <span class="n">vs</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;lbhm,bhmd-&gt;lbhd&quot;</span><span class="p">,</span> <span class="n">qs</span><span class="p">,</span> <span class="n">kvs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="noncausal_denominator"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.noncausal_denominator">[docs]</a><span class="k">def</span> <span class="nf">noncausal_denominator</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">ks</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes FAVOR normalizer in noncausal attention.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    qs: query_prime tensor of the shape [L,B,H,M].</span>
+<span class="sd">    ks: key_prime tensor of the shape [L,B,H,M].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    FAVOR normalizer in noncausal attention.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">all_ones</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">ks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+  <span class="n">ks_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;lbhm,l-&gt;bhm&quot;</span><span class="p">,</span> <span class="n">ks</span><span class="p">,</span> <span class="n">all_ones</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;lbhm,bhm-&gt;lbh&quot;</span><span class="p">,</span> <span class="n">qs</span><span class="p">,</span> <span class="n">ks_sum</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="causal_numerator"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.causal_numerator">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">custom_gradient</span>
+<span class="k">def</span> <span class="nf">causal_numerator</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">ks</span><span class="p">,</span> <span class="n">vs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes not-normalized FAVOR causal attention A_{masked}V.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    qs: query_prime tensor of the shape [L,B,H,M].</span>
+<span class="sd">    ks: key_prime tensor of the shape [L,B,H,M].</span>
+<span class="sd">    vs: value tensor of the shape [L,B,H,D].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Not-normalized FAVOR causal attention A_{masked}V.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">sums</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijk,ijl-&gt;ijkl&quot;</span><span class="p">,</span> <span class="n">ks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vs</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+  <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="n">sums</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijk,ijl-&gt;ijkl&quot;</span><span class="p">,</span> <span class="n">ks</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">vs</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijkl,ijk-&gt;ijl&quot;</span><span class="p">,</span> <span class="n">sums</span><span class="p">,</span> <span class="n">qs</span><span class="p">[</span><span class="n">index</span><span class="p">])[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+
+  <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">grad</span><span class="p">(</span><span class="n">res_grad</span><span class="p">):</span>
+
+    <span class="n">grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijk,ijl-&gt;ijkl&quot;</span><span class="p">,</span> <span class="n">ks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vs</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="n">gr_sums</span> <span class="o">=</span> <span class="n">sums</span>
+
+    <span class="n">q_grads</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">k_grads</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">v_grads</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+
+      <span class="n">q_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijkl,ijl-&gt;ijk&quot;</span><span class="p">,</span> <span class="n">gr_sums</span><span class="p">,</span> <span class="n">res_grad</span><span class="p">[</span><span class="n">index</span><span class="p">])[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+      <span class="n">grads</span> <span class="o">=</span> <span class="n">grads</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijk,ijl-&gt;ijkl&quot;</span><span class="p">,</span> <span class="n">qs</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">res_grad</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+      <span class="n">k_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijkl,ijl-&gt;ijk&quot;</span><span class="p">,</span> <span class="n">grads</span><span class="p">,</span> <span class="n">vs</span><span class="p">[</span><span class="n">index</span><span class="p">])[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+      <span class="n">v_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijkl,ijk-&gt;ijl&quot;</span><span class="p">,</span> <span class="n">grads</span><span class="p">,</span> <span class="n">ks</span><span class="p">[</span><span class="n">index</span><span class="p">])[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+      <span class="n">gr_sums</span> <span class="o">=</span> <span class="n">gr_sums</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijk,ijl-&gt;ijkl&quot;</span><span class="p">,</span> <span class="n">ks</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">vs</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+
+    <span class="n">q_grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">q_grads</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">k_grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">k_grads</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">v_grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">v_grads</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">q_grads</span><span class="p">,</span> <span class="n">k_grads</span><span class="p">,</span> <span class="n">v_grads</span>
+
+  <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">grad</span></div>
+
+
+<div class="viewcode-block" id="causal_denominator"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.causal_denominator">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">custom_gradient</span>
+<span class="k">def</span> <span class="nf">causal_denominator</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">ks</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes FAVOR normalizer in causal attention.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    qs: query_prime tensor of the shape [L,B,H,M].</span>
+<span class="sd">    ks: key_prime tensor of the shape [L,B,H,M].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    FAVOR normalizer in causal attention.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">sums</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ks</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+  <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="n">sums</span> <span class="o">=</span> <span class="n">sums</span> <span class="o">+</span> <span class="n">ks</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">qs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">*</span> <span class="n">sums</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+
+  <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">grad</span><span class="p">(</span><span class="n">res_grad</span><span class="p">):</span>
+
+    <span class="n">k_grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ks</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">gr_sums</span> <span class="o">=</span> <span class="n">sums</span>
+
+    <span class="n">q_grads</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">k_grads</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+
+      <span class="n">q_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijk,ij-&gt;ijk&quot;</span><span class="p">,</span> <span class="n">gr_sums</span><span class="p">,</span> <span class="n">res_grad</span><span class="p">[</span><span class="n">index</span><span class="p">])[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+      <span class="n">k_grad</span> <span class="o">=</span> <span class="n">k_grad</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijk,ij-&gt;ijk&quot;</span><span class="p">,</span> <span class="n">qs</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">res_grad</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+      <span class="n">k_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k_grad</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+      <span class="n">gr_sums</span> <span class="o">=</span> <span class="n">gr_sums</span> <span class="o">-</span> <span class="n">ks</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="n">q_grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">q_grads</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">k_grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">k_grads</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">q_grads</span><span class="p">,</span> <span class="n">k_grads</span>
+
+  <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">grad</span></div>
+
+
+<div class="viewcode-block" id="favor_attention"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.favor_attention">[docs]</a><span class="k">def</span> <span class="nf">favor_attention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
+                    <span class="n">key</span><span class="p">,</span>
+                    <span class="n">value</span><span class="p">,</span>
+                    <span class="n">kernel_transformation</span><span class="p">,</span>
+                    <span class="n">causal</span><span class="p">,</span>
+                    <span class="n">projection_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes FAVOR normalized attention.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    query: query tensor.</span>
+<span class="sd">    key: key tensor.</span>
+<span class="sd">    value: value tensor.</span>
+<span class="sd">    kernel_transformation: transformation used to get finite kernel features.</span>
+<span class="sd">    causal: whether attention is causal or not.</span>
+<span class="sd">    projection_matrix: projection matrix to be used.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    FAVOR normalized attention.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">query_prime</span> <span class="o">=</span> <span class="n">kernel_transformation</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">projection_matrix</span><span class="p">)</span>  <span class="c1"># [B,L,H,M]</span>
+  <span class="n">key_prime</span> <span class="o">=</span> <span class="n">kernel_transformation</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">projection_matrix</span><span class="p">)</span>  <span class="c1"># [B,L,H,M]</span>
+  <span class="n">query_prime</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">query_prime</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># [L,B,H,M]</span>
+  <span class="n">key_prime</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">key_prime</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># [L,B,H,M]</span>
+  <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># [L,B,H,D]</span>
+  <span class="c1"># TODO(kchoro): Get rid of the transpose operations, at least in the</span>
+  <span class="c1"># bidirectional variant.</span>
+
+  <span class="k">if</span> <span class="n">causal</span><span class="p">:</span>
+    <span class="n">av_attention</span> <span class="o">=</span> <span class="n">causal_numerator</span><span class="p">(</span><span class="n">query_prime</span><span class="p">,</span> <span class="n">key_prime</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">attention_normalizer</span> <span class="o">=</span> <span class="n">causal_denominator</span><span class="p">(</span><span class="n">query_prime</span><span class="p">,</span> <span class="n">key_prime</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">av_attention</span> <span class="o">=</span> <span class="n">noncausal_numerator</span><span class="p">(</span><span class="n">query_prime</span><span class="p">,</span> <span class="n">key_prime</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">attention_normalizer</span> <span class="o">=</span> <span class="n">noncausal_denominator</span><span class="p">(</span><span class="n">query_prime</span><span class="p">,</span> <span class="n">key_prime</span><span class="p">)</span>
+  <span class="c1"># TODO(kchoro): Add more comments.</span>
+  <span class="n">av_attention</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">av_attention</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+  <span class="n">attention_normalizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">attention_normalizer</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="n">attention_normalizer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">attention_normalizer</span><span class="p">,</span>
+                                        <span class="nb">len</span><span class="p">(</span><span class="n">attention_normalizer</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">av_attention</span> <span class="o">/</span> <span class="n">attention_normalizer</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
