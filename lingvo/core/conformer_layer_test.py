@@ -23,6 +23,7 @@ from lingvo import compat as tf
 from lingvo.core import bn_layers
 from lingvo.core import cluster_factory
 from lingvo.core import conformer_layer
+from lingvo.core import gshard_builder
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
@@ -151,13 +152,14 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     return inputs, paddings
 
   def _GetGrad(self, l, inputs, paddings):
-    outputs, _ = l.FPropDefaultTheta(inputs, paddings)
-    loss = tf.reduce_sum(outputs)
+    in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
+    out_nmap = l.FPropDefaultTheta(in_nmap)
+    loss = tf.reduce_sum(out_nmap.features)
     grads = tf.gradients(
         loss,
         l.vars.Flatten(),
         unconnected_gradients=tf.UnconnectedGradients.ZERO)
-    return outputs, grads
+    return out_nmap.features, grads
 
   @parameterized.named_parameters(
       ('Base',),
@@ -176,6 +178,32 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       tf.global_variables_initializer().run()
       out_vals = sess.run(outputs)
       grad_vals = sess.run(grads)
+      print([x.shape for x in out_vals])
+      print([g.shape for g in grad_vals])
+
+  def testMoEFFLayer(self):
+    p = self._GetParams()
+    p.fflayer_end_tpl = gshard_builder.MoEBuilder.Params().Set(
+        e_dim=2, c_dim=2, num_devices=2)
+    l = p.Instantiate()
+    inputs, paddings = self._GetInputs()
+    in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
+    in_nmap.aux_loss = tf.convert_to_tensor(0., py_utils.FPropDtype(p))
+    out_nmap = l.FPropDefaultTheta(in_nmap)
+    self.assertIn('aux_loss', out_nmap)
+    loss = tf.reduce_sum(out_nmap.features) + 0.01 * out_nmap.aux_loss
+    grads = tf.gradients(
+        loss,
+        l.vars.Flatten(),
+        unconnected_gradients=tf.UnconnectedGradients.ZERO)
+
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      out_vals = sess.run(out_nmap.features)
+      grad_vals = sess.run(grads)
+      self.assertEqual(out_nmap.aux_loss.shape, ())
+      aux_loss = sess.run(out_nmap.aux_loss)
+      print(aux_loss)
       print([x.shape for x in out_vals])
       print([g.shape for g in grad_vals])
 
@@ -333,7 +361,9 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       seqlen = tf.convert_to_tensor(seqlen)
       paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
 
-      base_outputs, _ = l.FProp(l.theta, inputs, paddings)
+      base_output_map = l.FProp(
+          l.theta, py_utils.NestedMap(features=inputs, paddings=paddings))
+      base_outputs = base_output_map.features
       base_outputs *= tf.expand_dims(1. - paddings, -1)
 
       outputs = []

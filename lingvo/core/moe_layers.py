@@ -1002,14 +1002,14 @@ def FeedForwardNetworksApplyGating(gating,
       _NewOrHistoricSplit(reshaped_inputs, gsm_split))
   expert_inputs = _NewOrHistoricSplit(expert_inputs, egcm_split)
 
-  M = reshaped_inputs.shape[-1]  # pylint: disable=invalid-name
-  E = expert_inputs.shape[0]  # pylint: disable=invalid-name
+  M = py_utils.GetShape(reshaped_inputs)[-1]  # pylint: disable=invalid-name
+  E = py_utils.GetShape(expert_inputs)[0]  # pylint: disable=invalid-name
 
   # combine_tensor: G`SEC
   # pylint: disable=invalid-name
-  G = gating.combine_tensor.shape[0]
+  G = py_utils.GetShape(gating.combine_tensor)[0]
   assert num_groups == tf.compat.dimension_value(G)
-  C = gating.combine_tensor.shape[-1]  # pylint: disable=invalid-name
+  C = py_utils.GetShape(gating.combine_tensor)[-1]  # pylint: disable=invalid-name
   A = G * C
   # pylint: enable=invalid-name
 
@@ -1018,7 +1018,8 @@ def FeedForwardNetworksApplyGating(gating,
   # with E=512, G=1024
   #
   # (512, 1024, 4, 1024) => (512, 4096, 1024)
-  expert_inputs = tf.reshape(expert_inputs, [expert_inputs.shape[0], A, M])
+  expert_inputs = tf.reshape(expert_inputs,
+                             [py_utils.GetShape(expert_inputs)[0], A, M])
   expert_inputs = _NewOrHistoricSplit(expert_inputs, eam_split)
 
   h = tf.einsum('EAM,EMH->EAH', expert_inputs, wi_split)
@@ -1050,7 +1051,7 @@ def FeedForwardNetworksApplyGating(gating,
       'GSEC,GECM->GSM', _NewOrHistoricSplit(gating.combine_tensor, gsec_split),
       _NewOrHistoricSplit(expert_outputs, gecm_split))
   outputs = _NewOrHistoricSplit(
-      tf.reshape(combined_outputs, inputs.shape), gsm_split)
+      tf.reshape(combined_outputs, py_utils.GetShape(inputs)), gsm_split)
   aux_loss = gating.aux_loss
   return outputs, aux_loss
 

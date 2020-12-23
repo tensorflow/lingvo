@@ -163,6 +163,47 @@ class MoEBuilderTest(test_utils.TestCase):
         self.assertAllClose(k1[:, :(t + 1)], k2[:, :(t + 1)])
         self.assertAllClose(v1[:, :(t + 1)], v2[:, :(t + 1)])
 
+  def _CreateDynamicShapeInputs(self, batch_dim, length_dim, input_dim):
+    inputs = tf.random.normal([batch_dim, length_dim, input_dim], seed=92837472)
+    # Create segment_ids with random number of 1s and stack 0s at end.
+    num_ones = tf.random.uniform(
+        shape=(), minval=1, maxval=length_dim, dtype=tf.int32)
+    segment_ids = tf.concat([
+        tf.ones([batch_dim, num_ones]),
+        tf.zeros([batch_dim, length_dim - num_ones])
+    ],
+                            axis=1)
+    # Remove unpadded positions from the end.
+    max_seq_len = tf.cast(
+        tf.reduce_max(tf.reduce_sum(segment_ids, -1)), tf.int32)
+    inputs = inputs[:, :max_seq_len, :]
+    segment_ids = segment_ids[:, :max_seq_len]
+    unused_segment_pos = tf.zeros_like(segment_ids)
+    return inputs, segment_ids, unused_segment_pos
+
+  def testMoEFPropDynamicShapes(self):
+    """Test to verify MoEBuilder.MoE() supports dynamic shapes.
+
+    Test without this change fails.
+    """
+    batch_dim = 2
+    length_dim = 4
+    input_dim = 4
+    builder = gshard_builder.MoEBuilder.Params().Set(
+        model_dim=input_dim, num_devices=2, moe_hidden_dim=16, e_dim=2, c_dim=2)
+    p = builder.Instantiate().MoE('moe')
+    with self.session(graph=tf.Graph()) as sess:
+      tf.random.set_seed(2019)
+      # we will reduce the length_dim by 2 dynamically.
+      layer = p.Instantiate()
+      inputs, segment_ids, segment_pos = self._CreateDynamicShapeInputs(
+          batch_dim, length_dim, input_dim)
+      # Verify length dimension shape is dynamic(a Tensor).
+      self.assertIsInstance(py_utils.GetShape(inputs)[1], tf.Tensor)
+      out, aux_loss = layer.FPropDefaultTheta(inputs, segment_ids, segment_pos)
+      sess.run(tf.global_variables_initializer())
+      _ = sess.run([out, aux_loss])
+
 
 class UniTransformerTest(test_utils.TestCase):
 

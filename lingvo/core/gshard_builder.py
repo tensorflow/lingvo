@@ -1385,11 +1385,11 @@ class MoEBuilder(builder.Base):
       orig_inputs = inputs
       inputs = tf.reshape(orig_inputs, [
           num_groups,
-          (orig_inputs.shape[0] * orig_inputs.shape[1]) // num_groups,
-          orig_inputs.shape[-1],
+          -1,
+          py_utils.GetShape(orig_inputs)[-1],
       ])
       inputs = moe_layers.Split(inputs, 0, p.num_devices)
-      paddings = tf.reshape(paddings, inputs.shape[:2])
+      paddings = tf.reshape(paddings, py_utils.GetShape(inputs)[:2])
       return inputs, paddings
 
     return self._Graph(name, ['inputs', 'segment_id', 'wi', 'wo'],

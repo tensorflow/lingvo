@@ -197,6 +197,7 @@ py_library(
         "//lingvo/core:batch_major_attention",
         "//lingvo/core:bn_layers",
         "//lingvo/core:conv_layers_with_time_padding",
+        "//lingvo/core:gshard_builder",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
         "//lingvo/core:moe_layers",
@@ -215,6 +216,7 @@ py_test(
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
         "//lingvo/core:bn_layers",
+        "//lingvo/core:gshard_builder",
         "//lingvo/core:test_utils",
     ],
 )
