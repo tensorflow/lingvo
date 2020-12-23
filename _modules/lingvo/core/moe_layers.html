@@ -1149,14 +1149,14 @@
       <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">gsm_split</span><span class="p">))</span>
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="n">egcm_split</span><span class="p">)</span>
 
-  <span class="n">M</span> <span class="o">=</span> <span class="n">reshaped_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="n">E</span> <span class="o">=</span> <span class="n">expert_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">M</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">E</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
 
   <span class="c1"># combine_tensor: G`SEC</span>
   <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="n">G</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">G</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
   <span class="k">assert</span> <span class="n">num_groups</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">dimension_value</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
-  <span class="n">C</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">C</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">A</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="n">C</span>
   <span class="c1"># pylint: enable=invalid-name</span>
 
@@ -1165,7 +1165,8 @@
   <span class="c1"># with E=512, G=1024</span>
   <span class="c1">#</span>
   <span class="c1"># (512, 1024, 4, 1024) =&gt; (512, 4096, 1024)</span>
-  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">expert_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">])</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span>
+                             <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">])</span>
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="n">eam_split</span><span class="p">)</span>
 
   <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAM,EMH-&gt;EAH&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">wi_split</span><span class="p">)</span>
@@ -1197,7 +1198,7 @@
       <span class="s1">&#39;GSEC,GECM-&gt;GSM&#39;</span><span class="p">,</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
       <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">gecm_split</span><span class="p">))</span>
   <span class="n">outputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">combined_outputs</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">gsm_split</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">combined_outputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)),</span> <span class="n">gsm_split</span><span class="p">)</span>
   <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">aux_loss</span>
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">aux_loss</span></div>
 
