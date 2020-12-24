@@ -15,6 +15,8 @@
 # ==============================================================================
 """Helper classes for computing performance metrics."""
 
+import collections
+
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import plot
@@ -404,6 +406,56 @@ class CorrelationMetric(BaseMetric):
       return scipy.stats.spearmanr(self._target, self._pred)[0]
     else:
       return scipy.stats.kendalltau(self._target, self._pred)[0]
+
+
+class AverageKeyedCorrelationMetric(BaseMetric):
+  """Class to compute correlation per key, then report average across all keys."""
+
+  def __init__(self, mode='pearson'):
+    """Constructor of the class.
+
+    Args:
+      mode: Possible values: 'pearson', 'spearman', 'kendalltau'.
+
+    Raises:
+      ImportError: If user has not installed scipy.stats, raise an ImportError.
+    """
+    if not HAS_SCIPY_STATS:
+      raise ImportError('CorrelationMetric depends on scipy.stats.')
+
+    assert mode in ['pearson', 'spearman', 'kendalltau']
+    self._mode = mode
+    self._target = collections.defaultdict(list)
+    self._pred = collections.defaultdict(list)
+
+  def Update(self, key, target, pred):
+    """Updates the metrics.
+
+    Args:
+      key: The key this (target, pred) pair belongs to.
+      target: An array to specify the groundtruth float target.
+      pred: An array to specify the prediction.
+    """
+    self._target[key] += target
+    self._pred[key] += pred
+
+  @property
+  def value(self):
+    # only use the correlation, p-value is ignored.
+    if self._mode == 'pearson':
+      corr_f = scipy.stats.pearsonr
+    elif self._mode == 'spearman':
+      corr_f = scipy.stats.spearmanr
+    else:
+      corr_f = scipy.stats.kendalltau
+
+    results = []
+    for k in self._target:
+      target = self._target[k]
+      pred = self._pred[k]
+      results.append(corr_f(target, pred)[0])
+
+    return np.mean(results)
 
 
 class SamplingMetric(ConfigurableMetric):

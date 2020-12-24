@@ -78,6 +78,14 @@ class MetricsTest(test_utils.TestCase):
     m.Update([1.0, 2.0, 3.0], [0.1, 0.2, 0.3])
     self.assertEqual(1.0, m.value)
 
+  def testAverageKeyedCorrelationMetric(self):
+    m = metrics.AverageKeyedCorrelationMetric()
+    m.Update('k1', [1.0, 2.0, 3.0], [0.1, 0.2, 0.3])
+    m.Update('k1', [1.0, 2.0, 3.0], [0.1, 0.2, 0.3])
+    m.Update('k2', [1.0, 2.0, 3.0], [0.3, 0.2, 0.1])
+    m.Update('k2', [1.0, 2.0, 3.0], [0.3, 0.2, 0.1])
+    self.assertEqual(0.0, m.value)
+
   def testSamplingMetric(self):
 
     class TestSamplingMetric(metrics.SamplingMetric):
