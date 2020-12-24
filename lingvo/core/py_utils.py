@@ -1945,10 +1945,9 @@ def _CreateVariableStateful(name,
             synchronization=synchronization,
             aggregation=aggregation)
 
-  if p.device_mesh is not None:
-    # Shard the variable according to the sharding spec.
-    var = xla_sharding_utils.MeshSplit(
-        var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
+  # Shard the variable according to the sharding spec.
+  var = xla_sharding_utils.MeshSplit(
+      var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
 
   return var
 
@@ -2057,10 +2056,9 @@ def _CreateVariableStateless(name,
         synchronization=synchronization,
         aggregation=aggregation)
 
-  if p.device_mesh is not None:
-    # Shard the variable according to the sharding spec.
-    var = xla_sharding_utils.MeshSplit(
-        var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
+  # Shard the variable according to the sharding spec.
+  var = xla_sharding_utils.MeshSplit(
+      var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
 
   return var
 

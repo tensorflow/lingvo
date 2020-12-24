@@ -336,6 +336,23 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define(
         'atten_extra_logit', None, 'Extra logit for attention softmax.'
         'Notice None and 0 are different.')
+    # SPMD partition related params.
+    #
+    # d - model_dim
+    # n - num_heads
+    # h - attention_dim_per_heads
+    # b - batch_size
+    # l - seq_len
+    p.activation_split_dims_mapping = hyperparams.Params()
+    ap = p.activation_split_dims_mapping
+    ap.Define(
+        'blnh', None,
+        'Mesh split for query, key, value, and encoded tensors with the '
+        'shape of [batch_size, seq_len, num_heads, dim_per_head].')
+    ap.Define(
+        'bld', None,
+        'Mesh split for output after post projection with the shape of '
+        '[batch_size, seq_len, model_dim].')
     return p
 
   def __init__(self, params):
@@ -548,9 +565,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       if p.enable_scaling_code_motion:
         # The 2nd part of the softamx --- scaling.
         encoded = encoded / tf.transpose(probs_sum, [0, 2, 1, 3])
-    if p.device_mesh is not None:
-      encoded = xla_sharding_utils.MeshSplit(encoded, p.device_mesh,
-                                             p.activation_split_dims_mapping)
+
+    encoded = xla_sharding_utils.MeshSplit(encoded, p.device_mesh,
+                                           p.activation_split_dims_mapping.blnh)
     return encoded, probs
 
   def _FavorDotAtten(self,
@@ -783,13 +800,13 @@ class MultiHeadedAttention(base_layer.BaseLayer):
               tf.one_hot(tf.range(d) % dh, dh, dtype=value_vec.dtype),
               [d, 1, dh])
       value_proj = tf.einsum('BTD,DNH->BTNH', value_vec, rhs)
-    if p.device_mesh is not None:
-      query_proj = xla_sharding_utils.MeshSplit(query_proj, p.device_mesh,
-                                                p.activation_split_dims_mapping)
-      key_proj = xla_sharding_utils.MeshSplit(key_proj, p.device_mesh,
-                                              p.activation_split_dims_mapping)
-      value_proj = xla_sharding_utils.MeshSplit(value_proj, p.device_mesh,
-                                                p.activation_split_dims_mapping)
+
+    query_proj = xla_sharding_utils.MeshSplit(
+        query_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
+    key_proj = xla_sharding_utils.MeshSplit(
+        key_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
+    value_proj = xla_sharding_utils.MeshSplit(
+        value_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
 
     if p.packed_input and not self.do_eval:
       assert segment_mask is not None
@@ -798,6 +815,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
                                           per_step_padding)
     # Post projection
     encoded = self.post.FProp(theta.post, encoded)
+
+    # Shard the output
+    encoded = xla_sharding_utils.MeshSplit(encoded, p.device_mesh,
+                                           p.activation_split_dims_mapping.bld)
     return encoded, atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
@@ -4524,6 +4545,39 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
     return upsampled
 
 
+class MeshSplitLayer(base_layer.BaseLayer):
+  """A layer that applies SPMD MeshSplit annotation to a tensor."""
+
+  @classmethod
+  def Params(cls):
+    """Params for `MeshSplitLayer`."""
+    p = super().Params()
+    p.Define(
+        'tensor_split_dims_mapping', None,
+        'A list of integers that map each tensor axis to the device mesh axis '
+        'along which it is sharded.')
+    return p
+
+  def FProp(self, theta, x):
+    """Returns x with SPMD MeshSplit annotation.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      x: Tensor to annotate.
+
+    Returns:
+      The tensor with annotation applied.
+    """
+    p = self.params
+    return xla_sharding_utils.MeshSplit(x, p.device_mesh,
+                                        p.tensor_split_dims_mapping)
+
+  @classmethod
+  def FPropMeta(cls, p, x):
+    return py_utils.NestedMap(flops=0, out_shapes=(x,))
+
+
 # pyformat: disable
 class Builder(builder.Base):
   """Builder for self-attention layers."""
@@ -4632,8 +4686,8 @@ class Builder(builder.Base):
     wp.df = [0, 1]
     wp.fd = [1, 0]
     ap = params.activation_split_dims_mapping
-    ap.blnh = [0, -1, 1, -1]
-    ap.bld = [0, -1, -1]
+    ap.blnh = None
+    ap.bld = [1, -1, -1]
     ap.blf = [0, -1, 1]
 
   def __init__(self, params):
@@ -4691,6 +4745,11 @@ class Builder(builder.Base):
   def _Pad(self, name):
     return PaddingLayer.Params().Set(name=name)
 
+  def MeshSplit(self, name, tensor_split_dims_mapping):
+    return MeshSplitLayer.Params().Set(
+        name=name, device_mesh=self.params.device_mesh,
+        tensor_split_dims_mapping=tensor_split_dims_mapping)
+
   def _MultiHeadedAtten(self, name, num_heads=None):
     """Returns a MultiHeadedAttention params."""
     p = self.params
@@ -4709,8 +4768,10 @@ class Builder(builder.Base):
         use_bias=p.use_bias,
         enable_scaling_code_motion=p.enable_scaling_code_motion,
         device_mesh=p.device_mesh,
-        weight_split_dims_mapping=p.weight_split_dims_mapping.dnh,
-        activation_split_dims_mapping=p.activation_split_dims_mapping.blnh)
+        weight_split_dims_mapping=p.weight_split_dims_mapping.dnh)
+    atten_ap = atten_p.activation_split_dims_mapping
+    atten_ap.blnh = p.activation_split_dims_mapping.blnh
+    atten_ap.bld = p.activation_split_dims_mapping.bld
     if p.deterministic_dropout:
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
@@ -4772,6 +4833,7 @@ class Builder(builder.Base):
                           device_mesh=p.device_mesh,
                           weight_split_dims_mapping=(
                               p.weight_split_dims_mapping.df)),
+             self.MeshSplit('split01', p.activation_split_dims_mapping.blf),
              self._Bias('bias01', ff_hidden_dim,
                         device_mesh=p.device_mesh,
                         weight_split_dims_mapping=bias_f_split),
@@ -4781,6 +4843,7 @@ class Builder(builder.Base):
                           device_mesh=p.device_mesh,
                           weight_split_dims_mapping=(
                               p.weight_split_dims_mapping.fd)),
+             self.MeshSplit('split02', p.activation_split_dims_mapping.bld),
              self._Bias('bias02', p.model_dim,
                         device_mesh=p.device_mesh,
                         weight_split_dims_mapping=bias_d_split),
@@ -5280,17 +5343,6 @@ class LmBuilder(Builder):
                                        fn=lambda inputs, b: inputs + b)),
     )
 
-  def _MeshSplit(self, x, tensor_split_dims_mapping):
-    p = self.params
-    if tensor_split_dims_mapping is None or p.device_mesh is None:
-      return x
-    return xla_sharding_utils.MeshSplit(x, p.device_mesh,
-                                        tensor_split_dims_mapping)
-
-  def MeshSplit(self, name, tensor_split_dims_mapping):
-    return self._Fn(name,
-                    lambda x: self._MeshSplit(x, tensor_split_dims_mapping))
-
   def Feedforward(self, name):
     p = self.params
 
@@ -5359,8 +5411,10 @@ class LmBuilder(Builder):
     tr_atten_p.atten_tpl.device_mesh = p.device_mesh
     tr_atten_p.atten_tpl.weight_split_dims_mapping = (
         p.weight_split_dims_mapping.dnh)
-    tr_atten_p.atten_tpl.activation_split_dims_mapping = (
+    tr_atten_p.atten_tpl.activation_split_dims_mapping.blnh = (
         p.activation_split_dims_mapping.blnh)
+    tr_atten_p.atten_tpl.activation_split_dims_mapping.bld = (
+        p.activation_split_dims_mapping.bld)
     if p.deterministic_dropout:
       tr_atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
       tr_atten_p.atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
@@ -5371,9 +5425,7 @@ class LmBuilder(Builder):
         ['o'],  # output NestedMap with {vec, paddings}
         ('i.vec->split_i',
          self.MeshSplit('input_split', p.activation_split_dims_mapping.bld)),
-        ('split_i,split_i,i.paddings->unsplit_o,unused_prob', tr_atten_p),
-        ('unsplit_o->o.vec',
-         self.MeshSplit('output_split', p.activation_split_dims_mapping.bld)),
+        ('split_i,split_i,i.paddings->o.vec,unused_prob', tr_atten_p),
         ('i.paddings->o.paddings', self._Id('id')))
 
   def TransformerEncoderLayer(self, name, is_causal=True):

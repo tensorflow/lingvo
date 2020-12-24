@@ -67,7 +67,7 @@ def Split(x,
 def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
   """Wrapper of xla_sharding.mesh_split()."""
   if (not py_utils_flags.use_tpu() or tensor_split_dims_mapping is None or
-      device_mesh.size <= 1):
+      device_mesh is None or device_mesh.size <= 1):
     return x
   num_tiles = np.prod(
       [device_mesh.shape[i] for i in tensor_split_dims_mapping if i >= 0])

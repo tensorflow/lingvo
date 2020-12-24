@@ -26,9 +26,9 @@ from lingvo.core import gshard_builder
 from lingvo.core import hyperparams as hparams_lib
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
-from lingvo.core import moe_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
+from lingvo.core import xla_sharding_utils
 
 
 class LConvLayer(base_layer.BaseLayer):
@@ -135,10 +135,12 @@ class LConvLayer(base_layer.BaseLayer):
     wp = params.weight_split_dims_mapping
     wp.df = [0, 1]
     wp.hwim = [-1, -1, 1, -1]
-    wp.fd = [-1, -1]
+    # TODO(shibow/rpang): understand the effects of fd sharding, especially why
+    # [-1, -1] performs better when bld is [0, -1, -1].
+    wp.fd = [1, 0]
     ap = params.activation_split_dims_mapping
     ap.blf = [0, -1, 1]
-    ap.bld = [0, -1, -1]
+    ap.bld = [1, -1, -1]
 
   @classmethod
   def CommonParams(cls,
@@ -294,13 +296,23 @@ class LConvLayer(base_layer.BaseLayer):
       # TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.
       # [b, t, d] --> [b, t, 1, d]
       inputs = tf.expand_dims(inputs, 2)
-      if p.device_mesh is not None:
-        theta.depthwise_conv1d.w = moe_layers.MeshSplit(
-            theta.depthwise_conv1d.w, p.device_mesh,
-            p.weight_split_dims_mapping.hwim)
+      adapted_blf_dims_mapping = None
+      if p.activation_split_dims_mapping.blf is not None:
+        adapted_blf_dims_mapping = p.activation_split_dims_mapping.blf.copy()
+        adapted_blf_dims_mapping.insert(2, -1)
+      inputs = xla_sharding_utils.MeshSplit(inputs, p.device_mesh,
+                                            adapted_blf_dims_mapping)
+      theta.depthwise_conv1d.w = xla_sharding_utils.MeshSplit(
+          theta.depthwise_conv1d.w, p.device_mesh,
+          p.weight_split_dims_mapping.hwim)
       inputs, paddings = self.depthwise_conv1d.FProp(theta.depthwise_conv1d,
                                                      inputs, paddings)
+
+      inputs = xla_sharding_utils.MeshSplit(inputs, p.device_mesh,
+                                            adapted_blf_dims_mapping)
       inputs = self._Normalize(theta, inputs, paddings)
+      inputs = xla_sharding_utils.MeshSplit(inputs, p.device_mesh,
+                                            p.activation_split_dims_mapping.blf)
 
       inputs = self._ApplyActivation(inputs, p.conv_activation)
 
@@ -757,6 +769,7 @@ def ApplyGshard(conformer_tpl,
                 proj_activation_split_list=None,
                 atten_dnh_w_split=None,
                 atten_blnh_activation_split=None,
+                atten_bld_activation_split=None,
                 lconv_df_w_split=None,
                 lconv_hwim_w_split=None,
                 lconv_fd_w_split=None,
@@ -776,6 +789,8 @@ def ApplyGshard(conformer_tpl,
       shape of [model_dim, num_heads, dim_per_head].
     atten_blnh_activation_split: Mesh split of the attention activation with
       shape of [batch, seq_len, num_heads, dim_per_head].
+    atten_bld_activation_split: Mesh split of the attention activation with
+      shape of [batch, seq_len, model_dim].
     lconv_df_w_split: Mesh split of the weights in lconv with the shape of
       [model_dim, ff_hidden_dim].
     lconv_hwim_w_split: Mesh split of the depthwise conv weight in lconv with
@@ -794,8 +809,10 @@ def ApplyGshard(conformer_tpl,
   conformer_tpl.trans_atten_tpl.atten_tpl.device_mesh = device_mesh
   conformer_tpl.trans_atten_tpl.atten_tpl.weight_split_dims_mapping = (
       atten_dnh_w_split)
-  conformer_tpl.trans_atten_tpl.atten_tpl.activation_split_dims_mapping = (
+  conformer_tpl.trans_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = (
       atten_blnh_activation_split)
+  conformer_tpl.trans_atten_tpl.atten_tpl.activation_split_dims_mapping.bld = (
+      atten_bld_activation_split)
   # TODO(jamesqin): support residual_proj xla sharding too.
   conformer_tpl.fflayer_start_tpl.fflayer_tpl.Set(
       device_mesh=device_mesh,

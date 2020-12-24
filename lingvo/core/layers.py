@@ -1233,9 +1233,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
-    if p.device_mesh is not None:
-      out = xla_sharding_utils.MeshSplit(out, p.device_mesh,
-                                         p.activation_split_dims_mapping)
+    out = xla_sharding_utils.MeshSplit(out, p.device_mesh,
+                                       p.activation_split_dims_mapping)
     return self._ApplyActivationFunction(out, inputs, with_activation, quant)
 
   def _ApplyActivationFunction(self,

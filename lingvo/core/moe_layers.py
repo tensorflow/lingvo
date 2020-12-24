@@ -125,21 +125,19 @@ class ShardedVarLayer(VarLayer):
       # In-place annotate the variable (no sharding op). This makes sure that
       # in some backend implementation, even if the following sharding is
       # optimized away, the backend can still infer the variable sharding.
-      if p.device_mesh is not None:
-        MeshSplit(
-            self.vars[k],
-            p.device_mesh,
-            v.tensor_split_dims_mapping,
-            use_sharding_op=False)
+      MeshSplit(
+          self.vars[k],
+          p.device_mesh,
+          v.tensor_split_dims_mapping,
+          use_sharding_op=False)
       x = self.vars[k].read_value()
       if x is None:
         return None
 
       # We annotate the read value again because some backend implementation
       # may only look at the neighbors of the variable during compilation.
-      if p.device_mesh is not None and v.tensor_split_dims_mapping is not None:
-        x = MeshSplit(
-            x, p.device_mesh, v.tensor_split_dims_mapping, use_sharding_op=True)
+      x = MeshSplit(
+          x, p.device_mesh, v.tensor_split_dims_mapping, use_sharding_op=True)
       if (p.cast_to_fprop_dtype and x.dtype.is_floating and
           x.dtype != p.fprop_dtype and p.fprop_dtype):
         x = tf.cast(x, p.fprop_dtype)
