@@ -483,6 +483,23 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Extra logit for attention softmax.&#39;</span>
         <span class="s1">&#39;Notice None and 0 are different.&#39;</span><span class="p">)</span>
+    <span class="c1"># SPMD partition related params.</span>
+    <span class="c1">#</span>
+    <span class="c1"># d - model_dim</span>
+    <span class="c1"># n - num_heads</span>
+    <span class="c1"># h - attention_dim_per_heads</span>
+    <span class="c1"># b - batch_size</span>
+    <span class="c1"># l - seq_len</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;blnh&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Mesh split for query, key, value, and encoded tensors with the &#39;</span>
+        <span class="s1">&#39;shape of [batch_size, seq_len, num_heads, dim_per_head].&#39;</span><span class="p">)</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bld&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Mesh split for output after post projection with the shape of &#39;</span>
+        <span class="s1">&#39;[batch_size, seq_len, model_dim].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -695,9 +712,9 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_scaling_code_motion</span><span class="p">:</span>
         <span class="c1"># The 2nd part of the softamx --- scaling.</span>
         <span class="n">encoded</span> <span class="o">=</span> <span class="n">encoded</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs_sum</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">encoded</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                             <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
+
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                           <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention._FavorDotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._FavorDotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_FavorDotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -930,13 +947,13 @@
               <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">%</span> <span class="n">dh</span><span class="p">,</span> <span class="n">dh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">value_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
               <span class="p">[</span><span class="n">d</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dh</span><span class="p">])</span>
       <span class="n">value_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTD,DNH-&gt;BTNH&#39;</span><span class="p">,</span> <span class="n">value_vec</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">query_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">query_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                                <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
-      <span class="n">key_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">key_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                              <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
-      <span class="n">value_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">value_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                                <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
+
+    <span class="n">query_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+        <span class="n">query_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+    <span class="n">key_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+        <span class="n">key_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+    <span class="n">value_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+        <span class="n">value_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -945,6 +962,10 @@
                                           <span class="n">per_step_padding</span><span class="p">)</span>
     <span class="c1"># Post projection</span>
     <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">encoded</span><span class="p">)</span>
+
+    <span class="c1"># Shard the output</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                           <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
@@ -4671,6 +4692,39 @@
     <span class="k">return</span> <span class="n">upsampled</span></div></div>
 
 
+<div class="viewcode-block" id="MeshSplitLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MeshSplitLayer">[docs]</a><span class="k">class</span> <span class="nc">MeshSplitLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that applies SPMD MeshSplit annotation to a tensor.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MeshSplitLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MeshSplitLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params for `MeshSplitLayer`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;tensor_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A list of integers that map each tensor axis to the device mesh axis &#39;</span>
+        <span class="s1">&#39;along which it is sharded.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="MeshSplitLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MeshSplitLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns x with SPMD MeshSplit annotation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      x: Tensor to annotate.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The tensor with annotation applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                        <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MeshSplitLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MeshSplitLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,))</span></div></div>
+
+
 <span class="c1"># pyformat: disable</span>
 <div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Builder for self-attention layers.&quot;&quot;&quot;</span>
@@ -4779,8 +4833,8 @@
     <span class="n">wp</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">wp</span><span class="o">.</span><span class="n">fd</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">ap</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">ap</span><span class="o">.</span><span class="n">blf</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -4838,6 +4892,11 @@
 <div class="viewcode-block" id="Builder._Pad"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._Pad">[docs]</a>  <span class="k">def</span> <span class="nf">_Pad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">PaddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Builder.MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">MeshSplitLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">tensor_split_dims_mapping</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="Builder._MultiHeadedAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._MultiHeadedAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_MultiHeadedAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a MultiHeadedAttention params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -4856,8 +4915,10 @@
         <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
         <span class="n">enable_scaling_code_motion</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_scaling_code_motion</span><span class="p">,</span>
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">dnh</span><span class="p">,</span>
-        <span class="n">activation_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">dnh</span><span class="p">)</span>
+    <span class="n">atten_ap</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
+    <span class="n">atten_ap</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span>
+    <span class="n">atten_ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
       <span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">atten_p</span></div>
@@ -4919,6 +4980,7 @@
                           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                           <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">(</span>
                               <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span><span class="p">)),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;split01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias01&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">,</span>
                         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                         <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">bias_f_split</span><span class="p">),</span>
@@ -4928,6 +4990,7 @@
                           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                           <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">(</span>
                               <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span><span class="p">)),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;split02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
                         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                         <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">bias_d_split</span><span class="p">),</span>
@@ -5427,17 +5490,6 @@
                                        <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">b</span><span class="p">)),</span>
     <span class="p">)</span></div>
 
-<div class="viewcode-block" id="LmBuilder._MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span>
-    <span class="k">return</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                        <span class="n">tensor_split_dims_mapping</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="LmBuilder.MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder.MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
-                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">))</span></div>
-
 <div class="viewcode-block" id="LmBuilder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -5506,8 +5558,10 @@
     <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">device_mesh</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span>
     <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">dnh</span><span class="p">)</span>
-    <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+    <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
       <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -5518,9 +5572,7 @@
         <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings}</span>
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;split_i&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;input_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;split_i,split_i,i.paddings-&gt;unsplit_o,unused_prob&#39;</span><span class="p">,</span> <span class="n">tr_atten_p</span><span class="p">),</span>
-        <span class="p">(</span><span class="s1">&#39;unsplit_o-&gt;o.vec&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;output_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;split_i,split_i,i.paddings-&gt;o.vec,unused_prob&#39;</span><span class="p">,</span> <span class="n">tr_atten_p</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)))</span></div>
 
 <div class="viewcode-block" id="LmBuilder.TransformerEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder.TransformerEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>

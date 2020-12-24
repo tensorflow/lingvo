@@ -272,21 +272,19 @@
       <span class="c1"># In-place annotate the variable (no sharding op). This makes sure that</span>
       <span class="c1"># in some backend implementation, even if the following sharding is</span>
       <span class="c1"># optimized away, the backend can still infer the variable sharding.</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">MeshSplit</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-            <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
-            <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">MeshSplit</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
+          <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
       <span class="c1"># We annotate the read value again because some backend implementation</span>
       <span class="c1"># may only look at the neighbors of the variable during compilation.</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">MeshSplit</span><span class="p">(</span>
-            <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">MeshSplit</span><span class="p">(</span>
+          <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cast_to_fprop_dtype</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span> <span class="ow">and</span>
           <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>

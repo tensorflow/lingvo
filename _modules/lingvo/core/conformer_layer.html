@@ -173,9 +173,9 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span> <span class="k">as</span> <span class="n">hparams_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">moe_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">xla_sharding_utils</span>
 
 
 <div class="viewcode-block" id="LConvLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer">[docs]</a><span class="k">class</span> <span class="nc">LConvLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -282,10 +282,12 @@
     <span class="n">wp</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
     <span class="n">wp</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">wp</span><span class="o">.</span><span class="n">hwim</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">wp</span><span class="o">.</span><span class="n">fd</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># TODO(shibow/rpang): understand the effects of fd sharding, especially why</span>
+    <span class="c1"># [-1, -1] performs better when bld is [0, -1, -1].</span>
+    <span class="n">wp</span><span class="o">.</span><span class="n">fd</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">ap</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
     <span class="n">ap</span><span class="o">.</span><span class="n">blf</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="n">ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+    <span class="n">ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="LConvLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
@@ -441,13 +443,23 @@
       <span class="c1"># TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.</span>
       <span class="c1"># [b, t, d] --&gt; [b, t, 1, d]</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">hwim</span><span class="p">)</span>
+      <span class="n">adapted_blf_dims_mapping</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">adapted_blf_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">adapted_blf_dims_mapping</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                            <span class="n">adapted_blf_dims_mapping</span><span class="p">)</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">hwim</span><span class="p">)</span>
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="p">,</span>
                                                      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                            <span class="n">adapted_blf_dims_mapping</span><span class="p">)</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Normalize</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                            <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">)</span>
 
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivation</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_activation</span><span class="p">)</span>
 
@@ -904,6 +916,7 @@
                 <span class="n">proj_activation_split_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">atten_dnh_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">atten_blnh_activation_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">atten_bld_activation_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">lconv_df_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">lconv_hwim_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">lconv_fd_w_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -923,6 +936,8 @@
 <span class="sd">      shape of [model_dim, num_heads, dim_per_head].</span>
 <span class="sd">    atten_blnh_activation_split: Mesh split of the attention activation with</span>
 <span class="sd">      shape of [batch, seq_len, num_heads, dim_per_head].</span>
+<span class="sd">    atten_bld_activation_split: Mesh split of the attention activation with</span>
+<span class="sd">      shape of [batch, seq_len, model_dim].</span>
 <span class="sd">    lconv_df_w_split: Mesh split of the weights in lconv with the shape of</span>
 <span class="sd">      [model_dim, ff_hidden_dim].</span>
 <span class="sd">    lconv_hwim_w_split: Mesh split of the depthwise conv weight in lconv with</span>
@@ -941,8 +956,10 @@
   <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">device_mesh</span> <span class="o">=</span> <span class="n">device_mesh</span>
   <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span>
       <span class="n">atten_dnh_w_split</span><span class="p">)</span>
-  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="p">(</span>
       <span class="n">atten_blnh_activation_split</span><span class="p">)</span>
+  <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">atten_bld_activation_split</span><span class="p">)</span>
   <span class="c1"># TODO(jamesqin): support residual_proj xla sharding too.</span>
   <span class="n">conformer_tpl</span><span class="o">.</span><span class="n">fflayer_start_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
       <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">,</span>
