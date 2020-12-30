@@ -462,9 +462,12 @@ class ConformerLayer(base_layer.BaseLayer):
     p.Define('dropout_prob', None, 'Signature dropout prob of inner componets.')
 
     # tpl
-    p.Define('fflayer_start_tpl',
-             layers_with_attention.TransformerFeedForwardLayer.Params(),
-             'Layer params for Feed forward layer at the beginning.')
+    p.Define(
+        'fflayer_start_tpl',
+        layers_with_attention.TransformerFeedForwardLayer.Params(),
+        'Layer params for Feed forward layer at the beginning. Supports '
+        'using gshard_builder.MoEBuilder.Params() as well wherein the '
+        'MoE() will be used.')
     p.Define('trans_atten_tpl',
              attention_lib.TransformerAttentionLayer.Params(),
              'Self attention layer params.')
@@ -530,39 +533,19 @@ class ConformerLayer(base_layer.BaseLayer):
           'is_causal is not compatible with infinite atten_right_context '
           '(None).')
 
-    fflayer_start_p = p.fflayer_start_tpl.Copy().Set(
-        input_dim=p.input_dim,
-        hidden_dim=p.fflayer_hidden_dim,
-        activation='SWISH',
-        residual_weight=p.fflayer_residual_weight,
-        residual_dropout_prob=p.dropout_prob,
-        relu_dropout_prob=p.dropout_prob)
-    self.CreateChild('fflayer_start', fflayer_start_p)
-
-    if (issubclass(p.fflayer_end_tpl.cls,
-                   layers_with_attention.TransformerFeedForwardLayer)):
-      fflayer_end_p = p.fflayer_end_tpl.Copy().Set(
-          input_dim=p.input_dim,
-          hidden_dim=p.fflayer_hidden_dim,
-          activation='SWISH',
-          residual_weight=p.fflayer_residual_weight,
-          residual_dropout_prob=p.dropout_prob,
-          relu_dropout_prob=p.dropout_prob)
-      self.CreateChild('fflayer_end', fflayer_end_p)
-    elif issubclass(p.fflayer_end_tpl.cls, gshard_builder.MoEBuilder):
-      # TODO(anmolgulati): Add support to change residual_weight/activation in
-      # MOE.
-      moe_builder_p = p.fflayer_end_tpl.Copy().Set(
-          model_dim=p.input_dim,
-          dropout_rate=p.dropout_prob,
-          moe_hidden_dim=p.fflayer_hidden_dim)
-      if moe_builder_p.num_devices is None:
-        raise ValueError('num_devices must be specified for MoEBuilder.')
-      moe_p = moe_builder_p.Instantiate().MoE('fflayer_end_moe')
-      self.CreateChild('fflayer_end_moe', moe_p)
+    fflayer_start_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
+        p.fflayer_start_tpl, 'fflayer_start')
+    if is_moe_layer:
+      self.CreateChild('fflayer_start_moe', fflayer_start_p)
     else:
-      raise ValueError('p.fflayer_end_tpl must be either '
-                       'TransformerFeedForwardLayer or MoEBuilder.')
+      self.CreateChild('fflayer_start', fflayer_start_p)
+
+    fflayer_end_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
+        p.fflayer_end_tpl, 'fflayer_end')
+    if is_moe_layer:
+      self.CreateChild('fflayer_end_moe', fflayer_end_p)
+    else:
+      self.CreateChild('fflayer_end', fflayer_end_p)
 
     # For local MHSA, is_masked is ignored, thus it's safe to set is_masked
     # based on p.is_causal, for global and local MHSA cases.
@@ -632,6 +615,46 @@ class ConformerLayer(base_layer.BaseLayer):
       hparams_lib.CopyFieldsTo(trans_atten_p.atten_tpl, atten_tpl)
     trans_atten_p.atten_tpl = atten_tpl
 
+  def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix):
+    """Configures fflayer_tpl params to create Feed-forward layer or MoE params.
+
+    Args:
+      fflayer_tpl: Input Feedforward/MoE params to be initialized.
+      name_prefix: Layer name prefix to be added in case of creating MoE layer.
+
+    Returns:
+      fflayer_p: Configured Feedforward/MoE layer params to be initialized.
+      is_moe_layer_p: Whether returned `fflayer_p` params of form subclass:
+      gshard_builder.MoEBuilder.
+    """
+    p = self.params
+    if (issubclass(fflayer_tpl.cls,
+                   layers_with_attention.TransformerFeedForwardLayer)):
+      fflayer_p = fflayer_tpl.Copy().Set(
+          input_dim=p.input_dim,
+          hidden_dim=p.fflayer_hidden_dim,
+          activation='SWISH',
+          residual_weight=p.fflayer_residual_weight,
+          residual_dropout_prob=p.dropout_prob,
+          relu_dropout_prob=p.dropout_prob)
+      return fflayer_p, False
+    elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
+      # TODO(anmolgulati): Add support to change residual_weight/activation in
+      # MOE.
+      moe_builder_p = fflayer_tpl.Copy().Set(
+          model_dim=p.input_dim,
+          dropout_rate=p.dropout_prob,
+          moe_hidden_dim=p.fflayer_hidden_dim)
+      if moe_builder_p.num_devices is None:
+        raise ValueError('num_devices must be specified for MoEBuilder.')
+      is_moe_layer = True
+      name = name_prefix + '_moe'
+      moe_p = moe_builder_p.Instantiate().MoE(name)
+      return moe_p, is_moe_layer
+    else:
+      raise ValueError('p.fflayer_tpl must be either '
+                       'TransformerFeedForwardLayer or MoEBuilder.')
+
   def _SelfAtten(self, theta, inputs, paddings):
     inputs, _ = self.trans_atten.FProp(
         theta.trans_atten,
@@ -644,31 +667,55 @@ class ConformerLayer(base_layer.BaseLayer):
     inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
     return inputs, paddings
 
-  def _MoeOrFFLayer(self, theta, inputs, paddings):
+  def _MoeOrFFLayer(self, theta, fflayer_name, in_nmap):
     """FProp for MoE or Feed forward layer.
 
     Args:
       theta: Layer theta: A NestedMap of Tensors.
-      inputs: A Tensor of shape [batch, seqlen, dim0].
-      paddings: A Tensor of shape [batch, seqlen].
+      fflayer_name: Child FFLayer name as created in __init__.
+        For example: 'fflayer_end'. This assumes the moe_layer if created would
+        have the convention as (`fflayer_name` + `_moe`).
+      in_nmap: Nested Map containing the following:
+
+        * inputs: A Tensor of shape [batch, seqlen, dim0].
+        * paddings: A Tensor of shape [batch, seqlen].
+        * moe_aux_loss: [None] Optional aux loss if present in input batch.
 
     Returns:
      out_nmap: A NestedMap of output tensors:
-        * features: Tensor of shape [batch, seqlen, dim0].
-        * paddings: A Tensor of shape [batch, seqlen].
-        * aux_loss: [Optional] Scalar tensor.
+
+       * features: Tensor of shape [batch, seqlen, dim0].
+       * paddings: A Tensor of shape [batch, seqlen].
+       * aux_loss: [Optional] Scalar tensor. Output moe auxiliary loss with
+         input aux loss added.
+
     """
-    if 'fflayer_end' in self.children:
-      outputs = self.fflayer_end.FProp(theta.fflayer_end, inputs, paddings)
-      return py_utils.NestedMap(features=outputs, paddings=paddings)
+    out_nmap = in_nmap.copy()
+    if fflayer_name in self.children:
+      outputs = self.children[fflayer_name].FProp(
+          theta.GetItem(fflayer_name), in_nmap.features, in_nmap.paddings)
+      out_nmap.features = outputs
+      return out_nmap
     else:
+      moe_fflayer_name = fflayer_name + '_moe'
+      if moe_fflayer_name not in self.children:
+        raise AssertionError(
+            '{} child layer not present.'.format(moe_fflayer_name))
+      if moe_fflayer_name not in theta:
+        raise AssertionError(
+            '{} layer theta not present.'.format(moe_fflayer_name))
       # 0 - padded positions and 1 - non-padded positions.
-      segment_ids = tf.cast(1. - paddings, tf.int32)
+      segment_ids = tf.cast(1. - in_nmap.paddings, tf.int32)
       segment_pos = tf.zeros_like(segment_ids)  # not used but required by MoE.
-      ys, aux_loss = self.fflayer_end_moe.FProp(theta.fflayer_end_moe, inputs,
-                                                segment_ids, segment_pos)
-      return py_utils.NestedMap(
-          features=ys, paddings=paddings, aux_loss=aux_loss)
+      ys, aux_loss = self.children[moe_fflayer_name].FProp(
+          theta.GetItem(moe_fflayer_name), in_nmap.features, segment_ids,
+          segment_pos)
+      out_nmap.features = ys
+      if 'aux_loss' in in_nmap:
+        aux_loss += in_nmap.aux_loss
+      # Add 'aux_loss' in out_nmap.
+      out_nmap.aux_loss = aux_loss
+      return out_nmap
 
   def _FProp(self, theta, in_nmap):
     p = self.params
@@ -677,7 +724,8 @@ class ConformerLayer(base_layer.BaseLayer):
       inputs = in_nmap.features
       paddings = in_nmap.paddings
       out_nmap = py_utils.NestedMap()
-      inputs = self.fflayer_start.FProp(theta.fflayer_start, inputs, paddings)
+      in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
+      inputs = in_nmap.features
       if p.layer_order == 'mhsa_before_conv':
         inputs, paddings = self._SelfAtten(theta, inputs, paddings)
         inputs, paddings = self._LConv(theta, inputs, paddings)
@@ -685,12 +733,12 @@ class ConformerLayer(base_layer.BaseLayer):
         assert p.layer_order == 'conv_before_mhsa'
         inputs, paddings = self._LConv(theta, inputs, paddings)
         inputs, paddings = self._SelfAtten(theta, inputs, paddings)
-      fflayer_out_map = self._MoeOrFFLayer(theta, inputs, paddings)
-      inputs = fflayer_out_map.features
-      if 'aux_loss' in fflayer_out_map:
-        if 'aux_loss' in in_nmap:
-          fflayer_out_map.aux_loss += in_nmap.aux_loss
-        out_nmap.aux_loss = fflayer_out_map.aux_loss
+      in_nmap.features = inputs
+      in_nmap.paddings = paddings
+      in_nmap = self._MoeOrFFLayer(theta, 'fflayer_end', in_nmap)
+      inputs = in_nmap.features
+      if 'aux_loss' in in_nmap:
+        out_nmap.aux_loss = in_nmap.aux_loss
       inputs = self.final_ln.FProp(theta.final_ln, inputs)
       out_nmap.features = inputs
       out_nmap.paddings = paddings
@@ -744,8 +792,9 @@ class ConformerLayer(base_layer.BaseLayer):
     assert not p.remat
 
     with tf.name_scope(f'{p.name}/StreamStep'):
-      outputs = self.fflayer_start.FProp(theta.fflayer_start, inputs, paddings)
-
+      in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
+      output_map = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
+      outputs = output_map.features
       # lconv
       outputs, paddings, lconv_state1 = self.lconv.StreamStep(
           theta.lconv, outputs, paddings, state0.lconv_state)
@@ -754,7 +803,9 @@ class ConformerLayer(base_layer.BaseLayer):
       outputs, paddings, atten_state1 = self.trans_atten.StreamStep(
           theta.trans_atten, outputs, paddings, state0.atten_state)
 
-      output_map = self._MoeOrFFLayer(theta, outputs, paddings)
+      in_nmap.features = outputs
+      in_nmap.paddings = paddings
+      output_map = self._MoeOrFFLayer(theta, 'fflayer_end', in_nmap)
       outputs = output_map.features
       outputs = self.final_ln.FProp(theta.final_ln, outputs)
 

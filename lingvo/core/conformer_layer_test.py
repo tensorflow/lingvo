@@ -181,12 +181,31 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       print([x.shape for x in out_vals])
       print([g.shape for g in grad_vals])
 
-  def testMoEFFLayer(self):
+  @parameterized.named_parameters(
+      ('Start', True, False, 0.38278374),
+      ('End', False, True, 0.34420356),
+      ('StartAndEnd', True, True, 0.71811855),
+      ('None', False, False, 0.0),
+  )
+  def testMoEFFLayer(self, use_fflayer_start_moe, use_fflayer_end_moe,
+                     expected_aux_loss):
     p = self._GetParams()
-    p.fflayer_end_tpl = gshard_builder.MoEBuilder.Params().Set(
-        e_dim=2, c_dim=2, num_devices=2)
+    if use_fflayer_start_moe:
+      p.fflayer_start_tpl = gshard_builder.MoEBuilder.Params().Set(
+          e_dim=2, c_dim=2, num_devices=2)
+    if use_fflayer_end_moe:
+      p.fflayer_end_tpl = gshard_builder.MoEBuilder.Params().Set(
+          e_dim=2, c_dim=2, num_devices=2)
     l = p.Instantiate()
+    if use_fflayer_start_moe:
+      self.assertNotIn('fflayer_start', l.children)
+      self.assertIn('fflayer_start_moe', l.children)
+    if use_fflayer_end_moe:
+      self.assertNotIn('fflayer_end', l.children)
+      self.assertIn('fflayer_end_moe', l.children)
     inputs, paddings = self._GetInputs()
+    inputs = tf.convert_to_tensor(inputs)
+    paddings = tf.convert_to_tensor(paddings)
     in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
     in_nmap.aux_loss = tf.convert_to_tensor(0., py_utils.FPropDtype(p))
     out_nmap = l.FPropDefaultTheta(in_nmap)
@@ -203,7 +222,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       grad_vals = sess.run(grads)
       self.assertEqual(out_nmap.aux_loss.shape, ())
       aux_loss = sess.run(out_nmap.aux_loss)
-      print(aux_loss)
+      self.assertAlmostEqual(expected_aux_loss, aux_loss, places=5)
       print([x.shape for x in out_vals])
       print([g.shape for g in grad_vals])
 
