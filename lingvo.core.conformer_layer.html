@@ -332,6 +332,28 @@ y = ln(x)</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams">
+<code class="sig-name descname">_ConfigFFLayerOrMoEParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fflayer_tpl</span></em>, <em class="sig-param"><span class="n">name_prefix</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._ConfigFFLayerOrMoEParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures fflayer_tpl params to create Feed-forward layer or MoE params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fflayer_tpl</strong> – Input Feedforward/MoE params to be initialized.</p></li>
+<li><p><strong>name_prefix</strong> – Layer name prefix to be added in case of creating MoE layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Configured Feedforward/MoE layer params to be initialized.
+is_moe_layer_p: Whether returned <code class="xref py py-obj docutils literal notranslate"><span class="pre">fflayer_p</span></code> params of form subclass:
+gshard_builder.MoEBuilder.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>fflayer_p</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.conformer_layer.ConformerLayer._SelfAtten">
 <code class="sig-name descname">_SelfAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._SelfAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._SelfAtten" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -343,25 +365,34 @@ y = ln(x)</p>
 
 <dl class="py method">
 <dt id="lingvo.core.conformer_layer.ConformerLayer._MoeOrFFLayer">
-<code class="sig-name descname">_MoeOrFFLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._MoeOrFFLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._MoeOrFFLayer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_MoeOrFFLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">fflayer_name</span></em>, <em class="sig-param"><span class="n">in_nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._MoeOrFFLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._MoeOrFFLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>FProp for MoE or Feed forward layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – Layer theta: A NestedMap of Tensors.</p></li>
-<li><p><strong>inputs</strong> – A Tensor of shape [batch, seqlen, dim0].</p></li>
-<li><p><strong>paddings</strong> – A Tensor of shape [batch, seqlen].</p></li>
+<li><p><strong>fflayer_name</strong> – Child FFLayer name as created in __init__.
+For example: ‘fflayer_end’. This assumes the moe_layer if created would
+have the convention as (<code class="xref py py-obj docutils literal notranslate"><span class="pre">fflayer_name</span></code> + <code class="xref py py-obj docutils literal notranslate"><span class="pre">_moe</span></code>).</p></li>
+<li><p><strong>in_nmap</strong> – <p>Nested Map containing the following:</p>
+<ul>
+<li><p>inputs: A Tensor of shape [batch, seqlen, dim0].</p></li>
+<li><p>paddings: A Tensor of shape [batch, seqlen].</p></li>
+<li><p>moe_aux_loss: [None] Optional aux loss if present in input batch.</p></li>
+</ul>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A NestedMap of output tensors:</dt><dd><ul class="simple">
+<dd class="field-even"><p><p>A NestedMap of output tensors:</p>
+<blockquote>
+<div><ul class="simple">
 <li><p>features: Tensor of shape [batch, seqlen, dim0].</p></li>
 <li><p>paddings: A Tensor of shape [batch, seqlen].</p></li>
-<li><p>aux_loss: [Optional] Scalar tensor.</p></li>
+<li><p>aux_loss: [Optional] Scalar tensor. Output moe auxiliary loss with
+input aux loss added.</p></li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>

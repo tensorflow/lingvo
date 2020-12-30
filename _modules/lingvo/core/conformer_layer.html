@@ -609,9 +609,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_prob&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Signature dropout prob of inner componets.&#39;</span><span class="p">)</span>
 
     <span class="c1"># tpl</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fflayer_start_tpl&#39;</span><span class="p">,</span>
-             <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerFeedForwardLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-             <span class="s1">&#39;Layer params for Feed forward layer at the beginning.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fflayer_start_tpl&#39;</span><span class="p">,</span>
+        <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerFeedForwardLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Layer params for Feed forward layer at the beginning. Supports &#39;</span>
+        <span class="s1">&#39;using gshard_builder.MoEBuilder.Params() as well wherein the &#39;</span>
+        <span class="s1">&#39;MoE() will be used.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;trans_atten_tpl&#39;</span><span class="p">,</span>
              <span class="n">attention_lib</span><span class="o">.</span><span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Self attention layer params.&#39;</span><span class="p">)</span>
@@ -677,39 +680,19 @@
           <span class="s1">&#39;is_causal is not compatible with infinite atten_right_context &#39;</span>
           <span class="s1">&#39;(None).&#39;</span><span class="p">)</span>
 
-    <span class="n">fflayer_start_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fflayer_start_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-        <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_hidden_dim</span><span class="p">,</span>
-        <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SWISH&#39;</span><span class="p">,</span>
-        <span class="n">residual_weight</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_residual_weight</span><span class="p">,</span>
-        <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-        <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_start&#39;</span><span class="p">,</span> <span class="n">fflayer_start_p</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
-                   <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerFeedForwardLayer</span><span class="p">)):</span>
-      <span class="n">fflayer_end_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-          <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_hidden_dim</span><span class="p">,</span>
-          <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SWISH&#39;</span><span class="p">,</span>
-          <span class="n">residual_weight</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_residual_weight</span><span class="p">,</span>
-          <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-          <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end&#39;</span><span class="p">,</span> <span class="n">fflayer_end_p</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">gshard_builder</span><span class="o">.</span><span class="n">MoEBuilder</span><span class="p">):</span>
-      <span class="c1"># TODO(anmolgulati): Add support to change residual_weight/activation in</span>
-      <span class="c1"># MOE.</span>
-      <span class="n">moe_builder_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">model_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-          <span class="n">dropout_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-          <span class="n">moe_hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_hidden_dim</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">moe_builder_p</span><span class="o">.</span><span class="n">num_devices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_devices must be specified for MoEBuilder.&#39;</span><span class="p">)</span>
-      <span class="n">moe_p</span> <span class="o">=</span> <span class="n">moe_builder_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="s1">&#39;fflayer_end_moe&#39;</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end_moe&#39;</span><span class="p">,</span> <span class="n">moe_p</span><span class="p">)</span>
+    <span class="n">fflayer_start_p</span><span class="p">,</span> <span class="n">is_moe_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigFFLayerOrMoEParams</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">fflayer_start_tpl</span><span class="p">,</span> <span class="s1">&#39;fflayer_start&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_moe_layer</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_start_moe&#39;</span><span class="p">,</span> <span class="n">fflayer_start_p</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.fflayer_end_tpl must be either &#39;</span>
-                       <span class="s1">&#39;TransformerFeedForwardLayer or MoEBuilder.&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_start&#39;</span><span class="p">,</span> <span class="n">fflayer_start_p</span><span class="p">)</span>
+
+    <span class="n">fflayer_end_p</span><span class="p">,</span> <span class="n">is_moe_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigFFLayerOrMoEParams</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="p">,</span> <span class="s1">&#39;fflayer_end&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_moe_layer</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end_moe&#39;</span><span class="p">,</span> <span class="n">fflayer_end_p</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end&#39;</span><span class="p">,</span> <span class="n">fflayer_end_p</span><span class="p">)</span>
 
     <span class="c1"># For local MHSA, is_masked is ignored, thus it&#39;s safe to set is_masked</span>
     <span class="c1"># based on p.is_causal, for global and local MHSA cases.</span>
@@ -779,6 +762,46 @@
       <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span><span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">)</span>
     <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">atten_tpl</span></div>
 
+<div class="viewcode-block" id="ConformerLayer._ConfigFFLayerOrMoEParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams">[docs]</a>  <span class="k">def</span> <span class="nf">_ConfigFFLayerOrMoEParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fflayer_tpl</span><span class="p">,</span> <span class="n">name_prefix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Configures fflayer_tpl params to create Feed-forward layer or MoE params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fflayer_tpl: Input Feedforward/MoE params to be initialized.</span>
+<span class="sd">      name_prefix: Layer name prefix to be added in case of creating MoE layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      fflayer_p: Configured Feedforward/MoE layer params to be initialized.</span>
+<span class="sd">      is_moe_layer_p: Whether returned `fflayer_p` params of form subclass:</span>
+<span class="sd">      gshard_builder.MoEBuilder.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                   <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerFeedForwardLayer</span><span class="p">)):</span>
+      <span class="n">fflayer_p</span> <span class="o">=</span> <span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+          <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_hidden_dim</span><span class="p">,</span>
+          <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SWISH&#39;</span><span class="p">,</span>
+          <span class="n">residual_weight</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_residual_weight</span><span class="p">,</span>
+          <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
+          <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">fflayer_p</span><span class="p">,</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">gshard_builder</span><span class="o">.</span><span class="n">MoEBuilder</span><span class="p">):</span>
+      <span class="c1"># TODO(anmolgulati): Add support to change residual_weight/activation in</span>
+      <span class="c1"># MOE.</span>
+      <span class="n">moe_builder_p</span> <span class="o">=</span> <span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">model_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+          <span class="n">dropout_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
+          <span class="n">moe_hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_hidden_dim</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">moe_builder_p</span><span class="o">.</span><span class="n">num_devices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_devices must be specified for MoEBuilder.&#39;</span><span class="p">)</span>
+      <span class="n">is_moe_layer</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;_moe&#39;</span>
+      <span class="n">moe_p</span> <span class="o">=</span> <span class="n">moe_builder_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">moe_p</span><span class="p">,</span> <span class="n">is_moe_layer</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.fflayer_tpl must be either &#39;</span>
+                       <span class="s1">&#39;TransformerFeedForwardLayer or MoEBuilder.&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="ConformerLayer._SelfAtten"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._SelfAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_SelfAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="n">inputs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span>
@@ -791,31 +814,55 @@
     <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lconv</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lconv</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span></div>
 
-<div class="viewcode-block" id="ConformerLayer._MoeOrFFLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._MoeOrFFLayer">[docs]</a>  <span class="k">def</span> <span class="nf">_MoeOrFFLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+<div class="viewcode-block" id="ConformerLayer._MoeOrFFLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._MoeOrFFLayer">[docs]</a>  <span class="k">def</span> <span class="nf">_MoeOrFFLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fflayer_name</span><span class="p">,</span> <span class="n">in_nmap</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;FProp for MoE or Feed forward layer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: Layer theta: A NestedMap of Tensors.</span>
-<span class="sd">      inputs: A Tensor of shape [batch, seqlen, dim0].</span>
-<span class="sd">      paddings: A Tensor of shape [batch, seqlen].</span>
+<span class="sd">      fflayer_name: Child FFLayer name as created in __init__.</span>
+<span class="sd">        For example: &#39;fflayer_end&#39;. This assumes the moe_layer if created would</span>
+<span class="sd">        have the convention as (`fflayer_name` + `_moe`).</span>
+<span class="sd">      in_nmap: Nested Map containing the following:</span>
+
+<span class="sd">        * inputs: A Tensor of shape [batch, seqlen, dim0].</span>
+<span class="sd">        * paddings: A Tensor of shape [batch, seqlen].</span>
+<span class="sd">        * moe_aux_loss: [None] Optional aux loss if present in input batch.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">     out_nmap: A NestedMap of output tensors:</span>
-<span class="sd">        * features: Tensor of shape [batch, seqlen, dim0].</span>
-<span class="sd">        * paddings: A Tensor of shape [batch, seqlen].</span>
-<span class="sd">        * aux_loss: [Optional] Scalar tensor.</span>
+
+<span class="sd">       * features: Tensor of shape [batch, seqlen, dim0].</span>
+<span class="sd">       * paddings: A Tensor of shape [batch, seqlen].</span>
+<span class="sd">       * aux_loss: [Optional] Scalar tensor. Output moe auxiliary loss with</span>
+<span class="sd">         input aux loss added.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="s1">&#39;fflayer_end&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer_end</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer_end</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="n">out_nmap</span> <span class="o">=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">fflayer_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">fflayer_name</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">fflayer_name</span><span class="p">),</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+      <span class="n">out_nmap</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">outputs</span>
+      <span class="k">return</span> <span class="n">out_nmap</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="n">moe_fflayer_name</span> <span class="o">=</span> <span class="n">fflayer_name</span> <span class="o">+</span> <span class="s1">&#39;_moe&#39;</span>
+      <span class="k">if</span> <span class="n">moe_fflayer_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> child layer not present.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">moe_fflayer_name</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">moe_fflayer_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">theta</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> layer theta not present.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">moe_fflayer_name</span><span class="p">))</span>
       <span class="c1"># 0 - padded positions and 1 - non-padded positions.</span>
-      <span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
       <span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">segment_ids</span><span class="p">)</span>  <span class="c1"># not used but required by MoE.</span>
-      <span class="n">ys</span><span class="p">,</span> <span class="n">aux_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer_end_moe</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer_end_moe</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
-                                                <span class="n">segment_ids</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">features</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">,</span> <span class="n">aux_loss</span><span class="o">=</span><span class="n">aux_loss</span><span class="p">)</span></div>
+      <span class="n">ys</span><span class="p">,</span> <span class="n">aux_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">moe_fflayer_name</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">moe_fflayer_name</span><span class="p">),</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="n">segment_ids</span><span class="p">,</span>
+          <span class="n">segment_pos</span><span class="p">)</span>
+      <span class="n">out_nmap</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">ys</span>
+      <span class="k">if</span> <span class="s1">&#39;aux_loss&#39;</span> <span class="ow">in</span> <span class="n">in_nmap</span><span class="p">:</span>
+        <span class="n">aux_loss</span> <span class="o">+=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">aux_loss</span>
+      <span class="c1"># Add &#39;aux_loss&#39; in out_nmap.</span>
+      <span class="n">out_nmap</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">aux_loss</span>
+      <span class="k">return</span> <span class="n">out_nmap</span></div>
 
 <div class="viewcode-block" id="ConformerLayer._FProp"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._FProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">in_nmap</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -824,7 +871,8 @@
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">paddings</span>
       <span class="n">out_nmap</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer_start</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer_start</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="n">in_nmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MoeOrFFLayer</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;fflayer_start&#39;</span><span class="p">,</span> <span class="n">in_nmap</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">:</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SelfAtten</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
@@ -832,12 +880,12 @@
         <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;conv_before_mhsa&#39;</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SelfAtten</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="n">fflayer_out_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MoeOrFFLayer</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">fflayer_out_map</span><span class="o">.</span><span class="n">features</span>
-      <span class="k">if</span> <span class="s1">&#39;aux_loss&#39;</span> <span class="ow">in</span> <span class="n">fflayer_out_map</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s1">&#39;aux_loss&#39;</span> <span class="ow">in</span> <span class="n">in_nmap</span><span class="p">:</span>
-          <span class="n">fflayer_out_map</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">+=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">aux_loss</span>
-        <span class="n">out_nmap</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">fflayer_out_map</span><span class="o">.</span><span class="n">aux_loss</span>
+      <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">inputs</span>
+      <span class="n">in_nmap</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings</span>
+      <span class="n">in_nmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MoeOrFFLayer</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;fflayer_end&#39;</span><span class="p">,</span> <span class="n">in_nmap</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span>
+      <span class="k">if</span> <span class="s1">&#39;aux_loss&#39;</span> <span class="ow">in</span> <span class="n">in_nmap</span><span class="p">:</span>
+        <span class="n">out_nmap</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">aux_loss</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
       <span class="n">out_nmap</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">inputs</span>
       <span class="n">out_nmap</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings</span>
@@ -891,8 +939,9 @@
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">remat</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/StreamStep&#39;</span><span class="p">):</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer_start</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer_start</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-
+      <span class="n">in_nmap</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span>
+      <span class="n">output_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MoeOrFFLayer</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;fflayer_start&#39;</span><span class="p">,</span> <span class="n">in_nmap</span><span class="p">)</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_map</span><span class="o">.</span><span class="n">features</span>
       <span class="c1"># lconv</span>
       <span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">lconv_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lconv</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">lconv</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">lconv_state</span><span class="p">)</span>
@@ -901,7 +950,9 @@
       <span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten_state</span><span class="p">)</span>
 
-      <span class="n">output_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MoeOrFFLayer</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">outputs</span>
+      <span class="n">in_nmap</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings</span>
+      <span class="n">output_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MoeOrFFLayer</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;fflayer_end&#39;</span><span class="p">,</span> <span class="n">in_nmap</span><span class="p">)</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_map</span><span class="o">.</span><span class="n">features</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
 
