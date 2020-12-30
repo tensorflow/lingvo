@@ -337,8 +337,8 @@ sharding specification in ShardedWeightParams.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.EncoderLayer">
-<code class="sig-name descname">EncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">layer</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.EncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.EncoderLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns params for lambda x: x + DropOut(layer(LN(x))).</p>
+<code class="sig-name descname">EncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">layer</span></em>, <em class="sig-param"><span class="n">residual_weight</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.EncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.EncoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns params for lambda x: x + residual_weight * DropOut(layer(LN(x))).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -561,7 +561,7 @@ to compute per position-pair bias.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._Add">
-<code class="sig-name descname">_Add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Add" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_Add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">residual_weight</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Add" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">

@@ -558,6 +558,15 @@
   <span class="k">return</span> <span class="n">atten_context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atten_context</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
 
 
+<div class="viewcode-block" id="_GShardMoELayerParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer._GShardMoELayerParams">[docs]</a><span class="k">def</span> <span class="nf">_GShardMoELayerParams</span><span class="p">(</span><span class="n">num_devices</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="n">num_experts</span><span class="p">,</span>
+                          <span class="n">per_expert_capacity_dim</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">gshard_builder</span><span class="o">.</span><span class="n">MoEBuilder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_devices</span><span class="o">=</span><span class="n">num_devices</span><span class="p">,</span>
+      <span class="n">num_groups</span><span class="o">=</span><span class="n">num_groups</span><span class="p">,</span>
+      <span class="n">e_dim</span><span class="o">=</span><span class="n">num_experts</span><span class="p">,</span>
+      <span class="n">c_dim</span><span class="o">=</span><span class="n">per_expert_capacity_dim</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="ConformerLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer">[docs]</a><span class="k">class</span> <span class="nc">ConformerLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Conformer layer as in https://arxiv.org/abs/2005.08100.</span>
 
@@ -669,6 +678,22 @@
         <span class="n">layer_order</span><span class="o">=</span><span class="n">layer_order</span><span class="p">,</span>
         <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="ConformerLayer.SetMoEFFLayerStartParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.SetMoEFFLayerStartParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetMoEFFLayerStartParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">num_experts</span><span class="p">,</span>
+                               <span class="n">num_groups</span><span class="p">,</span> <span class="n">per_expert_capacity_dim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates params setting MoE as feed-forward layer.&quot;&quot;&quot;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">fflayer_start_tpl</span> <span class="o">=</span> <span class="n">_GShardMoELayerParams</span><span class="p">(</span><span class="n">num_devices</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span>
+                                                     <span class="n">num_experts</span><span class="p">,</span>
+                                                     <span class="n">per_expert_capacity_dim</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ConformerLayer.SetMoEFFLayerEndParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.SetMoEFFLayerEndParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetMoEFFLayerEndParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">num_experts</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span>
+                             <span class="n">per_expert_capacity_dim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates params setting MoE as feed-forward layer.&quot;&quot;&quot;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">fflayer_end_tpl</span> <span class="o">=</span> <span class="n">_GShardMoELayerParams</span><span class="p">(</span><span class="n">num_devices</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span>
+                                                   <span class="n">num_experts</span><span class="p">,</span>
+                                                   <span class="n">per_expert_capacity_dim</span><span class="p">)</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
@@ -786,17 +811,21 @@
           <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">fflayer_p</span><span class="p">,</span> <span class="kc">False</span>
     <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">gshard_builder</span><span class="o">.</span><span class="n">MoEBuilder</span><span class="p">):</span>
-      <span class="c1"># TODO(anmolgulati): Add support to change residual_weight/activation in</span>
-      <span class="c1"># MOE.</span>
       <span class="n">moe_builder_p</span> <span class="o">=</span> <span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">model_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">dropout_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-          <span class="n">moe_hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_hidden_dim</span><span class="p">)</span>
+          <span class="n">moe_hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_hidden_dim</span><span class="p">,</span>
+          <span class="n">moe_activation</span><span class="o">=</span><span class="s1">&#39;SWISH&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">moe_builder_p</span><span class="o">.</span><span class="n">num_devices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_devices must be specified for MoEBuilder.&#39;</span><span class="p">)</span>
       <span class="n">is_moe_layer</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">name</span> <span class="o">=</span> <span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;_moe&#39;</span>
       <span class="n">moe_p</span> <span class="o">=</span> <span class="n">moe_builder_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+      <span class="n">moe_builder</span> <span class="o">=</span> <span class="n">moe_builder_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="n">moe_p</span> <span class="o">=</span> <span class="n">moe_builder</span><span class="o">.</span><span class="n">EncoderLayer</span><span class="p">(</span>
+          <span class="n">name</span><span class="p">,</span>
+          <span class="n">moe_builder</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+          <span class="n">residual_weight</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fflayer_residual_weight</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">moe_p</span><span class="p">,</span> <span class="n">is_moe_layer</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.fflayer_tpl must be either &#39;</span>
