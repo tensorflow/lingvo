@@ -411,6 +411,15 @@ def _AttenCtxIsSet(atten_context):
   return atten_context is not None and atten_context >= 0
 
 
+def _GShardMoELayerParams(num_devices, num_groups, num_experts,
+                          per_expert_capacity_dim):
+  return gshard_builder.MoEBuilder.Params().Set(
+      num_devices=num_devices,
+      num_groups=num_groups,
+      e_dim=num_experts,
+      c_dim=per_expert_capacity_dim)
+
+
 class ConformerLayer(base_layer.BaseLayer):
   """Conformer layer as in https://arxiv.org/abs/2005.08100.
 
@@ -522,6 +531,22 @@ class ConformerLayer(base_layer.BaseLayer):
         layer_order=layer_order,
         dropout_prob=0.)
     return p
+
+  @classmethod
+  def SetMoEFFLayerStartParams(cls, params, num_devices, num_experts,
+                               num_groups, per_expert_capacity_dim):
+    """Updates params setting MoE as feed-forward layer."""
+    params.fflayer_start_tpl = _GShardMoELayerParams(num_devices, num_groups,
+                                                     num_experts,
+                                                     per_expert_capacity_dim)
+
+  @classmethod
+  def SetMoEFFLayerEndParams(cls, params, num_devices, num_experts, num_groups,
+                             per_expert_capacity_dim):
+    """Updates params setting MoE as feed-forward layer."""
+    params.fflayer_end_tpl = _GShardMoELayerParams(num_devices, num_groups,
+                                                   num_experts,
+                                                   per_expert_capacity_dim)
 
   def __init__(self, params):
     super().__init__(params)
@@ -639,17 +664,21 @@ class ConformerLayer(base_layer.BaseLayer):
           relu_dropout_prob=p.dropout_prob)
       return fflayer_p, False
     elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
-      # TODO(anmolgulati): Add support to change residual_weight/activation in
-      # MOE.
       moe_builder_p = fflayer_tpl.Copy().Set(
           model_dim=p.input_dim,
           dropout_rate=p.dropout_prob,
-          moe_hidden_dim=p.fflayer_hidden_dim)
+          moe_hidden_dim=p.fflayer_hidden_dim,
+          moe_activation='SWISH')
       if moe_builder_p.num_devices is None:
         raise ValueError('num_devices must be specified for MoEBuilder.')
       is_moe_layer = True
       name = name_prefix + '_moe'
       moe_p = moe_builder_p.Instantiate().MoE(name)
+      moe_builder = moe_builder_p.Instantiate()
+      moe_p = moe_builder.EncoderLayer(
+          name,
+          moe_builder.MoE(name),
+          residual_weight=p.fflayer_residual_weight)
       return moe_p, is_moe_layer
     else:
       raise ValueError('p.fflayer_tpl must be either '

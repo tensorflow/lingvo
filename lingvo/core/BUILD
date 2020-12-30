@@ -2003,6 +2003,7 @@ py_library(
     srcs = ["moe_layers.py"],
     srcs_version = "PY3",
     deps = [
+        ":activations",
         ":base_layer",
         ":py_utils",
         ":tpu_summary",

@@ -16,6 +16,7 @@
 """Layers and utilities that facilitate building MOE models."""
 
 from lingvo import compat as tf
+from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import tpu_summary
@@ -950,7 +951,8 @@ def FeedForwardNetworksApplyGating(gating,
                                    gecm_split=None,
                                    gsec_split=None,
                                    eah_split=None,
-                                   eam_split=None):
+                                   eam_split=None,
+                                   activation_name='RELU'):
   """Apply top_2 gating to feedforward networks.
 
   Args:
@@ -976,6 +978,7 @@ def FeedForwardNetworksApplyGating(gating,
     gsec_split: Mesh split for GSEC tensors.
     eah_split: Mesh split for EAH tensors.
     eam_split: Mesh split for EAM tensors.
+    activation_name: Default: `RELU`. Activation function for feed-forward.
 
   Returns:
     outputs: G`SM Tensor.
@@ -1026,7 +1029,7 @@ def FeedForwardNetworksApplyGating(gating,
     h += Split(bi_split, 0, num_devices)
     h = Split(h, 0, num_devices)
 
-  h = tf.nn.relu(h, name='moe_relu')
+  h = activations.GetFn(activation_name)(h)
   if dropout_rate:
     # we generally do not use stateless dropout in MoE since it introduces
     # large uint32 tensor broadcast (per dehao@ study)

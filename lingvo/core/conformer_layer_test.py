@@ -182,9 +182,9 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       print([g.shape for g in grad_vals])
 
   @parameterized.named_parameters(
-      ('Start', True, False, 0.38278374),
-      ('End', False, True, 0.34420356),
-      ('StartAndEnd', True, True, 0.71811855),
+      ('Start', True, False, 0.593693),
+      ('End', False, True, 0.4582923),
+      ('StartAndEnd', True, True, 1.0213419),
       ('None', False, False, 0.0),
   )
   def testMoEFFLayer(self, use_fflayer_start_moe, use_fflayer_end_moe,

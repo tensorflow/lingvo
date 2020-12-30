@@ -152,6 +152,7 @@ class MoEBuilder(builder.Base):
     p.Define('e_dim', None, 'E dimension. Number of experts.')
     p.Define('c_dim', None, 'C dimension. Per-expert capacity.')
     p.Define('moe_hidden_dim', None, 'Mixture-of-Experts hidden dim.')
+    p.Define('moe_activation', 'RELU', 'MoE activation function.')
 
     p.Define('second_expert_policy', 'all',
              'Mixture-of-Experts dispatch policy.')
@@ -311,8 +312,8 @@ class MoEBuilder(builder.Base):
 
     return self._Fn('mask', fn=_apply_padding, fn_out=lambda x, y: x)
 
-  def EncoderLayer(self, name, layer):
-    """Returns params for lambda x: x + DropOut(layer(LN(x)))."""
+  def EncoderLayer(self, name, layer, residual_weight=1.0):
+    """Returns params for lambda x: x + residual_weight * DropOut(layer(LN(x)))."""
     return self._Graph(
         name,
         ['inputs', 'segment_id', 'segment_pos'],
@@ -325,7 +326,8 @@ class MoEBuilder(builder.Base):
         ('x,segment_id,segment_pos->' + 'y,aux_loss', layer),
         ('y->y_dropout', self._Dropout('y_dropout',
                                        1 - self.params.dropout_rate)),
-        ('input_masked,y_dropout->outputs', self._Add('add')),
+        ('input_masked,y_dropout->outputs',
+         self._Add('add', residual_weight=residual_weight)),
     )
 
   # We avoid Builder._Seq and Builder._Rep to improve theta / checkpoint
@@ -1154,8 +1156,9 @@ class MoEBuilder(builder.Base):
         name,
         lambda x: moe_layers.Split(x, 0, num_devices=self.params.num_devices))
 
-  def _Add(self, name):
-    return self._Fn(name, fn=lambda x, y: x + y, fn_out=lambda x, y: x)
+  def _Add(self, name, residual_weight=1.0):
+    return self._Fn(
+        name, fn=lambda x, y: x + residual_weight * y, fn_out=lambda x, y: x)
 
   def _Identity(self, name):
     """Apply identity transformation."""
@@ -1370,7 +1373,8 @@ class MoEBuilder(builder.Base):
           gecm_split=_Split('gecm_split'),
           gsec_split=_Split('gsec_split'),
           eah_split=_Split('eah_split'),
-          eam_split=_Split('eam_split'))
+          eam_split=_Split('eam_split'),
+          activation_name=p.moe_activation)
 
     return self._Fn(name, _Compute)
 
