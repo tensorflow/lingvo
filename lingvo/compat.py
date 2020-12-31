@@ -16,12 +16,14 @@
 """The compatible tensorflow library."""
 
 import os
+
+# pylint: disable=g-bad-import-order, unused-import, g-import-not-at-top
 import tensorflow.compat.v1 as tf1
-from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-import-order
+import tensorflow.compat.v2 as tf2
+from tensorflow.compat.v2 import *  # pylint: disable=wildcard-import
 
 # Import absl.flags and absl.logging to overwrite the Tensorflow ones.
 # This is the intended behavior in TF 2.0.
-# pylint:disable=g-bad-import-order, unused-import, g-import-not-at-top
 from absl import flags
 from absl import logging
 # pylint: disable=g-direct-tensorflow-import

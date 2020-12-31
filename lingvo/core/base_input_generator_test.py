@@ -29,10 +29,6 @@ from lingvo.core import test_utils
 import mock
 import numpy as np
 
-
-import tensorflow.compat.v1 as tf1
-import tensorflow.compat.v2 as tf2
-
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import device_assignment
 # pylint: enable=g-direct-tensorflow-import
@@ -262,13 +258,13 @@ def _TestDatasetFnWithRepeat(begin=0, end=10):
 
 def _TestDatasetFnV1(begin=0, end=10):
   """Similar to _TestDatasetFn but returns TFv1's dataset explicitly."""
-  ds = tf1.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  ds = tf.tf1.data.Dataset.from_tensor_slices(tf.range(begin, end))
   return ds.map(lambda x: {'value': x})
 
 
 def _TestDatasetFnV2(begin=0, end=10):
   """Similar to _TestDatasetFn but returns TFv2's dataset explicitly."""
-  ds = tf2.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  ds = tf.tf2.data.Dataset.from_tensor_slices(tf.range(begin, end))
   return ds.map(lambda x: {'value': x})
 
 

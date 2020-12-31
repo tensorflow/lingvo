@@ -15,11 +15,11 @@
 # ==============================================================================
 """Tests for lingvo.distributed_shampoo."""
 
+import lingvo.compat as tf
 from lingvo.core import distributed_shampoo
 from lingvo.core import test_utils
 
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 
 class DistributedShampooTest(test_utils.TestCase):

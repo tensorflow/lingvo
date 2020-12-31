@@ -46,8 +46,6 @@ from lingvo.core import inspect_utils
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
-import tensorflow.compat.v1 as tf1
-import tensorflow.compat.v2 as tf2
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import io_ops
@@ -1571,11 +1569,11 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
     # called repeatedly in TFv2.
     overrides = {k: p.Get(v) for k, v in map_args.items()}
     dataset = inspect_utils.CallWithParams(func, p.args, **overrides)
-    assert isinstance(dataset, (tf1.data.Dataset, tf2.data.Dataset)), (
+    assert isinstance(dataset, (tf.tf1.data.Dataset, tf.tf2.data.Dataset)), (
         'DefineTFDataInput must take a callable which returns a '
         '`tf.data.Dataset`. The given callable `%s` returned `%s`' %
         (func, dataset))
-    self.iterator = tf1.data.make_initializable_iterator(dataset)
+    self.iterator = tf.tf1.data.make_initializable_iterator(dataset)
     self._init_ops.append(self.iterator.initializer)  # pylint: disable=protected-access
     self.dataset = dataset
 
