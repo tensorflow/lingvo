@@ -87,7 +87,8 @@ class Utils3D:
         predictions,
         weights=weights,
         delta=delta,
-        reduction=tf.losses.Reduction.NONE)
+        reduction=tf.losses.Reduction.NONE,
+        loss_collection=None)
 
   def CornerLoss(self, gt_bboxes, predicted_bboxes, symmetric=True):
     """Corner regularization loss.
