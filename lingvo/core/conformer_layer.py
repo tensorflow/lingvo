@@ -529,7 +529,7 @@ class ConformerLayer(base_layer.BaseLayer):
         kernel_size=kernel_size,
         is_causal=is_causal,
         layer_order=layer_order,
-        dropout_prob=0.)
+        dropout_prob=dropout_prob)
     return p
 
   @classmethod

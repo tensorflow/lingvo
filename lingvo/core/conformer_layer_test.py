@@ -332,6 +332,26 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.assertFalse(m2.called)
 
   @parameterized.named_parameters(
+      ('Dropout', 'dropout_prob', 0.1),
+      ('LayerOrder', 'layer_order', 'conv_before_mhsa'),
+      ('FFLayerActivation', 'fflayer_activation', 'GELU'),
+      ('UseRelativeAttention', 'use_relative_atten', False),
+      ('IsCausal', 'is_causal', True))
+  def testCommonParamsSet(self, param_name, param_val):
+    """Checks values set in CommonParams() correctly."""
+
+    def _GetMinimalCommonParamsKwargs():
+      """These args are required to be set to call CommonParams."""
+      return dict(
+          input_dim=2, atten_num_heads=4, kernel_size=3, fflayer_hidden_dim=8)
+
+    kwargs = _GetMinimalCommonParamsKwargs()
+    kwargs.update({param_name: param_val})
+    p = conformer_layer.ConformerLayer.CommonParams(**kwargs)
+    p.name = 'conformer_layer'
+    self.assertEqual(p.Get(param_name), param_val)
+
+  @parameterized.named_parameters(
       ('Basic',),
       ('BasicGN', False, 'gn'),
       ('BasicGNG1', False, 'gn', 1),
