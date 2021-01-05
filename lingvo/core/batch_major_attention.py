@@ -3353,6 +3353,21 @@ class TransformerLayer(base_layer.BaseLayer):
     return p
 
   @classmethod
+  def SetCanonicalShardingParams(cls, params):
+    """Set up canonical SPMD sharding params."""
+    assert params.device_mesh.ndim >= 2
+    params.tr_atten_tpl.atten_tpl.weight_split_dims_mapping = [0, 1, -1]
+    params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = None
+    params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.bld = [
+        1, -1, -1
+    ]
+    params.tr_fflayer_tpl.fflayer_tpl.weight_split_dims_mapping_list = [[0, 1],
+                                                                        [1, 0]]
+    params.tr_fflayer_tpl.fflayer_tpl.activation_split_dims_mapping_list = [[
+        0, -1, 1
+    ], [1, -1, -1]]
+
+  @classmethod
   def CommonParams(cls,
                    input_dim,
                    atten_num_heads,
