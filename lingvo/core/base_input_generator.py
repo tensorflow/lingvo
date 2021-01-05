@@ -696,10 +696,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'upper bound to the buffer size.')
     p.Define('file_parallelism', 16, 'How many files to read concurrently.')
     p.Define(
-        'bucket_adjust_every_n', 0, 'If non-zero, optimize the values of '
-        'bucket_upper_bound except the last one after every N records '
-        'based on the current input length distribution.')
-    p.Define(
         'flush_every_n', 0, 'If non-zero, flushes all batches buffered '
         'so far every these many records are yielded.')
     p.Define('num_batcher_threads', 1, 'Number of threads to use for input '
@@ -828,7 +824,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'file_buffer_size': p.file_buffer_size,
         'file_parallelism': p.file_parallelism,
         'file_buffer_size_in_seconds': p.file_buffer_size_in_seconds,
-        'bucket_adjust_every_n': p.bucket_adjust_every_n,
         'flush_every_n': p.flush_every_n,
         'num_threads': p.num_batcher_threads,
         'require_sequential_order': p.require_sequential_order,
@@ -844,6 +839,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     return {
         'bucket_upper_bound': [1000000],
         'bucket_batch_limit': [self.InfeedBatchSize()],
+        'bucket_adjust_every_n': 0,
     }
 
   # TODO(b/139345706): After p.file_pattern is deleted, the following functions
@@ -951,6 +947,10 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         'Desired per-split batch size per bucket. Scaled in '
         'infeed_bucket_batch_size to the infeed size.'
         'Must be the same length as bucket_upper_bound.')
+    p.Define(
+        'bucket_adjust_every_n', 0, 'If non-zero, optimize the values of '
+        'bucket_upper_bound except the last one after every N records '
+        'based on the current input length distribution.')
     p.Define('source_max_length', None,
              'The maximum length of the source sequence.')
     p.Define('target_max_length', 300,
@@ -1024,6 +1024,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     return {
         'bucket_upper_bound': p.bucket_upper_bound,
         'bucket_batch_limit': bucket_batch_limit,
+        'bucket_adjust_every_n': p.bucket_adjust_every_n,
     }
 
   def StringsToIds(self,
