@@ -171,12 +171,10 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
         assert target_segment_ids is not None, (
             'Need target segment ids for '
             'normalizing loss when training with packed inputs.')
-        num_samples = tf.cast(
-            tf.reduce_sum(
-                tf.reduce_max(target_segment_ids, 0) -
-                tf.reduce_min(target_segment_ids, 0) + 1),
-            dtype=per_sequence_loss.dtype)
-        final_loss = tf.reduce_sum(per_sequence_loss) / num_samples
+        num_samples_per_row = tf.math.reduce_max(target_segment_ids, axis=0)
+        num_samples = tf.reduce_sum(num_samples_per_row)
+        final_loss = tf.reduce_sum(per_sequence_loss) / tf.cast(
+            num_samples, per_sequence_loss.dtype)
       else:
         final_loss = tf.reduce_mean(per_sequence_loss)
       loss_weight = py_utils.GetShape(per_sequence_loss)[0]
