@@ -3,9 +3,9 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>lingvo.core.base_input_generator &mdash; Lingvo  documentation</title>
   
@@ -16,7 +16,10 @@
 
   
   
+
   
+  
+
   
 
   
@@ -48,7 +51,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -106,6 +109,8 @@
         <div class="rst-content">
         
           
+
+
 
 
 
@@ -843,10 +848,6 @@
         <span class="s1">&#39;upper bound to the buffer size.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_parallelism&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s1">&#39;How many files to read concurrently.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, optimize the values of &#39;</span>
-        <span class="s1">&#39;bucket_upper_bound except the last one after every N records &#39;</span>
-        <span class="s1">&#39;based on the current input length distribution.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;flush_every_n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, flushes all batches buffered &#39;</span>
         <span class="s1">&#39;so far every these many records are yielded.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_batcher_threads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of threads to use for input &#39;</span>
@@ -975,7 +976,6 @@
         <span class="s1">&#39;file_buffer_size&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
         <span class="s1">&#39;file_parallelism&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span><span class="p">,</span>
         <span class="s1">&#39;file_buffer_size_in_seconds&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size_in_seconds</span><span class="p">,</span>
-        <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_adjust_every_n</span><span class="p">,</span>
         <span class="s1">&#39;flush_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span>
         <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
         <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">,</span>
@@ -991,6 +991,7 @@
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1000000</span><span class="p">],</span>
         <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">()],</span>
+        <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">}</span></div>
 
   <span class="c1"># TODO(b/139345706): After p.file_pattern is deleted, the following functions</span>
@@ -1098,6 +1099,10 @@
         <span class="s1">&#39;Desired per-split batch size per bucket. Scaled in &#39;</span>
         <span class="s1">&#39;infeed_bucket_batch_size to the infeed size.&#39;</span>
         <span class="s1">&#39;Must be the same length as bucket_upper_bound.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, optimize the values of &#39;</span>
+        <span class="s1">&#39;bucket_upper_bound except the last one after every N records &#39;</span>
+        <span class="s1">&#39;based on the current input length distribution.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_max_length&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The maximum length of the source sequence.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_max_length&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span>
@@ -1171,6 +1176,7 @@
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span>
         <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="n">bucket_batch_limit</span><span class="p">,</span>
+        <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_adjust_every_n</span><span class="p">,</span>
     <span class="p">}</span></div>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator.StringsToIds"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIds">[docs]</a>  <span class="k">def</span> <span class="nf">StringsToIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1760,28 +1766,25 @@
            
           </div>
           <footer>
-  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        
-        &copy; Copyright 2018
+        &#169; Copyright 2018.
 
     </p>
   </div>
     
     
     
-    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     
-    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
     
     provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
-
         </div>
       </div>
 
