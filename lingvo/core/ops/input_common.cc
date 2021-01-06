@@ -16,7 +16,6 @@ limitations under the License.
 #include "lingvo/core/ops/input_common.h"
 
 #include "lingvo/core/ops/sequential_record_yielder.h"
-#include "lingvo/core/ops/chain_record_yielder.h"
 #include "lingvo/core/ops/weighted_mix_record_yielder.h"
 
 namespace tensorflow {
@@ -26,7 +25,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 const BasicRecordYielder::Options& yopts_tpl,
                                 bool require_sequential_order,
-                                int64 repeat_count, bool use_chaining) {
+                                int64 repeat_count) {
   std::vector<string> file_patterns;
   if (input_source_weights.empty()) {
     LOG(INFO) << "Input source weights are empty, fall back to legacy "
@@ -70,8 +69,6 @@ RecordYielder* ConstructYielder(const string& file_pattern,
   RecordYielder* yielder = nullptr;
   if (yielder_options.size() == 1) {
     yielder = BasicRecordYielder::New(yielder_options.front());
-  } else if (use_chaining) {
-    yielder = ChainRecordYielder::New(yielder_options);
   } else {
     std::vector<RecordYielder*> yielders;
     yielders.reserve(yielder_options.size());

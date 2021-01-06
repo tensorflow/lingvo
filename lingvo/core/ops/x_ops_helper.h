@@ -31,7 +31,6 @@ limitations under the License.
       .Attr("num_threads: int = 1")                   \
       .Attr("require_sequential_order: bool = False") \
       .Attr("repeat_count: int = -1")                 \
-      .Attr("use_chaining: bool = False")             \
       .Attr("fatal_errors: list(string) = []")           \
       .Attr("num_input_replicas: int = 1")            \
       .Attr("input_replica_id: int = 0")              \
@@ -69,10 +68,6 @@ require_sequential_order: If true, the input op is required to process the file\
 repeat_count: Number of repetitions of a dataset before throwing OutOfRange\
   error when using require_sequential_order. Must only be set if\
   require_sequential_order is True.)\
-use_chaining: If true, the input op is outputing records from file patterns in \
-  order. That is, first all records from first file pattern will be yielded, \
-  then all records from the second file pattern and so on. If false, the \
-  records from different file patterns will be mixed.\
 fatal_errors: A list of partial error strings to treat as fatal.\
 num_input_replicas: if > 1, input generators run on this number of replicas. \
 input_replica_id: The replica id of the current input generator. Must be in \

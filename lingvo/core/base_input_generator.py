@@ -671,9 +671,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'A single file pattern string, a list of file pattern strings or a list'
         ' of <file_pattern, weight> pairs or a list of  <file_pattern, weight, '
         'bprop_variable_filter> tuples. Some of the cases may not be supported '
-        'Depending on the value of use_within_batch_mixing and use_chaining.'
-        'In the later 2 cases, probablistic samples are from the inputs '
-        'proportional to their weights. Typically, values are binary '
+        'with use_within_batch_mixing, where probablistic samples are from the '
+        'inputs proportional to their weights. Typically, values are binary '
         'protocol buffers containing train/eval samples. Keys are not used.')
     p.Define(
         'file_datasource', None, 'A DataSource describing the file sources '
@@ -720,17 +719,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'different input sources within batch or across batches (the '
         'default option). This option only takes effect when file_pattern'
         ' is a list of file patterns with weights.')
-    # TODO(b/139345706) when file_pattern is deleted use_chaining
-    # will be specified by passing a ChainingDataSource to
-    # p.file_datasource and this param should be deleted as well.
-    p.Define(
-        'use_chaining', False, 'Whether to output records from '
-        'different input sources one after another, i.e., first all records '
-        'from a first input source, then all records from a second one, etc. '
-        'use_chaining does not guarantee that records from subsequent input '
-        'sources are placed in separate input batches. '
-        'This option only takes effect when file_pattern is a list of file '
-        'patterns.')
 
     return p
 
@@ -758,8 +746,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
           p.file_datasource = datasource.SimpleDataSource.Params().Set(
               file_pattern=','.join(p.file_pattern))
         elif p.use_within_batch_mixing:
-          assert not p.use_chaining, "Can't both use chaining and mixing"
-
           if max(list(map(len, p.file_pattern))) >= 3:
             # Within batch mixing doesn't work with backprop filters, i.e. when
             # file_pattern param contains a list of
@@ -772,9 +758,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
           p.file_datasource = datasource.WithinBatchMixingDataSource.Params(
           ).Set(
               file_patterns=file_patterns, weights=weights)
-        elif p.use_chaining:
-          p.file_datasource = datasource.ChainingDataSource.Params().Set(
-              file_patterns=p.file_pattern)
         else:
           # Otherwise fall back to MixByWeight-based approach.
           file_patterns = []
@@ -806,11 +789,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p = self.params
 
     args = super().CommonInputOpArgs()
-    if p.file_datasource and issubclass(p.file_datasource.cls,
-                                        datasource.ChainingDataSource):
-      # If a user provides a ChainingDataSource make sure that the
-      # param is set correctly when passed to the InputOp
-      p.use_chaining = True
     num_input_replicas = 1
     input_replica_id = 0
     infeed_context = GetInfeedContext()
@@ -828,7 +806,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'num_threads': p.num_batcher_threads,
         'require_sequential_order': p.require_sequential_order,
         'repeat_count': p.repeat_count,
-        'use_chaining': p.use_chaining,
         'num_input_replicas': num_input_replicas,
         'input_replica_id': input_replica_id,
     })

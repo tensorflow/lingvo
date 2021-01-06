@@ -34,7 +34,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 const BasicRecordYielder::Options& yopts_tpl,
                                 bool require_sequential_order,
-                                int64 repeat_count, bool use_chaining);
+                                int64 repeat_count);
 
 void GetBasicRecordYielderOptions(OpKernelConstruction* ctx,
                                   BasicRecordYielder::Options* yopts);
@@ -63,7 +63,6 @@ class InputOp : public OpKernel {
     GETATTR(int64, num_threads);
     GETATTR(bool, require_sequential_order);
     GETATTR(int64, repeat_count);
-    GETATTR(bool, use_chaining);
     GETATTR(std::vector<string>, fatal_errors);
 #undef GETATTR
     OP_REQUIRES(
@@ -77,7 +76,7 @@ class InputOp : public OpKernel {
     processor_ = new RecordProcessorClass(ctx);
     RecordYielder* yielder = CHECK_NOTNULL(
         ConstructYielder(file_pattern, input_source_weights, yopts,
-                         require_sequential_order, repeat_count, use_chaining));
+                         require_sequential_order, repeat_count));
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;
     bopts.bucket_upper_bound = bucket_upper_bound;

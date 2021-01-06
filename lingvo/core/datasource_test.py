@@ -72,28 +72,6 @@ class DatasourceTest(test_utils.TestCase):
     with self.assertRaises(ValueError):
       ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-  def testChainingDataSourceSucceedsWithListInput(self):
-    files = ['path_to_file1', 'path_to_file2']
-    ds_params = datasource.ChainingDataSource.Params().Set(file_patterns=files)
-    ds = ds_params.Instantiate()
-    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
-
-    with tf.Session():
-      ret.data = self.evaluate([ret.data])
-
-    self.assertCountEqual(
-        sorted(ret.keys()), ['bprop_variable_filters', 'data'])
-    self.assertAllEqual(ret.data, [[b'path_to_file1,path_to_file2']])
-    self.assertCountEqual(ret.bprop_variable_filters, [''] * len(files))
-
-  def testChainingDataSourceFailsWithWeightedTupleListInput(self):
-    files = [('file1', 1.0), ('file2', 2.0)]
-    ds_params = datasource.ChainingDataSource.Params().Set(file_patterns=files)
-    ds = ds_params.Instantiate()
-
-    with self.assertRaises(ValueError):
-      ds.BuildDataSource(_MockDataSourceFromFilePattern)
-
   def testWithinBatchMixingDataSourceSucceedsWithListFilesAndWeights(self):
     files = ['path_to_file1', 'path_to_file2']
     weights = [1, 4]

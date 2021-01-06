@@ -105,52 +105,6 @@ class SimpleDataSource(DataSource):
     return ret
 
 
-class ChainingDataSource(DataSource):
-  """A data source that reads each file_pattern in sequence."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    # TODO(b/139345706): This can probably be a list of DataSource params
-    # instead of a list of file_patterns to be more generic.
-    p.Define(
-        'file_patterns', [], 'A list of file pattern strings which are read '
-        'from in sequence. Commas cannot be used in individual file_patterns.')
-    return p
-
-  def BuildDataSource(self, data_source_from_file_pattern_fn):
-    """Builds a Chaining Data Source.
-
-    Args:
-      data_source_from_file_pattern_fn: a function that takes file_pattern as an
-        argument and returns an input batch.
-
-    Returns:
-      A NestedMap containing `data`, which is a tuple of tf.Tensor or
-      `.NestedMap` of tf.Tensor.
-
-    Raises:
-      ValueError: If unknown token type.
-    """
-    p = self.params
-    if not isinstance(p.file_patterns, list):
-      raise ValueError('Expected a list, got %s' % p.file_patterns)
-    if not all(isinstance(x, str) for x in p.file_patterns):
-      # Chaining doesn't work with weights or backprop filters, i.e. when
-      # file_pattern param contains a list of
-      # <file_pattern, weight, [bprop_variable_filter]> tuples.
-      raise ValueError('Expected a list of strings, got %s' % p.file_patterns)
-
-    for file_pattern in p.file_patterns:
-      if ',' in file_pattern:
-        raise ValueError(('Can not use commas in file_pattern when chaining '
-                          'is used. file_pattern: %s') % file_pattern)
-    ret = py_utils.NestedMap()
-    ret.data = data_source_from_file_pattern_fn(','.join(p.file_patterns))
-    ret.bprop_variable_filters = [''] * len(p.file_patterns)
-    return ret
-
-
 class WithinBatchMixingDataSource(DataSource):
   """Mixes records from different sources into the same batch."""
 
