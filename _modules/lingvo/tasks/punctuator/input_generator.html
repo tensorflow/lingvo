@@ -242,42 +242,27 @@
 <span class="sd">      an operation that when executed, calls `_ProcessLine` on a line read</span>
 <span class="sd">    from `file_pattern`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
-        <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
-        <span class="n">processor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ProcessLine</span><span class="p">,</span>
-        <span class="c1"># Pad dimension 0 to the same length.</span>
-        <span class="n">dynamic_padding_dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span>
-        <span class="c1"># The constant values to use for padding each of the outputs.</span>
-        <span class="n">dynamic_padding_constants</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span></div>
-
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-
-    <span class="c1"># Build the input processing graph.</span>
-    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_src_paddings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_paddings</span><span class="p">,</span>
-     <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_labels</span><span class="p">,</span>
-     <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_weights</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
-
-<div class="viewcode-block" id="PunctuatorInput.InfeedBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput.InfeedBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Override BaseSequenceInputGenerator.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="PunctuatorInput._InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a single batch as a `.NestedMap` to be passed to the model.&quot;&quot;&quot;</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
-    <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket_keys</span>
+    <span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span>
+     <span class="n">tgt_weights</span><span class="p">),</span> <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
+         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
+         <span class="n">processor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ProcessLine</span><span class="p">,</span>
+         <span class="c1"># Pad dimension 0 to the same length.</span>
+         <span class="n">dynamic_padding_dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span>
+         <span class="c1"># The constant values to use for padding each of the outputs.</span>
+         <span class="n">dynamic_padding_constants</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+         <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span>
 
     <span class="n">ret</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_src_paddings</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">src_paddings</span>
 
     <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_ids</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tgt_labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_weights</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_paddings</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tgt_ids</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">tgt_weights</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tgt_paddings</span>
 
     <span class="k">return</span> <span class="n">ret</span></div></div>
 </pre></div>

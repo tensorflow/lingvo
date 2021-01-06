@@ -477,6 +477,7 @@ instantiation.</p>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">BaseInputGeneratorFromFiles</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_input_generator.BaseInputGenerator" title="lingvo.core.base_input_generator.BaseInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseInputGenerator</span></code></a></p>
 <p>Base class for input generators that reads from files.</p>
+<p>Subclasses should implement _DataSourceFromFilePattern.</p>
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.Params" title="Permalink to this definition">¶</a></dt>
@@ -495,9 +496,24 @@ instantiation.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._InputBatch">
+<code class="sig-name descname">_InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._InputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current input batch, not preprocessed.</p>
+<p>This is meant to be overridden by subclasses, but not called directly.
+Callers should use <code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A NestedMap (or list of NestedMaps when using TPU sharded infeed) of
+input tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">
 <code class="sig-name descname">_DataSourceFromFilePattern</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_pattern</span></em>, <em class="sig-param"><span class="n">input_source_weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read and return input batch from a string file_pattern.</p>
+<dd><p>Return a NestedMap containing an input batch from a string file_pattern.</p>
+<p>Subclasses should implement this function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -567,6 +583,8 @@ or None.</p></li>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">BaseSequenceInputGenerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles" title="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseInputGeneratorFromFiles</span></code></a></p>
 <p>The basic sequence input generator.</p>
+<p>Subclasses should implement _DataSourceFromFilePattern defined in
+BaseInputGeneratorFromFiles.</p>
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.Params" title="Permalink to this definition">¶</a></dt>

@@ -187,15 +187,46 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="n">params</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">fixed_input_shape</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">fixed_input_shape</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">fixed_input_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fixed_input_shape</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span>
 
-    <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word_count</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<div class="viewcode-block" id="LmInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">ReadInput</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+      <span class="n">word_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="n">line</span><span class="p">]))</span>
+      <span class="n">strlen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="n">line</span><span class="p">],</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">line</span><span class="p">,</span> <span class="n">word_count</span><span class="p">],</span> <span class="n">strlen</span>
+
+    <span class="n">features</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
+        <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
+        <span class="n">processor</span><span class="o">=</span><span class="n">ReadInput</span><span class="p">,</span>
+        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">BuildInputBatch</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">(),</span>
+        <span class="n">features_list</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
+        <span class="n">bucket_keys</span><span class="o">=</span><span class="n">bucket_keys</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LmInput.BuildInputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput.BuildInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">BuildInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">features_list</span><span class="p">,</span> <span class="n">bucket_keys</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Builds an input batch.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch_size: batch size to use, defaults to infeed batch size.</span>
+<span class="sd">      features_list: Use this list to build the batch.</span>
+<span class="sd">      bucket_keys: If None, bucket_keys[i] is the bucketing key of the i-th</span>
+<span class="sd">        sample.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      py_utils.NestedMap with feature names as keys and tensors as values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">text</span><span class="p">,</span> <span class="n">ret</span><span class="o">.</span><span class="n">word_count</span> <span class="o">=</span> <span class="n">features_list</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">bucket_keys</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">ret</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">ret</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;examples/sequence_length&#39;</span><span class="p">,</span>
-                         <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ret</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">ret</span><span class="o">.</span><span class="n">paddings</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fixed_input_shape</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
         <span class="c1"># When flush_every_n is on, at end of each epoch, our input</span>
@@ -211,36 +242,11 @@
       <span class="k">def</span> <span class="nf">SetShape</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="n">x</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">])</span>
 
-      <span class="n">SetShape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">)</span>
-      <span class="n">SetShape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">)</span>
-      <span class="n">SetShape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span><span class="p">)</span>
-      <span class="n">SetShape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_word_count</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">bs</span><span class="p">])</span>
-
-<div class="viewcode-block" id="LmInput.InfeedBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput.InfeedBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Override BaseSequenceInputGenerator.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="LmInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
-
-    <span class="k">def</span> <span class="nf">ReadInput</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
-      <span class="n">word_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="n">line</span><span class="p">]))</span>
-      <span class="n">strlen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="n">line</span><span class="p">],</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
-      <span class="k">return</span> <span class="p">[</span><span class="n">line</span><span class="p">,</span> <span class="n">word_count</span><span class="p">],</span> <span class="n">strlen</span>
-
-    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
-        <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
-        <span class="n">processor</span><span class="o">=</span><span class="n">ReadInput</span><span class="p">,</span>
-        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span></div>
-
-<div class="viewcode-block" id="LmInput._InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket_keys</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">word_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word_count</span>
+      <span class="n">SetShape</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+      <span class="n">SetShape</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
+      <span class="n">SetShape</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+      <span class="n">SetShape</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">word_count</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">bs</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
 </pre></div>
 

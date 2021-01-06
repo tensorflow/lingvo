@@ -808,7 +808,10 @@
 
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGeneratorFromFiles</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Base class for input generators that reads from files.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Base class for input generators that reads from files.</span>
+
+<span class="sd">  Subclasses should implement _DataSourceFromFilePattern.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles.Params"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -971,11 +974,16 @@
         <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">}</span></div>
 
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span></div>
+
   <span class="c1"># TODO(b/139345706): After p.file_pattern is deleted, the following functions</span>
   <span class="c1"># _DataSourceFromFilePattern, _BuildDataSourceWithMetadata, _BuildDataSource</span>
   <span class="c1"># can be deleted and functionality moved to using the DataSource directly.</span>
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read and return input batch from a string file_pattern.</span>
+    <span class="sd">&quot;&quot;&quot;Return a NestedMap containing an input batch from a string file_pattern.</span>
+
+<span class="sd">    Subclasses should implement this function.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      file_pattern: A string file pattern.</span>
@@ -1058,7 +1066,11 @@
 
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseSequenceInputGenerator</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;The basic sequence input generator.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;The basic sequence input generator.</span>
+
+<span class="sd">  Subclasses should implement _DataSourceFromFilePattern defined in</span>
+<span class="sd">  BaseInputGeneratorFromFiles.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator.Params"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>

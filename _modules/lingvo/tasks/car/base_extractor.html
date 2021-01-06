@@ -340,11 +340,14 @@
     <span class="c1"># Ensure buckets [BUCKET_UPPER_BOUND, inf) are dropped.</span>
     <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
     <span class="n">args</span><span class="p">[</span><span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">BUCKET_UPPER_BOUND</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
+    <span class="n">batched_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">processor</span><span class="o">=</span><span class="n">Proc</span><span class="p">,</span>
         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
         <span class="n">input_source_weights</span><span class="o">=</span><span class="n">input_source_weights</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
+        <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NestedMapFromBatchedOutputs</span><span class="p">(</span><span class="n">batched_outputs</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">bucket_keys</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="_BaseExtractor.ProcessFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.ProcessFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Process extracted features.</span>
@@ -458,12 +461,6 @@
       <span class="n">features</span> <span class="o">=</span> <span class="n">parsing_fn</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FeatureMap</span><span class="p">())</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ProcessFeatures</span><span class="p">(</span><span class="n">features</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="_BaseExtractor._InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">batched_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
-    <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NestedMapFromBatchedOutputs</span><span class="p">(</span><span class="n">batched_outputs</span><span class="p">)</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">bucket_keys</span>
-    <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="_BaseExtractor.GetCpuPassthroughKeys"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.GetCpuPassthroughKeys">[docs]</a>  <span class="k">def</span> <span class="nf">GetCpuPassthroughKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">dtypes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span>

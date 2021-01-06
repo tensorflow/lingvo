@@ -3301,7 +3301,7 @@
         <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">emb</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>  <span class="c1"># [#ids, dims]</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="c1"># Counts is a vector of size vocab_size. counts[i] is i-th words</span>
-        <span class="c1"># occurances in &#39;ids&#39;.</span>
+        <span class="c1"># occurrences in &#39;ids&#39;.</span>
         <span class="n">counts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">unsorted_segment_sum</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ids</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
 
@@ -4226,7 +4226,7 @@
 
 
 <div class="viewcode-block" id="ConcatenatePaddedSequences"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ConcatenatePaddedSequences">[docs]</a><span class="k">def</span> <span class="nf">ConcatenatePaddedSequences</span><span class="p">(</span><span class="n">input0</span><span class="p">,</span> <span class="n">input1</span><span class="p">,</span> <span class="n">padding0</span><span class="p">,</span> <span class="n">padding1</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Concatenates input sequences with varying lenghts as defined by paddings.</span>
+  <span class="sd">&quot;&quot;&quot;Concatenates input sequences with varying lengths as defined by paddings.</span>
 
 <span class="sd">  This is a helper function for concatenating 2 batches of input sequences,</span>
 <span class="sd">  where each example in the batch can have different lengths, as defined by</span>
@@ -4588,7 +4588,7 @@
 
 
 <span class="c1"># TODO(jamesqin): follow suggestions in</span>
-<span class="c1"># https://b/167460492#comment16</span>
+<span class="c1"># b/167460492#comment16</span>
 <div class="viewcode-block" id="RematerializeFn"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RematerializeFn">[docs]</a><span class="k">def</span> <span class="nf">RematerializeFn</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Calls fn and rematerializes fn in the backward pass.</span>
 
