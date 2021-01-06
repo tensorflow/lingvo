@@ -35,15 +35,46 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
 
   def __init__(self, params):
     params.pad_to_max_seq_length = True
+    params.fixed_input_shape = params.fixed_input_shape or py_utils.use_tpu()
     super().__init__(params)
-    p = self.params
-    p.fixed_input_shape = p.fixed_input_shape or py_utils.use_tpu()
 
-    (text, self._word_count), self._bucket_keys = self._BuildDataSource()
-    self._ids, self._labels, self._paddings = self.StringsToIds(text)
+  def _DataSourceFromFilePattern(self, file_pattern):
+
+    def ReadInput(line):
+      word_count = tf.size(tf.strings.split([line]))
+      strlen = tf.size(tf.strings.split([line], ''))
+      return [line, word_count], strlen
+
+    features, bucket_keys = generic_input.GenericInput(
+        file_pattern=file_pattern,
+        processor=ReadInput,
+        **self.CommonInputOpArgs())
+
+    return self.BuildInputBatch(
+        batch_size=self.InfeedBatchSize(),
+        features_list=features,
+        bucket_keys=bucket_keys)
+
+  def BuildInputBatch(self, batch_size, features_list, bucket_keys=None):
+    """Builds an input batch.
+
+    Args:
+      batch_size: batch size to use, defaults to infeed batch size.
+      features_list: Use this list to build the batch.
+      bucket_keys: If None, bucket_keys[i] is the bucketing key of the i-th
+        sample.
+
+    Returns:
+      py_utils.NestedMap with feature names as keys and tensors as values.
+    """
+    p = self.params
+    ret = py_utils.NestedMap()
+    text, ret.word_count = features_list
+    ret.bucket_keys = bucket_keys
+    ret.ids, ret.labels, ret.paddings = self.StringsToIds(text)
     tf.summary.histogram('examples/sequence_length',
-                         tf.reduce_sum(1.0 - self._paddings, axis=1))
-    self._weights = 1.0 - self._paddings
+                         tf.reduce_sum(1.0 - ret.paddings, axis=1))
+    ret.weights = 1.0 - ret.paddings
     if p.fixed_input_shape:
       if py_utils.use_tpu():
         # When flush_every_n is on, at end of each epoch, our input
@@ -59,34 +90,9 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
       def SetShape(x):
         x.set_shape([bs, p.target_max_length])
 
-      SetShape(self._ids)
-      SetShape(self._labels)
-      SetShape(self._paddings)
-      SetShape(self._weights)
-      self._word_count.set_shape([bs])
-
-  def InfeedBatchSize(self):
-    """Override BaseSequenceInputGenerator."""
-    return tf.shape(self._ids)[0]
-
-  def _DataSourceFromFilePattern(self, file_pattern):
-
-    def ReadInput(line):
-      word_count = tf.size(tf.strings.split([line]))
-      strlen = tf.size(tf.strings.split([line], ''))
-      return [line, word_count], strlen
-
-    return generic_input.GenericInput(
-        file_pattern=file_pattern,
-        processor=ReadInput,
-        **self.CommonInputOpArgs())
-
-  def _InputBatch(self):
-    ret = py_utils.NestedMap()
-    ret.bucket_keys = self._bucket_keys
-    ret.ids = self._ids
-    ret.labels = self._labels
-    ret.paddings = self._paddings
-    ret.weights = self._weights
-    ret.word_count = self._word_count
+      SetShape(ret.ids)
+      SetShape(ret.labels)
+      SetShape(ret.paddings)
+      SetShape(ret.weights)
+      ret.word_count.set_shape([bs])
     return ret

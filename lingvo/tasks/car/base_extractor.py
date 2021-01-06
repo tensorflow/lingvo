@@ -188,11 +188,14 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     # Ensure buckets [BUCKET_UPPER_BOUND, inf) are dropped.
     args = self.CommonInputOpArgs()
     args['bucket_upper_bound'] = [BUCKET_UPPER_BOUND - 1]
-    return generic_input.GenericInput(
+    batched_outputs, bucket_keys = generic_input.GenericInput(
         processor=Proc,
         file_pattern=file_pattern,
         input_source_weights=input_source_weights,
         **args)
+    ret = self._NestedMapFromBatchedOutputs(batched_outputs)
+    ret.bucket_keys = bucket_keys
+    return ret
 
   def ProcessFeatures(self, features):
     """Process extracted features.
@@ -306,12 +309,6 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       features = parsing_fn(record, self.FeatureMap())
 
     return self.ProcessFeatures(features)
-
-  def _InputBatch(self):
-    batched_outputs, bucket_keys = self._BuildDataSource()
-    ret = self._NestedMapFromBatchedOutputs(batched_outputs)
-    ret.bucket_keys = bucket_keys
-    return ret
 
   def GetCpuPassthroughKeys(self):
     dtypes = self.DType()

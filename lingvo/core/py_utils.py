@@ -3149,7 +3149,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
         values = tf.gather(emb, ids)  # [#ids, dims]
       with tf.device(grad.device):
         # Counts is a vector of size vocab_size. counts[i] is i-th words
-        # occurances in 'ids'.
+        # occurrences in 'ids'.
         counts = tf.math.unsorted_segment_sum(
             tf.ones_like(ids, dtype=values.dtype), ids, vocab_size)
 
@@ -4074,7 +4074,7 @@ def ReversePaddedSequence(inputs, paddings):
 
 
 def ConcatenatePaddedSequences(input0, input1, padding0, padding1, seq_dim=1):
-  """Concatenates input sequences with varying lenghts as defined by paddings.
+  """Concatenates input sequences with varying lengths as defined by paddings.
 
   This is a helper function for concatenating 2 batches of input sequences,
   where each example in the batch can have different lengths, as defined by
@@ -4436,7 +4436,7 @@ def SequencesToDebugStrings(ids, lens, summarize=5):
 
 
 # TODO(jamesqin): follow suggestions in
-# https://b/167460492#comment16
+# b/167460492#comment16
 def RematerializeFn(fn, *xs):
   """Calls fn and rematerializes fn in the backward pass.
 

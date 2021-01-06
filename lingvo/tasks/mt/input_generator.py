@@ -45,8 +45,13 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     p.source_max_length = 300
     return p
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
 
+    self.natural_order_model = p.natural_order_model
+
+  def _DataSourceFromFilePattern(self, file_pattern):
     def Proc(record):
       """Parses a serialized tf.Example record."""
       outputs = [
@@ -66,74 +71,77 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
               tf.reduce_sum(1.0 - features['target_padding'])), tf.int32)
       return [features[k] for k, _ in outputs], bucket_key
 
-    return generic_input.GenericInput(
+    features, bucket_keys = generic_input.GenericInput(
         file_pattern=file_pattern,
         processor=Proc,
         dynamic_padding_dimensions=[0] * 6,
         dynamic_padding_constants=[0, 1, 0, 1, 0, 0],
         **self.CommonInputOpArgs())
 
-  def __init__(self, params):
-    super().__init__(params)
+    return self.BuildInputBatch(
+        batch_size=self.InfeedBatchSize(),
+        features_list=features,
+        bucket_keys=bucket_keys)
+
+  def BuildInputBatch(self, batch_size, features_list, bucket_keys=None):
+    """Builds an input batch.
+
+    Args:
+      batch_size: batch size to use, defaults to infeed batch size.
+      features_list: Use this list to build the batch.
+      bucket_keys: If None, bucket_keys[i] is the bucketing key of the i-th
+        sample.
+
+    Returns:
+      py_utils.NestedMap with feature names as keys and tensors as values.
+    """
     p = self.params
 
-    self.natural_order_model = p.natural_order_model
+    ret = py_utils.NestedMap()
+    ret.bucket_keys = bucket_keys
 
-    (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,
-     self._tgt_labels,
-     self._tgt_weights), self._bucket_keys = self._BuildDataSource()
-
+    (src_ids, src_paddings, tgt_ids, tgt_paddings, tgt_labels,
+     tgt_weights) = features_list
     if p.pad_to_max_seq_length:
-      self._PadSequences()
+      assert p.source_max_length
 
-  def _PadSequences(self):
-    p = self.params
-    assert p.source_max_length
-
-    if min(self.infeed_bucket_batch_limit) == max(
-        self.infeed_bucket_batch_limit):
-      source_shape = [min(self.infeed_bucket_batch_limit), p.source_max_length]
-      target_shape = [min(self.infeed_bucket_batch_limit), p.target_max_length]
-    else:
-      source_shape = None
-      target_shape = None
-    self._src_ids = py_utils.PadSequenceDimension(self._src_ids,
-                                                  p.source_max_length, 0,
-                                                  source_shape)
-    self._src_paddings = py_utils.PadSequenceDimension(self._src_paddings,
-                                                       p.source_max_length, 1,
-                                                       source_shape)
-    self._tgt_ids = py_utils.PadSequenceDimension(self._tgt_ids,
+      if min(self.infeed_bucket_batch_limit) == max(
+          self.infeed_bucket_batch_limit):
+        source_shape = [
+            min(self.infeed_bucket_batch_limit), p.source_max_length
+        ]
+        target_shape = [
+            min(self.infeed_bucket_batch_limit), p.target_max_length
+        ]
+      else:
+        source_shape = None
+        target_shape = None
+      src_ids = py_utils.PadSequenceDimension(src_ids, p.source_max_length, 0,
+                                              source_shape)
+      src_paddings = py_utils.PadSequenceDimension(src_paddings,
+                                                   p.source_max_length, 1,
+                                                   source_shape)
+      tgt_ids = py_utils.PadSequenceDimension(tgt_ids, p.target_max_length, 0,
+                                              target_shape)
+      tgt_paddings = py_utils.PadSequenceDimension(tgt_paddings,
+                                                   p.target_max_length, 1,
+                                                   target_shape)
+      tgt_labels = py_utils.PadSequenceDimension(tgt_labels,
+                                                 p.target_max_length, 0,
+                                                 target_shape)
+      tgt_weights = py_utils.PadSequenceDimension(tgt_weights,
                                                   p.target_max_length, 0,
                                                   target_shape)
-    self._tgt_paddings = py_utils.PadSequenceDimension(self._tgt_paddings,
-                                                       p.target_max_length, 1,
-                                                       target_shape)
-    self._tgt_labels = py_utils.PadSequenceDimension(self._tgt_labels,
-                                                     p.target_max_length, 0,
-                                                     target_shape)
-    self._tgt_weights = py_utils.PadSequenceDimension(self._tgt_weights,
-                                                      p.target_max_length, 0,
-                                                      target_shape)
-
-  def InfeedBatchSize(self):
-    """Override BaseSequenceInputGenerator."""
-    return tf.shape(self._src_ids)[0]
-
-  def _InputBatch(self):
-    ret = py_utils.NestedMap()
-
-    ret.bucket_keys = self._bucket_keys
 
     ret.src = py_utils.NestedMap()
-    ret.src.ids = tf.cast(self._src_ids, dtype=tf.int32)
-    ret.src.paddings = self._src_paddings
+    ret.src.ids = tf.cast(src_ids, dtype=tf.int32)
+    ret.src.paddings = src_paddings
 
     ret.tgt = py_utils.NestedMap()
-    ret.tgt.ids = self._tgt_ids
-    ret.tgt.labels = tf.cast(self._tgt_labels, dtype=tf.int32)
-    ret.tgt.weights = self._tgt_weights
-    ret.tgt.paddings = self._tgt_paddings
+    ret.tgt.ids = tgt_ids
+    ret.tgt.labels = tf.cast(tgt_labels, dtype=tf.int32)
+    ret.tgt.weights = tgt_weights
+    ret.tgt.paddings = tgt_paddings
 
     if (self.params.fprop_dtype is None or
         self.params.dtype == self.params.fprop_dtype):
@@ -163,7 +171,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
 
     p.Define(
         'packed_input', False,
-        'If True, then we also consume {inputs,targets}_{position,segementation}'
+        'If True, then we also consume {inputs,targets}_{position,segmentation}'
     )
     return p
 
@@ -173,69 +181,8 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
 
     self.natural_order_model = p.natural_order_model
 
-    (
-        self._src_ids,
-        self._src_paddings,
-        self._tgt_ids,
-        self._tgt_paddings,
-        self._tgt_labels,
-        self._tgt_weights,
-        self._src_seg_pos,
-        self._src_seg_ids,
-        self._tgt_seg_pos,
-        self._tgt_seg_ids,
-    ), self._bucket_keys = self._BuildDataSource()
-
-    if p.pad_to_max_seq_length:
-      assert p.source_max_length
-
-      if min(self.infeed_bucket_batch_limit) == max(
-          self.infeed_bucket_batch_limit):
-        source_shape = [
-            min(self.infeed_bucket_batch_limit), p.source_max_length
-        ]
-        target_shape = [
-            min(self.infeed_bucket_batch_limit), p.target_max_length
-        ]
-      else:
-        source_shape = None
-        target_shape = None
-      self._src_ids = py_utils.PadSequenceDimension(self._src_ids,
-                                                    p.source_max_length, 0,
-                                                    source_shape)
-      self._src_paddings = py_utils.PadSequenceDimension(
-          self._src_paddings, p.source_max_length, 1, source_shape)
-      self._tgt_ids = py_utils.PadSequenceDimension(self._tgt_ids,
-                                                    p.target_max_length, 0,
-                                                    target_shape)
-      self._tgt_paddings = py_utils.PadSequenceDimension(
-          self._tgt_paddings, p.target_max_length, 1, target_shape)
-      self._tgt_labels = py_utils.PadSequenceDimension(self._tgt_labels,
-                                                       p.target_max_length, 0,
-                                                       target_shape)
-      self._tgt_weights = py_utils.PadSequenceDimension(self._tgt_weights,
-                                                        p.target_max_length, 0,
-                                                        target_shape)
-
-      self._src_seg_ids = py_utils.PadSequenceDimension(self._src_seg_ids,
-                                                        p.source_max_length, 0,
-                                                        source_shape)
-      self._src_seg_pos = py_utils.PadSequenceDimension(self._src_seg_pos,
-                                                        p.source_max_length, 0,
-                                                        source_shape)
-      self._tgt_seg_ids = py_utils.PadSequenceDimension(self._tgt_seg_ids,
-                                                        p.target_max_length, 0,
-                                                        target_shape)
-      self._tgt_seg_pos = py_utils.PadSequenceDimension(self._tgt_seg_pos,
-                                                        p.target_max_length, 0,
-                                                        target_shape)
-
-  def InfeedBatchSize(self):
-    """Override BaseSequenceInputGenerator."""
-    return tf.shape(self._src_ids)[0]
-
   def _DataSourceFromFilePattern(self, file_pattern):
-    p = self._params
+    p = self.params
 
     def _DerivePaddingsAndIds(src_ids, tgt_labels):
       """tgt_ids is tgt_labels shifted right by one, with a SOS ID prepended."""
@@ -332,32 +279,97 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     else:
       processor_fn = _ProcPacked
 
-    return generic_input.GenericInput(
+    features, bucket_keys = generic_input.GenericInput(
         file_pattern=file_pattern,
         processor=processor_fn,
         dynamic_padding_dimensions=[0] * 10,
         dynamic_padding_constants=[0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
         **self.CommonInputOpArgs())
 
-  def _InputBatch(self):
+    return self.BuildInputBatch(
+        batch_size=self.InfeedBatchSize(),
+        features_list=features,
+        bucket_keys=bucket_keys)
+
+  def BuildInputBatch(self, batch_size, features_list, bucket_keys=None):
+    """Builds an input batch.
+
+    Args:
+      batch_size: batch size to use, defaults to infeed batch size.
+      features_list: Use this list to build the batch.
+      bucket_keys: If None, bucket_keys[i] is the bucketing key of the i-th
+        sample.
+
+    Returns:
+      py_utils.NestedMap with feature names as keys and tensors as values.
+    """
+    p = self.params
+
     ret = py_utils.NestedMap()
-    ret.bucket_keys = self._bucket_keys
+    ret.bucket_keys = bucket_keys
+
+    (src_ids, src_paddings, tgt_ids, tgt_paddings, tgt_labels, tgt_weights,
+     src_seg_pos, src_seg_ids, tgt_seg_pos, tgt_seg_ids) = features_list
+
+    if p.pad_to_max_seq_length:
+      assert p.source_max_length
+
+      if min(self.infeed_bucket_batch_limit) == max(
+          self.infeed_bucket_batch_limit):
+        source_shape = [
+            min(self.infeed_bucket_batch_limit), p.source_max_length
+        ]
+        target_shape = [
+            min(self.infeed_bucket_batch_limit), p.target_max_length
+        ]
+      else:
+        source_shape = None
+        target_shape = None
+      src_ids = py_utils.PadSequenceDimension(src_ids, p.source_max_length, 0,
+                                              source_shape)
+      src_paddings = py_utils.PadSequenceDimension(src_paddings,
+                                                   p.source_max_length, 1,
+                                                   source_shape)
+      tgt_ids = py_utils.PadSequenceDimension(tgt_ids, p.target_max_length, 0,
+                                              target_shape)
+      tgt_paddings = py_utils.PadSequenceDimension(tgt_paddings,
+                                                   p.target_max_length, 1,
+                                                   target_shape)
+      tgt_labels = py_utils.PadSequenceDimension(tgt_labels,
+                                                 p.target_max_length, 0,
+                                                 target_shape)
+      tgt_weights = py_utils.PadSequenceDimension(tgt_weights,
+                                                  p.target_max_length, 0,
+                                                  target_shape)
+
+      src_seg_ids = py_utils.PadSequenceDimension(src_seg_ids,
+                                                  p.source_max_length, 0,
+                                                  source_shape)
+      src_seg_pos = py_utils.PadSequenceDimension(src_seg_pos,
+                                                  p.source_max_length, 0,
+                                                  source_shape)
+      tgt_seg_ids = py_utils.PadSequenceDimension(tgt_seg_ids,
+                                                  p.target_max_length, 0,
+                                                  target_shape)
+      tgt_seg_pos = py_utils.PadSequenceDimension(tgt_seg_pos,
+                                                  p.target_max_length, 0,
+                                                  target_shape)
 
     ret.src = py_utils.NestedMap()
-    ret.src.ids = tf.cast(self._src_ids, dtype=tf.int32)
-    ret.src.paddings = self._src_paddings
+    ret.src.ids = tf.cast(src_ids, dtype=tf.int32)
+    ret.src.paddings = src_paddings
 
     ret.tgt = py_utils.NestedMap()
-    ret.tgt.ids = self._tgt_ids
-    ret.tgt.labels = tf.cast(self._tgt_labels, dtype=tf.int32)
-    ret.tgt.weights = self._tgt_weights
-    ret.tgt.paddings = self._tgt_paddings
+    ret.tgt.ids = tgt_ids
+    ret.tgt.labels = tf.cast(tgt_labels, dtype=tf.int32)
+    ret.tgt.weights = tgt_weights
+    ret.tgt.paddings = tgt_paddings
 
-    ret.src.segment_pos = self._src_seg_pos
-    ret.src.segment_ids = self._src_seg_ids
+    ret.src.segment_pos = src_seg_pos
+    ret.src.segment_ids = src_seg_ids
 
-    ret.tgt.segment_pos = self._tgt_seg_pos
-    ret.tgt.segment_ids = self._tgt_seg_ids
+    ret.tgt.segment_pos = tgt_seg_pos
+    ret.tgt.segment_ids = tgt_seg_ids
 
     if (self.params.fprop_dtype is None or
         self.params.dtype == self.params.fprop_dtype):

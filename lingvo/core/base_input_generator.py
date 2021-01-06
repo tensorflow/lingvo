@@ -656,7 +656,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
 
 class BaseInputGeneratorFromFiles(BaseInputGenerator):
-  """Base class for input generators that reads from files."""
+  """Base class for input generators that reads from files.
+
+  Subclasses should implement _DataSourceFromFilePattern.
+  """
 
   @classmethod
   def Params(cls):
@@ -819,11 +822,16 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'bucket_adjust_every_n': 0,
     }
 
+  def _InputBatch(self):
+    return self._BuildDataSource()
+
   # TODO(b/139345706): After p.file_pattern is deleted, the following functions
   # _DataSourceFromFilePattern, _BuildDataSourceWithMetadata, _BuildDataSource
   # can be deleted and functionality moved to using the DataSource directly.
   def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
-    """Read and return input batch from a string file_pattern.
+    """Return a NestedMap containing an input batch from a string file_pattern.
+
+    Subclasses should implement this function.
 
     Args:
       file_pattern: A string file pattern.
@@ -906,7 +914,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
 
 
 class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
-  """The basic sequence input generator."""
+  """The basic sequence input generator.
+
+  Subclasses should implement _DataSourceFromFilePattern defined in
+  BaseInputGeneratorFromFiles.
+  """
 
   @classmethod
   def Params(cls):

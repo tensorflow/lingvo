@@ -90,41 +90,26 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
       an operation that when executed, calls `_ProcessLine` on a line read
     from `file_pattern`.
     """
-    return generic_input.GenericInput(
-        file_pattern=file_pattern,
-        processor=self._ProcessLine,
-        # Pad dimension 0 to the same length.
-        dynamic_padding_dimensions=[0] * 6,
-        # The constant values to use for padding each of the outputs.
-        dynamic_padding_constants=[0, 1, 0, 1, 0, 0],
-        **self.CommonInputOpArgs())
-
-  def __init__(self, params):
-    super().__init__(params)
-
-    # Build the input processing graph.
-    (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,
-     self._tgt_labels,
-     self._tgt_weights), self._bucket_keys = self._BuildDataSource()
-
-  def InfeedBatchSize(self):
-    """Override BaseSequenceInputGenerator."""
-    return tf.shape(self._src_ids)[0]
-
-  def _InputBatch(self):
-    """Returns a single batch as a `.NestedMap` to be passed to the model."""
     ret = py_utils.NestedMap()
 
-    ret.bucket_keys = self._bucket_keys
+    (src_ids, src_paddings, tgt_ids, tgt_paddings, tgt_labels,
+     tgt_weights), ret.bucket_keys = generic_input.GenericInput(
+         file_pattern=file_pattern,
+         processor=self._ProcessLine,
+         # Pad dimension 0 to the same length.
+         dynamic_padding_dimensions=[0] * 6,
+         # The constant values to use for padding each of the outputs.
+         dynamic_padding_constants=[0, 1, 0, 1, 0, 0],
+         **self.CommonInputOpArgs())
 
     ret.src = py_utils.NestedMap()
-    ret.src.ids = tf.cast(self._src_ids, dtype=tf.int32)
-    ret.src.paddings = self._src_paddings
+    ret.src.ids = tf.cast(src_ids, dtype=tf.int32)
+    ret.src.paddings = src_paddings
 
     ret.tgt = py_utils.NestedMap()
-    ret.tgt.ids = self._tgt_ids
-    ret.tgt.labels = tf.cast(self._tgt_labels, dtype=tf.int32)
-    ret.tgt.weights = self._tgt_weights
-    ret.tgt.paddings = self._tgt_paddings
+    ret.tgt.ids = tgt_ids
+    ret.tgt.labels = tf.cast(tgt_labels, dtype=tf.int32)
+    ret.tgt.weights = tgt_weights
+    ret.tgt.paddings = tgt_paddings
 
     return ret
