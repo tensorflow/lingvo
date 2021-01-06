@@ -823,9 +823,8 @@
         <span class="s1">&#39;A single file pattern string, a list of file pattern strings or a list&#39;</span>
         <span class="s1">&#39; of &lt;file_pattern, weight&gt; pairs or a list of  &lt;file_pattern, weight, &#39;</span>
         <span class="s1">&#39;bprop_variable_filter&gt; tuples. Some of the cases may not be supported &#39;</span>
-        <span class="s1">&#39;Depending on the value of use_within_batch_mixing and use_chaining.&#39;</span>
-        <span class="s1">&#39;In the later 2 cases, probablistic samples are from the inputs &#39;</span>
-        <span class="s1">&#39;proportional to their weights. Typically, values are binary &#39;</span>
+        <span class="s1">&#39;with use_within_batch_mixing, where probablistic samples are from the &#39;</span>
+        <span class="s1">&#39;inputs proportional to their weights. Typically, values are binary &#39;</span>
         <span class="s1">&#39;protocol buffers containing train/eval samples. Keys are not used.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;file_datasource&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A DataSource describing the file sources &#39;</span>
@@ -872,17 +871,6 @@
         <span class="s1">&#39;different input sources within batch or across batches (the &#39;</span>
         <span class="s1">&#39;default option). This option only takes effect when file_pattern&#39;</span>
         <span class="s1">&#39; is a list of file patterns with weights.&#39;</span><span class="p">)</span>
-    <span class="c1"># TODO(b/139345706) when file_pattern is deleted use_chaining</span>
-    <span class="c1"># will be specified by passing a ChainingDataSource to</span>
-    <span class="c1"># p.file_datasource and this param should be deleted as well.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_chaining&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to output records from &#39;</span>
-        <span class="s1">&#39;different input sources one after another, i.e., first all records &#39;</span>
-        <span class="s1">&#39;from a first input source, then all records from a second one, etc. &#39;</span>
-        <span class="s1">&#39;use_chaining does not guarantee that records from subsequent input &#39;</span>
-        <span class="s1">&#39;sources are placed in separate input batches. &#39;</span>
-        <span class="s1">&#39;This option only takes effect when file_pattern is a list of file &#39;</span>
-        <span class="s1">&#39;patterns.&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -910,8 +898,6 @@
           <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
               <span class="n">file_pattern</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
-          <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">,</span> <span class="s2">&quot;Can&#39;t both use chaining and mixing&quot;</span>
-
           <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)))</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
             <span class="c1"># Within batch mixing doesn&#39;t work with backprop filters, i.e. when</span>
             <span class="c1"># file_pattern param contains a list of</span>
@@ -924,9 +910,6 @@
           <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">WithinBatchMixingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
           <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
               <span class="n">file_patterns</span><span class="o">=</span><span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">:</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">ChainingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-              <span class="n">file_patterns</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="c1"># Otherwise fall back to MixByWeight-based approach.</span>
           <span class="n">file_patterns</span> <span class="o">=</span> <span class="p">[]</span>
@@ -958,11 +941,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">args</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
-                                        <span class="n">datasource</span><span class="o">.</span><span class="n">ChainingDataSource</span><span class="p">):</span>
-      <span class="c1"># If a user provides a ChainingDataSource make sure that the</span>
-      <span class="c1"># param is set correctly when passed to the InputOp</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">num_input_replicas</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">input_replica_id</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">infeed_context</span> <span class="o">=</span> <span class="n">GetInfeedContext</span><span class="p">()</span>
@@ -980,7 +958,6 @@
         <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
         <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">,</span>
         <span class="s1">&#39;repeat_count&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">,</span>
-        <span class="s1">&#39;use_chaining&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">use_chaining</span><span class="p">,</span>
         <span class="s1">&#39;num_input_replicas&#39;</span><span class="p">:</span> <span class="n">num_input_replicas</span><span class="p">,</span>
         <span class="s1">&#39;input_replica_id&#39;</span><span class="p">:</span> <span class="n">input_replica_id</span><span class="p">,</span>
     <span class="p">})</span>

@@ -257,52 +257,6 @@
     <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
-<div class="viewcode-block" id="ChainingDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.ChainingDataSource">[docs]</a><span class="k">class</span> <span class="nc">ChainingDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A data source that reads each file_pattern in sequence.&quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="ChainingDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.ChainingDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="c1"># TODO(b/139345706): This can probably be a list of DataSource params</span>
-    <span class="c1"># instead of a list of file_patterns to be more generic.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;file_patterns&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of file pattern strings which are read &#39;</span>
-        <span class="s1">&#39;from in sequence. Commas cannot be used in individual file_patterns.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-<div class="viewcode-block" id="ChainingDataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.ChainingDataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Builds a Chaining Data Source.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      data_source_from_file_pattern_fn: a function that takes file_pattern as an</span>
-<span class="sd">        argument and returns an input batch.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing `data`, which is a tuple of tf.Tensor or</span>
-<span class="sd">      `.NestedMap` of tf.Tensor.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If unknown token type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">):</span>
-      <span class="c1"># Chaining doesn&#39;t work with weights or backprop filters, i.e. when</span>
-      <span class="c1"># file_pattern param contains a list of</span>
-      <span class="c1"># &lt;file_pattern, weight, [bprop_variable_filter]&gt; tuples.</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of strings, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">:</span>
-      <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">((</span><span class="s1">&#39;Can not use commas in file_pattern when chaining &#39;</span>
-                          <span class="s1">&#39;is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">file_pattern</span><span class="p">)</span>
-    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">))</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ret</span></div></div>
-
-
 <div class="viewcode-block" id="WithinBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.WithinBatchMixingDataSource">[docs]</a><span class="k">class</span> <span class="nc">WithinBatchMixingDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Mixes records from different sources into the same batch.&quot;&quot;&quot;</span>
 
