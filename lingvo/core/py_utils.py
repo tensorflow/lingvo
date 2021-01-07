@@ -34,13 +34,13 @@ import threading
 import traceback
 
 import lingvo.compat as tf
+from lingvo.core import gshard_utils
 from lingvo.core import hyperparams
 from lingvo.core import ops
 from lingvo.core import py_utils_flags
 from lingvo.core import retry
 from lingvo.core import symbolic
 from lingvo.core import tshape
-from lingvo.core import xla_sharding_utils
 import numpy as np
 import six
 
@@ -1946,7 +1946,7 @@ def _CreateVariableStateful(name,
             aggregation=aggregation)
 
   # Shard the variable according to the sharding spec.
-  var = xla_sharding_utils.MeshSplit(
+  var = gshard_utils.MeshSplit(
       var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
 
   return var
@@ -2057,7 +2057,7 @@ def _CreateVariableStateless(name,
         aggregation=aggregation)
 
   # Shard the variable according to the sharding spec.
-  var = xla_sharding_utils.MeshSplit(
+  var = gshard_utils.MeshSplit(
       var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
 
   return var

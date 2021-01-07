@@ -26,6 +26,7 @@ from lingvo.core import bn_layers
 from lingvo.core import builder_layers
 from lingvo.core import computation_cost
 from lingvo.core import conv_layers_with_time_padding
+from lingvo.core import gshard_utils
 from lingvo.core import pruning_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -34,7 +35,6 @@ from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
-from lingvo.core import xla_sharding_utils
 import numpy as np
 import sympy
 
@@ -1233,8 +1233,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
-    out = xla_sharding_utils.MeshSplit(out, p.device_mesh,
-                                       p.activation_split_dims_mapping)
+    out = gshard_utils.MeshSplit(out, p.device_mesh,
+                                 p.activation_split_dims_mapping)
     return self._ApplyActivationFunction(out, inputs, with_activation, quant)
 
   def _ApplyActivationFunction(self,

@@ -32,14 +32,14 @@ from lingvo.core import computation_cost
 from lingvo.core import conv_layers_builder as conv_layers
 from lingvo.core import favor_attention as favor
 from lingvo.core import gpipe
+from lingvo.core import gshard_layers
+from lingvo.core import gshard_utils
 from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
-from lingvo.core import moe_layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
-from lingvo.core import xla_sharding_utils
 import numpy as np
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import inplace_ops
@@ -567,8 +567,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         # The 2nd part of the softamx --- scaling.
         encoded = encoded / tf.transpose(probs_sum, [0, 2, 1, 3])
 
-    encoded = xla_sharding_utils.MeshSplit(encoded, p.device_mesh,
-                                           p.activation_split_dims_mapping.blnh)
+    encoded = gshard_utils.MeshSplit(encoded, p.device_mesh,
+                                     p.activation_split_dims_mapping.blnh)
     return encoded, probs
 
   def _FavorDotAtten(self,
@@ -808,12 +808,12 @@ class MultiHeadedAttention(base_layer.BaseLayer):
               [d, 1, dh])
       value_proj = tf.einsum('BTD,DNH->BTNH', value_vec, rhs)
 
-    query_proj = xla_sharding_utils.MeshSplit(
-        query_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
-    key_proj = xla_sharding_utils.MeshSplit(
-        key_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
-    value_proj = xla_sharding_utils.MeshSplit(
-        value_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
+    query_proj = gshard_utils.MeshSplit(query_proj, p.device_mesh,
+                                        p.activation_split_dims_mapping.blnh)
+    key_proj = gshard_utils.MeshSplit(key_proj, p.device_mesh,
+                                      p.activation_split_dims_mapping.blnh)
+    value_proj = gshard_utils.MeshSplit(value_proj, p.device_mesh,
+                                        p.activation_split_dims_mapping.blnh)
 
     if p.packed_input and not self.do_eval:
       assert segment_mask is not None
@@ -824,8 +824,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     encoded = self.post.FProp(theta.post, encoded)
 
     # Shard the output
-    encoded = xla_sharding_utils.MeshSplit(encoded, p.device_mesh,
-                                           p.activation_split_dims_mapping.bld)
+    encoded = gshard_utils.MeshSplit(encoded, p.device_mesh,
+                                     p.activation_split_dims_mapping.bld)
     return encoded, atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
@@ -4591,8 +4591,7 @@ class MeshSplitLayer(base_layer.BaseLayer):
       The tensor with annotation applied.
     """
     p = self.params
-    return xla_sharding_utils.MeshSplit(x, p.device_mesh,
-                                        p.tensor_split_dims_mapping)
+    return gshard_utils.MeshSplit(x, p.device_mesh, p.tensor_split_dims_mapping)
 
   @classmethod
   def FPropMeta(cls, p, x):
@@ -5305,19 +5304,19 @@ class LmBuilder(Builder):
     return p
 
   def _Var(self, name, weights):
-    return moe_layers.VarLayer.Params().Set(name=name, weights=weights)
+    return gshard_layers.VarLayer.Params().Set(name=name, weights=weights)
 
   def _ShardedVar(self, name, weights, mesh_split):
     sharded_weights = []
     for k, v in weights:
       sharded_weights.append((k,
-                              moe_layers.ShardedWeightParams(
+                              gshard_layers.ShardedWeightParams(
                                   shape=v.shape,
                                   init=v.init,
                                   dtype=v.dtype,
                                   collections=v.collections,
                                   tensor_split_dims_mapping=mesh_split)))
-    return moe_layers.ShardedVarLayer.Params().Set(
+    return gshard_layers.ShardedVarLayer.Params().Set(
         name=name,
         weights=sharded_weights,
         device_mesh=self.params.device_mesh,

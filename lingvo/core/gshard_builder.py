@@ -18,8 +18,9 @@
 from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import builder
+from lingvo.core import gshard_layers
+from lingvo.core import gshard_utils
 from lingvo.core import layers
-from lingvo.core import moe_layers
 from lingvo.core import py_utils
 import numpy as np
 
@@ -195,7 +196,7 @@ class MoEBuilder(builder.Base):
     return self._Fn(name, fn=lambda x: tf.one_hot(x, dim, dtype=fprop_dtype))
 
   def _Var(self, name, weights, shared_var_collection_suffix=None):
-    return moe_layers.VarLayer.Params().Set(
+    return gshard_layers.VarLayer.Params().Set(
         name=name,
         weights=weights,
         shared_var_collection_suffix=shared_var_collection_suffix)
@@ -205,7 +206,7 @@ class MoEBuilder(builder.Base):
 
     Args:
       name: name of the layer.
-      weights: list of (name, moe_layers.ShardedWeightParams).
+      weights: list of (name, gshard_layers.ShardedWeightParams).
       device_mesh: device mesh used in mesh_split. If None, the variables will
         not be sharded
 
@@ -217,7 +218,7 @@ class MoEBuilder(builder.Base):
     if device_mesh is None:
       return self._Var(name=name, weights=weights)
     else:
-      return moe_layers.ShardedVarLayer.Params().Set(
+      return gshard_layers.ShardedVarLayer.Params().Set(
           name=name, weights=weights, device_mesh=device_mesh)
 
   def _ShardedVarOn1DDeviceArray(self, name, weights):
@@ -235,7 +236,7 @@ class MoEBuilder(builder.Base):
       assert v.shape is not None and v.shape
       dims_mapping = [0] + [-1] * (len(v.shape) - 1)
       sharded_weights.append((k,
-                              moe_layers.ShardedWeightParams(
+                              gshard_layers.ShardedWeightParams(
                                   shape=v.shape,
                                   init=v.init,
                                   dtype=v.dtype,
@@ -254,7 +255,7 @@ class MoEBuilder(builder.Base):
     return self._ShardedVar(
         name=name,
         weights=[('embedding',
-                  moe_layers.ShardedWeightParams(
+                  gshard_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Gaussian(),
                       dtype=self.params.dtype,
                       shape=[vocab_dim, self.params.model_dim],
@@ -269,7 +270,7 @@ class MoEBuilder(builder.Base):
                        z_loss_coef=1e-4,
                        use_tgt_labels_size_as_loss_denominator=True):
     p = self.params
-    return moe_layers.SharedEmbeddingSoftmaxLayer.Params().Set(
+    return gshard_layers.SharedEmbeddingSoftmaxLayer.Params().Set(
         name=name,
         vocab_size=vocab_size,
         max_len=max_len,
@@ -479,14 +480,14 @@ class MoEBuilder(builder.Base):
     return self._ShardedVar(
         name=name,
         weights=[('wi',
-                  moe_layers.ShardedWeightParams(
+                  gshard_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
                       shape=[self.params.model_dim, self.params.ff_dim],
                       tensor_split_dims_mapping=wi_mesh_split)),
                  ('wo',
-                  moe_layers.ShardedWeightParams(
+                  gshard_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.ff_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
@@ -533,21 +534,21 @@ class MoEBuilder(builder.Base):
     return self._ShardedVar(
         name=name,
         weights=[('wi_0',
-                  moe_layers.ShardedWeightParams(
+                  gshard_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
                       shape=[self.params.model_dim, self.params.ff_dim],
                       tensor_split_dims_mapping=wi_mesh_split)),
                  ('wi_1',
-                  moe_layers.ShardedWeightParams(
+                  gshard_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
                       shape=[self.params.model_dim, self.params.ff_dim],
                       tensor_split_dims_mapping=wi_mesh_split)),
                  ('wo',
-                  moe_layers.ShardedWeightParams(
+                  gshard_layers.ShardedWeightParams(
                       init=py_utils.WeightInit.Uniform(
                           (((1. / self.params.ff_dim)**0.5) * 3.0**0.5)),
                       dtype=self.params.dtype,
@@ -1149,12 +1150,12 @@ class MoEBuilder(builder.Base):
 
   def Split(self, name):
     """Sets sharding attribute for the Tensor. Split across dim=0."""
-    tf.logging.warning('moe_layers.Split is deprecated. '
-                       'Please use moe_layers.MeshSplit with specific '
+    tf.logging.warning('gshard_utils.Split is deprecated. '
+                       'Please use gshard_utils.MeshSplit with specific '
                        'device_mesh and device_mesh_shape set in the Builder.')
     return self._Fn(
         name,
-        lambda x: moe_layers.Split(x, 0, num_devices=self.params.num_devices))
+        lambda x: gshard_utils.Split(x, 0, num_devices=self.params.num_devices))
 
   def _Add(self, name, residual_weight=1.0):
     return self._Fn(
@@ -1213,19 +1214,19 @@ class MoEBuilder(builder.Base):
       w_qkv_mesh_split = w_qkv_mhd_mesh_split
       wo_mesh_split = wo_hdm_mesh_split
 
-    wq_tpl = moe_layers.ShardedWeightParams(
+    wq_tpl = gshard_layers.ShardedWeightParams(
         shape=[p.model_dim] + hd_dims,
         dtype=self.params.dtype,
         init=py_utils.WeightInit.Gaussian(q_stddev),
         tensor_split_dims_mapping=w_qkv_mesh_split)
     kv_stddev = (p.model_dim)**-0.5
-    wkv_tpl = moe_layers.ShardedWeightParams(
+    wkv_tpl = gshard_layers.ShardedWeightParams(
         shape=[p.model_dim] + kv_hd_dims,
         dtype=self.params.dtype,
         init=py_utils.WeightInit.Gaussian(kv_stddev),
         tensor_split_dims_mapping=w_qkv_mesh_split)
     o_stddev = (p.attention_num_heads * p.attention_key_value_dim)**-0.5
-    wo_tpl = moe_layers.ShardedWeightParams(
+    wo_tpl = gshard_layers.ShardedWeightParams(
         shape=hd_dims + [p.model_dim],
         dtype=self.params.dtype,
         init=py_utils.WeightInit.Gaussian(o_stddev),
@@ -1294,7 +1295,7 @@ class MoEBuilder(builder.Base):
     p = self.params
 
     def _Compute(w, inputs, paddings):
-      return moe_layers.Top2Gating(
+      return gshard_layers.Top2Gating(
           w=w,
           inputs=inputs,
           paddings=paddings,
@@ -1358,7 +1359,7 @@ class MoEBuilder(builder.Base):
       return getattr(p, split, None)
 
     def _Compute(gating, inputs, reshaped_inputs, wi, wo):
-      return moe_layers.FeedForwardNetworksApplyGating(
+      return gshard_layers.FeedForwardNetworksApplyGating(
           gating,
           inputs,
           reshaped_inputs,
@@ -1392,7 +1393,7 @@ class MoEBuilder(builder.Base):
           -1,
           py_utils.GetShape(orig_inputs)[-1],
       ])
-      inputs = moe_layers.Split(inputs, 0, p.num_devices)
+      inputs = gshard_utils.Split(inputs, 0, p.num_devices)
       paddings = tf.reshape(paddings, py_utils.GetShape(inputs)[:2])
       return inputs, paddings
 
@@ -1408,17 +1409,17 @@ class MoEBuilder(builder.Base):
 
   def _State(self, name, shape, dtype=None):
     dtype = dtype or py_utils.FPropDtype(self.params)
-    return moe_layers.StateLayer.Params().Set(
+    return gshard_layers.StateLayer.Params().Set(
         name=name, shape=shape, dtype=dtype)
 
   def _Override(self, name, key=None):
-    return moe_layers.OverrideLayer.Params().Set(name=name, key=key or name)
+    return gshard_layers.OverrideLayer.Params().Set(name=name, key=key or name)
 
   def _Softmax(self, dec_outs, tgt, w, vocab_dim):
     p = self.params
 
     def _MaybeSplit(x):
-      return moe_layers.Split(x, 0, p.num_devices)
+      return gshard_utils.Split(x, 0, p.num_devices)
 
     dec_outs *= (p.model_dim**-0.5)
     logits = _MaybeSplit(tf.einsum('BLM,VM->BLV', _MaybeSplit(dec_outs), w))
@@ -1587,7 +1588,8 @@ class DenseBuilder(MoEBuilder):
         assert (d % m == 0), (x, self._device_mesh.shape,
                               tensor_split_dims_mapping)
 
-    return moe_layers.MeshSplit(x, self._device_mesh, tensor_split_dims_mapping)
+    return gshard_utils.MeshSplit(x, self._device_mesh,
+                                  tensor_split_dims_mapping)
 
   def MeshSplit(self, name, tensor_split_dims_mapping):
     return self._Fn(name,
@@ -1605,7 +1607,7 @@ class DenseBuilder(MoEBuilder):
     #
     stddev = (1. / p.model_dim)**0.5
     wi_kernel_param_init_scale = stddev * 3.**0.5
-    wi_pc = moe_layers.ShardedWeightParams(
+    wi_pc = gshard_layers.ShardedWeightParams(
         shape=emh_shape,
         init=py_utils.WeightInit.Uniform(wi_kernel_param_init_scale),
         dtype=p.dtype,
@@ -1620,7 +1622,7 @@ class DenseBuilder(MoEBuilder):
     #
     stddev = (1. / p.moe_hidden_dim)**0.5
     wo_kernel_param_init_scale = stddev * 3.**0.5
-    wo_pc = moe_layers.ShardedWeightParams(
+    wo_pc = gshard_layers.ShardedWeightParams(
         shape=ehm_shape,
         init=py_utils.WeightInit.Uniform(wo_kernel_param_init_scale),
         dtype=p.dtype,

@@ -19,7 +19,7 @@ from lingvo import model_registry
 from lingvo.core import base_input_generator
 from lingvo.core import base_model_params
 from lingvo.core import gshard_builder
-from lingvo.core import moe_layers
+from lingvo.core import gshard_utils
 from lingvo.core import optimizer
 from lingvo.core import program
 from lingvo.core import py_utils
@@ -161,7 +161,7 @@ class DenseLm128B8x8(DenseLmTemplate):
   BATCH_DIM_PER_DEVICE = 0.125
   NUM_TRANSFORMER_LAYERS = 64  # 64 blocks of [DecSelfAttention, DenseReluDense]
   DEVICE_MESH_SHAPE = [8, 16]
-  DEVICE_MESH = moe_layers.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [8, 8, 2])
+  DEVICE_MESH = gshard_utils.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [8, 8, 2])
 
   def Task(self):
     p = super().Task()
@@ -188,7 +188,7 @@ class DenseLm128B16x16(DenseLm128B8x8):
   NUM_DEVICES_PER_SPLIT = 512
   BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 128
   DEVICE_MESH_SHAPE = [16, 32]
-  DEVICE_MESH = moe_layers.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [16, 16, 2])
+  DEVICE_MESH = gshard_utils.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [16, 16, 2])
 
 
 # Total params: 1,100,041,175,040.

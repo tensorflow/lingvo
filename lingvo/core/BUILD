@@ -92,10 +92,11 @@ py_library(
         ":conv_layers_builder",
         ":favor_attention",
         ":gpipe",
+        ":gshard_layers",
+        ":gshard_utils",
         ":hyperparams",
         ":layers",
         ":layers_with_attention",
-        ":moe_layers",
         ":py_utils",
         ":symbolic",
         ":tshape",
@@ -198,9 +199,9 @@ py_library(
         "//lingvo/core:bn_layers",
         "//lingvo/core:conv_layers_with_time_padding",
         "//lingvo/core:gshard_builder",
+        "//lingvo/core:gshard_layers",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
-        "//lingvo/core:moe_layers",
     ],
 )
 
@@ -313,9 +314,9 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":cluster_factory",
+        ":gshard_utils",
         ":hyperparams",
         ":py_utils",
-        ":xla_sharding_utils",
         "//lingvo:compat",
     ],
 )
@@ -828,7 +829,7 @@ py_library(
         ":computation_cost",
         ":constants",
         ":conv_layers_with_time_padding",
-        ":moe_layers",
+        ":gshard_utils",
         ":pruning_utils",
         ":py_utils",
         ":quant_utils",
@@ -1266,12 +1267,12 @@ py_library(
     srcs = ["py_utils.py"],
     srcs_version = "PY3",
     deps = [
+        ":gshard_utils",
         ":hyperparams",
         ":py_utils_flags",
         ":retry",
         ":symbolic",
         ":tshape",
-        ":xla_sharding_utils",
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
@@ -1976,8 +1977,8 @@ py_library(
     deps = [
         ":base_model",
         ":builder",
+        ":gshard_layers",
         ":layers",
-        ":moe_layers",
         ":py_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -1991,7 +1992,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":gshard_builder",
-        ":moe_layers",
+        ":gshard_layers",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -1999,23 +2000,23 @@ py_test(
 )
 
 py_library(
-    name = "moe_layers",
-    srcs = ["moe_layers.py"],
+    name = "gshard_layers",
+    srcs = ["gshard_layers.py"],
     srcs_version = "PY3",
     deps = [
         ":activations",
         ":base_layer",
+        ":gshard_utils",
         ":py_utils",
         ":tpu_summary",
-        ":xla_sharding_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
 )
 
 py_library(
-    name = "xla_sharding_utils",
-    srcs = ["xla_sharding_utils.py"],
+    name = "gshard_utils",
+    srcs = ["gshard_utils.py"],
     srcs_version = "PY3",
     deps = [
         ":py_utils_flags",

@@ -18,19 +18,12 @@
 from lingvo import compat as tf
 from lingvo.core import activations
 from lingvo.core import base_layer
+from lingvo.core import gshard_utils
 from lingvo.core import py_utils
 from lingvo.core import tpu_summary
-from lingvo.core import xla_sharding_utils
-
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
 # pylint: enable=g-direct-tensorflow-import
-
-
-Split = xla_sharding_utils.Split
-MeshSplit = xla_sharding_utils.MeshSplit
-ZigzagOrderOnDeviceMesh = xla_sharding_utils.ZigzagOrderOnDeviceMesh
-GetNonPod2dMesh = xla_sharding_utils.GetNonPod2dMesh
 
 
 class VarLayer(base_layer.BaseLayer):
@@ -126,7 +119,7 @@ class ShardedVarLayer(VarLayer):
       # In-place annotate the variable (no sharding op). This makes sure that
       # in some backend implementation, even if the following sharding is
       # optimized away, the backend can still infer the variable sharding.
-      MeshSplit(
+      gshard_utils.MeshSplit(
           self.vars[k],
           p.device_mesh,
           v.tensor_split_dims_mapping,
@@ -137,7 +130,7 @@ class ShardedVarLayer(VarLayer):
 
       # We annotate the read value again because some backend implementation
       # may only look at the neighbors of the variable during compilation.
-      x = MeshSplit(
+      x = gshard_utils.MeshSplit(
           x, p.device_mesh, v.tensor_split_dims_mapping, use_sharding_op=True)
       if (p.cast_to_fprop_dtype and x.dtype.is_floating and
           x.dtype != p.fprop_dtype and p.fprop_dtype):
@@ -398,7 +391,7 @@ class SharedEmbeddingSoftmaxLayer(base_layer.BaseLayer):
   def _MaybeSplit(self, x):
     if True or self.params.num_devices <= 1:
       return x
-    return Split(x, 0, self.params.num_devices)
+    return gshard_utils.Split(x, 0, self.params.num_devices)
 
   def FProp(self, theta, ids, segment_pos):
     p = self.params
@@ -593,7 +586,7 @@ def Top2GatingOnLogits(inputs,
   # GSK Tensors, K=2
   def _MaybeSplit(x):
     if use_xla_sharding:
-      return Split(x, 0, num_devices)
+      return gshard_utils.Split(x, 0, num_devices)
     else:
       return x
 
@@ -994,8 +987,8 @@ def FeedForwardNetworksApplyGating(gating,
 
   def _NewOrHistoricSplit(t, t_split):
     if device_mesh is not None:
-      return MeshSplit(t, device_mesh, t_split)
-    return Split(t, 0, num_devices)
+      return gshard_utils.MeshSplit(t, device_mesh, t_split)
+    return gshard_utils.Split(t, 0, num_devices)
 
   # dispatch_tensor: G`SEC
   expert_inputs = tf.einsum(
@@ -1026,8 +1019,8 @@ def FeedForwardNetworksApplyGating(gating,
   h = tf.einsum('EAM,EMH->EAH', expert_inputs, wi_split)
   h = _NewOrHistoricSplit(h, eah_split)
   if bi_split is not None:
-    h += Split(bi_split, 0, num_devices)
-    h = Split(h, 0, num_devices)
+    h += gshard_utils.Split(bi_split, 0, num_devices)
+    h = gshard_utils.Split(h, 0, num_devices)
 
   h = activations.GetFn(activation_name)(h)
   if dropout_rate:
@@ -1039,9 +1032,9 @@ def FeedForwardNetworksApplyGating(gating,
   expert_outputs = _NewOrHistoricSplit(expert_outputs, eam_split)
 
   if bo_split is not None:
-    expert_outputs = Split(expert_outputs, 0, num_devices)
-    expert_outputs += Split(bo_split, 0, num_devices)
-    expert_outputs = Split(expert_outputs, 0, num_devices)
+    expert_outputs = gshard_utils.Split(expert_outputs, 0, num_devices)
+    expert_outputs += gshard_utils.Split(bo_split, 0, num_devices)
+    expert_outputs = gshard_utils.Split(expert_outputs, 0, num_devices)
   expert_outputs = tf.reshape(expert_outputs, [E, G, C, M])
 
   # same as tf.transpose
@@ -1138,11 +1131,11 @@ def GatherK(selected_pos, values, k, num_devices=1):
   indices = tf.reverse(topk_indices, [-1])
   # [global_batch, k], padded positions are '1's.
   padding = tf.cast(tf.equal(indices, 0), values[0].dtype)
-  padding = Split(padding, 0, num_devices)
+  padding = gshard_utils.Split(padding, 0, num_devices)
 
   # [global_batch, k], zero_based_indices
   mp_idx = tf.maximum(0, indices - 1)
-  mp_idx = Split(mp_idx, 0, num_devices)
+  mp_idx = gshard_utils.Split(mp_idx, 0, num_devices)
 
   # [device_batch, k]
   if num_devices > 1 and py_utils.use_tpu():
@@ -1164,7 +1157,7 @@ def GatherK(selected_pos, values, k, num_devices=1):
   output = []
   for v in values:
     # Begin manually partition gather.
-    v = Split(v, 0, num_devices)
+    v = gshard_utils.Split(v, 0, num_devices)
     v_shape = v.shape.as_list()
     if num_devices > 1 and py_utils.use_tpu():
       op_sharding = xla_sharding.get_op_sharding(v.op)

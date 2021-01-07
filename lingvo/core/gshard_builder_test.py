@@ -17,7 +17,7 @@ r"""Test code for Mixture-of-Experts builder."""
 
 from lingvo import compat as tf
 from lingvo.core import gshard_builder
-from lingvo.core import moe_layers
+from lingvo.core import gshard_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
@@ -132,7 +132,8 @@ class MoEBuilderTest(test_utils.TestCase):
       self.assertAllEqual(x1, x1b)
 
       # batch-major state
-      state = moe_layers.StateLayer.InitState(layer, [batch_dim, 1, length_dim])
+      state = gshard_layers.StateLayer.InitState(layer,
+                                                 [batch_dim, 1, length_dim])
 
       for t in range(length_dim):
         # slice decoder inputs, as if length_dim=1
@@ -142,19 +143,19 @@ class MoEBuilderTest(test_utils.TestCase):
         fprop_args_t = map(tf.convert_to_tensor, np_fprop_args_t)
 
         # run with sliced input args using theta with state ('incremental mode')
-        theta_with_state = moe_layers.StateLayer.UpdateTheta(
+        theta_with_state = gshard_layers.StateLayer.UpdateTheta(
             layer, layer.theta, state, t)
         tgt_mask = np.zeros([batch_dim, 1, length_dim])
         tgt_mask[:, :, :(t + 1)] = 1
         tgt_mask = tf.convert_to_tensor(tgt_mask.astype(np.float32))
-        moe_layers.OverrideLayer.Set('dec_self_attention_bias',
-                                     (tgt_mask - 1.0) * 1e9)
+        gshard_layers.OverrideLayer.Set('dec_self_attention_bias',
+                                        (tgt_mask - 1.0) * 1e9)
         output2, _ = layer.FProp(theta_with_state, *fprop_args_t)
         bias2 = layer._fprop._named_tensors['bias_full']
         k_full2 = layer._fprop._named_tensors['k_full']
         v_full2 = layer._fprop._named_tensors['v_full']
-        state = moe_layers.StateLayer.UpdateState(layer, theta_with_state,
-                                                  state)
+        state = gshard_layers.StateLayer.UpdateState(layer, theta_with_state,
+                                                     state)
 
         x2, b2, k2, v2 = sess.run([output2, bias2, k_full2, v_full2])
 

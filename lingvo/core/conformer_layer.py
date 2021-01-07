@@ -23,12 +23,12 @@ from lingvo.core import batch_major_attention as attention_lib
 from lingvo.core import bn_layers
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import gshard_builder
+from lingvo.core import gshard_utils
 from lingvo.core import hyperparams as hparams_lib
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import recurrent
-from lingvo.core import xla_sharding_utils
 
 
 class LConvLayer(base_layer.BaseLayer):
@@ -300,19 +300,19 @@ class LConvLayer(base_layer.BaseLayer):
       if p.activation_split_dims_mapping.blf is not None:
         adapted_blf_dims_mapping = p.activation_split_dims_mapping.blf.copy()
         adapted_blf_dims_mapping.insert(2, -1)
-      inputs = xla_sharding_utils.MeshSplit(inputs, p.device_mesh,
-                                            adapted_blf_dims_mapping)
-      theta.depthwise_conv1d.w = xla_sharding_utils.MeshSplit(
+      inputs = gshard_utils.MeshSplit(inputs, p.device_mesh,
+                                      adapted_blf_dims_mapping)
+      theta.depthwise_conv1d.w = gshard_utils.MeshSplit(
           theta.depthwise_conv1d.w, p.device_mesh,
           p.weight_split_dims_mapping.hwim)
       inputs, paddings = self.depthwise_conv1d.FProp(theta.depthwise_conv1d,
                                                      inputs, paddings)
 
-      inputs = xla_sharding_utils.MeshSplit(inputs, p.device_mesh,
-                                            adapted_blf_dims_mapping)
+      inputs = gshard_utils.MeshSplit(inputs, p.device_mesh,
+                                      adapted_blf_dims_mapping)
       inputs = self._Normalize(theta, inputs, paddings)
-      inputs = xla_sharding_utils.MeshSplit(inputs, p.device_mesh,
-                                            p.activation_split_dims_mapping.blf)
+      inputs = gshard_utils.MeshSplit(inputs, p.device_mesh,
+                                      p.activation_split_dims_mapping.blf)
 
       inputs = self._ApplyActivation(inputs, p.conv_activation)
 
