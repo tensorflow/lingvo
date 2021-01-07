@@ -501,7 +501,7 @@ atten_probs: [B, N, T, S].</p>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttention._FavorDotAtten">
-<code class="sig-name descname">_FavorDotAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">favor_config</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention._FavorDotAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention._FavorDotAtten" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FavorDotAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">favor_config</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">redraw</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention._FavorDotAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention._FavorDotAtten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main FAVOR attention function from Rethinking Attention with Performers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -519,6 +519,7 @@ negative logits. Only applied if packed_input = True.</p></li>
 information flow from future (causal padding). It has shape [B, T, S] if
 not None.</p></li>
 <li><p><strong>favor_config</strong> – dictionary defining parameters of FAVOR attention.</p></li>
+<li><p><strong>redraw</strong> – whether kernel features should be redrawn (N/A if not random).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
