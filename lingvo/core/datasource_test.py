@@ -62,21 +62,23 @@ class DatasourceTest(test_utils.TestCase):
     with tf.Session():
       ret.data = self.evaluate([ret.data])
 
-    self.assertAllEqual(ret.data, [[b'tfrecord:pattern1,pattern2']])
+    self.assertAllEqual(ret.data, [[b'tfrecord:pattern1,tfrecord:pattern2']])
 
-  def testSimpleDataSourceFailsWithListInput(self):
+  def testSimpleDataSourceSucceedsWithListInput(self):
     files = ['file1', 'file2']
     ds_params = datasource.SimpleDataSource.Params().Set(file_pattern=files)
-
     ds = ds_params.Instantiate()
-    with self.assertRaises(ValueError):
-      ds.BuildDataSource(_MockDataSourceFromFilePattern)
+    ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
-  def testWithinBatchMixingDataSourceSucceedsWithListFilesAndWeights(self):
+    self.assertAllEqual(ret.data, [[b'file1,file2']])
+
+  def testSimpleDataSourceSucceedsWithListFilesAndWeights(self):
     files = ['path_to_file1', 'path_to_file2']
     weights = [1, 4]
-    ds_params = datasource.WithinBatchMixingDataSource.Params().Set(
-        file_patterns=files, weights=weights)
+    ds_params = datasource.SimpleDataSource.Params().Set(
+        file_pattern=files, weights=weights)
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
@@ -88,13 +90,11 @@ class DatasourceTest(test_utils.TestCase):
     self.assertAllEqual(ret.data, [[b'path_to_file1,path_to_file2']])
     self.assertCountEqual(ret.bprop_variable_filters, [''] * len(files))
 
-  # TODO(b/139345706) should fail when the p.file_pattern behavior is deprecated
-  def testWithinBatchMixingDataSourceFailsWithListTuplesFiles(self):
+  def testSimpleDataSourceFailsWithListTuplesFiles(self):
     # This legacy p.file_pattern behavior is only supported through
     # base_input_generator.
     files = [('file1', 1.0), ('file2', 2.0)]
-    ds_params = datasource.WithinBatchMixingDataSource.Params().Set(
-        file_patterns=files)
+    ds_params = datasource.SimpleDataSource.Params().Set(file_pattern=files)
     ds = ds_params.Instantiate()
 
     with self.assertRaises(ValueError):
@@ -102,9 +102,12 @@ class DatasourceTest(test_utils.TestCase):
 
   def testCrossBatchMixingDataSourceSucceedsWithListFilesAndWeights(self):
     files = ['path_to_file', 'path_to_file']
+    datasources = [
+        datasource.SimpleDataSource.Params().Set(file_pattern=f) for f in files
+    ]
     weights = [1, 4]
     ds_params = datasource.CrossBatchMixingDataSource.Params().Set(
-        file_patterns=files, weights=weights)
+        sub=datasources, weights=weights)
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
@@ -121,24 +124,13 @@ class DatasourceTest(test_utils.TestCase):
     self.assertAllEqual(ret.selected_bprop.shape, [2])
     self.assertAllEqual(ret.source_selected.shape, [1, 2])
 
-  def testCrossBatchMixingDataSourceFailsWithListTuplesFiles(self):
-    # This legacy p.file_pattern behavior is only supported through
-    # base_input_generator.
-    files = [('file1', 1.0), ('file2', 2.0)]
-    ds_params = datasource.CrossBatchMixingDataSource.Params().Set(
-        file_patterns=files)
-    ds = ds_params.Instantiate()
-
-    with self.assertRaises(ValueError):
-      ds.BuildDataSource(_MockDataSourceFromFilePattern)
-
   def testCurriculumDataSourceSucceedsWithSimpleDataSource(self):
     sources = [
         datasource.SimpleDataSource.Params().Set(file_pattern='file1'),
         datasource.SimpleDataSource.Params().Set(file_pattern='file2'),
     ]
     ds_params = datasource.CurriculumDataSource.Params().Set(
-        datasource_params=sources, boundaries=[5])
+        sub=sources, boundaries=[5])
     ds = ds_params.Instantiate()
 
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -158,7 +150,7 @@ class DatasourceTest(test_utils.TestCase):
     ]
     boundary = 5
     ds_params = datasource.CurriculumDataSource.Params().Set(
-        datasource_params=sources, boundaries=[boundary])
+        sub=sources, boundaries=[boundary])
     ds = ds_params.Instantiate()
 
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -178,14 +170,14 @@ class DatasourceTest(test_utils.TestCase):
 
   def testCurriculumDataSourceTransitionsCorrectlyWithMixingDataSource(self):
     sources = [
-        datasource.WithinBatchMixingDataSource.Params().Set(
-            file_patterns=['file1', 'file2'], weights=[1, 5]),
-        datasource.WithinBatchMixingDataSource.Params().Set(
-            file_patterns=['file3', 'file4'], weights=[2, 3])
+        datasource.SimpleDataSource.Params().Set(
+            file_pattern=['file1', 'file2'], weights=[1, 5]),
+        datasource.SimpleDataSource.Params().Set(
+            file_pattern=['file3', 'file4'], weights=[2, 3])
     ]
     boundary = 5
     ds_params = datasource.CurriculumDataSource.Params().Set(
-        datasource_params=sources, boundaries=[boundary])
+        sub=sources, boundaries=[boundary])
     ds = ds_params.Instantiate()
 
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -205,22 +197,20 @@ class DatasourceTest(test_utils.TestCase):
 
   def testCurriculumDataSourceFailsWithBadBoundaries(self):
     sources = [
-        datasource.WithinBatchMixingDataSource.Params().Set(
-            file_patterns=['file1', 'file2'], weights=[1, 5]),
-        datasource.WithinBatchMixingDataSource.Params().Set(
-            file_patterns=['file3', 'file4'], weights=[2, 3])
+        datasource.SimpleDataSource.Params().Set(
+            file_pattern=['file1', 'file2'], weights=[1, 5]),
+        datasource.SimpleDataSource.Params().Set(
+            file_pattern=['file3', 'file4'], weights=[2, 3])
     ]
     ds_params = datasource.CurriculumDataSource.Params().Set(
-        datasource_params=sources, boundaries=[10, 5])
+        sub=sources, boundaries=[10, 5])
     ds = ds_params.Instantiate()
     with self.assertRaises(ValueError):
       ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
   def testPrefixDataSourceSucceedsWithDirectory(self):
     ds_params = datasource.PrefixedDataSource.Params().Set(
-        file_pattern='filename-*.tfrecord',
-        file_type=None,
-        file_pattern_prefix='/dir/')
+        file_pattern='filename-*.tfrecord', file_pattern_prefix='/dir/')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
@@ -232,7 +222,6 @@ class DatasourceTest(test_utils.TestCase):
   def testPrefixDataSourceSucceedsWithMultiplePatterns(self):
     ds_params = datasource.PrefixedDataSource.Params().Set(
         file_pattern='filename-*.tfrecord,other/file/pattern/*',
-        file_type=None,
         file_pattern_prefix='/dir/')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
@@ -246,7 +235,6 @@ class DatasourceTest(test_utils.TestCase):
   def testPrefixDataSourceSucceedsWithGcsBucket(self):
     ds_params = datasource.PrefixedDataSource.Params().Set(
         file_pattern='filename-*.tfrecord',
-        file_type=None,
         file_pattern_prefix='gs://bucket/dir')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)

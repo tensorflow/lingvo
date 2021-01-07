@@ -655,6 +655,52 @@ class BaseInputGenerator(base_layer.BaseLayer):
     raise NotImplementedError()
 
 
+def FilePatternToDataSource(p):
+  """Helper to turn p.file_pattern (deprecated) into p.file_datasource."""
+  if isinstance(p.file_pattern, str):
+    return datasource.SimpleDataSource.Params().Set(file_pattern=p.file_pattern)
+  elif isinstance(p.file_pattern, (list, tuple)):
+    if all([isinstance(x, str) for x in p.file_pattern]):
+      # While this violates the documentation and intended use, there are
+      # subclasses that have used a tuple of strings, rather than a list of
+      # string, weight tuples.  Rather than treating lists and tuples
+      # differently, support both here until p.file_pattern is removed.
+      return datasource.SimpleDataSource.Params().Set(
+          file_pattern=list(p.file_pattern))
+    elif p.use_within_batch_mixing:
+      if max(list(map(len, p.file_pattern))) >= 3:
+        # Within batch mixing doesn't work with backprop filters, i.e. when
+        # file_pattern param contains a list of
+        # <file_pattern, weight, [bprop_variable_filter]> tuples.
+        raise ValueError('Expected a list of pairs, got %s' % p.file_pattern)
+
+      file_patterns, weights = (list(x) for x in zip(*p.file_pattern))
+
+      return datasource.SimpleDataSource.Params().Set(
+          file_pattern=file_patterns, weights=weights)
+    else:
+      # Otherwise fall back to MixByWeight-based approach.
+      datasources = []
+      weights = []
+      bprop_variable_filters = []
+      for input_entry in p.file_pattern:
+        if isinstance(input_entry, str):
+          raise ValueError('Should explicitly specify weights, got string: %s' %
+                           input_entry)
+        file_pattern, weight = input_entry[:2]
+        datasources.append(
+            datasource.SimpleDataSource.Params().Set(file_pattern=file_pattern))
+        weights.append(weight)
+        bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
+        bprop_variable_filters.append(bprop_variable_filter)
+      return datasource.CrossBatchMixingDataSource.Params().Set(
+          sub=datasources,
+          weights=weights,
+          bprop_variable_filters=bprop_variable_filters)
+  else:
+    raise ValueError('Cannot parse p.file_pattern into a datasource.')
+
+
 class BaseInputGeneratorFromFiles(BaseInputGenerator):
   """Base class for input generators that reads from files.
 
@@ -715,7 +761,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'when using require_sequential_order. Must only be set if '
         'require_sequential_order is True.')
     # TODO(b/139345706) when file_pattern is deleted use_within_batch_mixing
-    # will be specified by passing a WithinBatchMixingDataSource to
+    # will be specified by setting weights in SimpleDataSource in
     # p.file_datasource and this param should be deleted as well.
     p.Define(
         'use_within_batch_mixing', False, 'Whether to mix records from '
@@ -737,54 +783,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
 
     # TODO(b/139345706) remove support for file_pattern
     if not p.file_datasource:
-      if isinstance(p.file_pattern, str):
-        p.file_datasource = datasource.SimpleDataSource.Params().Set(
-            file_pattern=p.file_pattern)
-      elif isinstance(p.file_pattern, (list, tuple)):
-        if all([isinstance(x, str) for x in p.file_pattern]):
-          # While this violates the documentation and intended use, there are
-          # subclasses that have used a tuple of strings, rather than a list of
-          # string, weight tuples.  Rather than treating lists and tuples
-          # differently, support both here until p.file_pattern is removed.
-          p.file_datasource = datasource.SimpleDataSource.Params().Set(
-              file_pattern=','.join(p.file_pattern))
-        elif p.use_within_batch_mixing:
-          if max(list(map(len, p.file_pattern))) >= 3:
-            # Within batch mixing doesn't work with backprop filters, i.e. when
-            # file_pattern param contains a list of
-            # <file_pattern, weight, [bprop_variable_filter]> tuples.
-            raise ValueError('Expected a list of pairs, got %s' %
-                             p.file_pattern)
-
-          file_patterns, weights = (list(x) for x in zip(*p.file_pattern))
-
-          p.file_datasource = datasource.WithinBatchMixingDataSource.Params(
-          ).Set(
-              file_patterns=file_patterns, weights=weights)
-        else:
-          # Otherwise fall back to MixByWeight-based approach.
-          file_patterns = []
-          weights = []
-          bprop_variable_filters = []
-          for input_entry in p.file_pattern:
-            if isinstance(input_entry, str):
-              raise ValueError(
-                  'Should explicitly specify weights, got string: %s' %
-                  input_entry)
-            file_pattern, weight = input_entry[:2]
-            file_patterns.append(file_pattern)
-            weights.append(weight)
-            bprop_variable_filter = input_entry[2] if len(
-                input_entry) > 2 else ''
-            bprop_variable_filters.append(bprop_variable_filter)
-          p.file_datasource = datasource.CrossBatchMixingDataSource.Params(
-          ).Set(
-              file_patterns=file_patterns,
-              weights=weights,
-              bprop_variable_filters=bprop_variable_filters)
-      else:
-        raise ValueError('Cannot parse p.file_pattern into a datasource.')
-
+      p.file_datasource = FilePatternToDataSource(p)
     self.CreateChild('datasource', p.file_datasource)
 
   def CommonInputOpArgs(self):
@@ -841,10 +840,10 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         treated as an empty list.
 
     Returns:
-      A tuple of tf.Tensors where the tensors which contain the input data and
-      have major dimension same as size of input batch.
+      A `.NestedMap` of tf.Tensors containing a batch of input data with shapes
+      [batch, ...].
     """
-    raise NotImplementedError()
+    return py_utils.NestedMap(x=tf.zeros([1]))
 
   def _BuildDataSourceWithMetadata(self):
     """Read and return input batch from `p.file_pattern`.
@@ -858,13 +857,10 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     Returns:
       A `.NestedMap` containing
 
-      - data: a tuple of tf.Tensor or `.NestedMap` of
-        tf.Tensor same as `self._DataSourceFromFilePattern()`
-      - source_selected: a tensor of size [batch_size, number of data sources]
-        or None.
-      - selected_bprop: a tensor of size [number of data sources] or None.
-      - bprop_variable_filters: a list of bprop_variable filters for each source
-        or None.
+      - data: `.NestedMap` of tf.Tensor as in `_DataSourceFromFilePattern()`.
+      - source_selected: optional tensor of size [batch_size, #datasources].
+      - selected_bprop: optional tensor of size [#datasources].
+      - bprop_variable_filters: optional list of filters for each source.
 
     Raises:
       ValueError: If file_datasource is not set
@@ -904,8 +900,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     Same as _BuildDataSourceWithMetadata but does not return any metadata.
 
     Returns:
-      A tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as
-      `self._DataSourceFromFilePattern()`.
+      A `.NestedMap` of tf.Tensor as in `self._DataSourceFromFilePattern()`.
 
     Raises:
       ValueError: If unknown token type.

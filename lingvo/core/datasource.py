@@ -59,71 +59,37 @@ class DataSource(base_layer.BaseLayer):
 
 
 class SimpleDataSource(DataSource):
-  """A simple file based data source."""
+  """A simple file based data source.
+
+  This uses the Lingvo input pipeline consisting of input_common.h and
+  record_yielder/record_batcher.
+  """
 
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define(
+        'file_pattern', '', 'A string or list of file pattern strings. '
+        'If it is a comma separated string, it will be interpreted as a list. '
+        'If a list is provided elements may not contain commas.')
     # TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param
     # and clean up existing usages.
+    p.Define('file_type', '', 'A string or list of file types, eg. `tfrecord`.')
     p.Define(
-        'file_pattern', '', 'A single file pattern string which can '
-        'contain a single file pattern, or a comma separated list of patterns.'
-        'Samples from each file with unspecified likelihood, though in practice'
-        ' this will be roughly equal per file.  To explicitly '
-        'describe the mixture weights of different file patterns use '
-        'WithinBatchMixingDataSource or CrossBatchMixingDataSource')
-    p.Define('file_type', '', 'A file type, such as `tfrecord`.')
-
+        'weights', None,
+        'A list of weights for each file pattern for within-batch mixing. If '
+        'not specified, a default implementation is used (roughly uniform).')
+    p.Define(
+        'bprop_variable_filters', None, 'An optional list of '
+        'bprop_variariable_filters for each file_pattern.  If not empty, '
+        'expected to have the same length as weights.')
     return p
 
   def BuildDataSource(self, data_source_from_file_pattern_fn):
-    """Builds a simple, unweighted Data Source.
+    """Read and return input batch from p.sub weighted by p.weights.
 
-    Args:
-      data_source_from_file_pattern_fn: a function that takes file_pattern as an
-        argument and returns an input batch.
-
-    Returns:
-      A NestedMap containing `data`, which is a tuple of tf.Tensor or
-      `.NestedMap` of tf.Tensor.
-    """
-    p = self.params
-    if not isinstance(p.file_pattern, str):
-      raise ValueError('SimpleDataSource expects p.file_pattern to be a string.'
-                       ' To use multiple files use a comma separated string, '
-                       'e.g. \', \'.join(list_of_file_patterns)')
-
-    if p.file_type:
-      file_pattern = '{}:{}'.format(p.file_type, p.file_pattern)
-    else:
-      file_pattern = p.file_pattern
-
-    ret = py_utils.NestedMap()
-    ret.data = data_source_from_file_pattern_fn(file_pattern)
-    ret.bprop_variable_filters = ['']
-    return ret
-
-
-class WithinBatchMixingDataSource(DataSource):
-  """Mixes records from different sources into the same batch."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    # TODO(b/139345706): This can probably be a list of DataSource params
-    # instead of a list of file_patterns to be more generic.
-    p.Define(
-        'file_patterns', [], 'A list of file pattern strings which are read '
-        'from in sequence. Commas cannot be used in individual file_patterns. ')
-    p.Define('weights', [], 'A list of weights for each file pattern')
-    return p
-
-  def BuildDataSource(self, data_source_from_file_pattern_fn):
-    """Read and return input batch from p.file_patterns list weighted by p.weights.
-
-    Examples in the batch will be mixed together from different file_pattern
-    source proportionally to the weights.
+    Examples in the batch will be mixed together from different sources
+    proportional to the weights.
 
     Args:
       data_source_from_file_pattern_fn: a function that takes file_pattern and
@@ -138,30 +104,49 @@ class WithinBatchMixingDataSource(DataSource):
       ValueError: If unknown token type.
     """
     p = self.params
-    if not isinstance(p.file_patterns, list):
-      raise ValueError('Expected a list, got %s' % p.file_patterns)
-    if not isinstance(p.weights, list):
-      raise ValueError('Expected a list, got %s' % p.weights)
-    if len(p.file_patterns) != len(p.weights):
-      raise ValueError(
-          'Expected p.file_patterns and p.weights to be the same length. '
-          'Found %d file_patterns, and %d weights' %
-          (len(p.file_patterns), len(p.weights)))
-    # TODO(rosenberg) confirm that weights are numeric
-    if not all(isinstance(x, str) for x in p.file_patterns):
-      raise ValueError('Expected all elements of p.file_patterns to be strings')
-
-    file_patterns = p.file_patterns
-    weights = p.weights
-    for file_pattern in file_patterns:
-      if ',' in file_pattern:
+    if p.weights:
+      if not isinstance(p.file_pattern, list):
+        raise ValueError('Expected a list, got %s' % p.file_pattern)
+      if not isinstance(p.weights, list):
+        raise ValueError('Expected a list, got %s' % p.weights)
+      if len(p.file_pattern) != len(p.weights):
         raise ValueError(
-            ('Can not use commas in file_pattern when within-batch '
-             'mixing is used. file_pattern: %s') % file_pattern)
+            'Expected p.file_pattern and p.weights to be the same length. '
+            'Found %d file_pattern, and %d weights' %
+            (len(p.file_pattern), len(p.weights)))
+      # TODO(rosenberg) confirm that weights are numeric
+
+    if isinstance(p.file_pattern, str):
+      p.file_pattern = p.file_pattern.split(',')
+      if p.file_type:
+        p.file_type = [p.file_type] * len(p.file_pattern)
+    else:
+      if not all(isinstance(x, str) for x in p.file_pattern):
+        raise ValueError(
+            'Expected all elements of p.file_pattern to be strings.' +
+            str(p.file_pattern))
+      for x in p.file_pattern:
+        if ',' in x:
+          raise ValueError('List file_pattern %s should not contain commas.' %
+                           p.file_pattern)
+
+    file_patterns = p.file_pattern
+    if p.file_type:
+      file_patterns = [f'{t}:{p}' for t, p in zip(p.file_type, file_patterns)]
+
     ret = py_utils.NestedMap()
-    ret.data = data_source_from_file_pattern_fn(
-        ','.join(file_patterns), input_source_weights=weights)
-    ret.bprop_variable_filters = [''] * len(file_patterns)
+    if p.weights:
+      # Within-batch mixing.
+      ret.data = data_source_from_file_pattern_fn(
+          ','.join(file_patterns), input_source_weights=p.weights)
+    else:
+      # Default.
+      ret.data = data_source_from_file_pattern_fn(','.join(file_patterns))
+
+    if not p.bprop_variable_filters:
+      ret.bprop_variable_filters = [''] * len(file_patterns)
+    else:
+      ret.bprop_variable_filters = p.bprop_variable_filters
     return ret
 
 
@@ -171,17 +156,17 @@ class CrossBatchMixingDataSource(DataSource):
   @classmethod
   def Params(cls):
     p = super().Params()
-    # TODO(b/139345706): This can probably be a list of DataSource params
-    # instead of a list of file_patterns to be more generic.
+    p.Define('sub', None, 'A list of datasources to mix.')
+    p.Define('weights', None, 'A list of weights for each datasource.')
     p.Define(
-        'file_patterns', [], 'A list of file pattern strings which are read '
-        'from in sequence. Commas cannot be used in individual file_patterns. ')
-    p.Define('weights', [], 'A list of weights for each file pattern')
-    p.Define(
-        'bprop_variable_filters', [], 'An optional list of '
-        'bprop_variariable_filters for each file_pattern.  If not empty, '
-        'expected to have the same length as file_pattern and weights')
+        'bprop_variable_filters', None, 'An optional list of '
+        'bprop_variariable_filters for each datasource. If not empty, '
+        'expected to have the same length as sub and weights')
     return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.CreateChildren('sub', self.params.sub)
 
   def BuildDataSource(self, data_source_from_file_pattern_fn):
     """Read and return input batch from a p.file_pattern list.
@@ -207,39 +192,30 @@ class CrossBatchMixingDataSource(DataSource):
     """
     p = self.params
 
-    def _MakeDataSourceFromFilePatternFunc(data_source_from_file_pattern_fn,
-                                           file_pattern):
-      # It's important to invoke self._DataSourceFromFilePattern() inside the
-      # lambda to make sure that the record is drawn from data source
-      # only if it will be used. Weights are handled by MixByWeight, not the
-      # data_source_from_file_pattern_fn.
-      return lambda: data_source_from_file_pattern_fn(file_pattern)
+    if len(p.weights) != len(p.sub):
+      raise ValueError('Expected p.sub and p.weights to be the same length. '
+                       'Found %d sub, and %d weights' %
+                       (len(p.sub), len(p.weights)))
 
-    if len(p.weights) != len(p.file_patterns):
-      raise ValueError(
-          'Expected p.file_patterns and p.weights to be the same length. '
-          'Found %d file_patterns, and %d weights' %
-          (len(p.file_patterns), len(p.weights)))
-    if not all(isinstance(x, str) for x in p.file_patterns):
-      raise ValueError('Expected all elements of p.file_patterns to be strings')
+    def GetDatasourceFn(sub):
 
-    # TODO(rosenberg) replace this with functools.partial
-    inputs = [
-        _MakeDataSourceFromFilePatternFunc(data_source_from_file_pattern_fn,
-                                           file_pattern)
-        for file_pattern in p.file_patterns
-    ]
-    weights = p.weights
+      def DatasourceFn():
+        datasource = sub.BuildDataSource(data_source_from_file_pattern_fn)
+        return datasource.data
+
+      return DatasourceFn
+
+    inputs = [GetDatasourceFn(sub) for sub in self.sub]
     if not p.bprop_variable_filters:
       bprop_variable_filters = [''] * len(inputs)
     else:
       bprop_variable_filters = p.bprop_variable_filters
 
     data_source, selected_bprop = py_utils.MixByWeight(
-        inputs, weights, seed=p.random_seed)
+        inputs, p.weights, seed=p.random_seed)
     # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
     # use source_selected from input_batch.
-    batch_size = py_utils.GetShape(tf.nest.flatten(data_source)[0])[0]
+    batch_size = py_utils.GetShape(py_utils.Flatten(data_source)[0])[0]
     ret = py_utils.NestedMap()
     ret.data = data_source
     ret.bprop_variable_filters = bprop_variable_filters
@@ -268,17 +244,20 @@ class CurriculumDataSource(DataSource):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define('sub', None,
+             'A list of DataSource Params which define the curriculum.')
     p.Define(
-        'datasource_params', [], 'A list of DataSource Params which define '
-        'the DataSource curriculum.')
-    p.Define(
-        'boundaries', [], 'A list of global step thresholds determining when '
+        'boundaries', None, 'A list of global step thresholds determining when '
         'to move from one training stage to another.')
     p.Define(
-        'bprop_variable_filters', [''], 'A list of bprop_variable_filters to '
+        'bprop_variable_filters', None, 'A list of bprop_variable_filters to '
         'apply during training.  NOTE: these are constant across all stages.'
         'Changing variable filters per stage is not supported.')
     return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.CreateChildren('sub', self.params.sub)
 
   def BuildDataSource(self, data_source_from_file_pattern_fn):
     """Read and return input batch.
@@ -292,19 +271,18 @@ class CurriculumDataSource(DataSource):
         data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor
 
     Raises:
-      ValueError: inconsistent sizes between boundaries and datasource_params,
-      specification of unsupported datasources, or out of order boundaries.
+      ValueError: inconsistent sizes between boundaries and sub, specification
+      of unsupported datasources, or out of order boundaries.
     """
     p = self.params
 
-    if len(p.datasource_params) != len(p.boundaries) + 1:
-      raise ValueError(
-          'Expected p.datasource_params to have one more entry than '
-          'p.boundaries. Found %d datasource_params, and %d boundaries' %
-          (len(p.datasource_params), len(p.boundaries)))
+    if len(p.sub) != len(p.boundaries) + 1:
+      raise ValueError('Expected p.sub to have one more entry than '
+                       'p.boundaries. Found %d sub, and %d boundaries' %
+                       (len(p.sub), len(p.boundaries)))
 
-    for ds_p in p.datasource_params:
-      if 'bprop_variable_filters' in ds_p:
+    for ds_p in p.sub:
+      if 'bprop_variable_filters' in ds_p and ds_p.bprop_variable_filters:
         if any(filter for filter in ds_p.bprop_variable_filters):
           raise ValueError('CurriculumDataSource does not support distinct '
                            'bprop_variable_filters per stage.')
@@ -316,12 +294,11 @@ class CurriculumDataSource(DataSource):
                          (p.boundaries[idx], p.boundaries[idx + 1], idx))
 
     global_step = py_utils.GetGlobalStep()
-    datasources = [ds_p.Instantiate() for ds_p in p.datasource_params]
 
     def GetDatasourceFn(idx):
 
       def DatasourceFn():
-        datasource = datasources[idx].BuildDataSource(
+        datasource = self.sub[idx].BuildDataSource(
             data_source_from_file_pattern_fn)
         datasource.pop('bprop_variable_filters', None)
         return datasource
@@ -336,7 +313,7 @@ class CurriculumDataSource(DataSource):
                                dtype=global_step.dtype)), GetDatasourceFn(idx)))
 
     ret = tf.case(cases, default=GetDatasourceFn(-1))
-    ret.bprop_variable_filters = p.bprop_variable_filters
+    ret.bprop_variable_filters = p.bprop_variable_filters or ['']
     return ret
 
 
@@ -354,10 +331,15 @@ class PrefixedDataSource(SimpleDataSource):
     return p
 
   def __init__(self, params):
+    if isinstance(params.file_pattern, str):
+      params.file_pattern = params.file_pattern.split(',')
+      if params.file_type:
+        params.file_type = [params.file_type] * len(params.file_pattern)
+    prefixed = []
+    for file_pattern in params.file_pattern:
+      patterns = file_pattern.split(',')
+      prefixed.append(','.join(
+          os.path.join(params.file_pattern_prefix, pattern)
+          for pattern in patterns))
+    params.file_pattern = prefixed
     super().__init__(params)
-
-    p = self.params
-
-    patterns = p.file_pattern.split(',')
-    p.file_pattern = ','.join(
-        os.path.join(p.file_pattern_prefix, pattern) for pattern in patterns)
