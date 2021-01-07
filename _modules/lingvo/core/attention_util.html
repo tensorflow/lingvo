@@ -186,7 +186,8 @@
 <span class="sd">    where output[:, i, ...] are x[:, i*block_size:(i+1)*block_size, ...].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-  <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">t</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
   <span class="k">if</span> <span class="n">block_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;block_size must be at least 1, got </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">block_size</span><span class="p">))</span>
   <span class="n">w</span> <span class="o">=</span> <span class="n">block_size</span>
