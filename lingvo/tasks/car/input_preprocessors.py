@@ -2922,7 +2922,7 @@ class GroundTruthAugmentor(Preprocessor):
 
     tf.logging.info('Loading groundtruth database at %s' %
                     (p.groundtruth_database))
-    db = p.groundtruth_database.Instantiate().BuildDataSource(self._ReadDB).data
+    db = self._ReadDB(p.groundtruth_database)
 
     original_features_shape = tf.shape(features.lasers.points_feature)
 
