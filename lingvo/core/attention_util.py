@@ -34,7 +34,8 @@ def ConvertToBlocks(x, block_size, padding_val=0.0):
     where output[:, i, ...] are x[:, i*block_size:(i+1)*block_size, ...].
   """
   shape = py_utils.GetShape(x)
-  b, t = shape[:2]
+  b = shape[0]
+  t = shape[1]
   if block_size < 1:
     raise ValueError('block_size must be at least 1, got {}'.format(block_size))
   w = block_size
