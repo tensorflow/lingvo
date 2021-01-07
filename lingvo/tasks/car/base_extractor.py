@@ -316,8 +316,28 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     string_dtypes = dtypes.Filter(lambda x: x == tf.string)
     return [v[0] for v in string_dtypes.FlattenItems()]
 
+  # TODO(vrv): Remove once all users are migrated.
   def _NestedMapFromBatchedOutputs(self, outputs):
-    """Create a NestedMap from a tuple of outputs from generic_input_op."""
+    return self.NestedMapFromBatchedOutputs(outputs)
+
+  def NestedMapFromBatchedOutputs(self, outputs):
+    """Create a NestedMap from a list/tuple of batched outputs.
+
+    Args:
+      outputs: A tuple or list of Tensors whose order matches the flattened
+        structure of Shape() and DType().
+
+    Returns:
+      A NestedMap reconstructing the structure of the output of extractors
+        and preprocessors, where each Tensor's shape is statically
+        padded/trimmed to match the Shape() specification.
+
+    Raises:
+      ValueError: If `outputs` contains a shape that is not fully
+        defined.
+      AssertionError: If any shape of a Tensor in `outputs` cannot be
+        PadOrTrimTo'd by the corresponding Shape() specification.
+    """
     batch_size = self.InfeedBatchSize()
     shapes = self.Shape()
     shapes.VLog(0, 'input extractor shape: ')
@@ -330,6 +350,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
         len(flatten_dtypes), len(outputs))
 
     rets = []
+    assertion_errors = []
     for (output, (name, dtype), shape) in zip(outputs, flatten_dtypes,
                                               flatten_shapes):
       assert dtype == output.dtype, '{}: {} vs. {}'.format(
@@ -341,8 +362,19 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
         shape.assert_is_fully_defined()
       except ValueError as e:
         raise ValueError('Invalid shape for %s: %s' % (name, e))
-      padded = py_utils.PadOrTrimTo(output, [batch_size] + shape.as_list())
-      rets += [padded]
+      curr_shape = py_utils.GetShape(output)
+      padded_shape = shape.as_list()
+      if not self.params.batched_input:
+        padded_shape = [batch_size] + padded_shape
+
+      try:
+        padded = py_utils.PadOrTrimTo(output, padded_shape)
+        rets.append(padded)
+      except AssertionError as e:
+        assertion_errors += [f'{name}: {e}, ({curr_shape} vs. {padded_shape}']
+
+    if assertion_errors:
+      raise AssertionError('Mismatched shapes:\n' + '\n'.join(assertion_errors))
 
     rets = shapes.Pack(rets)
 
