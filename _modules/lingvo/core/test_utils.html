@@ -167,6 +167,7 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Helpers for unittests.&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
@@ -204,8 +205,33 @@
               <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">([</span><span class="n">global_step</span><span class="p">])))</span>
     <span class="k">return</span> <span class="n">sess</span></div>
 
+<div class="viewcode-block" id="TestCase.session"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.session">[docs]</a>  <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+  <span class="k">def</span> <span class="nf">session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test session context manager.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">UnitTestSessionScope</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">sess</span></div>
+
 <div class="viewcode-block" id="TestCase.SetEval"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.SetEval">[docs]</a>  <span class="k">def</span> <span class="nf">SetEval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># Maintain a session for unit tests (initialized in test_utils.py).</span>
+<span class="n">_SESSION_SCOPE</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="UnitTestSessionScope"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.UnitTestSessionScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">UnitTestSessionScope</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+  <span class="n">_SESSION_SCOPE</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_SESSION_SCOPE</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GetUnitTestSession"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.GetUnitTestSession">[docs]</a><span class="k">def</span> <span class="nf">GetUnitTestSession</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Get the current variable reuse setting.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">_SESSION_SCOPE</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_SESSION_SCOPE</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="_ReplaceOneLineInFile"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils._ReplaceOneLineInFile">[docs]</a><span class="k">def</span> <span class="nf">_ReplaceOneLineInFile</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">linenum</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
