@@ -468,8 +468,28 @@
     <span class="n">string_dtypes</span> <span class="o">=</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">string_dtypes</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()]</span></div>
 
+  <span class="c1"># TODO(vrv): Remove once all users are migrated.</span>
 <div class="viewcode-block" id="_BaseExtractor._NestedMapFromBatchedOutputs"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor._NestedMapFromBatchedOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">_NestedMapFromBatchedOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create a NestedMap from a tuple of outputs from generic_input_op.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">NestedMapFromBatchedOutputs</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_BaseExtractor.NestedMapFromBatchedOutputs"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._BaseExtractor.NestedMapFromBatchedOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">NestedMapFromBatchedOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a NestedMap from a list/tuple of batched outputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      outputs: A tuple or list of Tensors whose order matches the flattened</span>
+<span class="sd">        structure of Shape() and DType().</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap reconstructing the structure of the output of extractors</span>
+<span class="sd">        and preprocessors, where each Tensor&#39;s shape is statically</span>
+<span class="sd">        padded/trimmed to match the Shape() specification.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If `outputs` contains a shape that is not fully</span>
+<span class="sd">        defined.</span>
+<span class="sd">      AssertionError: If any shape of a Tensor in `outputs` cannot be</span>
+<span class="sd">        PadOrTrimTo&#39;d by the corresponding Shape() specification.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">()</span>
     <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
     <span class="n">shapes</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;input extractor shape: &#39;</span><span class="p">)</span>
@@ -482,6 +502,7 @@
         <span class="nb">len</span><span class="p">(</span><span class="n">flatten_dtypes</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>
 
     <span class="n">rets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">assertion_errors</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="p">),</span> <span class="n">shape</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">flatten_dtypes</span><span class="p">,</span>
                                               <span class="n">flatten_shapes</span><span class="p">):</span>
       <span class="k">assert</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">output</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -493,8 +514,19 @@
         <span class="n">shape</span><span class="o">.</span><span class="n">assert_is_fully_defined</span><span class="p">()</span>
       <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid shape for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
-      <span class="n">padded</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
-      <span class="n">rets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">padded</span><span class="p">]</span>
+      <span class="n">curr_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+      <span class="n">padded_shape</span> <span class="o">=</span> <span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batched_input</span><span class="p">:</span>
+        <span class="n">padded_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">padded_shape</span>
+
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">padded</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">padded_shape</span><span class="p">)</span>
+        <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">assertion_errors</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">, (</span><span class="si">{</span><span class="n">curr_shape</span><span class="si">}</span><span class="s1"> vs. </span><span class="si">{</span><span class="n">padded_shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">assertion_errors</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s1">&#39;Mismatched shapes:</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">assertion_errors</span><span class="p">))</span>
 
     <span class="n">rets</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 

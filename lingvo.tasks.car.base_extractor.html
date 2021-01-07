@@ -336,7 +336,34 @@ PostProcessDecodeOut().</p>
 <dl class="py method">
 <dt id="lingvo.tasks.car.base_extractor._BaseExtractor._NestedMapFromBatchedOutputs">
 <code class="sig-name descname">_NestedMapFromBatchedOutputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor._NestedMapFromBatchedOutputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor._NestedMapFromBatchedOutputs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a NestedMap from a tuple of outputs from generic_input_op.</p>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.car.base_extractor._BaseExtractor.NestedMapFromBatchedOutputs">
+<code class="sig-name descname">NestedMapFromBatchedOutputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/base_extractor.html#_BaseExtractor.NestedMapFromBatchedOutputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.base_extractor._BaseExtractor.NestedMapFromBatchedOutputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a NestedMap from a list/tuple of batched outputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>outputs</strong> – A tuple or list of Tensors whose order matches the flattened
+structure of Shape() and DType().</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A NestedMap reconstructing the structure of the output of extractors</dt><dd><p>and preprocessors, where each Tensor’s shape is statically
+padded/trimmed to match the Shape() specification.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If <code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code> contains a shape that is not fully
+    defined.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#AssertionError" title="(in Python v3.7)"><strong>AssertionError</strong></a> – If any shape of a Tensor in <code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code> cannot be
+    PadOrTrimTo’d by the corresponding Shape() specification.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
