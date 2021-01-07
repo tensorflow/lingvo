@@ -228,6 +228,8 @@ string file_pattern.</p>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.datasource.</code><code class="sig-name descname">SimpleDataSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#SimpleDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.SimpleDataSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
 <p>A simple file based data source.</p>
+<p>This uses the Lingvo input pipeline consisting of input_common.h and
+record_yielder/record_batcher.</p>
 <dl class="py method">
 <dt id="lingvo.core.datasource.SimpleDataSource.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#SimpleDataSource.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.SimpleDataSource.Params" title="Permalink to this definition">¶</a></dt>
@@ -237,38 +239,9 @@ string file_pattern.</p>
 <dl class="py method">
 <dt id="lingvo.core.datasource.SimpleDataSource.BuildDataSource">
 <code class="sig-name descname">BuildDataSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_source_from_file_pattern_fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#SimpleDataSource.BuildDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.SimpleDataSource.BuildDataSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builds a simple, unweighted Data Source.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>data_source_from_file_pattern_fn</strong> – a function that takes file_pattern as an
-argument and returns an input batch.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A NestedMap containing <code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code>, which is a tuple of tf.Tensor or
-<a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor.</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="lingvo.core.datasource.WithinBatchMixingDataSource">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.datasource.</code><code class="sig-name descname">WithinBatchMixingDataSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#WithinBatchMixingDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.WithinBatchMixingDataSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
-<p>Mixes records from different sources into the same batch.</p>
-<dl class="py method">
-<dt id="lingvo.core.datasource.WithinBatchMixingDataSource.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#WithinBatchMixingDataSource.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.WithinBatchMixingDataSource.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.datasource.WithinBatchMixingDataSource.BuildDataSource">
-<code class="sig-name descname">BuildDataSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_source_from_file_pattern_fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#WithinBatchMixingDataSource.BuildDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.datasource.WithinBatchMixingDataSource.BuildDataSource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read and return input batch from p.file_patterns list weighted by p.weights.</p>
-<p>Examples in the batch will be mixed together from different file_pattern
-source proportionally to the weights.</p>
+<dd><p>Read and return input batch from p.sub weighted by p.weights.</p>
+<p>Examples in the batch will be mixed together from different sources
+proportional to the weights.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>data_source_from_file_pattern_fn</strong> – a function that takes file_pattern and
@@ -368,8 +341,8 @@ batch from a string file_pattern</p>
 </dd>
 <dt class="field-even">Raises</dt>
 <dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – inconsistent sizes between boundaries and datasource_params,</p></li>
-<li><p><strong>specification of unsupported datasources</strong><strong>, or </strong><strong>out of order boundaries.</strong> – </p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – inconsistent sizes between boundaries and sub, specification</p></li>
+<li><p><strong>of unsupported datasources</strong><strong>, or </strong><strong>out of order boundaries.</strong> – </p></li>
 </ul>
 </dd>
 </dl>
