@@ -579,7 +579,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
                      paddings,
                      segment_mask,
                      per_step_padding=None,
-                     favor_config=None):
+                     favor_config=None,
+                     redraw=False):
     """Main FAVOR attention function from Rethinking Attention with Performers.
 
     Args:
@@ -596,6 +597,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         information flow from future (causal padding). It has shape [B, T, S] if
         not None.
       favor_config: dictionary defining parameters of FAVOR attention.
+      redraw: whether kernel features should be redrawn (N/A if not random).
 
     Returns:
       encoded: [B, T, N, H].
@@ -615,8 +617,12 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       kernel_transformation = favor.softmax_kernel_transformation
       # TODO(kchoro): Add the option of redrawing projection matrices. This
       # improves in several applications.
+      if redraw:
+        seed = None
+      else:
+        seed = 0
       projection_matrix = favor.create_projection_matrix(
-          num_random_features, query.shape[-1])
+          num_random_features, query.shape[-1], seed=seed)
       encoded = favor.favor_attention(query, key, value, kernel_transformation,
                                       False, projection_matrix)
     else:

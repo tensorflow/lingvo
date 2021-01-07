@@ -21,6 +21,13 @@ from lingvo import compat as tf
 BIG_CONSTANT = 1e8
 
 
+def next_seed(current_seed):
+  if current_seed is None:
+    return None
+  else:
+    return current_seed + 1
+
+
 def create_projection_matrix(nb_random_projections, dim, seed=0, scaling=0):
   r"""Constructs the matrix of random projections.
 
@@ -49,7 +56,7 @@ def create_projection_matrix(nb_random_projections, dim, seed=0, scaling=0):
     q, _ = tf.linalg.qr(unstructured_block)
     q = tf.transpose(q)
     block_list.append(q)
-    current_seed += 1
+    current_seed = next_seed(current_seed)
   remaining_rows = nb_random_projections - nb_full_blocks * dim
   if remaining_rows > 0:
     unstructured_block = tf.random.normal((dim, dim), seed=current_seed)
@@ -57,7 +64,7 @@ def create_projection_matrix(nb_random_projections, dim, seed=0, scaling=0):
     q = tf.transpose(q)
     block_list.append(q[0:remaining_rows])
   final_matrix = tf.concat(block_list, 0)
-  current_seed += 1
+  current_seed = next_seed(current_seed)
 
   if scaling == 0:
     squares = tf.math.square(
