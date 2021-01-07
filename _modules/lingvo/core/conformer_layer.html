@@ -175,12 +175,12 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_builder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span> <span class="k">as</span> <span class="n">hparams_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">xla_sharding_utils</span>
 
 
 <div class="viewcode-block" id="LConvLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer">[docs]</a><span class="k">class</span> <span class="nc">LConvLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -452,19 +452,19 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">adapted_blf_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">adapted_blf_dims_mapping</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                            <span class="n">adapted_blf_dims_mapping</span><span class="p">)</span>
-      <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                      <span class="n">adapted_blf_dims_mapping</span><span class="p">)</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
           <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">hwim</span><span class="p">)</span>
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="p">,</span>
                                                      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
 
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                            <span class="n">adapted_blf_dims_mapping</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                      <span class="n">adapted_blf_dims_mapping</span><span class="p">)</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Normalize</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                            <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                      <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">)</span>
 
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivation</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_activation</span><span class="p">)</span>
 

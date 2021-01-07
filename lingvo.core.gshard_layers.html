@@ -1,0 +1,944 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.core.gshard_layers module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.gshard_utils module" href="lingvo.core.gshard_utils.html" />
+    <link rel="prev" title="lingvo.core.gshard_builder module" href="lingvo.core.gshard_builder.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.gshard_layers module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/lingvo.core.gshard_layers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.gshard_layers">
+<span id="lingvo-core-gshard-layers-module"></span><h1>lingvo.core.gshard_layers module<a class="headerlink" href="#module-lingvo.core.gshard_layers" title="Permalink to this headline">¶</a></h1>
+<p>Layers and utilities that facilitate building MOE models.</p>
+<dl class="py class">
+<dt id="lingvo.core.gshard_layers.VarLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">VarLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#VarLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.VarLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Container for variables.</p>
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.VarLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#VarLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.VarLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.VarLayer._get_var_from_collection">
+<code class="sig-name descname">_get_var_from_collection</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#VarLayer._get_var_from_collection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.VarLayer._get_var_from_collection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.VarLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#VarLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.VarLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.gshard_layers.VarLayer.FProp" title="lingvo.core.gshard_layers.VarLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.gshard_layers.VarLayer.FProp" title="lingvo.core.gshard_layers.VarLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.ShardedWeightParams">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">ShardedWeightParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">init</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">collections</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ShardedWeightParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ShardedWeightParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a hyperparams for a weight variable with optional XLA sharding.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.gshard_layers.ShardedVarLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">ShardedVarLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ShardedVarLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ShardedVarLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_layers.VarLayer" title="lingvo.core.gshard_layers.VarLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_layers.VarLayer</span></code></a></p>
+<p>Container for variables whose values sharded across different devices.</p>
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.ShardedVarLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ShardedVarLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ShardedVarLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.ShardedVarLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ShardedVarLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ShardedVarLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.gshard_layers.ShardedVarLayer.FProp" title="lingvo.core.gshard_layers.ShardedVarLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.gshard_layers.ShardedVarLayer.FProp" title="lingvo.core.gshard_layers.ShardedVarLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.gshard_layers.StateLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">StateLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Container for recurrent state for incremental decoding.</p>
+<p>It has two operation modes.</p>
+<p>During training, it does nothing.
+It expects that FProp(x, t) is called with t=None, and returns x unchanged.</p>
+<p>During decoding, it expects:</p>
+<blockquote>
+<div><p>t: an int32 scalar and
+x: a tensor of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">1,</span> <span class="pre">...]</span></code>.</p>
+</div></blockquote>
+<p>It updates state <code class="xref py py-obj docutils literal notranslate"><span class="pre">x_full[:,</span> <span class="pre">t,</span> <span class="pre">:]</span> <span class="pre">&lt;-</span> <span class="pre">x[:,</span> <span class="pre">0,</span> <span class="pre">:]</span></code> and returns x_full.
+The shape of x_full is then <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">time,</span> <span class="pre">...]</span></code>.</p>
+<p>The state is stored as theta.state attribute.</p>
+<p>To construct initial state, call InitState classmethod on the root layer.
+InitState() will traverse root layer children recursively, will initialize
+internal state for each StateLayer instance, and will return a nested
+tuple of states.</p>
+<p>For incremental iteration the static methods work as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dec</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+<span class="n">state0</span> <span class="o">=</span> <span class="n">StateLayer</span><span class="o">.</span><span class="n">InitState</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">tgt_batch</span><span class="p">,</span> <span class="n">max_len</span><span class="p">])</span>
+<span class="n">theta0</span> <span class="o">=</span> <span class="n">StateLayer</span><span class="o">.</span><span class="n">UpdateTheta</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="n">dec</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="c1"># (FProp in nested StateLayer now has access to &#39;state0&#39; and &#39;t&#39;)</span>
+<span class="n">dec</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta0</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<span class="c1"># FProp will  modify theta0 in-place</span>
+<span class="n">state1</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">state1</span> <span class="o">=</span> <span class="n">StateLayer</span><span class="o">.</span><span class="n">UpdateState</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">state1</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt id="lingvo.core.gshard_layers.StateLayer._use_flat_beam_search">
+<code class="sig-name descname">_use_flat_beam_search</code><em class="property"> = False</em><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer._use_flat_beam_search" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.StateLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.StateLayer.NewState">
+<code class="sig-name descname">NewState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shape</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.NewState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.NewState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns initial state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shape</strong> – [batch, time] for beam_search_tpu_helper or [batch, beam, time] for
+flat_beam_search.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>zero-initialized state tensor with shape [batch, time, …] for</dt><dd><p>beam_search_tpu_helper or [time, batch, beam, …] for flat_beam_search.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – the length of shape is not 2 or 3.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.StateLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.gshard_layers.StateLayer.FProp" title="lingvo.core.gshard_layers.StateLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.gshard_layers.StateLayer.FProp" title="lingvo.core.gshard_layers.StateLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.StateLayer.InitState">
+<em class="property">classmethod </em><code class="sig-name descname">InitState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">layer</span></em>, <em class="sig-param"><span class="n">shape</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.InitState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.InitState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns new state with leading shape=[batch, time].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.StateLayer.UpdateTheta">
+<em class="property">classmethod </em><code class="sig-name descname">UpdateTheta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">layer</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.UpdateTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.UpdateTheta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns theta with state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.StateLayer.UpdateState">
+<em class="property">classmethod </em><code class="sig-name descname">UpdateState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">layer</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.UpdateState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.UpdateState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns updated state from theta.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.gshard_layers.OverrideLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">OverrideLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#OverrideLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.OverrideLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Allows to override arbitrary tensors in the graph.</p>
+<p>If key is not set in the global context, FProp does nothing.
+Otherwise it returns value associated to ‘key’.</p>
+<p>To override a tensor during my_layer.FProp:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+<span class="n">out_with_override</span> <span class="o">=</span> <span class="n">my_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Clear</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt id="lingvo.core.gshard_layers.OverrideLayer._OVERRIDE">
+<code class="sig-name descname">_OVERRIDE</code><em class="property"> = {}</em><a class="headerlink" href="#lingvo.core.gshard_layers.OverrideLayer._OVERRIDE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.OverrideLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#OverrideLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.OverrideLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.OverrideLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#OverrideLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.OverrideLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.gshard_layers.OverrideLayer.FProp" title="lingvo.core.gshard_layers.OverrideLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.gshard_layers.OverrideLayer.FProp" title="lingvo.core.gshard_layers.OverrideLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.OverrideLayer.Set">
+<em class="property">classmethod </em><code class="sig-name descname">Set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">k</span></em>, <em class="sig-param"><span class="n">v</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#OverrideLayer.Set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.OverrideLayer.Set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.OverrideLayer.Clear">
+<em class="property">classmethod </em><code class="sig-name descname">Clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#OverrideLayer.Clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.OverrideLayer.Clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">SharedEmbeddingSoftmaxLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#SharedEmbeddingSoftmaxLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Shared weights for embemdding lookup and softmax.</p>
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#SharedEmbeddingSoftmaxLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer._MaybeSplit">
+<code class="sig-name descname">_MaybeSplit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#SharedEmbeddingSoftmaxLayer._MaybeSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer._MaybeSplit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">ids</span></em>, <em class="sig-param"><span class="n">segment_pos</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#SharedEmbeddingSoftmaxLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.FProp" title="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.FProp" title="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.ComputeLoss">
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">activation</span></em>, <em class="sig-param"><span class="n">labels</span></em>, <em class="sig-param"><span class="n">segment_ids</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#SharedEmbeddingSoftmaxLayer.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.Top2GatingOnLogits">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">Top2GatingOnLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">logits</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">experts_dim</span></em>, <em class="sig-param"><span class="n">expert_capacity_dim</span></em>, <em class="sig-param"><span class="n">fprop_dtype</span></em>, <em class="sig-param"><span class="n">use_xla_sharding</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">second_expert_policy</span><span class="o">=</span><span class="default_value">'all'</span></em>, <em class="sig-param"><span class="n">second_expert_threshold</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">capacity_factor</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#Top2GatingOnLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.Top2GatingOnLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes Top-2 gating for Mixture-of-Experts.</p>
+<p>There are two expected usages of this function:</p>
+<ol class="arabic simple">
+<li><p>used with xla_sharding. In this case, ‘inputs’ corresponds to a sharded
+tensor across multiple tpu cores. The operations within this function are
+automatically sharded/replicated across tpu cores.</p></li>
+<li><p>used within other projects where’inputs’ is always local to one tpu
+core. All computations below are carried out on one tpu core only. This
+function tries to dispatch examples across tpu cores in such a way that
+each expert is assigned no more than ‘expert_capacity_dim’ number of
+examples.</p></li>
+</ol>
+<p>Below ` indicates common way of splitting along mesh dimension.</p>
+<p>Dimensions cheat sheet:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">G</span><span class="p">:</span> <span class="n">group_dim</span>
+<span class="n">S</span><span class="p">:</span> <span class="n">group_size_dim</span>
+<span class="n">E</span><span class="p">:</span> <span class="n">number</span> <span class="n">of</span> <span class="n">experts</span>
+<span class="n">C</span><span class="p">:</span> <span class="n">capacity</span> <span class="n">per</span> <span class="n">expert</span>
+<span class="n">M</span><span class="p">:</span> <span class="n">model_dim</span> <span class="p">(</span><span class="n">same</span> <span class="k">as</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">same</span> <span class="k">as</span> <span class="n">output_dim</span><span class="p">)</span>
+<span class="n">B</span><span class="p">:</span> <span class="n">original</span> <span class="n">batch_dim</span>
+<span class="n">L</span><span class="p">:</span> <span class="n">original</span> <span class="n">sequence_length_dim</span>
+</pre></div>
+</div>
+<p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
+group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>paddings</strong> – G`S Tensor.</p></li>
+<li><p><strong>logits</strong> – G`SE Tensor.</p></li>
+<li><p><strong>num_devices</strong> – number of MoE devices for local dispatch</p></li>
+<li><p><strong>experts_dim</strong> – number of experts.</p></li>
+<li><p><strong>expert_capacity_dim</strong> – number of examples per minibatch(group) per expert.
+Each example is typically a vector of size input_dim, representing
+embedded token or an element of Transformer layer output.</p></li>
+<li><p><strong>fprop_dtype</strong> – activations datatype to use.</p></li>
+<li><p><strong>use_xla_sharding</strong> – bool, True if this function is used for the xla_sharding
+case.</p></li>
+<li><p><strong>second_expert_policy</strong> – <p>‘all’, ‘sampling’ or ‘random’.</p>
+<ul>
+<li><p>’all’: we greedily pick the 2nd expert.</p></li>
+<li><p>’sampling’: we sample the 2nd expert from the softmax.</p></li>
+<li><p>’random’: we optionally ‘random’-ize dispatch to second-best expert
+proportional to (weight / second_expert_threshold).</p></li>
+</ul>
+</p></li>
+<li><p><strong>second_expert_threshold</strong> – threshold for probability normalization for
+second_expert_policy == ‘random’.</p></li>
+<li><p><strong>legacy_mtf_behavior</strong> – bool, True if to match legacy mtf behavior exactly.</p></li>
+<li><p><strong>capacity_factor</strong> – if set, increases expert_capacity_dim to at least
+(group_size * capacity_factor) / experts_dim
+where <code class="xref py py-obj docutils literal notranslate"><span class="pre">group_size</span></code> is the size of G dimension of <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>. If the
+value of expert_capacity_dim is already big enough no change is made.</p></li>
+</ul>
+</dd>
+</dl>
+<p>TODO(lepikhin): get rid of the legacy_mtf_behavior flag.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><p>A tuple (aux_loss, combine_tensor, dispatch_tensor).</p>
+<ul class="simple">
+<li><p>aux_loss: auxiliary loss, for equalizing the expert assignment ratios.</p></li>
+<li><p>combine_tensor: G`SEC Tensor for combining expert outputs.</p></li>
+<li><p>dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
+experts.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.Top2Gating">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">Top2Gating</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">experts_dim</span></em>, <em class="sig-param"><span class="n">expert_capacity_dim</span></em>, <em class="sig-param"><span class="n">local_dispatch</span></em>, <em class="sig-param"><span class="n">fprop_dtype</span></em>, <em class="sig-param"><span class="n">use_xla_sharding</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">second_expert_policy</span><span class="o">=</span><span class="default_value">'all'</span></em>, <em class="sig-param"><span class="n">second_expert_threshold</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">capacity_factor</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#Top2Gating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.Top2Gating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes Top-2 gating for Mixture-of-Experts.</p>
+<p>See Top2GatingOnLogits for more details.</p>
+<p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
+group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> – gating weights for each experts.</p></li>
+<li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>paddings</strong> – G`S Tensor.</p></li>
+<li><p><strong>num_devices</strong> – number of MoE devices for local dispatch</p></li>
+<li><p><strong>experts_dim</strong> – number of experts.</p></li>
+<li><p><strong>expert_capacity_dim</strong> – number of examples per minibatch(group) per expert.
+Each example is typically a vector of size input_dim, representing
+embedded token or an element of Transformer layer output.</p></li>
+<li><p><strong>local_dispatch</strong> – whether dispatch is local to the group (G dim)</p></li>
+<li><p><strong>fprop_dtype</strong> – activations datatype to use.</p></li>
+<li><p><strong>use_xla_sharding</strong> – bool, True if this function is used for the xla_sharding
+case.</p></li>
+<li><p><strong>second_expert_policy</strong> – ‘all’ or ‘random’, we optionally ‘random’-ize dispatch
+to second-best expert proportional to (weight / second_expert_threshold).</p></li>
+<li><p><strong>second_expert_threshold</strong> – threshold for probability normalization for
+second_expert_policy == ‘random’.</p></li>
+<li><p><strong>legacy_mtf_behavior</strong> – True for legacy behavior with no re-normalization of
+expert assignment weights if we go over capacity or randomly decide to not
+dispatch to second expert.</p></li>
+<li><p><strong>capacity_factor</strong> – if set, increases expert_capacity_dim to at least
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">(group_size</span> <span class="pre">*</span> <span class="pre">capacity_factor)</span> <span class="pre">/</span> <span class="pre">experts_dim</span></code>
+where <code class="xref py py-obj docutils literal notranslate"><span class="pre">group_size</span></code> is the size of G dimension of <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>. If the
+value of expert_capacity_dim is already big enough no change is made.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (dispatch_tensor, combine_tensor, aux_loss).</p>
+<ul class="simple">
+<li><p>dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
+experts.</p></li>
+<li><p>combine_tensor: G`SEC Tensor.
+combining expert outputs.</p></li>
+<li><p>aux_loss: auxiliary loss, equalizing the expert assignment ratios.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.FeedForwardNetworksApplyGating">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">FeedForwardNetworksApplyGating</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gating</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">reshaped_inputs</span></em>, <em class="sig-param"><span class="n">wi_split</span></em>, <em class="sig-param"><span class="n">wo_split</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">num_groups</span></em>, <em class="sig-param"><span class="n">bi_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bo_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dropout_rate</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gsm_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">egcm_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gecm_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gsec_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">eah_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">eam_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">activation_name</span><span class="o">=</span><span class="default_value">'RELU'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#FeedForwardNetworksApplyGating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.FeedForwardNetworksApplyGating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply top_2 gating to feedforward networks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gating</strong> – returns from Top2Gating consisting of: dispatch_tensor, G`SEC
+Tensor, scattering/dispatching inputs to experts. combine_tensor, G`SEC
+Tensor, combining expert outputs. aux_loss. auxiliary loss, equalizing the
+expert assignment ratios</p></li>
+<li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>reshaped_inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>wi_split</strong> – First projection weights [E, M, H] of the feedforward networks.</p></li>
+<li><p><strong>wo_split</strong> – Last projection weights [E, H, M] of the feedforward networks.</p></li>
+<li><p><strong>num_devices</strong> – number of devices.</p></li>
+<li><p><strong>num_groups</strong> – number of groups (generally matches to or proportional to
+num_devices).</p></li>
+<li><p><strong>bi_split</strong> – First projection bias [E, 1, H] of the feedforward networks.</p></li>
+<li><p><strong>bo_split</strong> – Last projection bias [E, 1, M] of the feedforward networks.</p></li>
+<li><p><strong>dropout_rate</strong> – Dropout rate.</p></li>
+<li><p><strong>device_mesh</strong> – Device mesh as a numpy ND array of device IDs. Split arguments
+must be set if device_mesh is not None.</p></li>
+<li><p><strong>gsm_split</strong> – Mesh split for GSM tensors.</p></li>
+<li><p><strong>egcm_split</strong> – Mesh split for EGCM tensors.</p></li>
+<li><p><strong>gecm_split</strong> – Mesh split for GECM tensors.</p></li>
+<li><p><strong>gsec_split</strong> – Mesh split for GSEC tensors.</p></li>
+<li><p><strong>eah_split</strong> – Mesh split for EAH tensors.</p></li>
+<li><p><strong>eam_split</strong> – Mesh split for EAM tensors.</p></li>
+<li><p><strong>activation_name</strong> – Default: <code class="xref py py-obj docutils literal notranslate"><span class="pre">RELU</span></code>. Activation function for feed-forward.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>G`SM Tensor.
+aux_loss: scalar auxiliary loss.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.GatherK">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">GatherK</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">selected_pos</span></em>, <em class="sig-param"><span class="n">values</span></em>, <em class="sig-param"><span class="n">k</span></em>, <em class="sig-param"><span class="n">num_devices</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#GatherK"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.GatherK" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather up to k elements from given tensors at selected pos under SPMD.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Input</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">3</span>
+
+<span class="n">selected_pos</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>  <span class="c1"># topk(k=3) largest indices are selected in this row.</span>
+<span class="p">]</span>
+
+<span class="n">value_2d</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">15</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">17</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">23</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">27</span><span class="p">,</span> <span class="mi">29</span><span class="p">,</span> <span class="mi">31</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">33</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">37</span><span class="p">,</span> <span class="mi">39</span><span class="p">],</span>
+<span class="p">]</span>
+
+<span class="c1"># Output:</span>
+<span class="n">output</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">27</span><span class="p">,</span> <span class="mi">29</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">35</span><span class="p">,</span> <span class="mi">37</span><span class="p">,</span> <span class="mi">39</span><span class="p">],</span>
+<span class="p">]</span>
+
+<span class="c1"># Output padding:</span>
+<span class="n">output_padding</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>selected_pos</strong> – a 0/1 2D tf.int32 tensor of shape [batch, time].</p></li>
+<li><p><strong>values</strong> – a list of tensors, the rank of each is at least rank=2. [batch,
+time, …].</p></li>
+<li><p><strong>k</strong> – a scalar tf.int32 tensor or a Python int. On TPU, k must be a
+compile-time constant.</p></li>
+<li><p><strong>num_devices</strong> – number of TPU devices used in xla_sharding SPMD.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (output, padding).</p>
+<ul class="simple">
+<li><p>output: a list of tensors of shape [batch, k, …].</p></li>
+<li><p>padding: a 2D 0/1 tensor of shape [batch, k], ‘1’s are padded locations.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.GetSentenceEmbeddings">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">GetSentenceEmbeddings</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">segment_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#GetSentenceEmbeddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.GetSentenceEmbeddings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the average sentence embedding to gate by.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inputs</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span> <span class="s1">&#39;Variable:0&#39;</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="p">,</span> <span class="n">numpy</span><span class="o">=</span>
+         <span class="n">array</span><span class="p">([[</span><span class="mf">0.41258181</span><span class="p">,</span> <span class="mf">0.61071571</span><span class="p">,</span> <span class="mf">0.63777673</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.65571443</span><span class="p">,</span> <span class="mf">0.54297766</span><span class="p">,</span> <span class="mf">0.10288261</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.8577837</span> <span class="p">,</span> <span class="mf">0.81915847</span><span class="p">,</span> <span class="mf">0.61996602</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.46897136</span><span class="p">,</span> <span class="mf">0.92662692</span><span class="p">,</span> <span class="mf">0.32942232</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.60162383</span><span class="p">,</span> <span class="mf">0.3385829</span> <span class="p">,</span> <span class="mf">0.3408632</span> <span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.40774807</span><span class="p">,</span> <span class="mf">0.86139635</span><span class="p">,</span> <span class="mf">0.00927162</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.56126334</span><span class="p">,</span> <span class="mf">0.51748817</span><span class="p">,</span> <span class="mf">0.07791397</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.06595223</span><span class="p">,</span> <span class="mf">0.95529216</span><span class="p">,</span> <span class="mf">0.34458149</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.1238971</span> <span class="p">,</span> <span class="mf">0.49897169</span><span class="p">,</span> <span class="mf">0.25216722</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.11221774</span><span class="p">,</span> <span class="mf">0.50284604</span><span class="p">,</span> <span class="mf">0.84106974</span><span class="p">]])</span><span class="o">&gt;</span>
+<span class="n">segment_id</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span> <span class="s1">&#39;Variable:0&#39;</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,)</span> <span class="n">dtype</span><span class="o">=</span><span class="n">int64</span><span class="p">,</span>
+             <span class="n">numpy</span><span class="o">=</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>segment_id</strong> – G`S Tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>GSM Tensor that is an average of the input embeddings
+per segment.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>sentence_embeddings</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.SentenceTop2Gating">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">SentenceTop2Gating</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_id</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">experts_dim</span></em>, <em class="sig-param"><span class="n">expert_capacity_dim</span></em>, <em class="sig-param"><span class="n">local_dispatch</span></em>, <em class="sig-param"><span class="n">fprop_dtype</span></em>, <em class="sig-param"><span class="n">use_xla_sharding</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">second_expert_policy</span><span class="o">=</span><span class="default_value">'all'</span></em>, <em class="sig-param"><span class="n">second_expert_threshold</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">embedding_type</span><span class="o">=</span><span class="default_value">'sentence'</span></em>, <em class="sig-param"><span class="n">capacity_factor</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#SentenceTop2Gating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.SentenceTop2Gating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes Top-2 sentence gating for Mixture-of-Experts.</p>
+<p>Instead of using the each token, this function uses embedding_type to return a
+sentence-wise embedding to create dispatch and combine tensors that gate
+the entire sentence.</p>
+<p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
+group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> – gating weights for each experts.</p></li>
+<li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>paddings</strong> – G`S Tensor.</p></li>
+<li><p><strong>segment_id</strong> – G`SM Tensor used for differentiating different sentences in an
+input example.</p></li>
+<li><p><strong>num_devices</strong> – number of MoE devices for local dispatch</p></li>
+<li><p><strong>experts_dim</strong> – number of experts.</p></li>
+<li><p><strong>expert_capacity_dim</strong> – number of examples per minibatch(group) per expert.
+Each example is typically a vector of size input_dim, representing
+embedded token or an element of Transformer layer output.</p></li>
+<li><p><strong>local_dispatch</strong> – whether dispatch is local to the group (G dim)</p></li>
+<li><p><strong>fprop_dtype</strong> – activations datatype to use.</p></li>
+<li><p><strong>use_xla_sharding</strong> – bool, True if this function is used for the xla_sharding
+case.</p></li>
+<li><p><strong>second_expert_policy</strong> – ‘all’ or ‘random’, we optionally ‘random’-ize dispatch
+to second-best expert proportional to (weight / second_expert_threshold).</p></li>
+<li><p><strong>second_expert_threshold</strong> – threshold for probability normalization for
+second_expert_policy == ‘random’.</p></li>
+<li><p><strong>legacy_mtf_behavior</strong> – True for legacy behavior with no re-normalization of
+expert assignment weights if we go over capacity or randomly decide to not
+dispatch to second expert.</p></li>
+<li><p><strong>embedding_type</strong> – ‘sentence’ by default. Options: ‘sentence’. Setting this
+option calls GetSentenceEmbeddings.</p></li>
+<li><p><strong>capacity_factor</strong> – if set, increases expert_capacity_dim to at least
+(group_size * capacity_factor) / experts_dim where <code class="xref py py-obj docutils literal notranslate"><span class="pre">group_size</span></code> is the
+size of G dimension of <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>. If the value of expert_capacity_dim is
+already big enough no change is made.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (dispatch_tensor, combine_tensor, aux_loss).</p>
+<ul class="simple">
+<li><p>dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
+experts.</p></li>
+<li><p>combine_tensor: G`SEC Tensor.
+combining expert outputs.</p></li>
+<li><p>aux_loss: auxiliary loss, equalizing the expert assignment ratios.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers.TaskTop2Gating">
+<code class="sig-prename descclassname">lingvo.core.gshard_layers.</code><code class="sig-name descname">TaskTop2Gating</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">w</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">task_embeddings</span></em>, <em class="sig-param"><span class="n">num_devices</span></em>, <em class="sig-param"><span class="n">experts_dim</span></em>, <em class="sig-param"><span class="n">expert_capacity_dim</span></em>, <em class="sig-param"><span class="n">local_dispatch</span></em>, <em class="sig-param"><span class="n">fprop_dtype</span></em>, <em class="sig-param"><span class="n">use_xla_sharding</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">second_expert_policy</span><span class="o">=</span><span class="default_value">'all'</span></em>, <em class="sig-param"><span class="n">second_expert_threshold</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#TaskTop2Gating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_layers.TaskTop2Gating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes Top-2 sentence gating for Mixture-of-Experts.</p>
+<p>Instead of using the each token, this function uses embedding_type to return a
+sentence-wise embedding to create dispatch and combine tensors that gate
+the entire sentence.</p>
+<p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
+group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> – gating weights for each experts.</p></li>
+<li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>paddings</strong> – G`S Tensor.</p></li>
+<li><p><strong>task_embeddings</strong> – G`SM Tensor.</p></li>
+<li><p><strong>num_devices</strong> – number of MoE devices for local dispatch</p></li>
+<li><p><strong>experts_dim</strong> – number of experts.</p></li>
+<li><p><strong>expert_capacity_dim</strong> – number of examples per minibatch(group) per expert.
+Each example is typically a vector of size input_dim, representing
+embedded token or an element of Transformer layer output.</p></li>
+<li><p><strong>local_dispatch</strong> – whether dispatch is local to the group (G dim)</p></li>
+<li><p><strong>fprop_dtype</strong> – activations datatype to use.</p></li>
+<li><p><strong>use_xla_sharding</strong> – bool, True if this function is used for the xla_sharding
+case.</p></li>
+<li><p><strong>second_expert_policy</strong> – ‘all’ or ‘random’, we optionally ‘random’-ize dispatch
+to second-best expert proportional to (weight / second_expert_threshold).</p></li>
+<li><p><strong>second_expert_threshold</strong> – threshold for probability normalization for
+second_expert_policy == ‘random’.</p></li>
+<li><p><strong>legacy_mtf_behavior</strong> – True for legacy behavior with no re-normalization of
+expert assignment weights if we go over capacity or randomly decide to not
+dispatch to second expert.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
+experts.</p></li>
+<li><p>combine_tensor: G`SEC Tensor.
+combining expert outputs.</p></li>
+<li><p>aux_loss: auxiliary loss, equalizing the expert assignment ratios.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple (dispatch_tensor, combine_tensor, aux_loss)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="lingvo.core.gshard_utils.html" class="btn btn-neutral float-right" title="lingvo.core.gshard_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="lingvo.core.gshard_builder.html" class="btn btn-neutral float-left" title="lingvo.core.gshard_builder module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

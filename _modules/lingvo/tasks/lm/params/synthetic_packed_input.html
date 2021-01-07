@@ -171,7 +171,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model_params</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_builder</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">moe_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">optimizer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">program</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -313,7 +313,7 @@
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.125</span>
   <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">64</span>  <span class="c1"># 64 blocks of [DecSelfAttention, DenseReluDense]</span>
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
-  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 
 <div class="viewcode-block" id="DenseLm128B8x8.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B8x8.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
@@ -340,7 +340,7 @@
   <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">512</span>
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.25</span>  <span class="c1"># Total batch size 128</span>
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
-  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span></div>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span></div>
 
 
 <span class="c1"># Total params: 1,100,041,175,040.</span>

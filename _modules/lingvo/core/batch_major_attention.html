@@ -184,14 +184,14 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_builder</span> <span class="k">as</span> <span class="n">conv_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">favor_attention</span> <span class="k">as</span> <span class="n">favor</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gpipe</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">moe_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tshape</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">xla_sharding_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
@@ -719,8 +719,8 @@
         <span class="c1"># The 2nd part of the softamx --- scaling.</span>
         <span class="n">encoded</span> <span class="o">=</span> <span class="n">encoded</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs_sum</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
 
-    <span class="n">encoded</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                           <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                     <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention._FavorDotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._FavorDotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_FavorDotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -960,12 +960,12 @@
               <span class="p">[</span><span class="n">d</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dh</span><span class="p">])</span>
       <span class="n">value_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTD,DNH-&gt;BTNH&#39;</span><span class="p">,</span> <span class="n">value_vec</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
 
-    <span class="n">query_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-        <span class="n">query_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
-    <span class="n">key_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-        <span class="n">key_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
-    <span class="n">value_proj</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-        <span class="n">value_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+    <span class="n">query_proj</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">query_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                        <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+    <span class="n">key_proj</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">key_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                      <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
+    <span class="n">value_proj</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">value_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                        <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -976,8 +976,8 @@
     <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">encoded</span><span class="p">)</span>
 
     <span class="c1"># Shard the output</span>
-    <span class="n">encoded</span> <span class="o">=</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                           <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                     <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
@@ -4743,8 +4743,7 @@
 <span class="sd">      The tensor with annotation applied.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">xla_sharding_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                        <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MeshSplitLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MeshSplitLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
@@ -5457,19 +5456,19 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="LmBuilder._Var"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._Var">[docs]</a>  <span class="k">def</span> <span class="nf">_Var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">VarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">VarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LmBuilder._ShardedVar"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._ShardedVar">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">mesh_split</span><span class="p">):</span>
     <span class="n">sharded_weights</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">:</span>
       <span class="n">sharded_weights</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span>
-                              <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
+                              <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                                   <span class="n">shape</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                                   <span class="n">init</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">init</span><span class="p">,</span>
                                   <span class="n">dtype</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                                   <span class="n">collections</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">collections</span><span class="p">,</span>
                                   <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">mesh_split</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="n">sharded_weights</span><span class="p">,</span>
         <span class="n">device_mesh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
