@@ -1068,7 +1068,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Enabling xla_sharding requires use_blocked_matmul = False&#39;</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
@@ -1507,6 +1507,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bn_fold_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Force folding the batch normalization &#39;</span>
         <span class="s1">&#39;weights in the projection layer.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(rpang): retire weight_split_dims_mapping_list and</span>
+    <span class="c1"># activation_split_dims_mapping_list. Use</span>
+    <span class="c1"># {weight,activation}_split_dims_mapping (defined in BaseLayer) instead.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_split_dims_mapping_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;A list of weight_split_dims_mapping for each sub-layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation_split_dims_mapping_list&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -2447,6 +2450,7 @@
         <span class="n">shape</span><span class="o">=</span><span class="n">weight_shape</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
@@ -3003,14 +3007,20 @@
     <span class="c1"># op before computing the sampled_softmax_loss.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">num_classes_per_shard</span><span class="p">]</span>
+    <span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+    <span class="n">bias_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                               <span class="n">weight_split_dims_mapping</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">use_num_classes_major_weight</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">weight_split_dims_mapping</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">weights_shard_shape</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
@@ -3052,6 +3062,7 @@
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
