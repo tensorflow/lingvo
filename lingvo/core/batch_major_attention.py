@@ -368,6 +368,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
     if p.device_mesh is not None:
       assert p.weight_split_dims_mapping is not None
+      assert p.activation_split_dims_mapping is not None
 
     def ProjectInput():
       return p.proj_tpl.Copy().Set(
