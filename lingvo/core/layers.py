@@ -916,7 +916,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if p.device_mesh is not None:
       assert not p.use_blocked_matmul, (
           'Enabling xla_sharding requires use_blocked_matmul = False')
-      assert p.weight_split_dims_mapping is not None
+      assert p.weight_split_dims_mapping is not None, self.path
       assert len(p.weight_split_dims_mapping) == 2
 
     if p.batch_norm:
@@ -1355,6 +1355,9 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     p.Define(
         'bn_fold_weights', None, 'Force folding the batch normalization '
         'weights in the projection layer.')
+    # TODO(rpang): retire weight_split_dims_mapping_list and
+    # activation_split_dims_mapping_list. Use
+    # {weight,activation}_split_dims_mapping (defined in BaseLayer) instead.
     p.Define('weight_split_dims_mapping_list', None,
              'A list of weight_split_dims_mapping for each sub-layer.')
     p.Define('activation_split_dims_mapping_list', None,
@@ -2295,6 +2298,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         shape=weight_shape,
         init=p.params_init,
         dtype=p.dtype,
+        tensor_split_dims_mapping=p.weight_split_dims_mapping,
         collections=[self.__class__.__name__ + '_vars'])
 
     if p.apply_pruning:
@@ -2851,14 +2855,20 @@ class SimpleFullSoftmax(SoftmaxLayer):
     # op before computing the sampled_softmax_loss.
     self._transpose_weight_params = False
     weights_shard_shape = [p.input_dim, num_classes_per_shard]
+    weight_split_dims_mapping = p.weight_split_dims_mapping
+    bias_split_dims_mapping = (None if weight_split_dims_mapping is None else
+                               weight_split_dims_mapping[-1:])
     if p.num_sampled or p.use_num_classes_major_weight:
       self._transpose_weight_params = True
       weights_shard_shape = [num_classes_per_shard, p.input_dim]
+      if weight_split_dims_mapping is not None:
+        weight_split_dims_mapping = weight_split_dims_mapping[::-1]
 
     pc = py_utils.WeightParams(
         shape=weights_shard_shape,
         init=p.params_init,
         dtype=p.dtype,
+        tensor_split_dims_mapping=weight_split_dims_mapping,
         collections=[self.__class__.__name__ + '_vars'])
 
     if p.apply_pruning:
@@ -2900,6 +2910,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         shape=[num_classes_per_shard],
         init=py_utils.WeightInit.Constant(scale=p.bias_init),
         dtype=p.dtype,
+        tensor_split_dims_mapping=bias_split_dims_mapping,
         collections=[self.__class__.__name__ + '_vars'])
     if p.use_bias:
       for i in range(p.num_shards):
