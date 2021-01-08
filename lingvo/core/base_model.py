@@ -315,12 +315,7 @@ class BaseTask(base_layer.BaseLayer):
               'The input generator may not iterate over exactly '
               'one epoch per run')
       tf.logging.info('input_params: %s', p.input)
-      input_params = self.cluster.PlaceInput(p.input)
-
-      # For TPU training, we create the input generator in a
-      # different scope and AddChild it in later.
-      if 'skip_create_child' not in p.input:
-        self.CreateChild('input', input_params)
+      self.CreateChild('input', p.input)
 
     tp = p.train
 

@@ -46,6 +46,8 @@ from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
 
+from lingvo.core import input_policy
+
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import io_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
@@ -155,6 +157,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
+    params = input_policy.Apply(params)
     super().__init__(params)
     # parameter to tell the bprop one hot for all the files.
     # TODO(ankurbpn): Initialize when using sources from mixed record yielders.

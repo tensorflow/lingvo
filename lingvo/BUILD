@@ -199,9 +199,9 @@ py_library(
         ":model_registry",
         ":trainer_impl",
         # Implicit network file system dependency.
-        "//lingvo:base_runner",
         # Implicit python proto dependency.
         # Implicit IPython dependency.
+        "//lingvo:base_runner",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
         "//lingvo/core:checkpointer_lib",
