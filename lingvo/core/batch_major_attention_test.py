@@ -32,13 +32,14 @@ import numpy as np
 class FAVORDotAttenTest(test_utils.TestCase, parameterized.TestCase):
 
   def test_favor_output(self):
-    p = attention.MultiHeadedAttention.Params().Set(
+    multiheadattention = attention.MultiHeadedFavorAttention.Params().Set(
         name='atten',
         input_dim=4,
         hidden_dim=4,
-        enable_scaling_code_motion=True)
-    multiheadattention = attention.MultiHeadedAttention(p)
-    favor_config = {'attention_type': 'softmax', 'num_random_features': 1000}
+        enable_per_dim_scale=False,
+        enable_scaling_code_motion=True,
+        attention_type='softmax',
+        num_random_features=1000).Instantiate()
     batch_size = 1
     length = 2
     num_heads = 1
@@ -46,8 +47,8 @@ class FAVORDotAttenTest(test_utils.TestCase, parameterized.TestCase):
     query = tf.random.normal([batch_size, length, num_heads, dim])
     key = tf.random.normal([batch_size, length, num_heads, dim])
     value = tf.random.normal([batch_size, length, num_heads, dim])
-    encoded, _ = multiheadattention._FavorDotAtten(
-        None, query, key, value, None, None, favor_config=favor_config)
+    encoded, _ = multiheadattention._DotAtten(None, query, key, value, None,
+                                              None)
 
     query = tf.multiply(query, 1.0 / math.sqrt(float(dim)))
     attention_scores = tf.einsum('BXHD,BYHD->BXYH', query, key)

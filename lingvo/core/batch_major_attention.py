@@ -43,9 +43,6 @@ from lingvo.core import tshape
 import numpy as np
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import inplace_ops
-
-DEFAULT_VALUE_OF_RANDOM_FEATURES = 384
-
 # pylint: enable=g-direct-tensorflow-import
 
 
@@ -571,68 +568,6 @@ class MultiHeadedAttention(base_layer.BaseLayer):
                                      p.activation_split_dims_mapping.blnh)
     return encoded, probs
 
-  def _FavorDotAtten(self,
-                     theta,
-                     query,
-                     key,
-                     value,
-                     paddings,
-                     segment_mask,
-                     per_step_padding=None,
-                     favor_config=None,
-                     redraw=False):
-    """Main FAVOR attention function from Rethinking Attention with Performers.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      query:    [B, T, N, H].
-      key:      [B, S, N, H].
-      value:    [B, S, N, H].
-      paddings: [B, S].
-      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
-        between different segments. This is already been converted into large
-        negative logits. Only applied if packed_input = True.
-      per_step_padding: A mask used by decoder self-attention to prevent
-        information flow from future (causal padding). It has shape [B, T, S] if
-        not None.
-      favor_config: dictionary defining parameters of FAVOR attention.
-      redraw: whether kernel features should be redrawn (N/A if not random).
-
-    Returns:
-      encoded: [B, T, N, H].
-      atten_probs: None for FAVOR attention.
-    """
-    # TODO(kchoro): Add segment_mask support when FAVOR mechanism is applied
-    # and per_step_padding (causal FAVOR).
-    if favor_config['attention_type'] == 'relu':
-      kernel_transformation = favor.relu_kernel_transformation
-      encoded = favor.favor_attention(query, key, value, kernel_transformation,
-                                      False)
-    elif favor_config['attention_type'] == 'softmax':
-      if 'num_random_features' in favor_config.keys():
-        num_random_features = favor_config['num_random_features']
-      else:
-        num_random_features = DEFAULT_VALUE_OF_RANDOM_FEATURES
-      kernel_transformation = favor.softmax_kernel_transformation
-      # TODO(kchoro): Add the option of redrawing projection matrices. This
-      # improves in several applications.
-      if redraw:
-        seed = None
-      else:
-        seed = 0
-      projection_matrix = favor.create_projection_matrix(
-          num_random_features, query.shape[-1], seed=seed)
-      encoded = favor.favor_attention(query, key, value, kernel_transformation,
-                                      False, projection_matrix)
-    else:
-      logging.info(
-          'FAVOR attention type: %s is not supported,returning query tensor.',
-          favor_config['attention_type'])
-      return query, None
-
-    return encoded, None
-
   def _DotAttenOneStep(self,
                        theta,
                        query,
@@ -954,6 +889,78 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     # self_attention took 15 flops per element since softmax is expensive.
     flops = 15 * b * t * s * d + 2 * 2 * (b * t * d * d + b * s * d * d)
     return py_utils.NestedMap(flops=flops, out_shapes=(args[0], (b, n, t, s)))
+
+
+class MultiHeadedFavorAttention(MultiHeadedAttention):
+  """Performer multiheaded attention."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('num_random_features', 384,
+             'Number of random projection features for performer.')
+    p.Define('attention_type', 'softmax',
+             'relu|softmax, performer kernel transformation methods')
+    p.Define('redraw', False,
+             'Whether kernel features should be redrawn (N/A if not random).')
+    return p
+
+  def _DotAtten(self,
+                theta,
+                query,
+                key,
+                value,
+                paddings,
+                segment_mask,
+                per_step_padding=None):
+    """Main FAVOR attention function from Rethinking Attention with Performers.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query:    [B, T, N, H].
+      key:      [B, S, N, H].
+      value:    [B, S, N, H].
+      paddings: [B, S].
+      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
+        between different segments. This is already been converted into large
+        negative logits. Only applied if packed_input = True.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, S] if
+        not None.
+
+    Returns:
+      encoded: [B, T, N, H].
+      atten_probs: None for FAVOR attention.
+    """
+    # TODO(kchoro): Add segment_mask support when FAVOR mechanism is applied
+    # and per_step_padding (causal FAVOR).
+    p = self.params
+    assert p.device_mesh is None, 'GShard mesh splits not supported.'
+    assert not p.packed_input, 'Packed input not supported.'
+    # Scale the query projection.
+    if p.enable_per_dim_scale:
+      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
+
+    if p.attention_type == 'relu':
+      kernel_transformation = favor.relu_kernel_transformation
+      encoded = favor.favor_attention(query, key, value, kernel_transformation,
+                                      False)
+    elif p.attention_type == 'softmax':
+      kernel_transformation = favor.softmax_kernel_transformation
+      # TODO(kchoro): Add the option of redrawing projection matrices. This
+      # improves in several applications.
+      projection_matrix = favor.create_projection_matrix(
+          p.num_random_features, query.shape[-1], None if p.redraw else 0)
+      encoded = favor.favor_attention(query, key, value, kernel_transformation,
+                                      False, projection_matrix)
+    else:
+      logging.info(
+          'FAVOR attention type: %s is not supported,returning query tensor.',
+          p.attention_type)
+      return query, None
+
+    return encoded, None
 
 
 class MultiHeadedAttentionXL(MultiHeadedAttention):
@@ -5292,6 +5299,45 @@ class Builder(builder.Base):
     ]
     return self.Stack(name, blocks)
 # pyformat: enable
+
+
+class PerformerBuilder(Builder):
+  """Builder for performr models. GShard mesh splits not supported."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('num_random_features', 384,
+             'Number of random projection features for performer.')
+    p.Define('attention_type', 'softmax',
+             'relu|softmax, performer kernel transformation methods')
+    p.Define('redraw', False,
+             'Whether kernel features should be redrawn (N/A if not random).')
+    return p
+
+  def _MultiHeadedAtten(self, name, num_heads=None):
+    """Returns a MultiHeadedAttention params."""
+    p = self.params
+    if num_heads is None:
+      num_heads = p.num_heads
+    assert not p.packed_input, 'Packed input not supported.'
+    atten_p = MultiHeadedFavorAttention.Params().Set(
+        name=name,
+        input_dim=p.model_dim,
+        hidden_dim=p.attention_hidden_dim or p.model_dim,
+        num_heads=num_heads,
+        atten_dropout_prob=p.atten_dropout_prob,
+        enable_value_proj=p.selfatten_enable_value_proj,
+        enable_per_dim_scale=p.enable_per_dim_scale,
+        packed_input=False,
+        fprop_dtype=p.fprop_dtype,
+        use_bias=p.use_bias,
+        num_random_features=p.num_random_features,
+        attention_type=p.attention_type,
+        redraw=p.redraw)
+    if p.deterministic_dropout:
+      atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+    return atten_p
 
 
 class LmBuilder(Builder):
