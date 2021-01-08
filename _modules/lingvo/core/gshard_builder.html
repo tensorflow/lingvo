@@ -329,6 +329,17 @@
         <span class="s1">&#39;since only the relative difference matters and extra large &#39;</span>
         <span class="s1">&#39;negative logit bias term is added for attention across segments &#39;</span>
         <span class="s1">&#39;anyway. Set to True to enable the hack.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;inflate_universal_relative_bias_to_match_batch_dimension&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, inflate the relative_bias tensor to match the batch &#39;</span>
+        <span class="s1">&#39;dimension of the BLM logits. When BLM is partitioned along the batch &#39;</span>
+        <span class="s1">&#39;dimension, this avoids the all-reduce for the relative_bias &#39;</span>
+        <span class="s1">&#39;activation gradients, but performs the all-reduce for relative_bias &#39;</span>
+        <span class="s1">&#39;weights instead. This may cause computation overhead when batch_size&#39;</span>
+        <span class="s1">&#39;is much larger than num_batch_partitions, so it should only be used&#39;</span>
+        <span class="s1">&#39;when batch_size is not too large compared to num_batch_partitions. &#39;</span>
+        <span class="s1">&#39;This flag is ignored if relative_attention_use_universal_1d_position &#39;</span>
+        <span class="s1">&#39;is set to False. Please see b/173612674#comment2 for more details.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Extra logit for attention softmax.&#39;</span><span class="p">)</span>
@@ -1057,6 +1068,7 @@
       <span class="k">assert</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span>
           <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="p">(</span><span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                                           <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">batch_size</span> <span class="o">=</span> <span class="n">query_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">len_dim</span> <span class="o">=</span> <span class="n">key_segment_pos</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">key_segment_pos</span> <span class="o">=</span> <span class="n">query_segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">len_dim</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -1079,9 +1091,16 @@
     <span class="c1">#</span>
     <span class="c1"># relative_bias_inc:</span>
     <span class="c1"># [batch?, length, heads, memory_length]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span> <span class="ow">and</span> \
+        <span class="n">p</span><span class="o">.</span><span class="n">inflate_universal_relative_bias_to_match_batch_dimension</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">relative_bucket_one_hot</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">4</span>
+      <span class="n">relative_bucket_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">relative_bucket_one_hot</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
     <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HX,...LJX-&gt;...LHJ&#39;</span><span class="p">,</span> <span class="n">relative_bias_weights</span><span class="p">,</span>
                                   <span class="n">relative_bucket_one_hot</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">relative_bias_inc</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">relative_bias_inc</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> \
+        <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">inflate_universal_relative_bias_to_match_batch_dimension</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span>
       <span class="n">relative_bias_inc</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">relative_bias_inc</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
