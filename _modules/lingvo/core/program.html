@@ -257,7 +257,6 @@
     <span class="c1"># Thread Pool for infeed.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">dummy</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_threads</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_status_msg_fn</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -324,10 +323,9 @@
 
 <div class="viewcode-block" id="BaseProgram.Compile"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.Compile">[docs]</a>  <span class="k">def</span> <span class="nf">Compile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compile the program using the given session handle.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
-      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1"> done.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1"> done.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Compiling </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
@@ -486,7 +484,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
@@ -658,7 +655,6 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span>
 
       <span class="c1"># XLA thinks self.TpuEvalLoop() requires 1 argument due to self</span>
       <span class="c1"># Trick it with wrapper function</span>
@@ -817,7 +813,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>

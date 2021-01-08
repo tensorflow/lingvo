@@ -185,7 +185,6 @@
 
 <span class="kn">import</span> <span class="nn">collections</span> <span class="k">as</span> <span class="nn">py_collections</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -327,8 +326,6 @@
     <span class="c1"># Set to true in GetPreprocessedInputBatch() (and thus _InputBatch())</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_init_ops</span> <span class="o">=</span> <span class="p">[]</span>
-
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
@@ -356,9 +353,9 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_per_input: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">batch_per_input</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.InitOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InitOps">[docs]</a>  <span class="k">def</span> <span class="nf">InitOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a list of ops to initialize the input generator.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_ops</span><span class="p">)</span></div>
+<div class="viewcode-block" id="BaseInputGenerator.Initialize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize using a session.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The current input batch, not preprocessed.</span>
@@ -395,6 +392,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputBatch</span><span class="p">())</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
   <span class="nd">@property</span>
@@ -1315,7 +1315,8 @@
 <div class="viewcode-block" id="TFDataSequenceInputGenerator._InitIterator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InitIterator">[docs]</a>  <span class="k">def</span> <span class="nf">_InitIterator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># We can&#39;t create self._iterator in __init__() as _GetDataset(), etc.</span>
     <span class="c1"># might require members that are set in subclasses.</span>
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;InitIterator has already been called.&#39;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
       <span class="c1"># Hide global_step tensor from being captured by dataset function.</span>
       <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDatasetInternal</span><span class="p">()</span>
@@ -1324,13 +1325,14 @@
     <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_init_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="TFDataSequenceInputGenerator.InitOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.InitOps">[docs]</a>  <span class="k">def</span> <span class="nf">InitOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TFDataSequenceInputGenerator.Initialize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_InitIterator</span><span class="p">()</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">InitOps</span><span class="p">()</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TFDataSequenceInputGenerator._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a NestedMap containing an input batch.&quot;&quot;&quot;</span>
@@ -1714,8 +1716,11 @@
         <span class="s1">&#39;`tf.data.Dataset`. The given callable `</span><span class="si">%s</span><span class="s1">` returned `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span>
         <span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">dataset</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_init_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+
+  <span class="k">def</span> <span class="nf">_Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">generated_cls</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generates data tensors by invoking the pipeline.&quot;&quot;&quot;</span>
@@ -1738,6 +1743,7 @@
   <span class="c1"># Overrides member methods.</span>
   <span class="n">generated_cls</span><span class="o">.</span><span class="n">Params</span> <span class="o">=</span> <span class="n">_Params</span>
   <span class="n">generated_cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">_Init</span>
+  <span class="n">generated_cls</span><span class="o">.</span><span class="n">Initialize</span> <span class="o">=</span> <span class="n">_Initialize</span>
   <span class="n">generated_cls</span><span class="o">.</span><span class="n">_InputBatch</span> <span class="o">=</span> <span class="n">_InputBatch</span>  <span class="c1"># pylint: disable=protected-access</span>
 
   <span class="c1"># Sets __module__ to the caller&#39;s module name for pickling and restoring from</span>

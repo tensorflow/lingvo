@@ -224,6 +224,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_worker_cluster_def</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">worker_cluster_def</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
@@ -237,8 +238,6 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="p">)</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Starting ...&#39;</span><span class="p">)</span>
 
@@ -450,8 +449,8 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="n">sess</span><span class="p">:</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">:</span>
-        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_input_ops</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="n">gsteps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
       <span class="n">local_enqueue_steps</span> <span class="o">=</span> <span class="mi">0</span>
 
