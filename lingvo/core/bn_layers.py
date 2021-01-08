@@ -745,8 +745,7 @@ class GroupNormLayer(base_layer.BaseLayer):
         collections=collections)
 
     self.CreateVariable('beta', pc)
-    # Note, The real gamma to use is 1 + gamma.
-    self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+    self.CreateVariable('gamma', pc)
 
   @property
   def group_size(self):
@@ -806,7 +805,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     # Merges the last two dims.
     grouped_inputs = tf.reshape(grouped_inputs, input_shape[:-2] + [-1])
 
-    outputs = grouped_inputs * theta.gamma + theta.beta
+    # Note, The real gamma to use is 1 + gamma.
+    outputs = grouped_inputs * (theta.gamma + 1) + theta.beta
     return outputs
 
   def FProp(self, theta, inputs, paddings=None):
