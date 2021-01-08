@@ -1264,6 +1264,7 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
 
     datasets = []
     for i, file_pattern in enumerate(file_patterns):
+      file_pattern = self._PreprocessFilePattern(file_pattern)
       file_pattern = py_utils.ShardedFilePatternToGlob(file_pattern)
       datasets.append(LoadDatasetFromSingleGlob(file_pattern, i))
     if len(file_patterns) > 1:
@@ -1279,6 +1280,10 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
       dataset = dataset.take(p.num_samples)
 
     return dataset
+
+  def _PreprocessFilePattern(self, file_pattern):
+    """Override this method to modify a file pattern before globbing."""
+    return file_pattern
 
   def _LoadDataset(self, filename):
     """Loads a dataset from a filename."""
