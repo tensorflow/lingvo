@@ -6145,6 +6145,12 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">GatherTensorValuesBySeqIndices</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">keepdims</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DivideNoNan"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.DivideNoNan">[docs]</a><span class="k">def</span> <span class="nf">DivideNoNan</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Equivalent to tf.math.divide_no_nan but supports bfloat16.&quot;&quot;&quot;</span>
+  <span class="n">safe_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mf">0.</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">x</span> <span class="o">/</span> <span class="n">safe_y</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
