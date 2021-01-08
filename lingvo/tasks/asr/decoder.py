@@ -1064,6 +1064,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       softmax_input = seq_out_tas.step_outs.stack()
       softmax_input = tf.transpose(softmax_input, [1, 0, 2])
+
       self._AddDecoderActivationsSummary(encoder_outputs, targets,
                                          seq_out_tas.atten_probs,
                                          seq_out_tas.rnn_outs, softmax_input)
@@ -1384,6 +1385,9 @@ class AsrDecoder(AsrDecoderBase):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define(
+        'teacher_forcing', True, 'If True, at each RNN step we consume '
+        'the previous target label.  If False, we instead consume zeros.')
     return p
 
   def AddAdditionalDecoderSummaries(self, encoder_outputs, targets, seq_out_tas,
@@ -1477,12 +1481,17 @@ class AsrDecoder(AsrDecoderBase):
       current step.
     """
     p = self.params
+    if p.teacher_forcing:
+      prev_embs = cur_target_info.emb
+    else:
+      prev_embs = tf.ones_like(cur_target_info.emb)
+
     misc_states = decoder_step_state.misc_states
     new_rnn_states = []
     new_rnn_states_0, _ = self.rnn_cell[0].FProp(
         theta.rnn_cell[0], decoder_step_state.rnn_states[0],
         py_utils.NestedMap(
-            act=[cur_target_info.emb, decoder_step_state.atten_context],
+            act=[prev_embs, decoder_step_state.atten_context],
             padding=cur_target_info.padding))
     new_rnn_states.append(new_rnn_states_0)
     rnn_out = self.rnn_cell[0].GetOutput(new_rnn_states_0)
