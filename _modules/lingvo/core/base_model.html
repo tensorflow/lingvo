@@ -467,12 +467,7 @@
               <span class="s1">&#39;The input generator may not iterate over exactly &#39;</span>
               <span class="s1">&#39;one epoch per run&#39;</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
-      <span class="n">input_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">PlaceInput</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
-
-      <span class="c1"># For TPU training, we create the input generator in a</span>
-      <span class="c1"># different scope and AddChild it in later.</span>
-      <span class="k">if</span> <span class="s1">&#39;skip_create_child&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="n">input_params</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
 
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
 

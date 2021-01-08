@@ -198,6 +198,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tokenizers</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">input_policy</span>
+
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">io_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
@@ -307,6 +309,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">input_policy</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="c1"># parameter to tell the bprop one hot for all the files.</span>
     <span class="c1"># TODO(ankurbpn): Initialize when using sources from mixed record yielders.</span>
