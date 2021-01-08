@@ -177,6 +177,17 @@ class MoEBuilder(builder.Base):
         'since only the relative difference matters and extra large '
         'negative logit bias term is added for attention across segments '
         'anyway. Set to True to enable the hack.')
+    p.Define(
+        'inflate_universal_relative_bias_to_match_batch_dimension', False,
+        'If true, inflate the relative_bias tensor to match the batch '
+        'dimension of the BLM logits. When BLM is partitioned along the batch '
+        'dimension, this avoids the all-reduce for the relative_bias '
+        'activation gradients, but performs the all-reduce for relative_bias '
+        'weights instead. This may cause computation overhead when batch_size'
+        'is much larger than num_batch_partitions, so it should only be used'
+        'when batch_size is not too large compared to num_batch_partitions. '
+        'This flag is ignored if relative_attention_use_universal_1d_position '
+        'is set to False. Please see b/173612674#comment2 for more details.')
 
     p.Define('attention_extra_logit', None,
              'Extra logit for attention softmax.')
@@ -905,6 +916,7 @@ class MoEBuilder(builder.Base):
       assert (int(key_segment_pos.shape[-1]) == int(
           query_segment_pos.shape[-1])), (key_segment_pos.shape,
                                           query_segment_pos.shape)
+      batch_size = query_segment_pos.shape.as_list()[0]
       len_dim = key_segment_pos.shape.as_list()[-1]
       key_segment_pos = query_segment_pos = tf.expand_dims(
           tf.range(len_dim), axis=0)
@@ -927,9 +939,16 @@ class MoEBuilder(builder.Base):
     #
     # relative_bias_inc:
     # [batch?, length, heads, memory_length]
+    if p.relative_attention_use_universal_1d_position and \
+        p.inflate_universal_relative_bias_to_match_batch_dimension:
+      assert relative_bucket_one_hot.shape.ndims == 4
+      relative_bucket_one_hot = tf.tile(relative_bucket_one_hot,
+                                        [batch_size, 1, 1, 1])
+
     relative_bias_inc = tf.einsum('HX,...LJX->...LHJ', relative_bias_weights,
                                   relative_bucket_one_hot)
-    if relative_bias_inc.shape.ndims == 3:
+    if relative_bias_inc.shape.ndims == 3 and \
+        not p.inflate_universal_relative_bias_to_match_batch_dimension:
       assert p.relative_attention_use_universal_1d_position
       relative_bias_inc = tf.expand_dims(relative_bias_inc, 0)
 
