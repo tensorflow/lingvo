@@ -1216,6 +1216,7 @@
 
       <span class="n">softmax_input</span> <span class="o">=</span> <span class="n">seq_out_tas</span><span class="o">.</span><span class="n">step_outs</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
       <span class="n">softmax_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">softmax_input</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
       <span class="bp">self</span><span class="o">.</span><span class="n">_AddDecoderActivationsSummary</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
                                          <span class="n">seq_out_tas</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">,</span>
                                          <span class="n">seq_out_tas</span><span class="o">.</span><span class="n">rnn_outs</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">)</span>
@@ -1536,6 +1537,9 @@
 <div class="viewcode-block" id="AsrDecoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;teacher_forcing&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If True, at each RNN step we consume &#39;</span>
+        <span class="s1">&#39;the previous target label.  If False, we instead consume zeros.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="AsrDecoder.AddAdditionalDecoderSummaries"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder.AddAdditionalDecoderSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">AddAdditionalDecoderSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">seq_out_tas</span><span class="p">,</span>
@@ -1629,12 +1633,17 @@
 <span class="sd">      current step.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">teacher_forcing</span><span class="p">:</span>
+      <span class="n">prev_embs</span> <span class="o">=</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">emb</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">prev_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">cur_target_info</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+
     <span class="n">misc_states</span> <span class="o">=</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">misc_states</span>
     <span class="n">new_rnn_states</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">new_rnn_states_0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">rnn_states</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-            <span class="n">act</span><span class="o">=</span><span class="p">[</span><span class="n">cur_target_info</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">atten_context</span><span class="p">],</span>
+            <span class="n">act</span><span class="o">=</span><span class="p">[</span><span class="n">prev_embs</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">atten_context</span><span class="p">],</span>
             <span class="n">padding</span><span class="o">=</span><span class="n">cur_target_info</span><span class="o">.</span><span class="n">padding</span><span class="p">))</span>
     <span class="n">new_rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_rnn_states_0</span><span class="p">)</span>
     <span class="n">rnn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">new_rnn_states_0</span><span class="p">)</span>
