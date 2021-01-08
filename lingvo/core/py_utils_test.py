@@ -3619,5 +3619,34 @@ class SoftmaxTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected, y.eval(), atol=1e-5, rtol=1e-5)
 
 
+class DivideNoNanTest(test_utils.TestCase, parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      ('simple', 5., 2., 2.5), ('zero', 5., 0., 0.0),
+      ('np', np.array([-2., 1., 0.]), np.array([-2., 0., 1.
+                                               ]), np.array([1.0, 0., 0.])),
+      ('np_bfloat16', np.array([-2., 1., 0.]), np.array(
+          [-2., 0., 1.]), np.array([1.0, 0., 0.]), tf.bfloat16))
+  def testDivide(self, x, y, expected, dtype=tf.float32):
+    with self.session():
+      res = py_utils.DivideNoNan(tf.cast(x, dtype), tf.cast(y, dtype))
+      orig = tf.math.divide_no_nan(x, y)
+      res, orig = self.evaluate([res, orig])
+      self.assertAllEqual(res, orig)
+      self.assertAllEqual(res, expected)
+
+  def testGradient(self):
+    with self.session(use_gpu=False):
+      x = tf.get_variable('x', initializer=[-2., 1., 0., 0.])
+      y = tf.get_variable('y', initializer=[-2., 0., 1., 0.])
+      res = py_utils.DivideNoNan(x, y)
+      dys = tf.where(res > 0., tf.ones_like(res), tf.ones_like(res) * -.5)
+      self.evaluate(tf.global_variables_initializer())
+      dx, dy = self.evaluate(tf.gradients(xs=[x, y], ys=res, grad_ys=dys))
+      tf.logging.info('dx=%r, dy=%r', dx, dy)
+      self.assertAllClose([-0.5, 0., -0.5, 0.], dx)
+      self.assertAllClose([0.5, 0., 0.0, 0.], dy)
+
+
 if __name__ == '__main__':
   tf.test.main()
