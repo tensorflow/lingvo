@@ -897,8 +897,7 @@
         <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
-    <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">group_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -958,7 +957,8 @@
     <span class="c1"># Merges the last two dims.</span>
     <span class="n">grouped_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">grouped_inputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="n">outputs</span> <span class="o">=</span> <span class="n">grouped_inputs</span> <span class="o">*</span> <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
+    <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">grouped_inputs</span> <span class="o">*</span> <span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gamma</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
     <span class="k">return</span> <span class="n">outputs</span></div>
 
 <div class="viewcode-block" id="GroupNormLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
