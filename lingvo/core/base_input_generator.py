@@ -33,7 +33,6 @@ TODO(rpang): Deal with on packed_inputs.
 
 import collections as py_collections
 import contextlib
-import copy
 import inspect
 
 import lingvo.compat as tf
@@ -175,8 +174,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # Set to true in GetPreprocessedInputBatch() (and thus _InputBatch())
     self._in_get_processed_input_batch = False
 
-    self._init_ops = []
-
   def CommonInputOpArgs(self):
     """Common input params."""
     return {}
@@ -204,9 +201,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
 
-  def InitOps(self):
-    """Returns a list of ops to initialize the input generator."""
-    return copy.copy(self._init_ops)
+  def Initialize(self, sess):
+    """Initialize using a session."""
+    pass
 
   def _InputBatch(self):
     """The current input batch, not preprocessed.
@@ -243,6 +240,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     self._in_get_processed_input_batch = True
     res = self._PreprocessInputBatch(self._InputBatch())
     self._in_get_processed_input_batch = False
+
+    if py_utils.GetUnitTestSession():
+      self.Initialize(py_utils.GetUnitTestSession())
     return res
 
   @property
@@ -1163,7 +1163,8 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
   def _InitIterator(self):
     # We can't create self._iterator in __init__() as _GetDataset(), etc.
     # might require members that are set in subclasses.
-    assert self._iterator is None
+    if self._iterator is not None:
+      raise ValueError('InitIterator has already been called.')
     with py_utils.GlobalStepContext(None):
       # Hide global_step tensor from being captured by dataset function.
       dataset = self._GetDatasetInternal()
@@ -1173,12 +1174,13 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
       self._iterator = iter(dataset)
     else:
       self._iterator = tf.data.make_initializable_iterator(dataset)
-      self._init_ops.append(self._iterator.initializer)
 
-  def InitOps(self):
+  def Initialize(self, sess):
     if self._iterator is None:
       self._InitIterator()
-    return super().InitOps()
+    if not tf.executing_eagerly():
+      sess.run(self._iterator.initializer)
+    super().Initialize(sess)
 
   def _InputBatch(self):
     """Returns a NestedMap containing an input batch."""
@@ -1562,8 +1564,11 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
         '`tf.data.Dataset`. The given callable `%s` returned `%s`' %
         (func, dataset))
     self.iterator = tf.tf1.data.make_initializable_iterator(dataset)
-    self._init_ops.append(self.iterator.initializer)  # pylint: disable=protected-access
     self.dataset = dataset
+
+  def _Initialize(self, sess):
+    sess.run(self.iterator.initializer)
+    super(generated_cls, self).Initialize(sess)
 
   def _InputBatch(self):
     """Generates data tensors by invoking the pipeline."""
@@ -1586,6 +1591,7 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
   # Overrides member methods.
   generated_cls.Params = _Params
   generated_cls.__init__ = _Init
+  generated_cls.Initialize = _Initialize
   generated_cls._InputBatch = _InputBatch  # pylint: disable=protected-access
 
   # Sets __module__ to the caller's module name for pickling and restoring from

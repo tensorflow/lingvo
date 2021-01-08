@@ -1518,6 +1518,24 @@ def SanitizeScopeKey(key):
   return key.replace('[', '_').replace(']', '')
 
 
+# Maintain a session for unit tests (initialized in test_utils.py).
+_SESSION_SCOPE = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def UnitTestSessionScope(sess):
+  _SESSION_SCOPE.stack.append(sess)
+  try:
+    yield
+  finally:
+    _SESSION_SCOPE.stack.pop()
+
+
+def GetUnitTestSession():
+  """Get the current variable reuse setting."""
+  return _SESSION_SCOPE.stack[-1] if _SESSION_SCOPE.stack else None
+
+
 # Global variable to control multitask variable reuse
 # If False (default) the default tf.get_variable is used, that is:
 # - Reusing scopes only allow getting existing variables

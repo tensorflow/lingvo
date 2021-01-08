@@ -57,9 +57,6 @@ class Trainer(base_runner.BaseRunner):
         self._model.ConstructFPropBPropGraph()
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
-      self._init_input_ops = [
-          task.input.InitOps() for task in self._model.tasks
-      ]
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
                       len(self.enqueue_ops))
@@ -125,8 +122,6 @@ class Trainer(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
-      # This initializes any ops the input generator depends on.
-      sess.run(self._init_input_ops)
       global_step = self._WaitUntilInit(sess, self._start_up_delay_steps)
 
       status_interval_steps = 100
@@ -259,7 +254,6 @@ class Decoder(base_runner.BaseRunner):
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._task = self._model.GetTask(self._model_task_name)
-        self._init_input_ops = self._task.input.InitOps()
         # Note, different graphs are being constructed for different model
         # tasks, which may result in different node names being chosen.
         # Obviously, variable names has to be stay the same between train and
@@ -298,8 +292,7 @@ class Decoder(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
-      # This initializes any ops the input generator depends on.
-      sess.run(self._init_input_ops)
+      self._task.input.Initialize(sess)
 
       if self._decode_path:
         self.DecodeCheckpoint(sess, self._decode_path)
@@ -431,8 +424,7 @@ class Decoder(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
-      # This initializes any ops the input generator depends on.
-      sess.run(self._init_input_ops)
+      self._task.input.Initialize(sess)
       path = tf.train.latest_checkpoint(self._train_dir)
       if not path:
         tf.logging.info('No checkpoint available.')

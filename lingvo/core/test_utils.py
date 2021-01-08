@@ -57,29 +57,11 @@ class TestCase(tf.test.TestCase):
   def session(self, *args, **kwargs):
     """Test session context manager."""
     with super().session(*args, **kwargs) as sess:
-      with UnitTestSessionScope(sess):
+      with py_utils.UnitTestSessionScope(sess):
         yield sess
 
   def SetEval(self, mode):
     return cluster_factory.SetEval(mode=mode)
-
-
-# Maintain a session for unit tests (initialized in test_utils.py).
-_SESSION_SCOPE = py_utils.ThreadLocalStack()
-
-
-@contextlib.contextmanager
-def UnitTestSessionScope(sess):
-  _SESSION_SCOPE.stack.append(sess)
-  try:
-    yield
-  finally:
-    _SESSION_SCOPE.stack.pop()
-
-
-def GetUnitTestSession():
-  """Get the current variable reuse setting."""
-  return _SESSION_SCOPE.stack[-1] if _SESSION_SCOPE.stack else None
 
 
 def _ReplaceOneLineInFile(fpath, linenum, old, new):

@@ -72,6 +72,7 @@ class BaseRunner:
 
     self.params.cluster.logdir = logdir
     self._cluster = cluster_factory.Cluster(self.params.cluster)
+    self._worker_cluster_def = self._cluster.worker_cluster_def
     self._train_dir = os.path.join(self._logdir, 'train')
     tf.io.gfile.makedirs(self._train_dir)
     self._graph = tf.Graph()
@@ -85,8 +86,6 @@ class BaseRunner:
       self._early_stop = early_stop.EarlyStop(p.train.early_stop)
       with self._graph.as_default():
         self._early_stop.FProp(None)
-
-    self._init_input_ops = []
 
     self._SetStatusMessage('Starting ...')
 
@@ -298,8 +297,8 @@ class BaseRunner:
     with tf.container(self._container_id), sess:
       if self._initialize_tables is not None:
         sess.run(self._initialize_tables)
-      if self._init_input_ops:
-        sess.run(self._init_input_ops)
+      for task in self._model.tasks:
+        task.input.Initialize(sess)
       gsteps = py_utils.GetGlobalStep()
       local_enqueue_steps = 0
 
