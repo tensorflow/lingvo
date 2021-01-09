@@ -784,7 +784,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     assert not (p.file_pattern and p.file_datasource
                ), 'Only one of file_pattern and data_source can be specified'
 
-    # TODO(b/139345706) remove support for file_pattern
     if not p.file_datasource:
       p.file_datasource = FilePatternToDataSource(p)
     self.CreateChild('datasource', p.file_datasource)
