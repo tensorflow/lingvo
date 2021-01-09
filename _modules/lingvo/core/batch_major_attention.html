@@ -195,9 +195,6 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
-
-<span class="n">DEFAULT_VALUE_OF_RANDOM_FEATURES</span> <span class="o">=</span> <span class="mi">384</span>
-
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
@@ -723,68 +720,6 @@
                                      <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
 
-<div class="viewcode-block" id="MultiHeadedAttention._FavorDotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._FavorDotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_FavorDotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                     <span class="n">theta</span><span class="p">,</span>
-                     <span class="n">query</span><span class="p">,</span>
-                     <span class="n">key</span><span class="p">,</span>
-                     <span class="n">value</span><span class="p">,</span>
-                     <span class="n">paddings</span><span class="p">,</span>
-                     <span class="n">segment_mask</span><span class="p">,</span>
-                     <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">favor_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">redraw</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Main FAVOR attention function from Rethinking Attention with Performers.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
-<span class="sd">        its children layers.</span>
-<span class="sd">      query:    [B, T, N, H].</span>
-<span class="sd">      key:      [B, S, N, H].</span>
-<span class="sd">      value:    [B, S, N, H].</span>
-<span class="sd">      paddings: [B, S].</span>
-<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention</span>
-<span class="sd">        between different segments. This is already been converted into large</span>
-<span class="sd">        negative logits. Only applied if packed_input = True.</span>
-<span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
-<span class="sd">        information flow from future (causal padding). It has shape [B, T, S] if</span>
-<span class="sd">        not None.</span>
-<span class="sd">      favor_config: dictionary defining parameters of FAVOR attention.</span>
-<span class="sd">      redraw: whether kernel features should be redrawn (N/A if not random).</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      encoded: [B, T, N, H].</span>
-<span class="sd">      atten_probs: None for FAVOR attention.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># TODO(kchoro): Add segment_mask support when FAVOR mechanism is applied</span>
-    <span class="c1"># and per_step_padding (causal FAVOR).</span>
-    <span class="k">if</span> <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;attention_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
-      <span class="n">kernel_transformation</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">relu_kernel_transformation</span>
-      <span class="n">encoded</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">favor_attention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">kernel_transformation</span><span class="p">,</span>
-                                      <span class="kc">False</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;attention_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;softmax&#39;</span><span class="p">:</span>
-      <span class="k">if</span> <span class="s1">&#39;num_random_features&#39;</span> <span class="ow">in</span> <span class="n">favor_config</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-        <span class="n">num_random_features</span> <span class="o">=</span> <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;num_random_features&#39;</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">num_random_features</span> <span class="o">=</span> <span class="n">DEFAULT_VALUE_OF_RANDOM_FEATURES</span>
-      <span class="n">kernel_transformation</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">softmax_kernel_transformation</span>
-      <span class="c1"># TODO(kchoro): Add the option of redrawing projection matrices. This</span>
-      <span class="c1"># improves in several applications.</span>
-      <span class="k">if</span> <span class="n">redraw</span><span class="p">:</span>
-        <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">seed</span> <span class="o">=</span> <span class="mi">0</span>
-      <span class="n">projection_matrix</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">create_projection_matrix</span><span class="p">(</span>
-          <span class="n">num_random_features</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
-      <span class="n">encoded</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">favor_attention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">kernel_transformation</span><span class="p">,</span>
-                                      <span class="kc">False</span><span class="p">,</span> <span class="n">projection_matrix</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-          <span class="s1">&#39;FAVOR attention type: </span><span class="si">%s</span><span class="s1"> is not supported,returning query tensor.&#39;</span><span class="p">,</span>
-          <span class="n">favor_config</span><span class="p">[</span><span class="s1">&#39;attention_type&#39;</span><span class="p">])</span>
-      <span class="k">return</span> <span class="n">query</span><span class="p">,</span> <span class="kc">None</span>
-
-    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="kc">None</span></div>
-
 <div class="viewcode-block" id="MultiHeadedAttention._DotAttenOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._DotAttenOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAttenOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">theta</span><span class="p">,</span>
                        <span class="n">query</span><span class="p">,</span>
@@ -1106,6 +1041,78 @@
     <span class="c1"># self_attention took 15 flops per element since softmax is expensive.</span>
     <span class="n">flops</span> <span class="o">=</span> <span class="mi">15</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">d</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">d</span> <span class="o">*</span> <span class="n">d</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">d</span> <span class="o">*</span> <span class="n">d</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">s</span><span class="p">)))</span></div></div>
+
+
+<div class="viewcode-block" id="MultiHeadedFavorAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedFavorAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedFavorAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Performer multiheaded attention.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiHeadedFavorAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedFavorAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_random_features&#39;</span><span class="p">,</span> <span class="mi">384</span><span class="p">,</span>
+             <span class="s1">&#39;Number of random projection features for performer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_type&#39;</span><span class="p">,</span> <span class="s1">&#39;softmax&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;relu|softmax, performer kernel transformation methods&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;redraw&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether kernel features should be redrawn (N/A if not random).&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="MultiHeadedFavorAttention._DotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedFavorAttention._DotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">theta</span><span class="p">,</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">key</span><span class="p">,</span>
+                <span class="n">value</span><span class="p">,</span>
+                <span class="n">paddings</span><span class="p">,</span>
+                <span class="n">segment_mask</span><span class="p">,</span>
+                <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Main FAVOR attention function from Rethinking Attention with Performers.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query:    [B, T, N, H].</span>
+<span class="sd">      key:      [B, S, N, H].</span>
+<span class="sd">      value:    [B, S, N, H].</span>
+<span class="sd">      paddings: [B, S].</span>
+<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention</span>
+<span class="sd">        between different segments. This is already been converted into large</span>
+<span class="sd">        negative logits. Only applied if packed_input = True.</span>
+<span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
+<span class="sd">        information flow from future (causal padding). It has shape [B, T, S] if</span>
+<span class="sd">        not None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded: [B, T, N, H].</span>
+<span class="sd">      atten_probs: None for FAVOR attention.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO(kchoro): Add segment_mask support when FAVOR mechanism is applied</span>
+    <span class="c1"># and per_step_padding (causal FAVOR).</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;GShard mesh splits not supported.&#39;</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="s1">&#39;Packed input not supported.&#39;</span>
+    <span class="c1"># Scale the query projection.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">:</span>
+      <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_type</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
+      <span class="n">kernel_transformation</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">relu_kernel_transformation</span>
+      <span class="n">encoded</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">favor_attention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">kernel_transformation</span><span class="p">,</span>
+                                      <span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_type</span> <span class="o">==</span> <span class="s1">&#39;softmax&#39;</span><span class="p">:</span>
+      <span class="n">kernel_transformation</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">softmax_kernel_transformation</span>
+      <span class="c1"># TODO(kchoro): Add the option of redrawing projection matrices. This</span>
+      <span class="c1"># improves in several applications.</span>
+      <span class="n">projection_matrix</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">create_projection_matrix</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">num_random_features</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">redraw</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">encoded</span> <span class="o">=</span> <span class="n">favor</span><span class="o">.</span><span class="n">favor_attention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">kernel_transformation</span><span class="p">,</span>
+                                      <span class="kc">False</span><span class="p">,</span> <span class="n">projection_matrix</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;FAVOR attention type: </span><span class="si">%s</span><span class="s1"> is not supported,returning query tensor.&#39;</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">attention_type</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">query</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="kc">None</span></div></div>
 
 
 <div class="viewcode-block" id="MultiHeadedAttentionXL"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttentionXL">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedAttentionXL</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
@@ -5444,6 +5451,45 @@
     <span class="p">]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span></div></div>
 <span class="c1"># pyformat: enable</span>
+
+
+<div class="viewcode-block" id="PerformerBuilder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PerformerBuilder">[docs]</a><span class="k">class</span> <span class="nc">PerformerBuilder</span><span class="p">(</span><span class="n">Builder</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builder for performr models. GShard mesh splits not supported.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PerformerBuilder.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PerformerBuilder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_random_features&#39;</span><span class="p">,</span> <span class="mi">384</span><span class="p">,</span>
+             <span class="s1">&#39;Number of random projection features for performer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_type&#39;</span><span class="p">,</span> <span class="s1">&#39;softmax&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;relu|softmax, performer kernel transformation methods&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;redraw&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether kernel features should be redrawn (N/A if not random).&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="PerformerBuilder._MultiHeadedAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PerformerBuilder._MultiHeadedAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_MultiHeadedAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a MultiHeadedAttention params.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="s1">&#39;Packed input not supported.&#39;</span>
+    <span class="n">atten_p</span> <span class="o">=</span> <span class="n">MultiHeadedFavorAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_hidden_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+        <span class="n">enable_value_proj</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">selfatten_enable_value_proj</span><span class="p">,</span>
+        <span class="n">enable_per_dim_scale</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">,</span>
+        <span class="n">packed_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
+        <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
+        <span class="n">num_random_features</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_random_features</span><span class="p">,</span>
+        <span class="n">attention_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_type</span><span class="p">,</span>
+        <span class="n">redraw</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">redraw</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
+      <span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">atten_p</span></div></div>
 
 
 <div class="viewcode-block" id="LmBuilder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder">[docs]</a><span class="k">class</span> <span class="nc">LmBuilder</span><span class="p">(</span><span class="n">Builder</span><span class="p">):</span>
