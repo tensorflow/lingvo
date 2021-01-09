@@ -239,7 +239,7 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>metrics</strong> – A Dict[str, (value, weight)], from which loss can be extracted
 according to p.loss_name.</p></li>
-<li><p><strong>vmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variables to optimize.</p></li>
+<li><p><strong>vmap</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variables to optimize.</p></li>
 <li><p><strong>gradient_mask</strong> – if not None, a dict mapping variable names to a 0/1 scalar.</p></li>
 <li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
 </ul>
@@ -287,13 +287,13 @@ is a scalar tensor.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</p></li>
+<li><p><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</p></li>
 <li><p><strong>gradient_mask</strong> – if not None, a dict mapping variable names to a 0/1 scalar.</p></li>
 <li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(var_grads, eval_metrics), where var_grads is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values
+<dd class="field-even"><p>(var_grads, eval_metrics), where var_grads is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values
 (var, grad) pairs representing adjusted gradients.</p>
 </dd>
 </dl>
@@ -325,14 +325,14 @@ Inf in input gradients.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</p></li>
+<li><p><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</p></li>
 <li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing</p>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing</p>
 <ul class="simple">
-<li><p>final_var_grads: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs,
+<li><p>final_var_grads: a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs,
 where gradients have already been scaled.</p></li>
 <li><p>grad_scale: the gradient scale. 0 if gradient updates should be skipped
 for the step. (Optional, only returned in case global norm clipping is

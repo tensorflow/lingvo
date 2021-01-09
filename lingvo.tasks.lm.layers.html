@@ -215,17 +215,17 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – a tensor of shape [time, batch] or [time, batch, dims].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
 <li><p><strong>*args</strong> – optional extra arguments.</p></li>
 <li><p><strong>**kwargs</strong> – optional extra keyword arguments.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(xent_output, state1). <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by
+<dd class="field-even"><p>(xent_output, state1). <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state.</p>
 </dd>
 </dl>
@@ -247,7 +247,7 @@ layer and its children layers.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt><dd><dl class="simple">
+<dt>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt><dd><dl class="simple">
 <dt>logits: a python int.</dt><dd><p>The vocab size.</p>
 </dd>
 <dt>last_hidden: a python int.</dt><dd><p>The last hidden layer’s dimension.</p>
@@ -267,11 +267,11 @@ layer and its children layers.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – a tensor of shape [batch] or [batch, dims].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [batch].</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
 <li><p><strong>*args</strong> – optional extra arguments.</p></li>
 <li><p><strong>**kwargs</strong> – optional extra keyword arguments.</p></li>
 </ul>
@@ -279,7 +279,7 @@ layer and its children layers.</p></li>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>A tuple (output, state1).</dt><dd><dl class="simple">
-<dt>output: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt><dd><dl class="simple">
+<dt>output: A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt><dd><dl class="simple">
 <dt>logits:</dt><dd><p>[batch, vocab_size].</p>
 </dd>
 <dt>log_probs:</dt><dd><p>[batch, vocab_size].</p>
@@ -343,17 +343,17 @@ is false.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – a tensor of shape [time, batch] or [time, batch, dims].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
 <li><p><strong>*args</strong> – optional extra arguments.</p></li>
 <li><p><strong>**kwargs</strong> – optional extra keyword arguments.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(xent_output, state1). <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by
+<dd class="field-even"><p>(xent_output, state1). <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state.</p>
 </dd>
 </dl>
@@ -436,7 +436,7 @@ is false.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt><dd><dl class="simple">
+<dt>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt><dd><dl class="simple">
 <dt>logits: a python int.</dt><dd><p>The vocab size.</p>
 </dd>
 <dt>last_hidden: a python int.</dt><dd><p>The last hidden layer’s dimension.</p>
@@ -456,11 +456,11 @@ is false.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – a tensor of shape [batch] or [batch, dims].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [batch].</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
 <li><p><strong>direct_features</strong> – If not None, a tensor of [batch, direct_feature_dims]
 that is concatenated to the output of the last RNN layer.</p></li>
 <li><p><strong>*args</strong> – optional extra arguments.</p></li>
@@ -470,7 +470,7 @@ that is concatenated to the output of the last RNN layer.</p></li>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>A tuple (output, state1).</dt><dd><dl class="simple">
-<dt>output: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt><dd><dl class="simple">
+<dt>output: A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt><dd><dl class="simple">
 <dt>logits:</dt><dd><p>[batch, vocab_size].</p>
 </dd>
 <dt>last_hidden:</dt><dd><p>[batch, dims].</p>
@@ -494,12 +494,12 @@ that is concatenated to the output of the last RNN layer.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – input activation. A tensor of shape [time, batch, dims].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
-<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields.</p>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
+<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields.</p>
 <ul>
 <li><p>class_weights, a tensor with shape [time, batch] containing the
 weights for each target word.</p></li>
@@ -515,7 +515,7 @@ concatenated to the output of the last RNN layer.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
 value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> contains the softmax logits, probabilities (.probs) and
 log-probabilities (.log_probs).</p>
@@ -591,12 +591,12 @@ chunking is done.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – input ids. An int32 tensor of shape [time, batch].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
-<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
+<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
 <ul>
 <li><p>class_weights, a tensor with shape [time, batch] containing the
 weights for each target word.</p></li>
@@ -612,7 +612,7 @@ concatenated to the output of the last RNN layer.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
 value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
 </dd>
@@ -639,13 +639,13 @@ value and <code class="xref py py-obj docutils literal notranslate"><span class=
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>inputs</strong> – input ids. An int32 tensor of shape [time, batch].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</p></li>
 <li><p><strong>condition</strong> – input condition. A tensor of shape [batch, condition_dim].</p></li>
-<li><p><strong>labels</strong> – If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:  -
+<li><p><strong>labels</strong> – If not None, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:  -
 class_weights, a tensor with shape [time, batch] containing the weights
 for each target word. - class_ids, a tensor with shape [time, batch] of
 int32 dtype containing the target class labels. - class_probabilities, a
@@ -658,7 +658,7 @@ layer.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
 value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
 </dd>
@@ -717,7 +717,7 @@ value and <code class="xref py py-obj docutils literal notranslate"><span class=
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt><dd><dl class="simple">
+<dt>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt><dd><dl class="simple">
 <dt>logits: a python int.</dt><dd><p>The vocab size.</p>
 </dd>
 <dt>last_hidden: a python int.</dt><dd><p>The last hidden layer’s dimension.</p>
@@ -737,11 +737,11 @@ value and <code class="xref py py-obj docutils literal notranslate"><span class=
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – a tensor of shape [batch, model_dim].</p></li>
 <li><p><strong>paddings</strong> – a 0/1 tensor of shape [batch]. Unused here.</p></li>
-<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the prefix states up to step t-1.</p></li>
+<li><p><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the prefix states up to step t-1.</p></li>
 <li><p><strong>*args</strong> – optional extra arguments.</p></li>
 <li><p><strong>**kwargs</strong> – optional extra keyword arguments.</p></li>
 </ul>
@@ -749,7 +749,7 @@ layer and its children layers.</p></li>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>A tuple (output, state1).</dt><dd><dl class="simple">
-<dt>output: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt><dd><dl class="simple">
+<dt>output: A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt><dd><dl class="simple">
 <dt>logits:</dt><dd><p>[batch, vocab_size].</p>
 </dd>
 <dt>last_hidden:</dt><dd><p>[batch, model_dims].</p>
@@ -773,12 +773,12 @@ layer and its children layers.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – Input activation. A tensor of shape [time, batch, model_dim].</p></li>
 <li><p><strong>paddings</strong> – A 0/1 tensor of shape [time, batch].</p></li>
 <li><p><strong>state0</strong> – Not used for Transformer.</p></li>
-<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
+<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
 <ul>
 <li><p>class_weights, a tensor with shape [time, batch] containing the
 weights for each target word.</p></li>
@@ -792,7 +792,7 @@ float values indicating class-membership probabilities.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, None), where
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
 value. Otherwise, <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
 </dd>
 </dl>
@@ -852,12 +852,12 @@ chunking is done.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
 <li><p><strong>inputs</strong> – Input ids. An int32 tensor of shape [time, batch].</p></li>
 <li><p><strong>paddings</strong> – A 0/1 tensor of shape [time, batch].</p></li>
 <li><p><strong>state0</strong> – Not used for Transformer.</p></li>
-<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
+<li><p><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
 <ul>
 <li><p>class_weights, a tensor with shape [time, batch] containing the
 weights for each target word.</p></li>
@@ -871,7 +871,7 @@ float values indicating class-membership probabilities.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
 value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
 </dd>
@@ -939,12 +939,12 @@ its default value of None no chunking is done.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>inputs</strong> – Input ids. An int32 tensor of shape [batch, time].</p></li>
 <li><p><strong>paddings</strong> – A 0/1 tensor of shape [batch, time].</p></li>
 <li><p><strong>state0</strong> – Not used for Transformer.</p></li>
-<li><p><strong>labels</strong> – If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:  -
+<li><p><strong>labels</strong> – If not None, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:  -
 class_weights, a tensor with shape [batch, time] containing the weights
 for each target word. - class_ids, a tensor with shape [batch, time] of
 int32 dtype containing the target class labels. - class_probabilities, a
@@ -954,7 +954,7 @@ class-membership probabilities.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
 value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
 </dd>

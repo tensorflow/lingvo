@@ -180,7 +180,7 @@
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Top-down detection visualization, expecting 3D laser points and 2D bboxes.</p>
 <dl class="simple">
-<dt>Updates to this metric is expected to be <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing:</dt><dd><ul class="simple">
+<dt>Updates to this metric is expected to be <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing:</dt><dd><ul class="simple">
 <li><p>visualization_labels: [N, B1] int tensor containing visualization labels.</p></li>
 <li><p>predicted_bboxes: [N, B1, 5] float tensor containing predicted 2D bboxes
 each with (x, y, dx, dy, phi).</p></li>
@@ -209,7 +209,7 @@ with a different color per class.</p>
 <dd><p>Add top down visualization to summaries.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the fields
+<dd class="field-odd"><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the fields
 visualization_labels, predicted_bboxes, visualization_weights,
 points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
 labels.</p>
@@ -278,7 +278,7 @@ labels.</p>
 <dd><p>Add point cloud mesh data to be summarized.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the fields
+<dd class="field-odd"><p><strong>decoded_outputs</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the fields
 visualization_labels, predicted_bboxes, visualization_weights,
 points_xyz, points_padding, gt_bboxes_2d, gt_bboxes_2d_weights, and
 labels.</p>
@@ -315,7 +315,7 @@ labels.</p>
 <p>Camera detection visualization.</p>
 <p>Visualizes a camera image and predicted bounding boxes on top
 of the image.</p>
-<p>Updates to this metric is expected to be <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing:</p>
+<p>Updates to this metric is expected to be <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing:</p>
 <blockquote>
 <div><p>camera_images: [N, W, H, 3] float tensor containing camera image data.</p>
 <p>bbox_corners: [N, B1, 8, 2] float tensor containing bounding box corners.
