@@ -18,11 +18,12 @@
 import heapq
 import lingvo.compat as tf
 from lingvo.core import hyperparams
-from lingvo.core import py_utils
+from lingvo.core import nested_map
+from lingvo.core import thread_local_utils
 import numpy as np
 
 
-_CLUSTER_STACK = py_utils.ThreadLocalStack()
+_CLUSTER_STACK = thread_local_utils.ThreadLocalStack()
 
 
 class _Cluster:
@@ -508,7 +509,7 @@ def ParseDeviceString(device_str):
     parsed_device: a NestedMap that maps job, replica, task, and device to their
       corresponding value.
   """
-  parsed_device = py_utils.NestedMap()
+  parsed_device = nested_map.NestedMap()
   device_parts = device_str.split('/')
   for device_part in device_parts:
     if device_part.startswith('job:'):

@@ -1268,9 +1268,11 @@ py_library(
     deps = [
         ":gshard_utils",
         ":hyperparams",
+        ":nested_map",
         ":py_utils_flags",
         ":retry",
         ":symbolic",
+        ":thread_local_utils",
         ":tshape",
         "//lingvo:compat",
         "//lingvo/core/ops",
@@ -2328,6 +2330,23 @@ py_test(
 py_library(
     name = "input_policy",
     srcs = ["input_policy.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "thread_local_utils",
+    srcs = ["thread_local_utils.py"],
+    srcs_version = "PY3",
+    deps = [
+    ],
+)
+
+py_library(
+    name = "nested_map",
+    srcs = ["nested_map.py"],
     srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
