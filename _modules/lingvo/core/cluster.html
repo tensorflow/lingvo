@@ -641,12 +641,13 @@
           <span class="s1">&#39;wb/var&#39;</span><span class="p">),</span> <span class="s1">&#39;Unexpected name pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">var_op</span><span class="o">.</span><span class="n">name</span>
       <span class="c1"># CuDNN RNN vars shape aren&#39;t known statically, decide to make a constant</span>
       <span class="c1"># estimate to avoid introducing more complexities.</span>
-      <span class="n">allocated</span> <span class="o">+=</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">size</span>
+      <span class="n">var_bytes</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">size</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">allocated</span> <span class="o">+=</span> <span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="n">size</span>
+      <span class="n">var_bytes</span> <span class="o">=</span> <span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="n">size</span>
+    <span class="n">allocated</span> <span class="o">+=</span> <span class="n">var_bytes</span>
     <span class="n">heapq</span><span class="o">.</span><span class="n">heappush</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_space_pq</span><span class="p">,</span> <span class="p">(</span><span class="n">allocated</span><span class="p">,</span> <span class="n">device</span><span class="p">))</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Place variable </span><span class="si">%s</span><span class="s1"> on </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var_op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span>
-                    <span class="n">allocated</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Place variable </span><span class="si">%s</span><span class="s1"> on </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1">(+</span><span class="si">%d</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">var_op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span>
+                    <span class="n">allocated</span><span class="p">,</span> <span class="n">var_bytes</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">device</span></div></div>
 
 
