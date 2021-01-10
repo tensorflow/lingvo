@@ -489,12 +489,13 @@ class _LeastLoadedPlacer(VarPlacer):
           'wb/var'), 'Unexpected name pattern: %s' % var_op.name
       # CuDNN RNN vars shape aren't known statically, decide to make a constant
       # estimate to avoid introducing more complexities.
-      allocated += 10 * 1024**2 * size
+      var_bytes = 10 * 1024**2 * size
     else:
-      allocated += shape.num_elements() * size
+      var_bytes = shape.num_elements() * size
+    allocated += var_bytes
     heapq.heappush(self._var_space_pq, (allocated, device))
-    tf.logging.info('Place variable %s on %s %d', var_op.name, device,
-                    allocated)
+    tf.logging.info('Place variable %s on %s %d(+%d)', var_op.name, device,
+                    allocated, var_bytes)
     return device
 
 
