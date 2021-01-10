@@ -750,8 +750,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     if self.params.device_mesh is not None:
       if (len([dim for dim in var_params.shape if dim > 1]) > 1 and
           var_params.tensor_split_dims_mapping is None):
-        tf.logging.warn('tensor_split_dims_mapping missing for %s.%s: shape=%s',
-                        self.path, name, var_params.shape)
+        tf.logging.warning(
+            'tensor_split_dims_mapping missing for %s.%s: shape=%s', self.path,
+            name, var_params.shape)
     if self._is_variable_free:
       raise ValueError('Cannot create variable in variable free layer.')
     if self._create_variables_status == _CreateLayerVariablesStatus.COMPLETED:
