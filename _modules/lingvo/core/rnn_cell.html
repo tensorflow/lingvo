@@ -174,6 +174,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.steps</span> <span class="kn">import</span> <span class="n">embedding_steps</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">deprecation</span> <span class="k">as</span> <span class="n">tf_deprecation</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
@@ -1750,6 +1751,128 @@
     <span class="n">new_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="EmbeddingAugmentedLayerNormalizedLSTMCellSimple"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple">[docs]</a><span class="k">class</span> <span class="nc">EmbeddingAugmentedLayerNormalizedLSTMCellSimple</span><span class="p">(</span>
+    <span class="n">LayerNormalizedLSTMCellSimple</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrapper around a layer-normalized LSTM cell to inject embedding.</span>
+
+<span class="sd">  Normally an RNN cell operates as</span>
+
+<span class="sd">    output = wm * concat([m, activations])</span>
+
+<span class="sd">  Depending on inject_emb_method, embedding-augmented RNN cell operates as</span>
+
+<span class="sd">    output = wm * concat([m, activations, embedding])</span>
+
+<span class="sd">  or</span>
+
+<span class="sd">    output = wm * concat([m, activations + embedding])</span>
+
+<span class="sd">  theta:</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
+<span class="sd">  - emb: weights for the embedding.</span>
+
+<span class="sd">  state:</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
+<span class="sd">  - prev_ids: token ids at t-1, ..., t-n, etc. [batch, num_tokens]. Embedding</span>
+<span class="sd">  can depend on multiple previous tokens, hence we need these ids.</span>
+
+<span class="sd">  inputs:</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">    Shape [batch, 1]</span>
+<span class="sd">  - ids: input token ids. [batch]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="EmbeddingAugmentedLayerNormalizedLSTMCellSimple.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">embedding_steps</span><span class="o">.</span><span class="n">StatefulEmbeddingStep</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Inject this embedding into the input to the cell.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inject_emb_method&#39;</span><span class="p">,</span> <span class="s1">&#39;add&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Method for injecting embedding vector (`add`, `concat`)&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;embedding_augmented_lstm&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="n">embedding_steps</span><span class="o">.</span><span class="n">StatefulEmbeddingStep</span><span class="p">,</span> \
+      <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Only embedding_steps.StatefulEmbeddingStep supported for p.emb at the &#39;</span>
+       <span class="sa">f</span><span class="s1">&#39;moment (mainly because of FProp argument structure. Can easily be &#39;</span>
+       <span class="sa">f</span><span class="s1">&#39;updatd to support layers.EmbeddingLayer and others). Your p.emb is of &#39;</span>
+       <span class="sa">f</span><span class="s1">&#39;type </span><span class="si">{</span><span class="n">params</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">cls</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EmbeddingAugmentedLayerNormalizedLSTMCellSimple.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Zero state for cell, which includes setting prev_ids to sos token.&quot;&quot;&quot;</span>
+    <span class="n">state0</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">state0</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state0</span></div>
+
+<div class="viewcode-block" id="EmbeddingAugmentedLayerNormalizedLSTMCellSimple.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A wrapper that handles adding or concatenating embedding inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: weights</span>
+<span class="sd">      - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">      - b: the combined bias vector.</span>
+<span class="sd">      - emb: weights for the embedding.</span>
+<span class="sd">      state0: input state</span>
+<span class="sd">      - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">      - c: the lstm cell state. [batch, cell_nodes]</span>
+<span class="sd">      inputs: input activations</span>
+<span class="sd">      - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">      - padding: the padding. [batch, 1].</span>
+<span class="sd">      - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">        Shape [batch, 1]</span>
+<span class="sd">      - ids: input token ids. [batch]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      state1: updated state with same structure as state0.</span>
+<span class="sd">      extras: passed through from subclass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">step_inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">ids</span><span class="p">])</span>
+    <span class="n">embedding</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                                       <span class="n">state0</span><span class="p">)</span>
+    <span class="n">embedding</span> <span class="o">=</span> <span class="n">embedding</span><span class="o">.</span><span class="n">output</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">inject_emb_method</span> <span class="o">==</span> <span class="s1">&#39;concat&#39;</span><span class="p">:</span>
+      <span class="c1"># This RNN cell is typically called from recurrent.Recurrent(), which</span>
+      <span class="c1"># fails (during execution of backprop) when the input dimensionality to</span>
+      <span class="c1"># recurrent.Recurrent() differs from the input dimensionality to the RNN</span>
+      <span class="c1"># cell. As a result, concatenating a vector directly onto the input would</span>
+      <span class="c1"># not work, since it would cause the input dimensionalities (see above)</span>
+      <span class="c1"># differ. Instead we pad the input with zeros before recurrent.Recurrent()</span>
+      <span class="c1"># and add the embeddings to the padded part of the input here.</span>
+      <span class="k">def</span> <span class="nf">_AssertIsPadded</span><span class="p">(</span><span class="n">activations</span><span class="p">):</span>
+        <span class="n">padded_slice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">activations</span><span class="p">[:,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:],</span>
+                               <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="n">input_is_padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">padded_slice</span><span class="p">)</span>
+        <span class="n">input_is_padded</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">input_is_padded</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span><span class="n">input_is_padded</span><span class="p">],</span> <span class="n">activations</span><span class="p">)</span>
+
+      <span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">_AssertIsPadded</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="c1"># pad embedding preparation for adding to input activations</span>
+      <span class="n">embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+          <span class="n">embedding</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+
+    <span class="c1"># inputs.act[0] = tf.ensure_shape(inputs.act[0], [None, p.num_input_nodes],</span>
+    <span class="c1">#                                 &#39;ensure_activations_shape&#39;)</span>
+    <span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">embedding</span>  <span class="c1"># &quot;concatenation&quot; via addition</span>
+    <span class="n">s</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">state1</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span></div></div>
 
 
 <div class="viewcode-block" id="DoubleProjectionLSTMCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell">[docs]</a><span class="k">class</span> <span class="nc">DoubleProjectionLSTMCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>

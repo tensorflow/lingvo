@@ -956,6 +956,90 @@ Shape [batch, 1]</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.rnn_cell.</code><code class="sig-name descname">EmbeddingAugmentedLayerNormalizedLSTMCellSimple</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#EmbeddingAugmentedLayerNormalizedLSTMCellSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple" title="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple</span></code></a></p>
+<p>Wrapper around a layer-normalized LSTM cell to inject embedding.</p>
+<p>Normally an RNN cell operates as</p>
+<blockquote>
+<div><p>output = wm * concat([m, activations])</p>
+</div></blockquote>
+<p>Depending on inject_emb_method, embedding-augmented RNN cell operates as</p>
+<blockquote>
+<div><p>output = wm * concat([m, activations, embedding])</p>
+</div></blockquote>
+<p>or</p>
+<blockquote>
+<div><p>output = wm * concat([m, activations + embedding])</p>
+</div></blockquote>
+<p>theta:</p>
+<ul class="simple">
+<li><p>wm: the parameter weight matrix. All gates combined.</p></li>
+<li><p>b: the combined bias vector.</p></li>
+<li><p>emb: weights for the embedding.</p></li>
+</ul>
+<p>state:</p>
+<ul class="simple">
+<li><p>m: the lstm output. [batch, cell_nodes]</p></li>
+<li><p>c: the lstm cell state. [batch, cell_nodes]</p></li>
+<li><p>prev_ids: token ids at t-1, …, t-n, etc. [batch, num_tokens]. Embedding</p></li>
+</ul>
+<p>can depend on multiple previous tokens, hence we need these ids.</p>
+<p>inputs:</p>
+<ul class="simple">
+<li><p>act: a list of input activations. [batch, input_nodes]</p></li>
+<li><p>padding: the padding. [batch, 1].</p></li>
+<li><p>reset_mask: optional 0/1 float input to support packed input training.
+Shape [batch, 1]</p></li>
+<li><p>ids: input token ids. [batch]</p></li>
+</ul>
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#EmbeddingAugmentedLayerNormalizedLSTMCellSimple.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.zero_state">
+<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#EmbeddingAugmentedLayerNormalizedLSTMCellSimple.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zero state for cell, which includes setting prev_ids to sos token.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#EmbeddingAugmentedLayerNormalizedLSTMCellSimple.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>A wrapper that handles adding or concatenating embedding inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – weights</p></li>
+<li><p><strong>wm</strong> (<em>-</em>) – the parameter weight matrix. All gates combined.</p></li>
+<li><p><strong>b</strong> (<em>-</em>) – the combined bias vector.</p></li>
+<li><p><strong>emb</strong> (<em>-</em>) – weights for the embedding.</p></li>
+<li><p><strong>state0</strong> – input state</p></li>
+<li><p><strong>m</strong> (<em>-</em>) – the lstm output. [batch, cell_nodes]</p></li>
+<li><p><strong>c</strong> (<em>-</em>) – the lstm cell state. [batch, cell_nodes]</p></li>
+<li><p><strong>inputs</strong> – input activations</p></li>
+<li><p><strong>act</strong> (<em>-</em>) – a list of input activations. [batch, input_nodes]</p></li>
+<li><p><strong>padding</strong> (<em>-</em>) – the padding. [batch, 1].</p></li>
+<li><p><strong>reset_mask</strong> (<em>-</em>) – optional 0/1 float input to support packed input training.
+Shape [batch, 1]</p></li>
+<li><p><strong>ids</strong> (<em>-</em>) – input token ids. [batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated state with same structure as state0.
+extras: passed through from subclass.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>state1</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.rnn_cell.</code><code class="sig-name descname">DoubleProjectionLSTMCell</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
