@@ -22,6 +22,7 @@ from lingvo.core import pruning_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import summary_utils
+from lingvo.core.steps import embedding_steps
 
 from tensorflow.python.util import deprecation as tf_deprecation  # pylint: disable=g-direct-tensorflow-import
 
@@ -1598,6 +1599,128 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     new_c = py_utils.ApplyPadding(padding, new_c, state0.c)
 
     return py_utils.NestedMap(m=new_m, c=new_c)
+
+
+class EmbeddingAugmentedLayerNormalizedLSTMCellSimple(
+    LayerNormalizedLSTMCellSimple):
+  """Wrapper around a layer-normalized LSTM cell to inject embedding.
+
+  Normally an RNN cell operates as
+
+    output = wm * concat([m, activations])
+
+  Depending on inject_emb_method, embedding-augmented RNN cell operates as
+
+    output = wm * concat([m, activations, embedding])
+
+  or
+
+    output = wm * concat([m, activations + embedding])
+
+  theta:
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
+  - emb: weights for the embedding.
+
+  state:
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
+  - prev_ids: token ids at t-1, ..., t-n, etc. [batch, num_tokens]. Embedding
+  can depend on multiple previous tokens, hence we need these ids.
+
+  inputs:
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
+  - ids: input token ids. [batch]
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('emb', embedding_steps.StatefulEmbeddingStep.Params(),
+             'Inject this embedding into the input to the cell.')
+    p.Define('inject_emb_method', 'add',
+             'Method for injecting embedding vector (`add`, `concat`)')
+    p.name = 'embedding_augmented_lstm'
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    assert params.emb.cls is embedding_steps.StatefulEmbeddingStep, \
+      (f'Only embedding_steps.StatefulEmbeddingStep supported for p.emb at the '
+       f'moment (mainly because of FProp argument structure. Can easily be '
+       f'updatd to support layers.EmbeddingLayer and others). Your p.emb is of '
+       f'type {params.emb.cls}')
+    self.CreateChild('emb', params.emb)
+
+  def zero_state(self, theta, batch_size):
+    """Zero state for cell, which includes setting prev_ids to sos token."""
+    state0 = super().zero_state(theta, batch_size)
+    s = self.emb.ZeroState(theta.emb, None, batch_size)
+    state0.update(s)
+    return state0
+
+  def FProp(self, theta, state0, inputs):
+    """A wrapper that handles adding or concatenating embedding inputs.
+
+    Args:
+      theta: weights
+      - wm: the parameter weight matrix. All gates combined.
+      - b: the combined bias vector.
+      - emb: weights for the embedding.
+      state0: input state
+      - m: the lstm output. [batch, cell_nodes]
+      - c: the lstm cell state. [batch, cell_nodes]
+      inputs: input activations
+      - act: a list of input activations. [batch, input_nodes]
+      - padding: the padding. [batch, 1].
+      - reset_mask: optional 0/1 float input to support packed input training.
+        Shape [batch, 1]
+      - ids: input token ids. [batch]
+
+    Returns:
+      state1: updated state with same structure as state0.
+      extras: passed through from subclass.
+    """
+    p = self.params
+
+    step_inputs = py_utils.NestedMap(inputs=[inputs.ids])
+    embedding, state1 = self.emb.FProp(theta.emb, None, step_inputs, None,
+                                       state0)
+    embedding = embedding.output
+
+    if p.inject_emb_method == 'concat':
+      # This RNN cell is typically called from recurrent.Recurrent(), which
+      # fails (during execution of backprop) when the input dimensionality to
+      # recurrent.Recurrent() differs from the input dimensionality to the RNN
+      # cell. As a result, concatenating a vector directly onto the input would
+      # not work, since it would cause the input dimensionalities (see above)
+      # differ. Instead we pad the input with zeros before recurrent.Recurrent()
+      # and add the embeddings to the padded part of the input here.
+      def _AssertIsPadded(activations):
+        padded_slice = tf.cast(activations[:, -p.emb.emb.embedding_dim:],
+                               tf.bool)
+        input_is_padded = tf.math.reduce_any(padded_slice)
+        input_is_padded = py_utils.assert_equal(input_is_padded, False)
+        return py_utils.with_dependencies([input_is_padded], activations)
+
+      inputs.act[0] = _AssertIsPadded(inputs.act[0])
+
+      # pad embedding preparation for adding to input activations
+      embedding = tf.pad(
+          embedding, [[0, 0], [p.num_input_nodes - p.emb.emb.embedding_dim, 0]])
+
+    # inputs.act[0] = tf.ensure_shape(inputs.act[0], [None, p.num_input_nodes],
+    #                                 'ensure_activations_shape')
+    inputs.act[0] = inputs.act[0] + embedding  # "concatenation" via addition
+    s, extras = super().FProp(theta, state0, inputs)
+    state1.update(s)
+    return state1, extras
 
 
 class DoubleProjectionLSTMCell(RNNCell):

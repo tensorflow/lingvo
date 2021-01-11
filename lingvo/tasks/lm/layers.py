@@ -15,6 +15,7 @@
 # ==============================================================================
 """Common layers for language models."""
 
+import inspect
 import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -223,6 +224,8 @@ class NullLm(BaseLanguageModel):
 
 
 def _RnnOutputSize(rnns):
+  if rnns.num_output_nodes > 0:
+    return rnns.num_output_nodes
   cell = rnns.cell_tpl[-1]
   return cell.num_output_nodes
 
@@ -381,7 +384,8 @@ class RnnLmNoEmbedding(BaseLanguageModel):
             paddings,
             state0,
             labels=None,
-            direct_features=None):
+            direct_features=None,
+            input_ids=None):
     """Computes xent loss given the language model input activations.
 
     Args:
@@ -401,6 +405,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
       direct_features:
         If not None, a tensor of [time, batch, direct_feature_dims] that is
         concatenated to the output of the last RNN layer.
+      input_ids: input token ids. Tensor of shape [time, batch]
 
     Returns:
       If `labels` is not None, returns (xent_output, state1), where
@@ -413,8 +418,16 @@ class RnnLmNoEmbedding(BaseLanguageModel):
     seqlen, batch, _ = tf.unstack(tf.shape(inputs), num=3)
     paddings = py_utils.HasShape(paddings, [seqlen, batch])
     assert state0 is not None
+
+    # Include input_ids as arg only if supported by rnns.FProp function
+    # pylint: disable=deprecated-method
+    fprop_args, _, _, _ = inspect.getargspec(self.rnns.FProp)
+    kwargs = dict(input_ids=input_ids)
+    kwargs = {k: v for k, v in kwargs.items() if k in fprop_args}
+
     activation, state1 = self.rnns.FProp(theta.rnns, inputs,
-                                         tf.expand_dims(paddings, 2), state0)
+                                         tf.expand_dims(paddings, 2), state0,
+                                         **kwargs)
 
     if direct_features is not None:
       direct_features = py_utils.HasRank(direct_features, 3)
@@ -607,8 +620,14 @@ class RnnLm(RnnLmNoEmbedding):
           activation,
           rate=1 - p.embedding_dropout_keep_prob,
           seed=p.embedding_dropout_seed)
-    return super().FProp(theta, activation, paddings, state0, labels,
-                         direct_features)
+    return super().FProp(
+        theta,
+        activation,
+        paddings,
+        state0,
+        labels,
+        direct_features,
+        input_ids=ids)
 
 
 class ConditionalRnnLm(RnnLmNoEmbedding):

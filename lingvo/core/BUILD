@@ -1816,6 +1816,7 @@ py_library(
         ":quant_utils",
         ":summary_utils",
         "//lingvo:compat",
+        "//lingvo/core/steps:embedding_steps",
     ],
 )
 
@@ -1824,12 +1825,14 @@ lingvo_cuda_py_test(
     srcs = ["rnn_cell_test.py"],
     python_version = "PY3",
     deps = [
+        ":layers",
         ":py_utils",
         ":quant_utils",
         ":rnn_cell",
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
+        "//lingvo/core/steps:embedding_steps",
         # Implicit numpy dependency.
     ],
 )

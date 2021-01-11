@@ -14,6 +14,7 @@
 # limitations under the License.
 """Lingvo RNN layers."""
 
+import inspect
 import math
 import lingvo.compat as tf
 from lingvo.core import attention
@@ -212,7 +213,10 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
+    self.CreateChild('dropout', p.dropout)
 
+    if p.num_layers == 0:
+      return
     rnn_params = []
     with tf.name_scope(p.name):
       for (i, cell_tpl) in enumerate(self._GetCellTpls()):
@@ -229,14 +233,15 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
         rnn_params.append(params)
 
     for i in range(len(rnn_params) - 1):
-      # Because one layer's output needs to be fed into the next layer's
-      # input, hence, we have this assertion. We can relax it later by
-      # allowing more parameterization of the layers.
-      assert (rnn_params[i].cell.num_output_nodes == rnn_params[i + 1].cell
-              .num_input_nodes)
+      # Embedding-augmented LSTM allows different input/output dims
+      if not hasattr(rnn_params[i + 1].cell, 'inject_emb_method'):
+        # Because one layer's output needs to be fed into the next layer's
+        # input, hence, we have this assertion. We can relax it later by
+        # allowing more parameterization of the layers.
+        assert (rnn_params[i].cell.num_output_nodes == rnn_params[
+            i + 1].cell.num_input_nodes)
 
     self.CreateChildren('rnn', rnn_params)
-    self.CreateChild('dropout', p.dropout)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -245,8 +250,9 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.InstantiateVariables()
     # outside of tf.variable_scope(p.name).
-    for rnn in self.rnn:
-      rnn.InstantiateVariables()
+    if self.params.num_layers > 0:
+      for rnn in self.rnn:
+        rnn.InstantiateVariables()
     self.dropout.InstantiateVariables()
     super()._CreateChildrenVariables()
 
@@ -258,7 +264,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
       ret.rnn.append(state0)
     return ret
 
-  def FProp(self, theta, inputs, paddings, state0=None):
+  def FProp(self, theta, inputs, paddings, state0=None, input_ids=None):
     """Compute RNN forward pass.
 
     Args:
@@ -268,6 +274,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
       paddings: A single tensor of shape [time, batch, 1].
       state0: If not None, the initial rnn state in a `.NestedMap`. Defaults
         to the init state.
+      input_ids: input token ids. Tensor of shape [time, batch]
 
     Returns:
       (outputs, state1)
@@ -280,8 +287,15 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     xs = inputs
     state1 = py_utils.NestedMap(rnn=[None] * p.num_layers)
     for i in range(p.num_layers):
+
+      # Include input_ids as arg only if supported by rnns.FProp function
+      # pylint: disable=deprecated-method
+      fprop_args, _, _, _ = inspect.getargspec(self.rnn[i].FProp)
+      kwargs = dict(input_ids=input_ids)
+      kwargs = {k: v for k, v in kwargs.items() if k in fprop_args}
+
       ys, state1.rnn[i] = self.rnn[i].FProp(theta.rnn[i], xs, paddings,
-                                            state0.rnn[i])
+                                            state0.rnn[i], **kwargs)
       ys = self.dropout.FProp(theta.dropout, ys)
       if (p.skip_start >= 0 and i >= p.skip_start and
           (p.num_input_nodes <= 0 or i != 0) and
@@ -400,7 +414,13 @@ class FRNN(base_layer.BaseLayer):
   def zero_state(self, theta, batch_size):
     return self.cell.zero_state(theta.cell, batch_size)
 
-  def FProp(self, theta, inputs, paddings, state0=None, segment_id=None):
+  def FProp(self,
+            theta,
+            inputs,
+            paddings,
+            state0=None,
+            segment_id=None,
+            input_ids=None):
     """Compute RNN forward pass.
 
     Args:
@@ -415,6 +435,7 @@ class FRNN(base_layer.BaseLayer):
         to the cell's zero-state.
       segment_id: A tensor to support packed inputs. First dim is time, second
           dim is batch, and third dim is expected to be 1.
+      input_ids: input token ids. Tensor of shape [time, batch]
 
     Returns:
       A tensor of [time, batch, dims].
@@ -453,6 +474,23 @@ class FRNN(base_layer.BaseLayer):
 
     inputs = py_utils.NestedMap(
         act=inputs, padding=paddings, reset_mask=reset_mask)
+
+    if input_ids is not None:
+      inputs.ids = input_ids
+
+    if hasattr(rcell.params, 'inject_emb_method') \
+        and rcell.params.inject_emb_method == 'concat':
+      # Preemptively match input dim to what LSTM expects via padding.
+      # Reason: Recurrent.Recurrent() fails (during execution of backprop) when
+      # the input dimensionality to recurrent.Recurrent() differs from the input
+      # dimensionality to the RNN cell. As a result, concatenating a vector onto
+      # the input inside the cell would not work, since it would cause the input
+      # dimensionalities mentioned above to differ. Instead we pad the input
+      # with zeros before recurrent.Recurrent() to match the RNN cell input dim
+      # and add the embeddings to the padded part of the input later.
+      inputs.act[0] = tf.pad(
+          inputs.act[0],
+          [[0, 0], [0, 0], [0, rcell.params.emb.emb.embedding_dim]])
 
     acc_state, final_state = recurrent.Recurrent(
         theta=theta.cell,

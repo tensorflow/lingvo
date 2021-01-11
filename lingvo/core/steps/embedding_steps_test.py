@@ -18,6 +18,7 @@ from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core.steps import embedding_steps
+import numpy as np
 
 
 class EmbeddingStepsTest(test_utils.TestCase):
@@ -51,6 +52,43 @@ class EmbeddingStepsTest(test_utils.TestCase):
       self.assertAllClose(
           out1.output,
           [[-5.9790569e-03, -8.7367110e-03], [-2.1643407e-06, 1.4426162e-02]])
+
+  def testStatefulEmbeddingStep(self):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(398847392)
+      p = embedding_steps.StatefulEmbeddingStep.Params().Set(
+          name='emb_step',
+          num_prev_tokens=1,
+          include_current_token=False,
+          target_sos_id=1,
+      )
+      p.emb.Set(
+          vocab_size=10,
+          embedding_dim=3,
+          max_num_shards=1,
+          params_init=py_utils.WeightInit.Gaussian(0.01),
+      )
+      p.emb.vn.global_vn = False
+      p.emb.vn.per_step_vn = False
+      emb = p.Instantiate()
+
+      # Verify that nothing bad happens when these methods are called.
+      packed = emb.PrepareExternalInputs(None, None)
+      state0 = emb.ZeroState(emb.theta, packed, 2)
+
+      out1, state1 = emb.FProp(
+          emb.theta, packed,
+          py_utils.NestedMap(inputs=[tf.constant([4, 3], tf.int32)]),
+          tf.constant([0.0], dtype=tf.float32), state0)
+
+      self.evaluate(tf.global_variables_initializer())
+      out1, state1 = self.evaluate([out1, state1])
+
+      self.assertAllEqual(state1.prev_ids, np.array([[4], [3]]))
+      self.assertAllClose(
+          out1.output,
+          np.array([[-0.00740041, -0.00746862, 0.00093992],
+                    [-0.00740041, -0.00746862, 0.00093992]]))
 
 
 if __name__ == '__main__':
