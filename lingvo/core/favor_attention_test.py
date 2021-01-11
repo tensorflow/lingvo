@@ -37,6 +37,10 @@ class FAVORTest(test_utils.TestCase, parameterized.TestCase):
     value = tf.random.normal([batch_size, length, num_heads, dim])
     kernel_transformation = favor.softmax_kernel_transformation
     projection_matrix = favor.create_projection_matrix(num_random_features, dim)
+    query = tf.cast(query, tf.float64)
+    key = tf.cast(key, tf.float64)
+    value = tf.cast(value, tf.float64)
+    projection_matrix = tf.cast(projection_matrix, tf.float64)
     attention_block_output = favor.favor_attention(query, key, value,
                                                    kernel_transformation, False,
                                                    projection_matrix)

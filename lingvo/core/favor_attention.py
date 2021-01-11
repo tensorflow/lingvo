@@ -105,7 +105,7 @@ def relu_kernel_transformation(data,
     return tf.nn.relu(data) + numerical_stabilizer
   else:
     ratio = 1.0 / tf.math.sqrt(
-        tf.dtypes.cast(projection_matrix.shape[0], tf.float32))
+        tf.dtypes.cast(projection_matrix.shape[0], projection_matrix.dtype))
     data_dash = ratio * tf.einsum("blhd,md->blhm", data, projection_matrix)
     return tf.nn.relu(data_dash) + numerical_stabilizer
 
@@ -131,10 +131,10 @@ def softmax_kernel_transformation(data,
   Returns:
     Corresponding kernel feature map.
   """
-  data_normalizer = 1.0 / (
-      tf.math.sqrt(tf.math.sqrt(tf.dtypes.cast(data.shape[-1], tf.float32))))
+  data_normalizer = 1.0 / tf.math.sqrt(
+      (tf.math.sqrt(tf.dtypes.cast(data.shape[-1], projection_matrix.dtype))))
   ratio = 1.0 / tf.math.sqrt(
-      tf.dtypes.cast(projection_matrix.shape[0], tf.float32))
+      tf.dtypes.cast(projection_matrix.shape[0], projection_matrix.dtype))
   data_dash = tf.einsum("blhd,md->blhm", data_normalizer * data,
                         projection_matrix)
   diag_data = tf.math.square(data)
@@ -180,8 +180,7 @@ def noncausal_denominator(qs, ks):
   Returns:
     FAVOR normalizer in noncausal attention.
   """
-  all_ones = tf.ones([ks.shape[0]])
-  ks_sum = tf.einsum("lbhm,l->bhm", ks, all_ones)
+  ks_sum = tf.reduce_sum(ks, axis=0)
   return tf.einsum("lbhm,bhm->lbh", qs, ks_sum)
 
 
