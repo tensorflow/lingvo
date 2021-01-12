@@ -1627,8 +1627,8 @@ class EmbeddingAugmentedLayerNormalizedLSTMCellSimple(
 
   - m: the lstm output. [batch, cell_nodes]
   - c: the lstm cell state. [batch, cell_nodes]
-  - prev_ids: token ids at t-1, ..., t-n, etc. [batch, num_tokens]. Embedding
-  can depend on multiple previous tokens, hence we need these ids.
+  - prev_ids: token ids at t-1, ..., t-n, etc. [batch, num_tokens].
+    Embedding can depend on multiple previous tokens, hence we need these ids.
 
   inputs:
 
@@ -1637,6 +1637,7 @@ class EmbeddingAugmentedLayerNormalizedLSTMCellSimple(
   - reset_mask: optional 0/1 float input to support packed input training.
     Shape [batch, 1]
   - ids: input token ids. [batch]
+
   """
 
   @classmethod
