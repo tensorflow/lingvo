@@ -175,6 +175,8 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
+
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
                      <span class="s1">&#39;If False, we disable all asserts.&#39;</span><span class="p">)</span>
 
@@ -241,7 +243,7 @@
 
 
 <span class="c1"># pylint: disable=invalid-name</span>
-<div class="viewcode-block" id="_FromGlobal"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags._FromGlobal">[docs]</a><span class="k">def</span> <span class="nf">_FromGlobal</span><span class="p">(</span><span class="n">field_name</span><span class="p">):</span>
+<div class="viewcode-block" id="_FromGlobal"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags._FromGlobal">[docs]</a><span class="k">def</span> <span class="nf">_FromGlobal</span><span class="p">(</span><span class="n">field_name</span><span class="p">,</span> <span class="n">allow_override_from_cluster</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Get &#39;field_name&#39; from a global configuration object.</span>
 
 <span class="sd">  Currently the global configuration object used is FLAGS, but this may</span>
@@ -249,12 +251,19 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    field_name: The string field name to look up.</span>
+<span class="sd">    allow_override_from_cluster: Allow the Cluster() to override FLAGS.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The value associated with the global configuration string &#39;field_name&#39;.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="c1"># TODO(b/145831327): check the field name in the current cluster object.</span>
-  <span class="c1"># If explicitly set, use that value instead of using the FLAG value.</span>
+
+  <span class="k">if</span> <span class="n">allow_override_from_cluster</span><span class="p">:</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
+      <span class="n">params_value</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
+      <span class="c1"># Return the value in the cluster params if it is not None</span>
+      <span class="k">if</span> <span class="n">params_value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">params_value</span>
 
   <span class="c1"># Now check the FLAGS object for backwards compatibility.</span>
   <span class="c1">#</span>
@@ -265,14 +274,14 @@
 
 
 <div class="viewcode-block" id="use_xla"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.use_xla">[docs]</a><span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">)</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="n">allow_override_from_cluster</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
     <span class="k">assert</span> <span class="n">res</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="s1">&#39;gpu&#39;</span><span class="p">,</span> <span class="s1">&#39;tpu&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">res</span></div>
 
 
 <div class="viewcode-block" id="use_tpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.use_tpu">[docs]</a><span class="k">def</span> <span class="nf">use_tpu</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="n">allow_override_from_cluster</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">)</span>  <span class="c1"># asserts not supported on tpu</span>
   <span class="k">return</span> <span class="n">res</span></div>
