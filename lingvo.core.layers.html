@@ -1773,6 +1773,51 @@ input_dim].</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers.EinsumSoftmax">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">EinsumSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A simple softmax layer implemented with Einsum to avoid reshape ops.</p>
+<dl class="py method">
+<dt id="lingvo.core.layers.EinsumSoftmax.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.EinsumSoftmax._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.EinsumSoftmax.Logits">
+<code class="sig-name descname">Logits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax.Logits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax.Logits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the logits computed before the softmax.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – a single tensor with the shape […, input_dim].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>logits […, num_classes].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.EinsumSoftmax.XentLossFromLogits">
+<code class="sig-name descname">XentLossFromLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">logits</span></em>, <em class="sig-param"><span class="n">class_weights</span></em>, <em class="sig-param"><span class="n">class_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">class_probabilities</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax.XentLossFromLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax.XentLossFromLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cross-entropy, argmax etc. from logits.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers.SharedSoftmaxLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">SharedSoftmaxLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.SimpleFullSoftmax" title="lingvo.core.layers.SimpleFullSoftmax"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.SimpleFullSoftmax</span></code></a></p>

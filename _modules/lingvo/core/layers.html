@@ -2535,10 +2535,14 @@
 <span class="sd">      A rank-(N+1) params.dtype tensor.</span>
 <span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FlatFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
     <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
         <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]],</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span></div></div>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                         <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">embs_result</span></div></div>
 
 
 <div class="viewcode-block" id="OneHotEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.OneHotEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">OneHotEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -3326,6 +3330,81 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;This set of arguments is not supported for XentLossFromLogits.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span></div></div>
+
+
+<div class="viewcode-block" id="EinsumSoftmax"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax">[docs]</a><span class="k">class</span> <span class="nc">EinsumSoftmax</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A simple softmax layer implemented with Einsum to avoid reshape ops.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="EinsumSoftmax.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_classes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of target classes.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="EinsumSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+    <span class="n">bias_split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                               <span class="n">weight_split_dims_mapping</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">),</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="s1">&#39;b&#39;</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="EinsumSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: a single tensor with the shape [..., input_dim].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      logits [..., num_classes].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...d,dv-&gt;...v&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+        <span class="n">logits</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EinsumSoftmax.XentLossFromLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.XentLossFromLogits">[docs]</a>  <span class="k">def</span> <span class="nf">XentLossFromLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">theta</span><span class="p">,</span>
+                         <span class="n">logits</span><span class="p">,</span>
+                         <span class="n">class_weights</span><span class="p">,</span>
+                         <span class="n">class_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">class_probabilities</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes cross-entropy, argmax etc. from logits.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">class_probabilities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
+          <span class="n">labels</span><span class="o">=</span><span class="n">class_probabilities</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">class_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span>
+          <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Using sparse_softmax_cross_entropy_with_logits() in &#39;</span>
+          <span class="s1">&#39;EinsumSoftmax::XentLossFromLogits logits_shape=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">logits</span><span class="p">))</span>
+      <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy_with_logits</span><span class="p">(</span>
+          <span class="n">labels</span><span class="o">=</span><span class="n">class_ids</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+    <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ArgMax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span></div></div>
 
 
