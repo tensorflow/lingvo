@@ -608,7 +608,8 @@
 <span class="sd">        index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">TaskCallScope</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
         <span class="c1"># Always reset step seed at the start of a new global_step.</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
@@ -718,6 +719,7 @@
 
 <div class="viewcode-block" id="BaseTask._BPropGenTrainOps"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._BPropGenTrainOps">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropGenTrainOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">add_summary</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Populates the train_ops dictionary in a backwards pass.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
     <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span>
 
     <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetBpropVariableFilters</span><span class="p">()</span>
@@ -781,7 +783,8 @@
     <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
-      <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="c1"># Lookup the per-task activations.</span>
+      <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">tpu_embedding_send_gradient_op</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeTpuEmbeddingGradients</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">)</span>

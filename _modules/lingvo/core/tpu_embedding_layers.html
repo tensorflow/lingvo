@@ -715,7 +715,22 @@
       <span class="sd">&quot;&quot;&quot;TPU Embedding lookup.&quot;&quot;&quot;</span>
       <span class="k">del</span> <span class="n">ids_map</span>
       <span class="n">activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">get_activations</span><span class="p">()</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">,</span> <span class="n">activations</span><span class="p">)</span>
+      <span class="n">task</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTaskCallScope</span><span class="p">()</span>
+      <span class="c1"># We expect either None (if this is the first call) or a single item in a</span>
+      <span class="c1"># list.</span>
+      <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
+        <span class="c1"># Create a dict from task -&gt; activations dict.</span>
+        <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">tpu_embedding_activations_dict</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">activations</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">,</span>
+                             <span class="n">tpu_embedding_activations_dict</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># This is a subsequent call, so the dictionary already exists.</span>
+        <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">tpu_embedding_activations_dict</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">activations</span>
+
       <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">activations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span><span class="p">:</span>
