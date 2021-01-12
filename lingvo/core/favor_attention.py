@@ -131,10 +131,11 @@ def softmax_kernel_transformation(data,
   Returns:
     Corresponding kernel feature map.
   """
+  projection_matrix = tf.cast(projection_matrix, data.dtype)
   data_normalizer = 1.0 / tf.math.sqrt(
-      (tf.math.sqrt(tf.dtypes.cast(data.shape[-1], projection_matrix.dtype))))
+      (tf.math.sqrt(tf.dtypes.cast(data.shape[-1], data.dtype))))
   ratio = 1.0 / tf.math.sqrt(
-      tf.dtypes.cast(projection_matrix.shape[0], projection_matrix.dtype))
+      tf.dtypes.cast(projection_matrix.shape[0], data.dtype))
   data_dash = tf.einsum("blhd,md->blhm", data_normalizer * data,
                         projection_matrix)
   diag_data = tf.math.square(data)
