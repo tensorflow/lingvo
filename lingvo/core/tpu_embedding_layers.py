@@ -563,7 +563,22 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       """TPU Embedding lookup."""
       del ids_map
       activations = self._tpu_embedding.get_activations()
-      tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS, activations)
+      task = py_utils.GetTaskCallScope()
+      # We expect either None (if this is the first call) or a single item in a
+      # list.
+      tpu_embedding_activations = tf.get_collection(
+          py_utils.TPU_EMBEDDING_ACTIVATIONS)
+      if not tpu_embedding_activations:
+        # Create a dict from task -> activations dict.
+        tpu_embedding_activations_dict = {}
+        tpu_embedding_activations_dict[task] = activations
+        tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS,
+                             tpu_embedding_activations_dict)
+      else:
+        # This is a subsequent call, so the dictionary already exists.
+        tpu_embedding_activations_dict = tpu_embedding_activations[0]
+        tpu_embedding_activations_dict[task] = activations
+
       ret = py_utils.NestedMap()
       for k, v in activations.items():
         if k in self._sequence_features:

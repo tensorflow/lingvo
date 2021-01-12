@@ -1210,6 +1210,26 @@ def GetOpportunisticVariableReuse():
 
 _VARIABLE_RENAME_RULES = ThreadLocalStack()
 
+# Global variable to track task calling scope.
+# Currently only used for TPU Embedding purposes as a TPUEmbeddinglayer
+# may be shared across tasks and the calling task needs to be known
+# for tracking embedding activations for backprop.
+_TASK_CALL_SCOPE = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def TaskCallScope(task_name):
+  _TASK_CALL_SCOPE.stack.append(task_name)
+  try:
+    yield
+  finally:
+    _TASK_CALL_SCOPE.stack.pop()
+
+
+def GetTaskCallScope():
+  """Get the current task call scope."""
+  return _TASK_CALL_SCOPE.stack[-1] if _TASK_CALL_SCOPE.stack else None
+
 
 @contextlib.contextmanager
 def VariableRenameScope(renames):
@@ -2344,11 +2364,9 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding):
    activation_dict: String feature -> embedding activations dict.
    tpu_embedding: TPUEmbedding instance.
   """
-
   # Scale the loss to account for the full batch size.
   shards = tpu_function.get_tpu_context().number_of_shards
   loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
-
   grads = tf.gradients(loss, list(activation_dict.values()))
   feature_to_gradient_dict = py_collections.OrderedDict(
       zip(list(activation_dict.keys()), grads))

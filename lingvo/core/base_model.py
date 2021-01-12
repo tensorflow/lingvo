@@ -456,7 +456,8 @@ class BaseTask(base_layer.BaseLayer):
         index.
     """
     p = self.params
-    with tf.name_scope('fprop'), tf.name_scope(p.name):
+    with tf.name_scope('fprop'), tf.name_scope(p.name), py_utils.TaskCallScope(
+        p.name):
       with py_utils.GlobalStepContext(self._global_step_var):
         # Always reset step seed at the start of a new global_step.
         py_utils.ResetStepSeed()
@@ -566,6 +567,7 @@ class BaseTask(base_layer.BaseLayer):
 
   def _BPropGenTrainOps(self, vmap, metrics=None, add_summary=True):
     """Populates the train_ops dictionary in a backwards pass."""
+    p = self._params
     metrics = metrics or self._metrics
 
     bprop_variable_filters = self.input_generator.GetBpropVariableFilters()
@@ -629,7 +631,8 @@ class BaseTask(base_layer.BaseLayer):
     tpu_embedding_activations = tf.get_collection(
         py_utils.TPU_EMBEDDING_ACTIVATIONS)
     if tpu_embedding_activations:
-      tpu_embedding_activations_dict = tpu_embedding_activations[0]
+      # Lookup the per-task activations.
+      tpu_embedding_activations_dict = tpu_embedding_activations[0][p.name]
       tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
       tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
           self.loss, tpu_embedding_activations_dict, tpu_embedding)
