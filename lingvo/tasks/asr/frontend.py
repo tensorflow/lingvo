@@ -154,8 +154,10 @@ class MelAsrFrontend(BaseAsrFrontend):
              'The lowest frequency of the mel-spectrogram analsis')
     p.Define('upper_edge_hertz', 7600.0,
              'The highest frequency of the mel-spectrogram analsis')
-    p.Define('preemph', 0.97,
-             'The first-order filter coefficient used for preemphasis')
+    p.Define(
+        'preemph', 0.97,
+        'The first-order filter coefficient used for preemphasis. When it '
+        'is 0.0, preemphasis is turned off.')
     p.Define('noise_scale', 8.0,
              'The amount of noise (in 16-bit LSB units) to add')
     p.Define('window_fn', 'HANNING',
@@ -420,10 +422,10 @@ class MelAsrFrontend(BaseAsrFrontend):
                                     self._frame_step, p.pad_end)
 
     # Pre-emphasis.
-    if p.preemph != 1.0:
+    if p.preemph != 0.0:
       preemphasized = self._ApplyPreemphasis(framed_signal)
     else:
-      preemphasized = framed_signal[:-1]
+      preemphasized = framed_signal[..., :-1]
 
     # Noise.
     if p.noise_scale > 0.0:

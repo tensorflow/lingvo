@@ -48,7 +48,7 @@ class AsrFrontendTest(test_utils.TestCase):
     p.sample_rate = 24000.
     p.num_bins = 2
     p.noise_scale = 0.
-    self.params = p
+    return p
 
   def testNullAsrFrontendConfig(self):
     p = frontend.NullAsrFrontend.Params()
@@ -61,8 +61,7 @@ class AsrFrontendTest(test_utils.TestCase):
     self.assertEqual(config.input_frame_ratio, 1.0)
 
   def testMelFeaturesUnstackedConfig(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     fe = p.Instantiate()
     config = fe.config
     self.assertFalse(config.is_null)
@@ -74,8 +73,7 @@ class AsrFrontendTest(test_utils.TestCase):
     self.assertEqual(config.input_frame_ratio, 480.0)
 
   def testMelFeaturesLeftStackedConfig(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     p.stack_left_context = 2
     p.frame_stride = p.stack_left_context + 1
     fe = p.Instantiate()
@@ -89,8 +87,7 @@ class AsrFrontendTest(test_utils.TestCase):
     self.assertEqual(config.input_frame_ratio, 1440.0)
 
   def testMelFeaturesLeftRightStackedConfig(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     p.stack_right_context = 2
     p.stack_left_context = 2
     p.frame_stride = p.stack_right_context + p.stack_left_context + 1
@@ -100,8 +97,7 @@ class AsrFrontendTest(test_utils.TestCase):
     self.assertEqual(config.input_frame_ratio, 2400.0)
 
   def testMelFeaturesUnstacked(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
@@ -144,9 +140,36 @@ class AsrFrontendTest(test_utils.TestCase):
       self.assertAllClose(mu, ref_unstacked_mean, atol=1e-4)
       self.assertAllClose(s, ref_unstacked_stddev, atol=1e-3)
 
+  def testMelFeaturesNotEmphasized(self):
+    p = self._CreateFrontendParams()
+    mel_frontend = p.Instantiate()
+    not_emphasized_p = p.Copy()
+    not_emphasized_p.preemph = 0.
+    not_emphasized_mel_frontend = not_emphasized_p.Instantiate()
+
+    _, pcm = self._GetPcm()
+    pcm *= 32768
+
+    # Convert to 4D [batch, time, packet, channels].
+    sample_count = tf.shape(pcm)[1]
+    packet_size = 11  # A non-round number.
+    trimmed_pcm = pcm[:, 0:(sample_count // packet_size) * packet_size]
+    src_inputs = tf.reshape(trimmed_pcm, (1, -1, packet_size, 1))
+    paddings = tf.zeros(tf.shape(src_inputs)[0:2])
+
+    outputs = mel_frontend.FPropDefaultTheta(
+        py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
+    not_emphasized_outputs = not_emphasized_mel_frontend.FPropDefaultTheta(
+        py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
+    log_mel = outputs.src_inputs
+    not_emphasized_log_mel = not_emphasized_outputs.src_inputs
+    with self.session():
+      log_mel, not_emphasized_log_mel = self.evaluate(
+          [log_mel, not_emphasized_log_mel])
+      self.assertEqual(log_mel.shape, not_emphasized_log_mel.shape)
+
   def testMelFeaturesLeftStacked(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     p.stack_left_context = 2
     p.frame_stride = p.stack_left_context + 1
     mel_frontend = p.Instantiate()
@@ -193,8 +216,7 @@ class AsrFrontendTest(test_utils.TestCase):
       self.assertAllClose(s, ref_stddev, atol=1e-3)
 
   def testMelFeaturesRightStacked(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     p.stack_right_context = 2
     p.frame_stride = p.stack_right_context + 1
     mel_frontend = p.Instantiate()
@@ -241,8 +263,7 @@ class AsrFrontendTest(test_utils.TestCase):
       self.assertAllClose(s, ref_stddev, atol=1e-3)
 
   def testMelFeaturesPaddedLeftStacked(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     p.stack_left_context = 2
     p.frame_stride = p.stack_left_context + 1
     mel_frontend = p.Instantiate()
@@ -302,8 +323,7 @@ class AsrFrontendTest(test_utils.TestCase):
       self.assertAllClose(s, ref_stddev, atol=1e-3)
 
   def testMelFeaturesPaddedRightStacked(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     p.stack_right_context = 2
     p.frame_stride = p.stack_right_context + 1
     mel_frontend = p.Instantiate()
@@ -348,8 +368,7 @@ class AsrFrontendTest(test_utils.TestCase):
                           np.ones([1, paddings.shape[1] - expected_unpadded]))
 
   def testMelMeanVarNormalization(self):
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     p.stack_left_context = 2
     p.frame_stride = p.stack_left_context + 1
     ref_mean = (13.38236332, 13.2698698, 13.45229626, 13.26469517, 13.46731281,
@@ -391,8 +410,7 @@ class AsrFrontendTest(test_utils.TestCase):
 
   def testMelFeaturesUnstacked2D(self):
     # TODO(laurenzo): Remove this test once 2D inputs support removed.
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
@@ -434,8 +452,7 @@ class AsrFrontendTest(test_utils.TestCase):
 
   def testMelFeaturesUnstacked3D(self):
     # TODO(laurenzo): Remove this test once 3D inputs support removed.
-    self._CreateFrontendParams()
-    p = self.params
+    p = self._CreateFrontendParams()
     mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
