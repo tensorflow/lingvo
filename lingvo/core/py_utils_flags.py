@@ -23,6 +23,8 @@
 
 import lingvo.compat as tf
 
+from lingvo.core import cluster_factory
+
 tf.flags.DEFINE_bool('enable_asserts', True,
                      'If False, we disable all asserts.')
 
@@ -89,7 +91,7 @@ FLAGS = tf.flags.FLAGS
 
 
 # pylint: disable=invalid-name
-def _FromGlobal(field_name):
+def _FromGlobal(field_name, allow_override_from_cluster=False):
   """Get 'field_name' from a global configuration object.
 
   Currently the global configuration object used is FLAGS, but this may
@@ -97,12 +99,19 @@ def _FromGlobal(field_name):
 
   Args:
     field_name: The string field name to look up.
+    allow_override_from_cluster: Allow the Cluster() to override FLAGS.
 
   Returns:
     The value associated with the global configuration string 'field_name'.
   """
-  # TODO(b/145831327): check the field name in the current cluster object.
-  # If explicitly set, use that value instead of using the FLAG value.
+
+  if allow_override_from_cluster:
+    cluster = cluster_factory.Current()
+    if field_name in cluster.params:
+      params_value = cluster.params.Get(field_name)
+      # Return the value in the cluster params if it is not None
+      if params_value:
+        return params_value
 
   # Now check the FLAGS object for backwards compatibility.
   #
@@ -113,14 +122,14 @@ def _FromGlobal(field_name):
 
 
 def use_xla():  # pylint: disable=invalid-name
-  res = _FromGlobal('xla_device')
+  res = _FromGlobal('xla_device', allow_override_from_cluster=True)
   if res:
     assert res in ('', 'cpu', 'gpu', 'tpu')
   return res
 
 
 def use_tpu():  # pylint: disable=invalid-name
-  res = _FromGlobal('xla_device') == 'tpu'
+  res = _FromGlobal('xla_device', allow_override_from_cluster=True) == 'tpu'
   if res:
     assert not _FromGlobal('enable_asserts')  # asserts not supported on tpu
   return res

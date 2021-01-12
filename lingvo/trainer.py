@@ -1214,6 +1214,7 @@ class RunnerManager:
     common_args = (model_task_name, logdir, tf_master, trial)
     if job == 'controller':
       cfg = self.GetParamsForDataset('controller', 'Train')
+      cfg.cluster.xla_device = 'cpu'
       return self.Controller(cfg, *common_args)
     elif job == 'trainer':
       cfg = self.GetParamsForDataset('trainer', 'Train')
@@ -1221,6 +1222,7 @@ class RunnerManager:
     elif job == 'trainer_client':
       cfg = self.GetParamsForDataset('trainer_client', 'Train')
       if py_utils.use_tpu():
+        cfg.cluster.xla_device = 'tpu'
         return self.TrainerTpu(cfg, *common_args)
       else:
         return self.Trainer(cfg, *common_args)

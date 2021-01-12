@@ -562,7 +562,8 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":hyperparams",
-        ":py_utils",
+        ":nested_map",
+        ":thread_local_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
@@ -1257,6 +1258,7 @@ py_library(
     srcs = ["py_utils_flags.py"],
     srcs_version = "PY3",
     deps = [
+        ":cluster_factory",
         "//lingvo:compat",
     ],
 )

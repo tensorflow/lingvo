@@ -105,6 +105,11 @@ class _Cluster:
     p.Define('split_id', 0, 'Split id for the model.')
     p.Define('immediately_instantiate_variables', True,
              'Whether to create variables immediately.')
+    p.Define(
+        'xla_device', None, 'If set to non-None, '
+        'this value is used instead of FLAGS.xla_device '
+        'for running multiple runners in the same process, '
+        'eg: Controller and TrainerTpu')
     return p
 
   @classmethod
