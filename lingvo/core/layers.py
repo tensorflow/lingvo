@@ -2383,10 +2383,14 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       A rank-(N+1) params.dtype tensor.
       embs[indices, :] is the embedding vector for ids[indices].
     """
+    p = self.params
     _, embs_result = self._FlatFProp(theta, ids)
     out_shape = tf.concat(
         [tf.shape(ids), [symbolic.ToStatic(self.params.embedding_dim)]], 0)
-    return tf.reshape(embs_result, out_shape)
+    embs_result = tf.reshape(embs_result, out_shape)
+    embs_result = gshard_utils.MeshSplit(embs_result, p.device_mesh,
+                                         p.activation_split_dims_mapping)
+    return embs_result
 
 
 class OneHotEmbeddingLayer(base_layer.BaseLayer):
@@ -3174,6 +3178,81 @@ class SimpleFullSoftmax(SoftmaxLayer):
     else:
       raise ValueError(
           'This set of arguments is not supported for XentLossFromLogits.')
+    return per_example_xent, per_example_argmax
+
+
+class EinsumSoftmax(base_layer.BaseLayer):
+  """A simple softmax layer implemented with Einsum to avoid reshape ops."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('input_dim', 0, 'Dimension of the input.')
+    p.Define('num_classes', 0, 'Total number of target classes.')
+    return p
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+
+    weight_split_dims_mapping = p.weight_split_dims_mapping
+    bias_split_dims_mapping = (None if weight_split_dims_mapping is None else
+                               weight_split_dims_mapping[-1:])
+    w_pc = py_utils.WeightParams(
+        shape=(p.input_dim, p.num_classes),
+        init=p.params_init,
+        dtype=p.dtype,
+        tensor_split_dims_mapping=weight_split_dims_mapping,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('w', w_pc)
+    self.CreateVariable(
+        'b',
+        py_utils.WeightParams(
+            shape=[p.num_classes],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            tensor_split_dims_mapping=bias_split_dims_mapping,
+            collections=[self.__class__.__name__ + '_vars']))
+
+  def Logits(self, theta, inputs):
+    """Returns the logits computed before the softmax.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: a single tensor with the shape [..., input_dim].
+
+    Returns:
+      logits [..., num_classes].
+    """
+    p = self.params
+    logits = tf.einsum('...d,dv->...v', inputs, theta.w)
+    logits = gshard_utils.MeshSplit(
+        logits,
+        p.device_mesh,
+        tensor_split_dims_mapping=p.activation_split_dims_mapping)
+    return tf.nn.bias_add(logits, theta.b)
+
+  def XentLossFromLogits(self,
+                         theta,
+                         logits,
+                         class_weights,
+                         class_ids=None,
+                         class_probabilities=None):
+    """Computes cross-entropy, argmax etc. from logits."""
+    assert logits is not None
+    if class_probabilities is not None:
+      per_example_xent = tf.nn.softmax_cross_entropy_with_logits(
+          labels=class_probabilities, logits=logits)
+    else:
+      assert class_ids is not None
+      tf.logging.vlog(
+          0, 'Using sparse_softmax_cross_entropy_with_logits() in '
+          'EinsumSoftmax::XentLossFromLogits logits_shape=%r',
+          py_utils.GetShape(logits))
+      per_example_xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
+          labels=class_ids, logits=logits)
+    per_example_argmax = py_utils.ArgMax(logits)
     return per_example_xent, per_example_argmax
 
 
