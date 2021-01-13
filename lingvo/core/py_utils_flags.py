@@ -91,6 +91,7 @@ FLAGS = tf.flags.FLAGS
 
 
 # pylint: disable=invalid-name
+@tf.autograph.experimental.do_not_convert
 def _FromGlobal(field_name, allow_override_from_cluster=False):
   """Get 'field_name' from a global configuration object.
 
