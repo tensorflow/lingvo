@@ -356,6 +356,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._private_vars = py_utils.NestedMap()
     # Theta derived from this layer's vars.
     self._private_theta = py_utils.NestedMap()
+    # A simple transformation before used by the forward computation. Its
+    # signature must be (tf.Tensor) -> (tf.Tensor).
+    self._private_theta_fn = py_utils.NestedMap()
     # Child layers created by this layer through CreateChild/CreateChildren.
     self._private_children = py_utils.NestedMap()
     # Child layers created by this layer. A well-formed layer should
@@ -570,7 +573,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
           self.params.cls)
     ret = self._private_children.Transform(lambda x: x.theta)
 
-    private_theta = self._private_theta
+    private_theta = self._private_theta.DeepCopy()
+    for name, theta_fn in self._private_theta_fn.FlattenItems():
+      private_theta[name] = theta_fn(private_theta[name])
 
     if (self._params.fprop_dtype is not None and
         self._params.fprop_dtype != self._params.dtype):
@@ -814,7 +819,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         use_sharding_op=True)
 
     if meta.theta_fn is not None:
-      value = meta.theta_fn(value)
+      self._private_theta_fn[name] = meta.theta_fn
 
     self._private_theta[name] = value
 

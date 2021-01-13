@@ -56,7 +56,8 @@ class TestLayer(base_layer.BaseLayer):
             collections=[
                 self.__class__.__name__ + '_vars',
                 py_utils.SKIP_LP_REGULARIZATION
-            ]))
+            ]),
+        theta_fn=lambda x: 1.0 + x)
 
 
 class TestParentLayer(base_layer.BaseLayer):
@@ -155,6 +156,24 @@ class BaseLayerTest(test_utils.TestCase):
     # 'b' always skips Lp regularization.
     self.assertIn(layer.vars.b,
                   tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
+
+  def testVariableThetaValue(self):
+    with self.session():
+      layer_p = TestLayer.Params().Set(name='test')
+      layer = layer_p.Instantiate()
+      tf.global_variables_initializer().run()
+      self.assertAllClose(layer.vars.w.eval(), layer.theta.w.eval())
+      b_eval = layer.vars.b.eval()
+      # theta == theta_fn(vars)
+      self.assertAllClose(b_eval + 1.0, layer.theta.b.eval())
+      self.assertAllClose(b_eval, layer._private_theta.b.eval())
+
+      # theta reflects the vars change.
+      new_b = layer.vars.b.assign(tf.ones_like(layer.vars.b) * 3.)
+      with tf.control_dependencies([new_b]):
+        self.assertAllClose(b_eval * 3., new_b.eval())
+        self.assertAllClose(layer.vars.b.eval(), new_b.eval())
+        self.assertAllClose(layer.vars.b.eval() + 1.0, layer.theta.b.eval())
 
   def testCreateVariableSkipLpRegularization(self):
     layer_p = TestLayer.Params().Set(name='test', skip_lp_regularization=True)
