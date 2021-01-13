@@ -4408,16 +4408,19 @@ class FunnelPoolingLayer(StrideLayer):
         'Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT')
     return p
 
-  def FProp(self, theta, x):
+  def FProp(self, theta, inputs, paddings=None):
     """Applies pooling to the inputs.
 
     Args:
       theta: weights defined in this layer.
-      x: input tensor of shape [batch, time, dim] or [batch, time], where the
-        pooling is applied to the time dim.
+      inputs: input tensor of shape [batch, time, dim], where the pooling is
+        applied to the time dim.
+      paddings: None or padding tensor of shape [batch, time]. If not None, the
+        striding will be applied to the time dim.
 
     Returns:
-      Pooled tensor, with the pooling applied to the second dim in x.
+      Pooled tensor and paddings, with the pooling/striding applied to the time
+      dimension. The pooled paddings will be None if input paddings is None.
     """
     # Notes:
     # - The output shape is [batch, out_len, dim], where:
@@ -4445,44 +4448,57 @@ class FunnelPoolingLayer(StrideLayer):
       raise ValueError('FunnelPoolingLayer only supports axis = 1 but got '
                        '%d' % (p.axis))
 
+    # stride == 0
     if p.stride == 0:
       assert p.first_n is None or p.first_n == 1
-      return x[:, :1]
+      pooled_tensor = inputs[:, :1]
+      pooled_paddings = paddings[:, :1] if paddings is not None else None
+      return pooled_tensor, pooled_paddings
 
     if p.first_n:
-      x = x[:, :p.first_n]
+      inputs = inputs[:, :p.first_n]
+      paddings = paddings[:, :p.first_n] if paddings is not None else None
 
+    # stride == 1
     if p.stride == 1:
-      return x
+      return inputs, paddings
 
+    # stride > 1
     if p.begin_intact > 0:
-      intact = x[:, :p.begin_intact]
+      intact_inputs = inputs[:, :p.begin_intact]
+      intact_paddings = (
+          paddings[:, :p.begin_intact] if paddings is not None else None)
       if p.trunc_seq:
         num_trunc = p.begin_intact * p.stride - p.begin_intact
-        x = x[:, p.begin_intact:-num_trunc]
+        inputs = inputs[:, p.begin_intact:-num_trunc]
+        paddings = (
+            paddings[:, p.begin_intact:-num_trunc]
+            if paddings is not None else None)
       else:
-        x = x[:, p.begin_intact:]
+        inputs = inputs[:, p.begin_intact:]
+        paddings = (
+            paddings[:, p.begin_intact:] if paddings is not None else None)
 
-    if x.shape.rank == 3:
-      pool_window = p.pool_window or p.stride
-      out = tf.nn.pool(
-          x,
-          window_shape=[pool_window],
-          pooling_type=p.pooling_type,
-          strides=[p.stride],
-          padding=p.padding_algorithm)
-    else:
-      # This branch is only for rank-2 padding tensors, hence we do not allow
-      # tensors with any tensor that has a higher rank
-      if x.shape.rank is not None and x.shape.rank >= 4:
-        raise ValueError('Funnel pooling only allows 3D sequence or 2D padding,'
-                         'but got a tensor of rank %s' % (x.shape.rank))
-      out = x[:, ::p.stride]
+    pool_window = p.pool_window or p.stride
+    pooled_tensor = tf.nn.pool(
+        inputs,
+        window_shape=[pool_window],
+        pooling_type=p.pooling_type,
+        strides=[p.stride],
+        padding=p.padding_algorithm)
+    pooled_paddings = (
+        paddings[:, ::p.stride] if paddings is not None else None)
 
     if p.begin_intact > 0:
-      out = tf.concat([intact, out], axis=1, name='concat_intact_pooled')
+      pooled_tensor = tf.concat([intact_inputs, pooled_tensor],
+                                axis=1,
+                                name='concat_intact_pooled_tensor')
+      if pooled_paddings is not None:
+        pooled_paddings = tf.concat([intact_paddings, pooled_paddings],
+                                    axis=1,
+                                    name='concat_intact_pooled_paddings')
 
-    return out
+    return pooled_tensor, pooled_paddings
 
 
 class FunnelUpsampleLayer(base_layer.BaseLayer):
@@ -5160,12 +5176,12 @@ class Builder(builder.Base):
     p = self.params
 
     if p.selfatten_add_unnormalized_input:
-      input_to_add = 'i.vec'
-      strided_input_param = self._Pool('before_add_stride', stride, first_n)
+      shortcut_sub = ('i.vec->strided_input,_',
+                      self._Pool('shortcut_after_pooling', stride, first_n))
     else:
       # Reuse 'strided_query' to avoid doing the pooling twice
-      input_to_add = 'strided_query'
-      strided_input_param = self._Id('identity_strided_query')
+      shortcut_sub = ('strided_query->strided_input',
+                      self._Id('shortcut_after_pooling'))
 
     # Note that only query vectors are pooled and key/value vectors are kept
     # the same (not pooled) to allow attention to retain more information
@@ -5188,18 +5204,15 @@ class Builder(builder.Base):
     sub_list += [
         ('i.vec->after_ln',
          self._DefaultLN('LN')),
-        ('after_ln->strided_query',
-         self._Pool('query_after_stride', stride, first_n)),
+        ('after_ln,i.paddings->strided_query,o.paddings',
+         self._Pool('query_after_pooling', stride, first_n)),
         ('{}->after_att,prob'.format(attention_inputs),
          self._MultiHeadedAtten('atten', num_heads)),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
-        ('{}->strided_input'.format(input_to_add),
-         strided_input_param),
+        shortcut_sub,
         ('strided_input,after_dropout->o.vec',
          self._Add('add')),
-        ('i.paddings->o.paddings',
-         self._Pool('padding_after_Stride', stride, first_n)),
     ]
     if p.packed_input:
       sub_list += [
