@@ -2598,18 +2598,21 @@ section A.1 for begin_intact &amp; trunc_seq.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelPoolingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#FunnelPoolingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies pooling to the inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – weights defined in this layer.</p></li>
-<li><p><strong>x</strong> – input tensor of shape [batch, time, dim] or [batch, time], where the
-pooling is applied to the time dim.</p></li>
+<li><p><strong>inputs</strong> – input tensor of shape [batch, time, dim], where the pooling is
+applied to the time dim.</p></li>
+<li><p><strong>paddings</strong> – None or padding tensor of shape [batch, time]. If not None, the
+striding will be applied to the time dim.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Pooled tensor, with the pooling applied to the second dim in x.</p>
+<dd class="field-even"><p>Pooled tensor and paddings, with the pooling/striding applied to the time
+dimension. The pooled paddings will be None if input paddings is None.</p>
 </dd>
 </dl>
 </dd></dl>
