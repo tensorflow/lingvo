@@ -178,6 +178,12 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
+<span class="n">Split</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span>
+<span class="n">MeshSplit</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span>
+<span class="n">ZigzagOrderOnDeviceMesh</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">ZigzagOrderOnDeviceMesh</span>
+<span class="n">GetNonPod2dMesh</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span>
+
+
 <div class="viewcode-block" id="VarLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.VarLayer">[docs]</a><span class="k">class</span> <span class="nc">VarLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Container for variables.&quot;&quot;&quot;</span>
 
@@ -645,7 +651,8 @@
                        <span class="n">second_expert_policy</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
                        <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                        <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                       <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                       <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">importance</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes Top-2 gating for Mixture-of-Experts.</span>
 
 <span class="sd">  There are two expected usages of this function:</span>
@@ -700,6 +707,7 @@
 <span class="sd">      (group_size * capacity_factor) / experts_dim</span>
 <span class="sd">      where `group_size` is the size of G dimension of `inputs`. If the</span>
 <span class="sd">      value of expert_capacity_dim is already big enough no change is made.</span>
+<span class="sd">    importance: input importance weights for routing (G`S Tensor or None).</span>
 
 <span class="sd">  TODO(lepikhin): get rid of the legacy_mtf_behavior flag.</span>
 
@@ -774,14 +782,21 @@
   <span class="n">mask_1</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">mask_1</span><span class="p">)</span>
   <span class="n">density_1_proxy</span> <span class="o">=</span> <span class="n">raw_gates</span>
 
-  <span class="n">importance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">mask_1</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>
+  <span class="k">if</span> <span class="n">importance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">importance_is_one</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">importance</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">mask_1</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance_is_one</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">density_1_proxy</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance_is_one</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask_1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="n">importance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">mask_1</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">importance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">mask_1</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">importance</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
+      <span class="n">mask_1</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">density_1_proxy</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">importance</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
-    <span class="n">mask_1</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">density_1_proxy</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-  <span class="n">gate_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">raw_gates</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+  <span class="n">gate_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...GSE,...GSE-&gt;...GS&#39;</span><span class="p">,</span> <span class="n">raw_gates</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
   <span class="n">gates_without_top_1</span> <span class="o">=</span> <span class="n">raw_gates</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">mask_1</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">second_expert_policy</span> <span class="o">==</span> <span class="s1">&#39;sampling&#39;</span><span class="p">:</span>
@@ -808,11 +823,14 @@
     <span class="n">index_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">gates_without_top_1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
   <span class="n">index_2</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">index_2</span><span class="p">)</span>
+
   <span class="n">mask_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">index_2</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
   <span class="n">mask_2</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">mask_2</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">mask_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-  <span class="n">gate_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">gates_without_top_1</span><span class="p">,</span> <span class="n">mask_2</span><span class="p">)</span>
+    <span class="n">importance_is_nonzero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">importance</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">mask_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance_is_nonzero</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">gate_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...GSE,...GSE-&gt;...GS&#39;</span><span class="p">,</span> <span class="n">gates_without_top_1</span><span class="p">,</span> <span class="n">mask_2</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">legacy_mtf_behavior</span><span class="p">:</span>
     <span class="c1"># cl/298510175 moved this branch for gate_{1,2} denom calculation here.</span>
@@ -870,7 +888,10 @@
   <span class="c1"># assignment indicators for each expert index e \in 0..E-1 independently.</span>
   <span class="c1"># First occurrence of assignment indicator is excluded, see exclusive=True</span>
   <span class="c1"># flag below.</span>
-  <span class="n">position_in_expert_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="c1">#</span>
+  <span class="c1"># tf.cumsum over S dim: mask_1 is ...GSE tensor. Pontentially with outer_dim</span>
+  <span class="c1"># O.</span>
+  <span class="n">position_in_expert_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
 
   <span class="c1"># GS Tensor</span>
   <span class="n">capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">expert_capacity_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">position_in_expert_1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -881,12 +902,11 @@
   <span class="k">if</span> <span class="n">legacy_mtf_behavior</span><span class="p">:</span>
     <span class="n">density_denom</span> <span class="o">=</span> <span class="mf">1.0</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">density_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span>
-        <span class="n">importance</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">))[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-6</span>
-  <span class="n">density_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">density_denom</span>
+    <span class="n">density_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">))[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-6</span>
+  <span class="n">density_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">density_denom</span>
   <span class="c1"># density_1_proxy[:, e] represents mean of raw_gates for expert e, including</span>
   <span class="c1"># those of examples not assigned to e with top_k.</span>
-  <span class="n">density_1_proxy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">density_denom</span>
+  <span class="n">density_1_proxy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">density_denom</span>
 
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">):</span>
     <span class="c1"># The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of</span>
@@ -900,12 +920,13 @@
                                   <span class="s1">&#39;over_capacity_1_ratio&#39;</span><span class="p">)</span>
 
   <span class="n">mask_1</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">position_in_expert_1</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask_1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-  <span class="n">position_in_expert_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">position_in_expert_1</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+  <span class="n">position_in_expert_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...GSE,...GSE-&gt;...GS&#39;</span><span class="p">,</span> <span class="n">position_in_expert_1</span><span class="p">,</span>
+                                   <span class="n">mask_1</span><span class="p">)</span>
 
   <span class="c1"># How many examples in this sequence go to this expert</span>
-  <span class="n">mask_1_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE-&gt;GE&#39;</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+  <span class="n">mask_1_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...GSE-&gt;...GE&#39;</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
   <span class="c1"># [batch, group] - mostly ones, but zeros where something didn&#39;t fit</span>
-  <span class="n">mask_1_flat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+  <span class="n">mask_1_flat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...GSE-&gt;...GS&#39;</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">second_expert_policy</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span> <span class="ow">or</span> <span class="n">second_expert_policy</span> <span class="o">==</span> <span class="s1">&#39;sampling&#39;</span><span class="p">:</span>
     <span class="k">pass</span>
@@ -930,14 +951,15 @@
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">second_expert_policy</span><span class="p">)</span>
 
   <span class="n">position_in_expert_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
-      <span class="n">mask_2</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mask_1_count</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">mask_2</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mask_1_count</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
 
   <span class="c1"># Add the over capacity ratio for expert 2</span>
   <span class="n">_CreateOverCapacityRatioSummary</span><span class="p">(</span><span class="n">mask_2</span><span class="p">,</span> <span class="n">position_in_expert_2</span><span class="p">,</span> <span class="n">capacity</span><span class="p">,</span>
                                   <span class="s1">&#39;over_capacity_2_ratio&#39;</span><span class="p">)</span>
 
   <span class="n">mask_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">position_in_expert_2</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span> <span class="n">mask_2</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-  <span class="n">position_in_expert_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">position_in_expert_2</span><span class="p">,</span> <span class="n">mask_2</span><span class="p">)</span>
+  <span class="n">position_in_expert_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...GSE,...GSE-&gt;...GS&#39;</span><span class="p">,</span> <span class="n">position_in_expert_2</span><span class="p">,</span>
+                                   <span class="n">mask_2</span><span class="p">)</span>
   <span class="n">mask_2_flat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask_2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
   <span class="c1"># Equivalent non-einsum implementation:</span>
@@ -967,7 +989,7 @@
       <span class="n">index_1</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
   <span class="c1"># GSEC Tensor</span>
   <span class="n">first_part_of_combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-      <span class="s1">&#39;GSE,GSC-&gt;GSEC&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;first_part_of_combine_tensor&#39;</span><span class="p">)</span>
+      <span class="s1">&#39;...GSE,...GSC-&gt;...GSEC&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;first_part_of_combine_tensor&#39;</span><span class="p">)</span>
 
   <span class="c1"># GSC Tensor</span>
   <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
@@ -979,7 +1001,7 @@
   <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">gate_2</span> <span class="o">*</span> <span class="n">mask_2_flat</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
       <span class="n">index_2</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
   <span class="n">second_part_of_combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-      <span class="s1">&#39;GSE,GSC-&gt;GSEC&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;second_part_of_combine_tensor&#39;</span><span class="p">)</span>
+      <span class="s1">&#39;...GSE,...GSC-&gt;...GSEC&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;second_part_of_combine_tensor&#39;</span><span class="p">)</span>
 
   <span class="c1"># GSEC Tensor</span>
   <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
@@ -1171,8 +1193,8 @@
   <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAM,EMH-&gt;EAH&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">wi_split</span><span class="p">)</span>
   <span class="n">h</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">eah_split</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">bi_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">h</span> <span class="o">+=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">bi_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">+=</span> <span class="n">Split</span><span class="p">(</span><span class="n">bi_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
 
   <span class="n">h</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">activation_name</span><span class="p">)(</span><span class="n">h</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">dropout_rate</span><span class="p">:</span>
