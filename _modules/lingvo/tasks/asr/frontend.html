@@ -306,8 +306,10 @@
              <span class="s1">&#39;The lowest frequency of the mel-spectrogram analsis&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;upper_edge_hertz&#39;</span><span class="p">,</span> <span class="mf">7600.0</span><span class="p">,</span>
              <span class="s1">&#39;The highest frequency of the mel-spectrogram analsis&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;preemph&#39;</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">,</span>
-             <span class="s1">&#39;The first-order filter coefficient used for preemphasis&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;preemph&#39;</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">,</span>
+        <span class="s1">&#39;The first-order filter coefficient used for preemphasis. When it &#39;</span>
+        <span class="s1">&#39;is 0.0, preemphasis is turned off.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;noise_scale&#39;</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">,</span>
              <span class="s1">&#39;The amount of noise (in 16-bit LSB units) to add&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;window_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;HANNING&#39;</span><span class="p">,</span>
@@ -572,10 +574,10 @@
                                     <span class="bp">self</span><span class="o">.</span><span class="n">_frame_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_end</span><span class="p">)</span>
 
     <span class="c1"># Pre-emphasis.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">preemph</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">preemph</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
       <span class="n">preemphasized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyPreemphasis</span><span class="p">(</span><span class="n">framed_signal</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">preemphasized</span> <span class="o">=</span> <span class="n">framed_signal</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">preemphasized</span> <span class="o">=</span> <span class="n">framed_signal</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="c1"># Noise.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_scale</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
