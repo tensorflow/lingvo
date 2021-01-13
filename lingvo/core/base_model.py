@@ -407,7 +407,8 @@ class BaseTask(base_layer.BaseLayer):
     Args:
       sess: a session.
       global_step: task global step. Since ProcessFPropResults is called after
-        sess.run(train_op), this value will be 1 higher than the value in FProp.
+        sess.run(train_op), this value will be p.train.tpu_steps_per_loop higher
+        than the value in FProp.
       metrics: the metrics dict returned by FPropTower.
       per_example: the per_example dict returned by FPropTower.
     """
@@ -1013,7 +1014,8 @@ class BaseModel(base_layer.BaseLayer):
     Args:
       sess: a session.
       global_step: model global step. Since ProcessFPropResults is called after
-        sess.run(train_op), this value will be 1 higher than the value in FProp.
+        sess.run(train_op), this value will be p.train.tpu_steps_per_loop higher
+        than the value in FProp.
       metrics: the metrics dict returned by FPropTower.
       per_example: the per_example dict returned by FPropTower.
     """
