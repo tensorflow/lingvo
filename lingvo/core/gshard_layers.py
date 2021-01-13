@@ -26,6 +26,12 @@ from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
 # pylint: enable=g-direct-tensorflow-import
 
 
+Split = gshard_utils.Split
+MeshSplit = gshard_utils.MeshSplit
+ZigzagOrderOnDeviceMesh = gshard_utils.ZigzagOrderOnDeviceMesh
+GetNonPod2dMesh = gshard_utils.GetNonPod2dMesh
+
+
 class VarLayer(base_layer.BaseLayer):
   """Container for variables."""
 
@@ -493,7 +499,8 @@ def Top2GatingOnLogits(inputs,
                        second_expert_policy='all',
                        second_expert_threshold=0.0,
                        legacy_mtf_behavior=True,
-                       capacity_factor=None):
+                       capacity_factor=None,
+                       importance=None):
   """Computes Top-2 gating for Mixture-of-Experts.
 
   There are two expected usages of this function:
@@ -548,6 +555,7 @@ def Top2GatingOnLogits(inputs,
       (group_size * capacity_factor) / experts_dim
       where `group_size` is the size of G dimension of `inputs`. If the
       value of expert_capacity_dim is already big enough no change is made.
+    importance: input importance weights for routing (G`S Tensor or None).
 
   TODO(lepikhin): get rid of the legacy_mtf_behavior flag.
 
@@ -622,14 +630,21 @@ def Top2GatingOnLogits(inputs,
   mask_1 = _MaybeSplit(mask_1)
   density_1_proxy = raw_gates
 
-  importance = tf.ones_like(mask_1[:, :, 0])
+  if importance is not None:
+    importance_is_one = tf.cast(tf.equal(importance, 1.0), importance.dtype)
+    mask_1 *= tf.expand_dims(importance_is_one, -1)
+    density_1_proxy *= tf.expand_dims(importance_is_one, -1)
+  else:
+    if len(mask_1.shape) == 3:
+      importance = tf.ones_like(mask_1[:, :, 0])
+    else:
+      importance = tf.ones_like(mask_1[:, :, :, 0])
+    if paddings is not None:
+      importance = 1.0 - paddings
+      mask_1 *= tf.expand_dims(importance, -1)
+      density_1_proxy *= tf.expand_dims(importance, -1)
 
-  if paddings is not None:
-    importance = 1.0 - paddings
-    mask_1 *= tf.expand_dims(importance, -1)
-    density_1_proxy *= tf.expand_dims(importance, -1)
-
-  gate_1 = tf.einsum('GSE,GSE->GS', raw_gates, mask_1)
+  gate_1 = tf.einsum('...GSE,...GSE->...GS', raw_gates, mask_1)
   gates_without_top_1 = raw_gates * (1.0 - mask_1)
 
   if second_expert_policy == 'sampling':
@@ -656,11 +671,14 @@ def Top2GatingOnLogits(inputs,
     index_2 = tf.math.argmax(gates_without_top_1, axis=-1, output_type=tf.int32)
 
   index_2 = _MaybeSplit(index_2)
+
   mask_2 = tf.one_hot(index_2, experts_dim, dtype=fprop_dtype)
   mask_2 = _MaybeSplit(mask_2)
   if paddings is not None:
-    mask_2 *= tf.expand_dims(importance, -1)
-  gate_2 = tf.einsum('GSE,GSE->GS', gates_without_top_1, mask_2)
+    importance_is_nonzero = tf.cast(
+        tf.greater(importance, 0.0), importance.dtype)
+    mask_2 *= tf.expand_dims(importance_is_nonzero, -1)
+  gate_2 = tf.einsum('...GSE,...GSE->...GS', gates_without_top_1, mask_2)
 
   if legacy_mtf_behavior:
     # cl/298510175 moved this branch for gate_{1,2} denom calculation here.
@@ -718,7 +736,10 @@ def Top2GatingOnLogits(inputs,
   # assignment indicators for each expert index e \in 0..E-1 independently.
   # First occurrence of assignment indicator is excluded, see exclusive=True
   # flag below.
-  position_in_expert_1 = tf.cumsum(mask_1, exclusive=True, axis=1)
+  #
+  # tf.cumsum over S dim: mask_1 is ...GSE tensor. Pontentially with outer_dim
+  # O.
+  position_in_expert_1 = tf.cumsum(mask_1, exclusive=True, axis=-2)
 
   # GS Tensor
   capacity = tf.cast(expert_capacity_dim, dtype=position_in_expert_1.dtype)
@@ -729,12 +750,11 @@ def Top2GatingOnLogits(inputs,
   if legacy_mtf_behavior:
     density_denom = 1.0
   else:
-    density_denom = tf.reduce_mean(
-        importance, axis=(1))[:, tf.newaxis] + 1e-6
-  density_1 = tf.reduce_mean(mask_1, axis=(1)) / density_denom
+    density_denom = tf.reduce_mean(importance, axis=(1))[:, tf.newaxis] + 1e-6
+  density_1 = tf.reduce_mean(mask_1, axis=-2) / density_denom
   # density_1_proxy[:, e] represents mean of raw_gates for expert e, including
   # those of examples not assigned to e with top_k.
-  density_1_proxy = tf.reduce_mean(density_1_proxy, axis=1) / density_denom
+  density_1_proxy = tf.reduce_mean(density_1_proxy, axis=-2) / density_denom
 
   with tf.name_scope('aux_loss'):
     # The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of
@@ -748,12 +768,13 @@ def Top2GatingOnLogits(inputs,
                                   'over_capacity_1_ratio')
 
   mask_1 *= tf.cast(tf.less(position_in_expert_1, capacity), dtype=mask_1.dtype)
-  position_in_expert_1 = tf.einsum('GSE,GSE->GS', position_in_expert_1, mask_1)
+  position_in_expert_1 = tf.einsum('...GSE,...GSE->...GS', position_in_expert_1,
+                                   mask_1)
 
   # How many examples in this sequence go to this expert
-  mask_1_count = tf.einsum('GSE->GE', mask_1)
+  mask_1_count = tf.einsum('...GSE->...GE', mask_1)
   # [batch, group] - mostly ones, but zeros where something didn't fit
-  mask_1_flat = tf.einsum('GSE->GS', mask_1)
+  mask_1_flat = tf.einsum('...GSE->...GS', mask_1)
 
   if second_expert_policy == 'all' or second_expert_policy == 'sampling':
     pass
@@ -778,14 +799,15 @@ def Top2GatingOnLogits(inputs,
     raise ValueError(second_expert_policy)
 
   position_in_expert_2 = tf.cumsum(
-      mask_2, exclusive=True, axis=1) + tf.expand_dims(mask_1_count, 1)
+      mask_2, exclusive=True, axis=-2) + tf.expand_dims(mask_1_count, -2)
 
   # Add the over capacity ratio for expert 2
   _CreateOverCapacityRatioSummary(mask_2, position_in_expert_2, capacity,
                                   'over_capacity_2_ratio')
 
   mask_2 *= tf.cast(tf.less(position_in_expert_2, capacity), mask_2.dtype)
-  position_in_expert_2 = tf.einsum('GSE,GSE->GS', position_in_expert_2, mask_2)
+  position_in_expert_2 = tf.einsum('...GSE,...GSE->...GS', position_in_expert_2,
+                                   mask_2)
   mask_2_flat = tf.reduce_sum(mask_2, axis=-1)
 
   # Equivalent non-einsum implementation:
@@ -815,7 +837,7 @@ def Top2GatingOnLogits(inputs,
       index_1, experts_dim, dtype=fprop_dtype)
   # GSEC Tensor
   first_part_of_combine_tensor = tf.einsum(
-      'GSE,GSC->GSEC', a, b, name='first_part_of_combine_tensor')
+      '...GSE,...GSC->...GSEC', a, b, name='first_part_of_combine_tensor')
 
   # GSC Tensor
   b = tf.one_hot(
@@ -827,7 +849,7 @@ def Top2GatingOnLogits(inputs,
   a = tf.expand_dims(gate_2 * mask_2_flat, -1) * tf.one_hot(
       index_2, experts_dim, dtype=fprop_dtype)
   second_part_of_combine_tensor = tf.einsum(
-      'GSE,GSC->GSEC', a, b, name='second_part_of_combine_tensor')
+      '...GSE,...GSC->...GSEC', a, b, name='second_part_of_combine_tensor')
 
   # GSEC Tensor
   combine_tensor = tf.math.add(
@@ -1019,8 +1041,8 @@ def FeedForwardNetworksApplyGating(gating,
   h = tf.einsum('EAM,EMH->EAH', expert_inputs, wi_split)
   h = _NewOrHistoricSplit(h, eah_split)
   if bi_split is not None:
-    h += gshard_utils.Split(bi_split, 0, num_devices)
-    h = gshard_utils.Split(h, 0, num_devices)
+    h += Split(bi_split, 0, num_devices)
+    h = Split(h, 0, num_devices)
 
   h = activations.GetFn(activation_name)(h)
   if dropout_rate:
