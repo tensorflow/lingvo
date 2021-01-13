@@ -319,7 +319,8 @@ per-example tensors in this method.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sess</strong> – a session.</p></li>
 <li><p><strong>global_step</strong> – task global step. Since ProcessFPropResults is called after
-sess.run(train_op), this value will be 1 higher than the value in FProp.</p></li>
+sess.run(train_op), this value will be p.train.tpu_steps_per_loop higher
+than the value in FProp.</p></li>
 <li><p><strong>metrics</strong> – the metrics dict returned by FPropTower.</p></li>
 <li><p><strong>per_example</strong> – the per_example dict returned by FPropTower.</p></li>
 </ul>
@@ -719,7 +720,8 @@ per-example tensors in this method.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sess</strong> – a session.</p></li>
 <li><p><strong>global_step</strong> – model global step. Since ProcessFPropResults is called after
-sess.run(train_op), this value will be 1 higher than the value in FProp.</p></li>
+sess.run(train_op), this value will be p.train.tpu_steps_per_loop higher
+than the value in FProp.</p></li>
 <li><p><strong>metrics</strong> – the metrics dict returned by FPropTower.</p></li>
 <li><p><strong>per_example</strong> – the per_example dict returned by FPropTower.</p></li>
 </ul>
