@@ -1299,6 +1299,7 @@ py_test(
         ":cluster_factory",
         ":hyperparams",
         ":py_utils",
+        ":py_utils_flags",
         ":recurrent",
         ":symbolic",
         ":test_helper",

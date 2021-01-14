@@ -31,6 +31,7 @@ from lingvo.core import builder_layers
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+from lingvo.core import py_utils_flags
 from lingvo.core import recurrent
 from lingvo.core import symbolic
 from lingvo.core import test_helper
@@ -46,6 +47,15 @@ FLAGS = tf.flags.FLAGS
 
 
 class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
+
+  def testEnableAssertFlagOverrideFromCluster(self):
+    cluster_params = cluster_factory.Current().Params()
+    cluster_params.enable_asserts = True
+    with cluster_factory.Cluster(cluster_params):
+      self.assertTrue(py_utils_flags.enable_asserts())
+    cluster_params.enable_asserts = False
+    with cluster_factory.Cluster(cluster_params):
+      self.assertFalse(py_utils_flags.enable_asserts())
 
   def testIsDefaultParamInit(self):
     p = py_utils.DefaultParamInit()

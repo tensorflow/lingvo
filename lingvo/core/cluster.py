@@ -110,6 +110,10 @@ class _Cluster:
         'this value is used instead of FLAGS.xla_device '
         'for running multiple runners in the same process, '
         'eg: Controller and TrainerTpu')
+    p.Define(
+        'enable_asserts', None, 'If set to non-None, '
+        'this value is used instead of FLAGS.enable_asserts. '
+        'If False, we disable all asserts ops and return tf.no_op() instead.')
     return p
 
   @classmethod

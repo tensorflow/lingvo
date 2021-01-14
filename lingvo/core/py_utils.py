@@ -92,42 +92,42 @@ NestedMap = nested_map.NestedMap
 
 
 def Assert(condition, data, *args, **kwargs):
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return tf.Assert(condition, data, *args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_equal(*args, **kwargs):  # pylint: disable=invalid-name
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return tf.assert_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_greater_equal(*args, **kwargs):  # pylint: disable=invalid-name
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return tf.debugging.assert_greater_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_greater(*args, **kwargs):  # pylint: disable=invalid-name
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return tf.assert_greater(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_less_equal(*args, **kwargs):  # pylint: disable=invalid-name
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return tf.debugging.assert_less_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_less(*args, **kwargs):  # pylint: disable=invalid-name
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return tf.assert_less(*args, **kwargs)
   else:
     return tf.no_op()
@@ -144,7 +144,7 @@ def assert_between(x, l, r, *args, **kwargs):  # pylint: disable=invalid-name
 
 
 def assert_shape_match(*args, **kwargs):  # pylint: disable=invalid-name
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
     kwargs['msg'] = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(
         r'.*/', '', filepath), line, func)
@@ -154,7 +154,7 @@ def assert_shape_match(*args, **kwargs):  # pylint: disable=invalid-name
 
 
 def assert_same_dim0(xs, *args, **kwargs):  # pylint: disable=invalid-name
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return ops.assert_same_dim0(xs, *args, **kwargs)
   else:
     return tf.no_op()
@@ -378,7 +378,7 @@ def HasRank(tensor, expected_rank):
         'Ranks did not match, got %d, '
         'expected %d') % (tensor.shape.ndims, expected_rank)
     return tensor
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return with_dependencies([tf.assert_equal(tf.rank(tensor), expected_rank)],
                              tensor)
   else:
@@ -392,7 +392,7 @@ def HasAtLeastRank(tensor, expected_rank):
         'Rank of tensor %d did not exceed the expected value %d.') % (
             tensor.shape.ndims, expected_rank)
     return tensor
-  if _FromGlobal('enable_asserts'):
+  if py_utils_flags.enable_asserts():
     return with_dependencies(
         [tf.debugging.assert_greater_equal(tf.rank(tensor), expected_rank)],
         tensor)
@@ -467,7 +467,7 @@ def HasShape(tensor, expected_shape, ndims=None):
   Raises:
     ValueError: A value error if the assertion fails at static shape checks.
   """
-  if not _FromGlobal('enable_asserts'):
+  if not py_utils_flags.enable_asserts():
     return tensor
 
   filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]

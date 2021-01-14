@@ -111,7 +111,7 @@ def _FromGlobal(field_name, allow_override_from_cluster=False):
     if field_name in cluster.params:
       params_value = cluster.params.Get(field_name)
       # Return the value in the cluster params if it is not None
-      if params_value:
+      if params_value is not None:
         return params_value
 
   # Now check the FLAGS object for backwards compatibility.
@@ -120,6 +120,12 @@ def _FromGlobal(field_name, allow_override_from_cluster=False):
   # have not been parsed yet, the default value of the flag will be used.
   return FLAGS[field_name].value
 # pylint: enable=invalid-name
+
+
+def enable_asserts():  # pylint: disable=invalid-name
+  res = _FromGlobal('enable_asserts', allow_override_from_cluster=True)
+  assert res in [True, False]
+  return res
 
 
 def use_xla():  # pylint: disable=invalid-name
@@ -132,7 +138,7 @@ def use_xla():  # pylint: disable=invalid-name
 def use_tpu():  # pylint: disable=invalid-name
   res = _FromGlobal('xla_device', allow_override_from_cluster=True) == 'tpu'
   if res:
-    assert not _FromGlobal('enable_asserts')  # asserts not supported on tpu
+    assert not enable_asserts()  # asserts not supported on tpu
   return res
 
 
