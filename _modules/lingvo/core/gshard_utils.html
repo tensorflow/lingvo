@@ -167,11 +167,14 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Utilities for applying xla-sharding to a model.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
+
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils_flags</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.compiler.xla</span> <span class="kn">import</span> <span class="n">xla_data_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
@@ -279,6 +282,173 @@
   <span class="c1"># Next line: zigzag on outer mesh dim (8). It doesn&#39;t have wrap link, either.</span>
   <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">ZigzagOrderOnDeviceMesh</span><span class="p">(</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">zigzag_mesh_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">device_mesh</span></div>
+
+
+<div class="viewcode-block" id="TensorShardingSpec"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec">[docs]</a><span class="k">class</span> <span class="nc">TensorShardingSpec</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Represents a sharding annotation for GShard/XLA.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">split_dims_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">device_mesh</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">uneven_padding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a sharding specification.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      split_dims_mapping: a list of integers that map each tensor axis to the</span>
+<span class="sd">        device mesh axis along which it is sharded. Its length is the tensor</span>
+<span class="sd">        rank, and split_dims_mapping[i] is device mesh axis for tensor dimension</span>
+<span class="sd">        i. Use -1 for tensor dimensions that are not sharded. If the list is set</span>
+<span class="sd">        to None, the sharding will be treated as replicated.</span>
+<span class="sd">      device_mesh: a numpy.ndarray describing the topology of the device mesh</span>
+<span class="sd">        and each element is the ID of the device in the topology. Not needed for</span>
+<span class="sd">        replicated sharding, where it can be set to None.</span>
+<span class="sd">      uneven_padding: amount of padding applied to the right side of each tensor</span>
+<span class="sd">        dimension due to uneven partitioning of the shape in SPMD.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">split_dims_mapping</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="n">device_mesh</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span> <span class="o">=</span> <span class="n">uneven_padding</span>
+
+<div class="viewcode-block" id="TensorShardingSpec.FromFullShape"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.FromFullShape">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FromFullShape</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">full_shape</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+                    <span class="n">split_dims_mapping</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">device_mesh</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates tiled sharding spec with uneven padding computed from shape.&quot;&quot;&quot;</span>
+    <span class="n">uneven_padding</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_dims_mapping</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">split_dims_mapping</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="n">split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">partitions</span> <span class="o">=</span> <span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">shard_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">full_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">partitions</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">partitions</span>
+        <span class="n">uneven_padding</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">shard_size</span> <span class="o">*</span> <span class="n">partitions</span> <span class="o">-</span> <span class="n">full_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="p">(</span><span class="n">split_dims_mapping</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">uneven_padding</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.ApplyToTensor"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.ApplyToTensor">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyToTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">tensor</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+                    <span class="n">use_sharding_op</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="n">use_sharding_op</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">mesh_split</span><span class="p">(</span>
+        <span class="n">tensor</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">,</span>
+        <span class="n">use_sharding_op</span><span class="o">=</span><span class="n">use_sharding_op</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.ApplyToVariable"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.ApplyToVariable">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyToVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">mesh_split</span><span class="p">(</span>
+        <span class="n">variable</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">,</span>
+        <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.ShardShape"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.ShardShape">[docs]</a>  <span class="k">def</span> <span class="nf">ShardShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full_shape</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Returns the shape after applying this sharding to full_shape.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">full_shape</span>
+
+    <span class="n">shard_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">full_shape</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">partitions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">shard_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">full_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">partitions</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">partitions</span>
+    <span class="k">return</span> <span class="n">shard_shape</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.ManualToAutoPartitioning"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.ManualToAutoPartitioning">[docs]</a>  <span class="k">def</span> <span class="nf">ManualToAutoPartitioning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensor</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Converts manually sharded tensor to full-size for auto partitioning.&quot;&quot;&quot;</span>
+    <span class="n">full_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">full_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">full_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">manual_to_auto_spmd_partition</span><span class="p">(</span>
+        <span class="n">tensor</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ToXlaOpSharding</span><span class="p">()</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">(),</span> <span class="n">full_shape</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.AutoToManualPartitioning"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.AutoToManualPartitioning">[docs]</a>  <span class="k">def</span> <span class="nf">AutoToManualPartitioning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensor</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Converts full-size tensor (auto partitioning) to manually sharded.&quot;&quot;&quot;</span>
+    <span class="n">manual</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">auto_to_manual_spmd_partition</span><span class="p">(</span>
+        <span class="n">tensor</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ToXlaOpSharding</span><span class="p">()</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span>
+    <span class="n">xla_sharding</span><span class="o">.</span><span class="n">Sharding</span><span class="o">.</span><span class="n">manual</span><span class="p">()</span><span class="o">.</span><span class="n">apply_to_tensor</span><span class="p">(</span><span class="n">manual</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">manual</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.ToXlaOpSharding"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.ToXlaOpSharding">[docs]</a>  <span class="k">def</span> <span class="nf">ToXlaOpSharding</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xla_data_pb2</span><span class="o">.</span><span class="n">OpSharding</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">Sharding</span><span class="o">.</span><span class="n">replicate</span><span class="p">()</span><span class="o">.</span><span class="n">proto</span>
+    <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">mesh_split_sharding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">)</span><span class="o">.</span><span class="n">proto</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.FromXlaOpSharding"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.FromXlaOpSharding">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FromXlaOpSharding</span><span class="p">(</span>
+      <span class="bp">cls</span><span class="p">,</span> <span class="n">op_sharding_proto</span><span class="p">:</span> <span class="n">xla_data_pb2</span><span class="o">.</span><span class="n">OpSharding</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TensorShardingSpec&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parses from an XLA OpSharding proto.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">op_sharding_proto</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">xla_data_pb2</span><span class="o">.</span><span class="n">OpSharding</span><span class="o">.</span><span class="n">OTHER</span><span class="p">:</span>
+      <span class="n">device_mesh_shape</span> <span class="o">=</span> <span class="n">op_sharding_proto</span><span class="o">.</span><span class="n">tile_assignment_dimensions</span>
+      <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">op_sharding_proto</span><span class="o">.</span><span class="n">tile_assignment_devices</span><span class="p">),</span>
+          <span class="n">device_mesh_shape</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">op_sharding_proto</span><span class="o">.</span><span class="n">replicate_on_last_tile_dim</span><span class="p">:</span>
+        <span class="n">split_dims_mapping</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">split_dims_mapping</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">device_mesh_shape</span><span class="p">)))</span>
+      <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">split_dims_mapping</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ReplicatedSpec</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.AddLeadingDims"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.AddLeadingDims">[docs]</a>  <span class="k">def</span> <span class="nf">AddLeadingDims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TensorShardingSpec&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span>
+    <span class="n">new_padding</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_dims</span> <span class="o">+</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_dims</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">new_padding</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.RemoveLeadingDims"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.RemoveLeadingDims">[docs]</a>  <span class="k">def</span> <span class="nf">RemoveLeadingDims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TensorShardingSpec&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span>
+    <span class="n">new_padding</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span><span class="p">[</span><span class="n">num_dims</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[</span><span class="n">num_dims</span><span class="p">:],</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">new_padding</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorShardingSpec.ReplicatedSpec"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.ReplicatedSpec">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ReplicatedSpec</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="p">()</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">split_dims_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">device_mesh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">is_replicated</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">mesh_dim_to_tensor_dim_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="n">mapping</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">mapping</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mapping</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="n">mapping</span></div>
+
+
+<div class="viewcode-block" id="GetVarSharding"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.GetVarSharding">[docs]</a><span class="k">def</span> <span class="nf">GetVarSharding</span><span class="p">(</span><span class="n">var</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorShardingSpec</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Returns the sharding directly attached to a variable.&quot;&quot;&quot;</span>
+  <span class="n">sharding</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">get_op_sharding</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">op</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">sharding</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="o">.</span><span class="n">ReplicatedSpec</span><span class="p">()</span>
+
+  <span class="n">proto</span> <span class="o">=</span> <span class="n">xla_data_pb2</span><span class="o">.</span><span class="n">OpSharding</span><span class="p">()</span>
+  <span class="n">proto</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">sharding</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="o">.</span><span class="n">FromXlaOpSharding</span><span class="p">(</span><span class="n">proto</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
