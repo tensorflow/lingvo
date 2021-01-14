@@ -487,6 +487,20 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       einsum, replacement = self.evaluate([einsum, replacement])
       self.assertAllClose(einsum, replacement)
 
+  def testEinsumReplacementBxycBzyBxzc(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      a = tf.random.uniform(
+          shape=[20, 7, 4, 3], minval=0, maxval=1, dtype=tf.float32)
+      b = tf.random.uniform(
+          shape=[20, 5, 4], minval=0, maxval=1, dtype=tf.float32)
+      einsum = tf.einsum('bxyc,bzy->bxzc', a, b)
+      p = spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.Params()
+      p.name = 'specAug_layers'
+      specaug_layer = p.Instantiate()
+      replacement = specaug_layer.EinsumBxycBzyBxzc(a, b)
+      einsum, replacement = self.evaluate([einsum, replacement])
+      self.assertAllClose(einsum, replacement)
+
 
 if __name__ == '__main__':
   tf.test.main()

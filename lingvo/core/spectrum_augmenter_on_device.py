@@ -55,3 +55,10 @@ class SpectrumAugmenterOnDevice(spectrum_augmenter.SpectrumAugmenter):
     expanded_b = tf.expand_dims(tf.expand_dims(b, axis=-1), axis=-1)
     return tf.reduce_sum(
         tf.math.multiply(expanded_a, expanded_b, name=name), axis=2)
+
+  def EinsumBxycBzyBxzc(self, a, b, name=None):
+    """Portable replacement for tf.einsum('bxyc,bzy->bxzc', a, b)."""
+    expanded_a = tf.expand_dims(a, axis=2)  # bx1yc
+    expanded_b = tf.expand_dims(tf.expand_dims(b, axis=1), axis=-1)  # b1zy1
+    return tf.reduce_sum(
+        tf.math.multiply(expanded_a, expanded_b, name=name), axis=3)

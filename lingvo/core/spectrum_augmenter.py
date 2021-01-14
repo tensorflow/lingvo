@@ -27,6 +27,7 @@ _SPECAUGMENT_ARGS = (
     'time_mask_count',
     'time_mask_max_ratio',
     'time_masks_per_frame',
+    'freq_warp_max_bins',
     'time_warp_bound',
     'time_warp_max_frames',
     'time_warp_max_ratio',
@@ -109,6 +110,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         'Ratio of number of time masks to be applied against the number '
         'of frames. If > 0, multiplicity of the time mask is determined by '
         'min(time_masks_per_frame * utterance_length, time_mask_count).')
+    p.Define('freq_warp_max_bins', 0,
+             'Maximum number of frequency bins for shifting in freq warping.')
     p.Define(
         'time_warp_bound', 'static',
         'To be set to either `dynamic` or `static`. '
@@ -156,6 +159,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         setattr(p, field, [v] * num_domains)
     assert p.freq_mask_max_bins[0] > -1
     assert p.time_mask_max_frames[0] > -1
+    assert p.freq_warp_max_bins[0] > -1
     assert p.time_warp_max_frames[0] > -1
 
   def EinsumBBmBm(self, a, b, name=None):
@@ -175,6 +179,9 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
   def EinsumBxycBzxBzyc(self, a, b, name=None):
     return tf.einsum('bxyc,bzx->bzyc', a, b, name=name)
+
+  def EinsumBxycBzyBxzc(self, a, b, name=None):
+    return tf.einsum('bxyc,bzy->bxzc', a, b, name=name)
 
   def _GetMask(self,
                batch_size,
@@ -669,6 +676,46 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     return outputs
 
+  def _FrequencyWarp(self,
+                     inputs,
+                     global_seed,
+                     dtype=tf.float32,
+                     domain_id_index=0):
+    """Applies frequency warping with given degree to inputs.
+
+    Args:
+      inputs: Batch of input features of shape (batch_size, time_length,
+        num_freq, channels).
+      global_seed: an integer seed tensor for stateless random ops.
+      dtype: Data type.
+      domain_id_index: Domain ID index.
+
+    Returns:
+      Inputs with random frequency warping applied.
+    """
+    p = self.params
+    batch_size, _, num_freq, _ = py_utils.GetShape(inputs)
+
+    # Get parameters for warping.
+    freq_warp_max_bins = p.freq_warp_max_bins[domain_id_index]
+
+    # If maximum warp length is zero, do nothing.
+    if freq_warp_max_bins == 0:
+      return inputs
+    choose_range = tf.ones((batch_size,), dtype=tf.int32) * num_freq
+
+    # Create warping matrix in time direction and apply
+    warp_matrix = self._GetWarpMatrix(
+        batch_size,
+        choose_range=choose_range,
+        matrix_size=num_freq,
+        global_seed=global_seed,
+        max_warp_frames=freq_warp_max_bins,
+        dtype=dtype)
+
+    return self.EinsumBxycBzyBxzc(
+        inputs, warp_matrix, name='einsum_forfreqwarping')
+
   def _TimeWarp(self,
                 inputs,
                 seq_lengths,
@@ -762,6 +809,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       inputs, paddings = self.UnstackFeatures(inputs, paddings)
 
     lengths = tf.reduce_sum(1 - paddings, 1)
+    inputs = self._FrequencyWarp(
+        inputs,
+        global_seed=global_seed,
+        dtype=dtype,
+        domain_id_index=domain_id_index)
     inputs = self._TimeWarp(
         inputs,
         lengths,

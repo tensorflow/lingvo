@@ -367,6 +367,39 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testSpectrumAugmenterWithFreqWarping(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.random.set_seed(1234)
+      inputs = tf.broadcast_to(
+          tf.cast(tf.range(8), dtype=tf.float32), (5, 1, 8))
+      inputs = tf.expand_dims(inputs, -1)
+      paddings = tf.zeros([3, 2])
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.freq_mask_max_bins = 0
+      p.time_mask_max_frames = 0
+      p.freq_warp_max_bins = 4
+      p.time_warp_max_frames = 0
+      p.random_seed = 345678
+      specaug_layer = p.Instantiate()
+      # pyformat: disable
+      # pylint: disable=bad-whitespace,bad-continuation
+      expected_output = np.array(
+          [[[0.0, 4.0, 4.5714283, 5.142857, 5.714286, 6.285714, 6.8571434,
+             3.999998]],
+           [[0.0, 0.8, 1.6, 2.4, 3.2, 4.0, 5.3333335, 6.6666665]],
+           [[0.0, 0.6666667, 1.3333334, 2.0, 3.2, 4.4, 5.6000004, 6.8]],
+           [[0.0, 1.3333334, 2.6666667, 4.0, 4.8, 5.6000004, 6.3999996,
+             5.5999947]],
+           [[0.0, 2.0, 2.857143, 3.7142859, 4.571429, 5.4285717, 6.2857146,
+             5.999997]]])
+      # pylint: enable=bad-whitespace,bad-continuation
+      # pyformat: enable
+      h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
+      actual_layer_output = self.evaluate(tf.squeeze(h, -1))
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
   def testSpectrumAugmenterWithTimeWarping(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
