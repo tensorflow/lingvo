@@ -179,6 +179,7 @@
     <span class="s1">&#39;time_mask_count&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_mask_max_ratio&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_masks_per_frame&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;freq_warp_max_bins&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_warp_bound&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_warp_max_frames&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_warp_max_ratio&#39;</span><span class="p">,</span>
@@ -261,6 +262,8 @@
         <span class="s1">&#39;Ratio of number of time masks to be applied against the number &#39;</span>
         <span class="s1">&#39;of frames. If &gt; 0, multiplicity of the time mask is determined by &#39;</span>
         <span class="s1">&#39;min(time_masks_per_frame * utterance_length, time_mask_count).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;freq_warp_max_bins&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Maximum number of frequency bins for shifting in freq warping.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;time_warp_bound&#39;</span><span class="p">,</span> <span class="s1">&#39;static&#39;</span><span class="p">,</span>
         <span class="s1">&#39;To be set to either `dynamic` or `static`. &#39;</span>
@@ -308,6 +311,7 @@
         <span class="nb">setattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_domains</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_mask_max_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_warp_max_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">time_warp_max_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
 
 <div class="viewcode-block" id="SpectrumAugmenter.EinsumBBmBm"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.EinsumBBmBm">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumBBmBm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -327,6 +331,9 @@
 
 <div class="viewcode-block" id="SpectrumAugmenter.EinsumBxycBzxBzyc"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.EinsumBxycBzxBzyc">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumBxycBzxBzyc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bxyc,bzx-&gt;bzyc&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpectrumAugmenter.EinsumBxycBzyBxzc"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.EinsumBxycBzyBxzc">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumBxycBzyBxzc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bxyc,bzy-&gt;bxzc&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SpectrumAugmenter._GetMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">batch_size</span><span class="p">,</span>
@@ -821,6 +828,46 @@
 
     <span class="k">return</span> <span class="n">outputs</span></div>
 
+<div class="viewcode-block" id="SpectrumAugmenter._FrequencyWarp"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyWarp">[docs]</a>  <span class="k">def</span> <span class="nf">_FrequencyWarp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">inputs</span><span class="p">,</span>
+                     <span class="n">global_seed</span><span class="p">,</span>
+                     <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                     <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies frequency warping with given degree to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: Batch of input features of shape (batch_size, time_length,</span>
+<span class="sd">        num_freq, channels).</span>
+<span class="sd">      global_seed: an integer seed tensor for stateless random ops.</span>
+<span class="sd">      dtype: Data type.</span>
+<span class="sd">      domain_id_index: Domain ID index.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Inputs with random frequency warping applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="c1"># Get parameters for warping.</span>
+    <span class="n">freq_warp_max_bins</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_warp_max_bins</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+
+    <span class="c1"># If maximum warp length is zero, do nothing.</span>
+    <span class="k">if</span> <span class="n">freq_warp_max_bins</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+    <span class="n">choose_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_freq</span>
+
+    <span class="c1"># Create warping matrix in time direction and apply</span>
+    <span class="n">warp_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWarpMatrix</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">choose_range</span><span class="o">=</span><span class="n">choose_range</span><span class="p">,</span>
+        <span class="n">matrix_size</span><span class="o">=</span><span class="n">num_freq</span><span class="p">,</span>
+        <span class="n">global_seed</span><span class="o">=</span><span class="n">global_seed</span><span class="p">,</span>
+        <span class="n">max_warp_frames</span><span class="o">=</span><span class="n">freq_warp_max_bins</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumBxycBzyBxzc</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">warp_matrix</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;einsum_forfreqwarping&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="SpectrumAugmenter._TimeWarp"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeWarp">[docs]</a>  <span class="k">def</span> <span class="nf">_TimeWarp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">inputs</span><span class="p">,</span>
                 <span class="n">seq_lengths</span><span class="p">,</span>
@@ -914,6 +961,11 @@
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UnstackFeatures</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
 
     <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FrequencyWarp</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
+        <span class="n">global_seed</span><span class="o">=</span><span class="n">global_seed</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TimeWarp</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">lengths</span><span class="p">,</span>

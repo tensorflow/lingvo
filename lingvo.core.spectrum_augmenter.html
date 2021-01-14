@@ -265,6 +265,11 @@ usually different for each batch.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter.EinsumBxycBzyBxzc">
+<code class="sig-name descname">EinsumBxycBzyBxzc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter.EinsumBxycBzyBxzc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.EinsumBxycBzyBxzc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">
 <code class="sig-name descname">_GetMask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em>, <em class="sig-param"><span class="n">choose_range</span></em>, <em class="sig-param"><span class="n">mask_size</span></em>, <em class="sig-param"><span class="n">global_seed</span></em>, <em class="sig-param"><span class="n">max_length</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">masks_per_frame</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">multiplicity</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em>, <em class="sig-param"><span class="n">max_ratio</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns fixed size multi-masks starting from random positions.</p>
@@ -478,6 +483,26 @@ num_freq, channels).</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Inputs with random time masking applied.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyWarp">
+<code class="sig-name descname">_FrequencyWarp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">global_seed</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em>, <em class="sig-param"><span class="n">domain_id_index</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyWarp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyWarp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies frequency warping with given degree to inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
+num_freq, channels).</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
+<li><p><strong>dtype</strong> – Data type.</p></li>
+<li><p><strong>domain_id_index</strong> – Domain ID index.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Inputs with random frequency warping applied.</p>
 </dd>
 </dl>
 </dd></dl>
