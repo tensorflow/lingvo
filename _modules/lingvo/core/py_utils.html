@@ -244,42 +244,42 @@
 
 
 <div class="viewcode-block" id="Assert"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Assert">[docs]</a><span class="k">def</span> <span class="nf">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="assert_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="assert_greater_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_greater_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="assert_greater"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_greater">[docs]</a><span class="k">def</span> <span class="nf">assert_greater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_greater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="assert_less_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_less_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="assert_less"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_less">[docs]</a><span class="k">def</span> <span class="nf">assert_less</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_less</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
@@ -296,7 +296,7 @@
 
 
 <div class="viewcode-block" id="assert_shape_match"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_shape_match">[docs]</a><span class="k">def</span> <span class="nf">assert_shape_match</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;msg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;LINGVO ASSERT </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
         <span class="sa">r</span><span class="s1">&#39;.*/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">filepath</span><span class="p">),</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
@@ -306,7 +306,7 @@
 
 
 <div class="viewcode-block" id="assert_same_dim0"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_same_dim0">[docs]</a><span class="k">def</span> <span class="nf">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
@@ -530,7 +530,7 @@
         <span class="s1">&#39;Ranks did not match, got </span><span class="si">%d</span><span class="s1">, &#39;</span>
         <span class="s1">&#39;expected </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tensor</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">expected_rank</span><span class="p">)],</span>
                              <span class="n">tensor</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
@@ -544,7 +544,7 @@
         <span class="s1">&#39;Rank of tensor </span><span class="si">%d</span><span class="s1"> did not exceed the expected value </span><span class="si">%d</span><span class="s1">.&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span>
             <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tensor</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">(</span>
         <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">expected_rank</span><span class="p">)],</span>
         <span class="n">tensor</span><span class="p">)</span>
@@ -619,7 +619,7 @@
 <span class="sd">  Raises:</span>
 <span class="sd">    ValueError: A value error if the assertion fails at static shape checks.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tensor</span>
 
   <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>

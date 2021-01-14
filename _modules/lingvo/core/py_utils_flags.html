@@ -263,7 +263,7 @@
     <span class="k">if</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">:</span>
       <span class="n">params_value</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field_name</span><span class="p">)</span>
       <span class="c1"># Return the value in the cluster params if it is not None</span>
-      <span class="k">if</span> <span class="n">params_value</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">params_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">params_value</span>
 
   <span class="c1"># Now check the FLAGS object for backwards compatibility.</span>
@@ -272,6 +272,12 @@
   <span class="c1"># have not been parsed yet, the default value of the flag will be used.</span>
   <span class="k">return</span> <span class="n">FLAGS</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span><span class="o">.</span><span class="n">value</span></div>
 <span class="c1"># pylint: enable=invalid-name</span>
+
+
+<div class="viewcode-block" id="enable_asserts"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.enable_asserts">[docs]</a><span class="k">def</span> <span class="nf">enable_asserts</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">,</span> <span class="n">allow_override_from_cluster</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="n">res</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">res</span></div>
 
 
 <div class="viewcode-block" id="use_xla"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.use_xla">[docs]</a><span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -284,7 +290,7 @@
 <div class="viewcode-block" id="use_tpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils_flags.html#lingvo.core.py_utils_flags.use_tpu">[docs]</a><span class="k">def</span> <span class="nf">use_tpu</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">res</span> <span class="o">=</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="n">allow_override_from_cluster</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">)</span>  <span class="c1"># asserts not supported on tpu</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">enable_asserts</span><span class="p">()</span>  <span class="c1"># asserts not supported on tpu</span>
   <span class="k">return</span> <span class="n">res</span></div>
 
 
