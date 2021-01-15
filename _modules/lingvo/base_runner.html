@@ -200,6 +200,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="c1"># Set in subclasses.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_daemon</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">OverrideModelParams</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
@@ -348,6 +349,16 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> started.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
       <span class="n">loop_func</span><span class="p">(</span><span class="o">*</span><span class="n">loop_args</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daemon</span><span class="p">:</span>
+        <span class="c1"># In daemon mode, an external scheduler will retry the job on 0 status.</span>
+        <span class="c1"># So exit with a non-zero status to prevent retry.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> completed successfully. Exiting with FAILURE to prevent retry.&#39;</span>
+            <span class="o">%</span> <span class="n">job_name</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span>  <span class="c1"># Wait a bit for other threads to complete.</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+
       <span class="k">return</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint:disable=broad-except</span>
       <span class="n">fatal_error_msgs</span> <span class="o">=</span> <span class="p">[</span>
@@ -404,6 +415,15 @@
 
         <span class="k">if</span> <span class="n">cleanup_func</span><span class="p">:</span>
           <span class="n">cleanup_func</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daemon</span><span class="p">:</span>
+          <span class="c1"># In daemon mode, retry will be handled by an external scheduler by</span>
+          <span class="c1"># returning a 0 status.</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Execution stopped due to fatal error. &#39;</span>
+                           <span class="s1">&#39;Returning 0 to be scheduled for retry.&#39;</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+          <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+
         <span class="k">raise</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Allow the job to complete on errors that are unlikely to be transient,</span>
@@ -432,9 +452,7 @@
         <span class="c1"># python so far, we need a way to exit the program directly.</span>
         <span class="c1"># Because sys.exit(1) must be called from the main thread, and does</span>
         <span class="c1"># not cancel non-daemon threads anyway, we use os._exit instead.</span>
-        <span class="c1"># Because tf.logging.error() may return before the flush is complete,</span>
-        <span class="c1"># we need an extra sleep before exit.</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
         <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
 
 <div class="viewcode-block" id="BaseRunner._DequeueThreadComplete"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._DequeueThreadComplete">[docs]</a>  <span class="k">def</span> <span class="nf">_DequeueThreadComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
