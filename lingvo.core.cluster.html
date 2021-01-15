@@ -173,6 +173,11 @@
   <div class="section" id="module-lingvo.core.cluster">
 <span id="lingvo-core-cluster-module"></span><h1>lingvo.core.cluster module<a class="headerlink" href="#module-lingvo.core.cluster" title="Permalink to this headline">¶</a></h1>
 <p>Specification of a training cluster.</p>
+<dl class="py function">
+<dt id="lingvo.core.cluster.MakeDeviceString">
+<code class="sig-prename descclassname">lingvo.core.cluster.</code><code class="sig-name descname">MakeDeviceString</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job_name</span></em>, <em class="sig-param"><span class="n">task_id</span></em>, <em class="sig-param"><span class="n">device_name</span></em>, <em class="sig-param"><span class="n">device_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#MakeDeviceString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster.MakeDeviceString" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py class">
 <dt id="lingvo.core.cluster._Cluster">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.cluster.</code><code class="sig-name descname">_Cluster</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#_Cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster._Cluster" title="Permalink to this definition">¶</a></dt>
@@ -191,13 +196,13 @@
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.cluster._Cluster._MakeDeviceString">
-<em class="property">classmethod </em><code class="sig-name descname">_MakeDeviceString</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job_name</span></em>, <em class="sig-param"><span class="n">task_id</span></em>, <em class="sig-param"><span class="n">device_name</span></em>, <em class="sig-param"><span class="n">device_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#_Cluster._MakeDeviceString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster._Cluster._MakeDeviceString" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.cluster._Cluster.InitDevices">
+<code class="sig-name descname">InitDevices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#_Cluster.InitDevices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster._Cluster.InitDevices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.cluster._Cluster.ListDevices">
-<em class="property">classmethod </em><code class="sig-name descname">ListDevices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job_spec</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#_Cluster.ListDevices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster._Cluster.ListDevices" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ListDevices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job_spec</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cluster.html#_Cluster.ListDevices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cluster._Cluster.ListDevices" title="Permalink to this definition">¶</a></dt>
 <dd><p>Lists devices in the job.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -206,6 +211,9 @@
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Returns a 2D np string array. ret[i, j] is the i-th replica’s j-th
 devices.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – the cluster configuration does not match actual devices.</p>
 </dd>
 </dl>
 </dd></dl>

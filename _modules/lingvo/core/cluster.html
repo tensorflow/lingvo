@@ -168,11 +168,17 @@
 <span class="sd">&quot;&quot;&quot;Specification of a training cluster.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">heapq</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">nested_map</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">thread_local_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.MakeDeviceString">[docs]</a><span class="k">def</span> <span class="nf">MakeDeviceString</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">):</span>
+  <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/replica:0/task:</span><span class="si">%d</span><span class="s1">/device:</span><span class="si">%s</span><span class="s1">:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span>
+                                                <span class="n">device_id</span><span class="p">)</span></div>
 
 
 <span class="n">_CLUSTER_STACK</span> <span class="o">=</span> <span class="n">thread_local_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
@@ -268,14 +274,10 @@
         <span class="s1">&#39;If False, we disable all asserts ops and return tf.no_op() instead.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="_Cluster._MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._MakeDeviceString">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_MakeDeviceString</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">):</span>
-    <span class="k">del</span> <span class="bp">cls</span>
-    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/replica:0/task:</span><span class="si">%d</span><span class="s1">/device:</span><span class="si">%s</span><span class="s1">:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span>
-                                                  <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">)</span></div>
+<div class="viewcode-block" id="_Cluster.InitDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.InitDevices">[docs]</a>  <span class="k">def</span> <span class="nf">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_all_devices</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">sess</span><span class="o">.</span><span class="n">list_devices</span><span class="p">()]</span></div>
 
-<div class="viewcode-block" id="_Cluster.ListDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.ListDevices">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">ListDevices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">):</span>
+<div class="viewcode-block" id="_Cluster.ListDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.ListDevices">[docs]</a>  <span class="k">def</span> <span class="nf">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lists devices in the job.</span>
 
 <span class="sd">    Args:</span>
@@ -284,18 +286,55 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Returns a 2D np string array. ret[i, j] is the i-th replica&#39;s j-th</span>
 <span class="sd">      devices.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      RuntimeError: the cluster configuration does not match actual devices.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span><span class="p">:</span>
-      <span class="n">cpus</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span>
-      <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">job_spec</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> <span class="n">cpus</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">replicas</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cpus</span><span class="p">):</span>
-          <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;CPU&#39;</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">replicas</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">replicas</span>
+    <span class="k">if</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span><span class="p">:</span>
+      <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;GPU&#39;</span>
+      <span class="n">devices_per_replica</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">job_spec</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">replicas</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span><span class="p">):</span>
-          <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;GPU&#39;</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+      <span class="n">device_type</span> <span class="o">=</span> <span class="s1">&#39;CPU&#39;</span>
+      <span class="n">devices_per_replica</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="ow">or</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">replicas</span><span class="p">,</span> <span class="n">devices_per_replica</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_all_devices&#39;</span><span class="p">):</span>
+      <span class="n">devices</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_devices</span>
+          <span class="k">if</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/&#39;</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">and</span> <span class="sa">f</span><span class="s1">&#39;/device:</span><span class="si">{</span><span class="n">device_type</span><span class="si">}</span><span class="s1">:&#39;</span> <span class="ow">in</span> <span class="n">d</span>
+      <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">devices</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">devices</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">DeviceKey</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+            <span class="s1">&#39;/job:.*/replica:(.*)/task:(.*)/device:.*:(.*)&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">replica</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">device_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">replica</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">device_id</span>
+
+      <span class="n">devices</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">DeviceKey</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">devices</span><span class="p">)</span> <span class="o">!=</span> <span class="n">replicas</span> <span class="o">*</span> <span class="n">devices_per_replica</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s1">&#39;Actual list of devices does not match cluster configuration: &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;Expected </span><span class="si">{</span><span class="n">devices_per_replica</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">device_type</span><span class="si">}</span><span class="s1"> devices in &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">replicas</span><span class="si">}</span><span class="s1"> replicas but got </span><span class="si">{</span><span class="n">devices</span><span class="si">}</span><span class="s1"> for </span><span class="si">{</span><span class="n">job_spec</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+      <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">devices</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">replicas</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">devices_per_replica</span><span class="p">):</span>
+          <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Devices not initialized from session, eg. exporting inference graph or</span>
+      <span class="c1"># remote sessions not linked to this session.</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">replicas</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">devices_per_replica</span><span class="p">):</span>
+          <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">device_type</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ListDevices(</span><span class="si">{</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">): </span><span class="si">{</span><span class="n">ret</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
   <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
