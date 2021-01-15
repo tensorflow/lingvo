@@ -1612,26 +1612,28 @@
     <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_blocks</span><span class="p">)</span>
 
     <span class="c1"># -&gt; [B, U, C]</span>
-    <span class="n">paddings_block_context</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ExtractBlockContext</span><span class="p">(</span>
-        <span class="n">paddings</span><span class="p">,</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">paddings</span>
+    <span class="n">mask_block_context</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ExtractBlockContext</span><span class="p">(</span>
+        <span class="n">mask</span><span class="p">,</span>
         <span class="n">block_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">block_size</span><span class="p">,</span>
         <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span>
         <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span>
-        <span class="n">padding_val</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">padding_val</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="c1"># -&gt; [B, N, U, W, C]</span>
-    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings_block_context</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mask_block_context</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
-    <span class="c1"># Make local causal paddings.</span>
+    <span class="c1"># Make local causal mask.</span>
     <span class="c1"># -&gt; [U, W, C]</span>
-    <span class="n">local_causal_padding</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">MakeLocalPadding</span><span class="p">(</span>
+    <span class="n">local_causal_mask</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">MakeLocalMask</span><span class="p">(</span>
         <span class="n">seq_len</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
         <span class="n">block_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">block_size</span><span class="p">,</span>
         <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span>
         <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">paddings</span> <span class="o">+=</span> <span class="n">local_causal_padding</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">*</span> <span class="n">local_causal_mask</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">mask</span>
 
     <span class="c1"># -&gt; [B, N, U, W, C]</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_blocks</span><span class="p">,</span> <span class="n">key_block_context</span><span class="p">)</span>
@@ -1639,7 +1641,7 @@
     <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">paddings</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
+    <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">*</span> <span class="n">mask</span> <span class="o">+</span> <span class="n">very_negative_logits</span> <span class="o">*</span> <span class="n">paddings</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_scaling_code_motion</span><span class="p">:</span>
       <span class="c1"># Split the softmax into two parts. Do the 1st part here; the 2nd part</span>

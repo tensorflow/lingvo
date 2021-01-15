@@ -254,14 +254,14 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">concat_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MakeLocalPadding"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.MakeLocalPadding">[docs]</a><span class="k">def</span> <span class="nf">MakeLocalPadding</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span>
-                     <span class="n">block_size</span><span class="p">,</span>
-                     <span class="n">left_context</span><span class="p">,</span>
-                     <span class="n">right_context</span><span class="p">,</span>
-                     <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Makes the padding tensor for a full sequence.</span>
+<div class="viewcode-block" id="MakeLocalMask"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.MakeLocalMask">[docs]</a><span class="k">def</span> <span class="nf">MakeLocalMask</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span>
+                  <span class="n">block_size</span><span class="p">,</span>
+                  <span class="n">left_context</span><span class="p">,</span>
+                  <span class="n">right_context</span><span class="p">,</span>
+                  <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Makes the mask tensor for a full sequence.</span>
 
-<span class="sd">  The returned padding reflects the given context sizes, where position i</span>
+<span class="sd">  The returned mask reflects the given context sizes, where position i</span>
 <span class="sd">  attends to tokens in the range [i - (left_context-1), i + right_context].</span>
 
 <span class="sd">  Args:</span>
@@ -314,9 +314,7 @@
   <span class="n">valid_atten</span> <span class="o">&amp;=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">valid_src</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
                                      <span class="n">valid_tgt</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>
 
-  <span class="n">padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">valid_atten</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-
-  <span class="k">return</span> <span class="n">padding</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">valid_atten</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="RelShift"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.RelShift">[docs]</a><span class="k">def</span> <span class="nf">RelShift</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
