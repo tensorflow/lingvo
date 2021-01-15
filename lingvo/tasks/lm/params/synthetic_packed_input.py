@@ -152,7 +152,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \
-# --ps_replicas=8 --cluster_placer_in_executor=true --job=executor_tpu
+# --ps_replicas=8 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B8x8(DenseLmTemplate):
   """128B params LM model with 2D split."""
@@ -180,7 +180,7 @@ class DenseLm128B8x8(DenseLmTemplate):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --cluster_placer_in_executor=true --job=executor_tpu
+# --ps_replicas=32 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B16x16(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-512."""
@@ -196,7 +196,7 @@ class DenseLm128B16x16(DenseLm128B8x8):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm1T16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --cluster_placer_in_executor=true --job=executor_tpu
+# --ps_replicas=32 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
 class DenseLm1T16x16(DenseLm128B16x16):
   """1T params LM model with 2D split on v3-512."""
@@ -212,7 +212,7 @@ class DenseLm1T16x16(DenseLm128B16x16):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B32x32 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
-# --ps_replicas=128 --cluster_placer_in_executor=true --job=executor_tpu
+# --ps_replicas=128 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B32x32(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-2048."""

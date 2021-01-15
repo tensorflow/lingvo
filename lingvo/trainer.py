@@ -416,7 +416,7 @@ class TrainerTpu(base_runner.BaseRunner):
     _WaitUntilInitTpu()
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.job_spec.name):
+      with self._cluster, tf.device(self._cluster.GetPlacer()):
         with cluster_factory.SetImmediatelyInstantiateVariables(False):
           self._model = self.params.Instantiate()
         self._task = self._model.GetTask()

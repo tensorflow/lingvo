@@ -31,14 +31,6 @@ from lingvo import base_runner
 from tensorflow.python.tpu import device_assignment as device_assignment_lib  # pylint: disable=g-direct-tensorflow-import
 
 tf.flags.DEFINE_bool(
-    'cluster_placer_in_executor', False,
-    'If True, cluster.GetPlacer() is used in Executor. ' +
-    'When running on TPU model weights can be distributed ' +
-    'across TPU hosts, for outrageously large models this ' +
-    'enables sharded checkpointing and reduces host memory ' +
-    'requirements, see _LeastLoadedPlacer in cluster.py.')
-
-tf.flags.DEFINE_bool(
     'disable_meta_optimizer_in_executor', False,
     'Disabling the grappler meta_optimizer improves start-up time.')
 
@@ -147,8 +139,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       **kwargs: keyword args to pass through to BaseRunner.
     """
     super().__init__(train_cfg, model_task_name, logdir, tf_master, **kwargs)
-
-    self._cluster_def = self._cluster.worker_cluster_def
 
     data_parallelism = self._cluster.num_splits_per_client
 
@@ -273,9 +263,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     tf.logging.info('num_programs: %d', len(self._programs))
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(
-          self._cluster.job_spec.name if not FLAGS.cluster_placer_in_executor
-          else self._cluster.GetPlacer()):
+      with self._cluster, tf.device(self._cluster.GetPlacer()):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
           _ = py_utils.GetOrCreateGlobalStepVar()
           for program in self._programs:
@@ -307,7 +295,7 @@ class ExecutorTpu(base_runner.BaseRunner):
                         'train.pbtxt')
 
   def _GetSession(self, **kwargs):
-    return super()._GetSession(cluster_def=self._cluster_def, **kwargs)
+    return super()._GetSession(cluster_def=self._worker_cluster_def, **kwargs)
 
   def _MaybeConstructSharedModel(self, train_cfg):
     """Construct a single shared copy of the model if this is a MultiTaskModel.
@@ -329,9 +317,7 @@ class ExecutorTpu(base_runner.BaseRunner):
       return None
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(
-          self._cluster.job_spec.name if not FLAGS.cluster_placer_in_executor
-          else self._cluster.GetPlacer()):
+      with self._cluster, tf.device(self._cluster.GetPlacer()):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
           _ = py_utils.GetOrCreateGlobalStepVar()
           shared_model = train_cfg.Instantiate()

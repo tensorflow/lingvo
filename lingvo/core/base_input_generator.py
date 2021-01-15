@@ -303,8 +303,13 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
     tf.logging.info('num_infeed_hosts: %d', num_infeed_hosts)
+    host_devices = self.cluster.ListDevices(self.cluster.job_spec).flatten()
+    if p.use_per_host_infeed and num_infeed_hosts != len(host_devices):
+      raise ValueError(
+          f'Configuration mismatch, number of infeed hosts {num_infeed_hosts} '
+          f'does not match available devices {host_devices}.')
     for task_id in range(num_infeed_hosts):
-      host_device = '/task:{}/device:CPU:0'.format(task_id)
+      host_device = host_devices[task_id]
       with tf.device(host_device), InfeedContextScope(
           infeed_host_index=task_id, num_infeed_hosts=num_infeed_hosts):
         batch = self.GetPreprocessedInputBatch()

@@ -16,11 +16,17 @@
 """Specification of a training cluster."""
 
 import heapq
+import re
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import nested_map
 from lingvo.core import thread_local_utils
 import numpy as np
+
+
+def MakeDeviceString(job_name, task_id, device_name, device_id):
+  return '%s/replica:0/task:%d/device:%s:%d' % (job_name, task_id, device_name,
+                                                device_id)
 
 
 _CLUSTER_STACK = thread_local_utils.ThreadLocalStack()
@@ -116,14 +122,10 @@ class _Cluster:
         'If False, we disable all asserts ops and return tf.no_op() instead.')
     return p
 
-  @classmethod
-  def _MakeDeviceString(cls, job_name, task_id, device_name, device_id):
-    del cls
-    return '%s/replica:0/task:%d/device:%s:%d' % (job_name, task_id,
-                                                  device_name, device_id)
+  def InitDevices(self, sess):
+    self._all_devices = [d.name for d in sess.list_devices()]
 
-  @classmethod
-  def ListDevices(cls, job_spec):
+  def ListDevices(self, job_spec):
     """Lists devices in the job.
 
     Args:
@@ -132,18 +134,55 @@ class _Cluster:
     Returns:
       Returns a 2D np string array. ret[i, j] is the i-th replica's j-th
       devices.
+
+    Raises:
+      RuntimeError: the cluster configuration does not match actual devices.
     """
-    if not job_spec.gpus_per_replica:
-      cpus = job_spec.cpus_per_replica
-      ret = np.empty((job_spec.replicas, cpus), np.object)
-      for i in range(job_spec.replicas):
-        for j in range(cpus):
-          ret[i, j] = cls._MakeDeviceString(job_spec.name, i, 'CPU', j)
+    replicas = job_spec.replicas
+    if job_spec.gpus_per_replica:
+      device_type = 'GPU'
+      devices_per_replica = job_spec.gpus_per_replica
     else:
-      ret = np.empty((job_spec.replicas, job_spec.gpus_per_replica), np.object)
-      for i in range(job_spec.replicas):
-        for j in range(job_spec.gpus_per_replica):
-          ret[i, j] = cls._MakeDeviceString(job_spec.name, i, 'GPU', j)
+      device_type = 'CPU'
+      devices_per_replica = job_spec.num_tpu_hosts or job_spec.cpus_per_replica
+    ret = np.empty((replicas, devices_per_replica), np.object)
+
+    if hasattr(self, '_all_devices'):
+      devices = [
+          d for d in self._all_devices
+          if f'{job_spec.name}/' in d and f'/device:{device_type}:' in d
+      ]
+    else:
+      devices = []
+
+    if devices:
+
+      def DeviceKey(device):
+        res = re.compile(
+            '/job:.*/replica:(.*)/task:(.*)/device:.*:(.*)').search(device)
+        replica = int(res.group(1))
+        task = int(res.group(2))
+        device_id = int(res.group(3))
+        return replica, task, device_id
+
+      devices.sort(key=DeviceKey)
+
+      if len(devices) != replicas * devices_per_replica:
+        raise RuntimeError(
+            'Actual list of devices does not match cluster configuration: '
+            f'Expected {devices_per_replica} {device_type} devices in '
+            f'{replicas} replicas but got {devices} for {job_spec}.')
+      it = iter(devices)
+      for i in range(replicas):
+        for j in range(devices_per_replica):
+          ret[i, j] = next(it)
+    else:
+      # Devices not initialized from session, eg. exporting inference graph or
+      # remote sessions not linked to this session.
+      for i in range(replicas):
+        for j in range(devices_per_replica):
+          ret[i, j] = MakeDeviceString(job_spec.name, i, device_type, j)
+    tf.logging.info(f'ListDevices({job_spec.name}): {ret}')
     return ret
 
   def __enter__(self):

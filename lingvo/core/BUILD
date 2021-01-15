@@ -583,6 +583,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":cluster",
         ":cluster_factory",
         ":test_utils",
         "//lingvo:compat",

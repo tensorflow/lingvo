@@ -71,15 +71,13 @@ class BaseRunner:
     # to early stop a trial.
     self._max_steps = None
 
-    self.params.cluster.logdir = logdir
-    self._cluster = cluster_factory.Cluster(self.params.cluster)
-    self._worker_cluster_def = self._cluster.worker_cluster_def
     self._train_dir = os.path.join(self._logdir, 'train')
     tf.io.gfile.makedirs(self._train_dir)
     self._graph = tf.Graph()
     self._summary_writer = None
     self._initialize_tables = None
     self._dequeue_thread_complete = False
+    self.params.cluster.logdir = logdir
 
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
     self._early_stop = None
@@ -89,6 +87,9 @@ class BaseRunner:
         self._early_stop.FProp(None)
 
     self._SetStatusMessage('Starting ...')
+    self._cluster = cluster_factory.Cluster(self.params.cluster)
+    self._worker_cluster_def = self._cluster.worker_cluster_def
+    self._cluster.InitDevices(self._GetSession())
 
   @property
   def params(self):
