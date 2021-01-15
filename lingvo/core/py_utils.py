@@ -5020,25 +5020,33 @@ class Function(object):
   - No inputs:
 
     >>> @Function()
-    >>> def foo():
+    ... def foo():
     ...   return tf.constant(1.0)
     >>> y = foo()
 
   - Scalar input:
 
     >>> @Function(fwd_sig=tf.TensorSpec(None, tf.float32))
-    >>> def foo(x):
+    ... def foo(x):
     ...   return x * 2
     >>> y = foo(1.0)
+
+  - List input:
+
+    >>> @Function(fwd_sig=[tf.TensorSpec(None, tf.float32) for _ in range(2)])
+    ... def foo(xs):
+    ...   return xs[0] + xs[1]
+    >>> y = foo([1.0, 2.0])
 
   - Nested input:
 
     >>> @Function(fwd_sig=NestedMap(x=tf.TensorSpec(None, tf.float32)))
-    >>> def foo(nmap):
+    ... def foo(nmap):
     ...   return nmap.x * 2
     >>> y = foo(NestedMap(x=1.0))
 
-  - With custom gradient function:
+  - With custom gradient function (other input types mentioned above are also
+    supported):
 
     >>> def bar(x, y, dy):
     ...   del y, dy
@@ -5143,18 +5151,25 @@ class DefinedFunction(object):
     # Wrap the forward function to propagate framework tensors like step_seed
     # and global_step.
     wrapped_fwd_sig = NestedMap()
+    self._added_global_step = False
     if GetGlobalStep() is not None:
       wrapped_fwd_sig[_FRAMEWORK_TENSOR_GLOBAL_STEP] = (
           tf.TensorSpec([], tf.int64))
+      self._added_global_step = True
     if fwd_sig is not None:
       wrapped_fwd_sig.inputs = fwd_sig
+    elif not wrapped_fwd_sig:
+      wrapped_fwd_sig = None
 
-    def ForwardWrapped(wrapped_inputs):
+    def ForwardWrapped(wrapped_inputs=None):
       if graph_random_seed is not None:
         tf.random.set_seed(graph_random_seed)
-      with GlobalStepContext(
-          wrapped_inputs.get(_FRAMEWORK_TENSOR_GLOBAL_STEP, None)):
-        if 'inputs' in wrapped_inputs:
+      global_step = None
+      if wrapped_inputs:
+        assert isinstance(wrapped_inputs, NestedMap)
+        global_step = wrapped_inputs.get(_FRAMEWORK_TENSOR_GLOBAL_STEP, None)
+      with GlobalStepContext(global_step):
+        if wrapped_inputs and 'inputs' in wrapped_inputs:
           result = fwd(wrapped_inputs.inputs)
         else:
           result = fwd()
@@ -5233,12 +5248,13 @@ class DefinedFunction(object):
       Inputs wrapped with framework tensors suitable for use with `func`.
     """
     result = NestedMap()
-    global_step = GetGlobalStep()
-    if global_step is not None:
+    if self._added_global_step:
+      global_step = GetGlobalStep()
+      assert global_step is not None
       result[_FRAMEWORK_TENSOR_GLOBAL_STEP] = tf.cast(global_step, tf.int64)
     if inputs is not None:
       result.inputs = inputs
-    return result
+    return result if result else None
 
   @property
   def output_dtypes(self):

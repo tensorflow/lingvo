@@ -3251,6 +3251,48 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
     self.assertIsInstance(
         Fwd.func, function_type if py_utils._UseTfFunction() else defun_type)
 
+  def testEmptyInputWithGlobalStepContext(self):
+    """Test that global step is pass as input iff it's in the signature."""
+    # Unset the global step tensor so it's not in the signature.
+    with py_utils.GlobalStepContext(None), self.session():
+
+      @py_utils.Function()
+      def Fwd():
+        return tf.constant(1.0)
+
+      self.assertEqual(tf.float32, Fwd.output_dtypes)
+      # Set the global step tensor when calling the function.
+      with py_utils.GlobalStepContext(tf.constant(1, dtype=tf.int32)):
+        ys = Fwd()
+        self.assertEqual(1.0, self.evaluate(ys))
+
+  def testNonemptyInputWithGlobalStepContext(self):
+    """Test that global step is pass as input iff it's in the signature."""
+    # Unset the global step tensor so it's not in the signature.
+    with py_utils.GlobalStepContext(None), self.session():
+      sig = tf.TensorSpec(None, tf.float32)
+
+      def Bak(x, y, dy):
+        del y
+        return 4 * x * dy
+
+      @py_utils.Function(fwd_sig=sig)
+      def Fwd(x):
+        return x * x * 2
+
+      @py_utils.Function(fwd_sig=sig, bak=Bak)
+      def FwdWithBak(x):
+        return x * x * 2
+
+      x = tf.constant(3.0)
+      for fwd in [Fwd, FwdWithBak]:
+        self.assertEqual(tf.float32, fwd.output_dtypes)
+        # Set the global step tensor when calling the function.
+        with py_utils.GlobalStepContext(tf.constant(1, dtype=tf.int32)):
+          y = fwd(x)
+          dx = tf.gradients(ys=[y], xs=[x], grad_ys=[5.0])
+          self.assertEqual([18.0, 60.0], self.evaluate([y] + dx))
+
 
 class IfTest(test_utils.TestCase, parameterized.TestCase):
 
