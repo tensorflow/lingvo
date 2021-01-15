@@ -5172,25 +5172,33 @@
 <span class="sd">  - No inputs:</span>
 
 <span class="sd">    &gt;&gt;&gt; @Function()</span>
-<span class="sd">    &gt;&gt;&gt; def foo():</span>
+<span class="sd">    ... def foo():</span>
 <span class="sd">    ...   return tf.constant(1.0)</span>
 <span class="sd">    &gt;&gt;&gt; y = foo()</span>
 
 <span class="sd">  - Scalar input:</span>
 
 <span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=tf.TensorSpec(None, tf.float32))</span>
-<span class="sd">    &gt;&gt;&gt; def foo(x):</span>
+<span class="sd">    ... def foo(x):</span>
 <span class="sd">    ...   return x * 2</span>
 <span class="sd">    &gt;&gt;&gt; y = foo(1.0)</span>
+
+<span class="sd">  - List input:</span>
+
+<span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=[tf.TensorSpec(None, tf.float32) for _ in range(2)])</span>
+<span class="sd">    ... def foo(xs):</span>
+<span class="sd">    ...   return xs[0] + xs[1]</span>
+<span class="sd">    &gt;&gt;&gt; y = foo([1.0, 2.0])</span>
 
 <span class="sd">  - Nested input:</span>
 
 <span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=NestedMap(x=tf.TensorSpec(None, tf.float32)))</span>
-<span class="sd">    &gt;&gt;&gt; def foo(nmap):</span>
+<span class="sd">    ... def foo(nmap):</span>
 <span class="sd">    ...   return nmap.x * 2</span>
 <span class="sd">    &gt;&gt;&gt; y = foo(NestedMap(x=1.0))</span>
 
-<span class="sd">  - With custom gradient function:</span>
+<span class="sd">  - With custom gradient function (other input types mentioned above are also</span>
+<span class="sd">    supported):</span>
 
 <span class="sd">    &gt;&gt;&gt; def bar(x, y, dy):</span>
 <span class="sd">    ...   del y, dy</span>
@@ -5295,18 +5303,25 @@
     <span class="c1"># Wrap the forward function to propagate framework tensors like step_seed</span>
     <span class="c1"># and global_step.</span>
     <span class="n">wrapped_fwd_sig</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_added_global_step</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="n">GetGlobalStep</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">wrapped_fwd_sig</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_added_global_step</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="n">fwd_sig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">wrapped_fwd_sig</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">fwd_sig</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">wrapped_fwd_sig</span><span class="p">:</span>
+      <span class="n">wrapped_fwd_sig</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="nf">ForwardWrapped</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">ForwardWrapped</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">graph_random_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="n">graph_random_seed</span><span class="p">)</span>
-      <span class="k">with</span> <span class="n">GlobalStepContext</span><span class="p">(</span>
-          <span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">,</span> <span class="kc">None</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="s1">&#39;inputs&#39;</span> <span class="ow">in</span> <span class="n">wrapped_inputs</span><span class="p">:</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">wrapped_inputs</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)</span>
+        <span class="n">global_step</span> <span class="o">=</span> <span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">GlobalStepContext</span><span class="p">(</span><span class="n">global_step</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">wrapped_inputs</span> <span class="ow">and</span> <span class="s1">&#39;inputs&#39;</span> <span class="ow">in</span> <span class="n">wrapped_inputs</span><span class="p">:</span>
           <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">result</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">()</span>
@@ -5385,12 +5400,13 @@
 <span class="sd">      Inputs wrapped with framework tensors suitable for use with `func`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">global_step</span> <span class="o">=</span> <span class="n">GetGlobalStep</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_added_global_step</span><span class="p">:</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="n">GetGlobalStep</span><span class="p">()</span>
+      <span class="k">assert</span> <span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="n">result</span><span class="p">[</span><span class="n">_FRAMEWORK_TENSOR_GLOBAL_STEP</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">result</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span>
-    <span class="k">return</span> <span class="n">result</span></div>
+    <span class="k">return</span> <span class="n">result</span> <span class="k">if</span> <span class="n">result</span> <span class="k">else</span> <span class="kc">None</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_dtypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
