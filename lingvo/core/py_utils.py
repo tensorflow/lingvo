@@ -5038,13 +5038,13 @@ class Function(object):
     ...   return nmap.x * 2
     >>> y = foo(NestedMap(x=1.0))
 
-  - With gradient function:
+  - With custom gradient function:
 
     >>> def bar(x, y, dy):
     ...   del y, dy
     ...   return 4.0 * x * dy
     >>>
-    >>> @Function(fwd_sig=tf.TensorSpec(None, tf.float32), bak=bak)
+    >>> @Function(fwd_sig=tf.TensorSpec(None, tf.float32), bak=bar)
     ... def foo(x):
     ...   return 2.0 * x * x
 
