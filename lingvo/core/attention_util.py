@@ -102,14 +102,14 @@ def ExtractBlockContext(x,
   return tf.concat(concat_list, axis=2)
 
 
-def MakeLocalPadding(seq_len,
-                     block_size,
-                     left_context,
-                     right_context,
-                     dtype=tf.float32):
-  """Makes the padding tensor for a full sequence.
+def MakeLocalMask(seq_len,
+                  block_size,
+                  left_context,
+                  right_context,
+                  dtype=tf.float32):
+  """Makes the mask tensor for a full sequence.
 
-  The returned padding reflects the given context sizes, where position i
+  The returned mask reflects the given context sizes, where position i
   attends to tokens in the range [i - (left_context-1), i + right_context].
 
   Args:
@@ -162,9 +162,7 @@ def MakeLocalPadding(seq_len,
   valid_atten &= tf.math.logical_and(valid_src[:, :, tf.newaxis],
                                      valid_tgt[:, tf.newaxis, :])
 
-  padding = 1.0 - tf.cast(valid_atten, dtype=dtype)
-
-  return padding
+  return tf.cast(valid_atten, dtype=dtype)
 
 
 def RelShift(x):

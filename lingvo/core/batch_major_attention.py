@@ -1460,26 +1460,28 @@ class LocalSelfAttention(MultiHeadedAttention):
     _, _, w, _, _ = py_utils.GetShape(query_blocks)
 
     # -> [B, U, C]
-    paddings_block_context = attention_util.ExtractBlockContext(
-        paddings,
+    mask = 1. - paddings
+    mask_block_context = attention_util.ExtractBlockContext(
+        mask,
         block_size=p.block_size,
         left_context=p.left_context,
         right_context=p.right_context,
-        padding_val=1)
+        padding_val=0)
 
     # -> [B, N, U, W, C]
-    paddings = tf.tile(
-        tf.reshape(paddings_block_context, [b, 1, u, 1, c]), [1, n, 1, w, 1])
+    mask = tf.tile(
+        tf.reshape(mask_block_context, [b, 1, u, 1, c]), [1, n, 1, w, 1])
 
-    # Make local causal paddings.
+    # Make local causal mask.
     # -> [U, W, C]
-    local_causal_padding = attention_util.MakeLocalPadding(
+    local_causal_mask = attention_util.MakeLocalMask(
         seq_len=t,
         block_size=p.block_size,
         left_context=p.left_context,
         right_context=p.right_context,
-        dtype=paddings.dtype)
-    paddings += local_causal_padding
+        dtype=mask.dtype)
+    mask = mask * local_causal_mask
+    paddings = 1. - mask
 
     # -> [B, N, U, W, C]
     logits = self._AttenLogits(theta, query_blocks, key_block_context)
@@ -1487,7 +1489,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     very_negative_logits = (
         tf.ones_like(logits) * logits.dtype.max *
         tf.constant(-0.7, dtype=logits.dtype))
-    padded_logits = tf.where(paddings > 0.0, very_negative_logits, logits)
+    padded_logits = logits * mask + very_negative_logits * paddings
 
     if p.enable_scaling_code_motion:
       # Split the softmax into two parts. Do the 1st part here; the 2nd part
