@@ -526,18 +526,18 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
 
     # With disallow misalignment enabled, decoder outputs contains at least
     # 2 and 3 sentences respectively, for all hypothesis.
-    expected_topk_ids2 = [[1, 2, 0, 0, 0], [1, 1, 2, 0, 0], [5, 1, 2, 0, 0],
-                          [1, 1, 2, 0, 0], [1, 1, 1, 2, 0], [5, 1, 1, 2, 0]]
+    expected_topk_ids2 = [[1, 2, 0, 0, 0], [5, 1, 2, 0, 0], [3, 1, 2, 0, 0],
+                          [1, 1, 2, 0, 0], [5, 1, 1, 2, 0], [3, 1, 1, 2, 0]]
     expected_topk_lens2 = [2, 3, 3, 3, 4, 4]
     self.assertAllEqual(expected_topk_ids2, actual_decoded_disallow.topk_ids)
     self.assertAllEqual(expected_topk_lens2, actual_decoded_disallow.topk_lens)
 
-    # For single sentence inputs with disallow enabled decoding, the
-    # output remains the same as the original, as disallow becomes a no-op.
-    self.assertAllEqual(expected_topk_ids, actual_decoded_disallow2.topk_ids)
+    # For single sentence inputs with disallow enabled decoding, the output
+    # never contains the boundary id 1.
+    expected_topk_ids3 = [[2, 0, 0, 0, 0], [5, 2, 0, 0, 0], [3, 2, 0, 0, 0],
+                          [2, 0, 0, 0, 0], [5, 2, 0, 0, 0], [3, 2, 0, 0, 0]]
+    self.assertAllEqual(expected_topk_ids3, actual_decoded_disallow2.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decoded_disallow2.topk_lens)
-    self.assertAllClose(actual_decoded.topk_scores,
-                        actual_decoded_disallow2.topk_scores)
 
   def testSampleTargetSequences(self, dtype=tf.float32):
     with self.session(use_gpu=True), self.SetEval(True):

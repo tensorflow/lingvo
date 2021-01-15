@@ -1005,7 +1005,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       EOS if the number of sentences in the hyp is insufficient such when
       compared to the number of sentences in the source.
     """
-    eos_id = self.params.target_eos_id
+    p = self.params
+    eos_id = p.target_eos_id
     # We replace log_probs with a sufficiently large negative value where
     # the current hyp contains fewer sentences than expected to disallow
     # eos in such misaligned cases.
@@ -1015,9 +1016,19 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         tf.math.greater(source_num_sentences, hyp_num_sentences),
         large_negative_value, log_probs[:, eos_id])
     eos_log_probs = tf.expand_dims(eos_log_probs, axis=1)
+    boundary_id = p.sentence_boundary_token_id
+    boundary_id_log_probs = tf.where(
+        tf.math.less_equal(source_num_sentences, hyp_num_sentences),
+        large_negative_value, log_probs[:, boundary_id])
+    boundary_id_log_probs = tf.expand_dims(boundary_id_log_probs, axis=1)
     new_log_probs = tf.concat(
         [log_probs[:, :eos_id], eos_log_probs, log_probs[:, eos_id + 1:]],
         axis=1)
+    new_log_probs = tf.concat([
+        new_log_probs[:, :boundary_id], boundary_id_log_probs,
+        new_log_probs[:, boundary_id + 1:]
+    ],
+                              axis=1)
     return new_log_probs
 
 
