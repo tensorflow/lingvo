@@ -48,6 +48,7 @@ class BaseRunner:
     p = params.Copy()
     # Set in subclasses.
     self._job_name = ''
+    self._daemon = False
 
     self._params = trial.OverrideModelParams(p)
     tf.logging.info('=' * 60)
@@ -196,6 +197,16 @@ class BaseRunner:
       tf.logging.info('%s started.', job_name)
       loop_func(*loop_args)
       tf.logging.info('%s done.', job_name)
+
+      if self._daemon:
+        # In daemon mode, an external scheduler will retry the job on 0 status.
+        # So exit with a non-zero status to prevent retry.
+        self._SetStatusMessage(
+            '%s completed successfully. Exiting with FAILURE to prevent retry.'
+            % job_name)
+        time.sleep(300)  # Wait a bit for other threads to complete.
+        os._exit(4)  # pylint: disable=protected-access
+
       return
     except Exception as e:  # pylint:disable=broad-except
       fatal_error_msgs = [
@@ -252,6 +263,15 @@ class BaseRunner:
 
         if cleanup_func:
           cleanup_func()
+
+        if self._daemon:
+          # In daemon mode, retry will be handled by an external scheduler by
+          # returning a 0 status.
+          tf.logging.error('Execution stopped due to fatal error. '
+                           'Returning 0 to be scheduled for retry.')
+          tf.logging.flush()
+          os._exit(0)  # pylint: disable=protected-access
+
         raise
       else:
         # Allow the job to complete on errors that are unlikely to be transient,
@@ -280,9 +300,7 @@ class BaseRunner:
         # python so far, we need a way to exit the program directly.
         # Because sys.exit(1) must be called from the main thread, and does
         # not cancel non-daemon threads anyway, we use os._exit instead.
-        # Because tf.logging.error() may return before the flush is complete,
-        # we need an extra sleep before exit.
-        time.sleep(15)
+        tf.logging.flush()
         os._exit(1)  # pylint: disable=protected-access
 
   def _DequeueThreadComplete(self):
