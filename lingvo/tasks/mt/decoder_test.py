@@ -466,6 +466,79 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
     self.assertAllClose(expected_topk_scores,
                         actual_decode_feeding_att_context.topk_scores)
 
+  def testBeamSearchDisallowMisalignment(self):
+    """Test p.disallow_misaligned_eos behaves correctly."""
+    with self.session(use_gpu=True), self.SetEval(True), tf.variable_scope(
+        'test', reuse=tf.AUTO_REUSE):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=tf.float32)
+      p.rnn_cell_dim = 32
+      # We reduce the vocab size so that the decoding has better chance of
+      # success (i.e. hitting the boundary token and eos).
+      p.emb.vocab_size = 6
+      p.softmax.num_classes = 6
+      p.beam_search.num_hyps_per_beam = 3
+      p.target_seq_len = 5
+      p.sentence_boundary_token_id = 1
+      dec = p.Instantiate()
+      p_disallow = p.Copy()
+      p_disallow.disallow_misaligned_eos = True
+      dec_disallow = p_disallow.Instantiate()
+
+      encoder_outputs, _ = self._Inputs(dtype=tf.float32)
+      # We regenerate the encoded input so that the output with the vanilla
+      # decoder is regular sequences. If we get unlucky top_ids with the
+      # base case can be all zeros, defeating this test. If this breaks,
+      # e.g. due to _Inputs() changing, try adding a np seed here or just
+      # hard code this random 'encoded'.
+      encoder_outputs.encoded = tf.constant(
+          np.random.uniform(size=[5, 2, 4]), dtype=tf.float32)
+      # src_batch_size = 2, we require the output to have 2 and 3 sentences
+      # respectively.
+      encoder_outputs['num_sentences'] = tf.constant([2, 3], dtype=tf.int32)
+      decode = dec.BeamSearchDecode(encoder_outputs)
+      decode_disallow = dec_disallow.BeamSearchDecode(encoder_outputs)
+
+      # A second instance of decoding with disallow enabled, but all
+      # inputs are single sentences.
+      encoder_outputs['num_sentences'] = tf.constant([1, 1], dtype=tf.int32)
+      decode_disallow2 = dec_disallow.BeamSearchDecode(encoder_outputs)
+
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # self.evaluate(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+      decode_disallow = decode_disallow._replace(
+          topk_decoded=tf.constant(0, tf.float32))
+      decode_disallow2 = decode_disallow2._replace(
+          topk_decoded=tf.constant(0, tf.float32))
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_decoded = self.evaluate(decode)
+      actual_decoded_disallow = self.evaluate(decode_disallow)
+      actual_decoded_disallow2 = self.evaluate(decode_disallow2)
+
+    # normal decoder outputs regular sequences.
+    expected_topk_ids = [[2, 0, 0, 0, 0], [1, 2, 0, 0, 0], [5, 2, 0, 0, 0],
+                         [2, 0, 0, 0, 0], [1, 2, 0, 0, 0], [5, 2, 0, 0, 0]]
+    expected_topk_lens = [1, 2, 2, 1, 2, 2]
+    self.assertAllEqual(expected_topk_ids, actual_decoded.topk_ids)
+    self.assertAllEqual(expected_topk_lens, actual_decoded.topk_lens)
+
+    # With disallow misalignment enabled, decoder outputs contains at least
+    # 2 and 3 sentences respectively, for all hypothesis.
+    expected_topk_ids2 = [[1, 2, 0, 0, 0], [1, 1, 2, 0, 0], [5, 1, 2, 0, 0],
+                          [1, 1, 2, 0, 0], [1, 1, 1, 2, 0], [5, 1, 1, 2, 0]]
+    expected_topk_lens2 = [2, 3, 3, 3, 4, 4]
+    self.assertAllEqual(expected_topk_ids2, actual_decoded_disallow.topk_ids)
+    self.assertAllEqual(expected_topk_lens2, actual_decoded_disallow.topk_lens)
+
+    # For single sentence inputs with disallow enabled decoding, the
+    # output remains the same as the original, as disallow becomes a no-op.
+    self.assertAllEqual(expected_topk_ids, actual_decoded_disallow2.topk_ids)
+    self.assertAllEqual(expected_topk_lens, actual_decoded_disallow2.topk_lens)
+    self.assertAllClose(actual_decoded.topk_scores,
+                        actual_decoded_disallow2.topk_scores)
+
   def testSampleTargetSequences(self, dtype=tf.float32):
     with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)

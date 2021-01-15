@@ -431,6 +431,14 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'Use this when decoding starts with target_lang id intead of <s> '
         'token at time step 0. Make sure the training data has '
         'target_lang id as the first token in target sequence.')
+    p.Define(
+        'disallow_misaligned_eos', False,
+        'When input contains multiple sentences, disallows EOS until '
+        'the hypothesis contains at least the same number of sentences '
+        'as the input source. Must also set p.sentence_boundary_token_id.')
+    p.Define(
+        'sentence_boundary_token_id', None,
+        'None, or an int. The token id that separates different sentences.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -484,6 +492,9 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
+    if p.disallow_misaligned_eos and p.sentence_boundary_token_id is None:
+      raise ValueError('When p.disallow_misaligned_eos is set, '
+                       'must specify p.sentence_boundary_token_id.')
     if p.softmax.cls == layers.SharedSoftmaxLayer:
       self._share_sm_emb = True
     else:
@@ -881,14 +892,16 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       initial_results['step_ids'] = tf.expand_dims(
           self._ExpandToNumHyps(encoder_outputs.init_step_ids,
                                 num_hyps_per_beam), 1)
-
-    return initial_results, py_utils.NestedMap({
+    states = py_utils.NestedMap({
         'time_step': tf.constant(0),
         'rnn_states': rnn_states,
         'atten_context': init_atten_context,
         'atten_probs': atten_probs,
         'atten_states': atten_states,
     })
+    if p.disallow_misaligned_eos:
+      states['num_sentences'] = tf.ones([num_hyps], dtype=tf.int32)
+    return initial_results, states
 
   @py_utils.NameScopeDecorator('MTDecoderV1/PreBeamSearchStepCallback')
   def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
@@ -939,6 +952,11 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     logits = self.softmax.Logits(theta.softmax, [step_out])
     log_probs = self.fns.qlogsoftmax(
         logits, qmin=p.qlogsoftmax_range_min, qmax=0.0)
+    if p.disallow_misaligned_eos:
+      source_num_sentences = tf.tile(
+          encoder_outputs['num_sentences'], multiples=[num_hyps_per_beam])
+      log_probs = self._DisallowMisalignedEos(log_probs, source_num_sentences,
+                                              states['num_sentences'])
 
     if p.use_prev_atten_ctx:
       cur_atten_probs = prev_atten_probs
@@ -956,13 +974,51 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'atten_probs': atten_probs,  # the updated attention probs
         'atten_states': atten_states,
     })
+    if p.disallow_misaligned_eos:
+      new_states['num_sentences'] = states['num_sentences']
 
     return bs_results, new_states
 
   def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
                                   states):
-    # There is nothing to do here.
+    p = self.params
+    if p.disallow_misaligned_eos:
+      add = tf.squeeze(
+          tf.math.equal(new_step_ids, p.sentence_boundary_token_id), axis=1)
+      states['num_sentences'] += tf.cast(
+          add, dtype=states['num_sentences'].dtype)
     return states
+
+  def _DisallowMisalignedEos(self, log_probs, source_num_sentences,
+                             hyp_num_sentences):
+    """Update 'log_probs' to disallow misaligned EOS.
+
+    Args:
+      log_probs: encoder's log_probs output.
+      source_num_sentences: shape [beam_size * num_hyps_per_beam], int32. The
+        number of sentences in source.
+      hyp_num_sentences: shape [beam_size * num_hyps_per_beam], int32. The
+        number of sentences in hyp.
+
+    Returns:
+      The new log_probs (score used for beam search), which is reduced at
+      EOS if the number of sentences in the hyp is insufficient such when
+      compared to the number of sentences in the source.
+    """
+    eos_id = self.params.target_eos_id
+    # We replace log_probs with a sufficiently large negative value where
+    # the current hyp contains fewer sentences than expected to disallow
+    # eos in such misaligned cases.
+    large_negative_value = tf.ones_like(log_probs[:, eos_id]) * tf.constant(
+        -0.1, dtype=log_probs.dtype) * log_probs.dtype.max
+    eos_log_probs = tf.where(
+        tf.math.greater(source_num_sentences, hyp_num_sentences),
+        large_negative_value, log_probs[:, eos_id])
+    eos_log_probs = tf.expand_dims(eos_log_probs, axis=1)
+    new_log_probs = tf.concat(
+        [log_probs[:, :eos_id], eos_log_probs, log_probs[:, eos_id + 1:]],
+        axis=1)
+    return new_log_probs
 
 
 class TransformerDecoder(MTBaseDecoder):
