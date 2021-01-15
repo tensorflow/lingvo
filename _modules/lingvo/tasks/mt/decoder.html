@@ -1157,7 +1157,8 @@
 <span class="sd">      EOS if the number of sentences in the hyp is insufficient such when</span>
 <span class="sd">      compared to the number of sentences in the source.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">eos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">target_eos_id</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">eos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span>
     <span class="c1"># We replace log_probs with a sufficiently large negative value where</span>
     <span class="c1"># the current hyp contains fewer sentences than expected to disallow</span>
     <span class="c1"># eos in such misaligned cases.</span>
@@ -1167,9 +1168,19 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">source_num_sentences</span><span class="p">,</span> <span class="n">hyp_num_sentences</span><span class="p">),</span>
         <span class="n">large_negative_value</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">[:,</span> <span class="n">eos_id</span><span class="p">])</span>
     <span class="n">eos_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">eos_log_probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">boundary_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">sentence_boundary_token_id</span>
+    <span class="n">boundary_id_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">source_num_sentences</span><span class="p">,</span> <span class="n">hyp_num_sentences</span><span class="p">),</span>
+        <span class="n">large_negative_value</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">[:,</span> <span class="n">boundary_id</span><span class="p">])</span>
+    <span class="n">boundary_id_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">boundary_id_log_probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">new_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
         <span class="p">[</span><span class="n">log_probs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">eos_id</span><span class="p">],</span> <span class="n">eos_log_probs</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">[:,</span> <span class="n">eos_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]],</span>
         <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">new_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+        <span class="n">new_log_probs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">boundary_id</span><span class="p">],</span> <span class="n">boundary_id_log_probs</span><span class="p">,</span>
+        <span class="n">new_log_probs</span><span class="p">[:,</span> <span class="n">boundary_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+    <span class="p">],</span>
+                              <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">new_log_probs</span></div></div>
 
 
