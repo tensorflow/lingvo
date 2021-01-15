@@ -1808,6 +1808,15 @@ py_test(
 )
 
 py_library(
+    name = "routing_config_helper",
+    srcs = ["routing_config_helper.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo/core:batch_major_attention",
+    ],
+)
+
+py_library(
     name = "rnn_cell",
     srcs = ["rnn_cell.py"],
     srcs_version = "PY3",

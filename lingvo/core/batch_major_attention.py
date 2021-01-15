@@ -3897,7 +3897,11 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     assert p.num_layers > 0
     assert p.mdl_dim > 0
     assert p.hidden_dim > 0
-    assert p.num_atten_heads > 0 or isinstance(p.num_atten_heads, list)
+    if not isinstance(p.num_atten_heads, list):
+      assert p.num_atten_heads > 0
+    else:
+      for num_heads in p.num_atten_heads:
+        assert num_heads > 0
     assert 0.0 <= p.dropout_prob < 1.0
 
     if isinstance(p.transformer_layer_params_tpl, list):
