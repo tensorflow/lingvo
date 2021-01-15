@@ -5190,13 +5190,13 @@
 <span class="sd">    ...   return nmap.x * 2</span>
 <span class="sd">    &gt;&gt;&gt; y = foo(NestedMap(x=1.0))</span>
 
-<span class="sd">  - With gradient function:</span>
+<span class="sd">  - With custom gradient function:</span>
 
 <span class="sd">    &gt;&gt;&gt; def bar(x, y, dy):</span>
 <span class="sd">    ...   del y, dy</span>
 <span class="sd">    ...   return 4.0 * x * dy</span>
 <span class="sd">    &gt;&gt;&gt;</span>
-<span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=tf.TensorSpec(None, tf.float32), bak=bak)</span>
+<span class="sd">    &gt;&gt;&gt; @Function(fwd_sig=tf.TensorSpec(None, tf.float32), bak=bar)</span>
 <span class="sd">    ... def foo(x):</span>
 <span class="sd">    ...   return 2.0 * x * x</span>
 

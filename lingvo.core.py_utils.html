@@ -2677,12 +2677,12 @@ so it’s easier to use and can work well in some extreme cases in Lingvo.</p>
 </pre></div>
 </div>
 </li>
-<li><p>With gradient function:</p>
+<li><p>With custom gradient function:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">bar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="p">):</span>
 <span class="gp">... </span>  <span class="k">del</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span>
 <span class="gp">... </span>  <span class="k">return</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">dy</span>
 <span class="go">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nd">@Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bak</span><span class="o">=</span><span class="n">bak</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@Function</span><span class="p">(</span><span class="n">fwd_sig</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bak</span><span class="o">=</span><span class="n">bar</span><span class="p">)</span>
 <span class="gp">... </span><span class="k">def</span> <span class="nf">foo</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
 <span class="gp">... </span>  <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span>
 </pre></div>
