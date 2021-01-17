@@ -86,6 +86,8 @@ class VarLayer(base_layer.BaseLayer):
         var_value = self._get_var_from_collection(vp)
       if var_value is None:
         var_value = theta[k]
+      if isinstance(var_value, tf.Variable):
+        var_value = var_value.read_value()
       retval.append(MaybeCastToFPropDtype(var_value))
     return retval[0] if len(retval) == 1 else retval
 
@@ -125,12 +127,17 @@ class ShardedVarLayer(VarLayer):
       # In-place annotate the variable (no sharding op). This makes sure that
       # in some backend implementation, even if the following sharding is
       # optimized away, the backend can still infer the variable sharding.
+      split_dims = v.tensor_split_dims_mapping
+      if split_dims is not None:
+        # Fix the rank difference between variable shape and annotation
+        # due to variable shape prefix introduced in builder_layers.RepeatLayer.
+        shape_prefix_len = len(self.vars[k].shape) - len(split_dims)
+        split_dims = [-1] * shape_prefix_len + split_dims
       gshard_utils.MeshSplit(
-          self.vars[k],
-          p.device_mesh,
-          v.tensor_split_dims_mapping,
-          use_sharding_op=False)
-      x = self.vars[k].read_value()
+          self.vars[k], p.device_mesh, split_dims, use_sharding_op=False)
+      x = theta[k]
+      if isinstance(x, tf.Variable):
+        x = x.read_value()
       if x is None:
         return None
 

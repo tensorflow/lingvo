@@ -173,7 +173,8 @@ class RepeatLayer(base_layer.BaseLayer):
           theta=py_utils.NestedMap(),
           state0=state0,
           inputs=theta_stack,  # Pass cell_fn theta through inputs.
-          cell_fn=_CellFn)
+          cell_fn=_CellFn,
+          allow_implicit_capture=p.allow_implicit_capture)
 
       # Retrieves fprop outputs from state1 and sets shapes.
       output_tensors = _StateToArgs(state1)

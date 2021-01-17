@@ -1631,8 +1631,12 @@ def _CreateVariableStateful(name,
             aggregation=aggregation)
 
   # Shard the variable according to the sharding spec.
+  tensor_split_dims_mapping = p.tensor_split_dims_mapping
+  if tensor_split_dims_mapping is not None:
+    tensor_split_dims_mapping = ([-1] * len(GetVariableShapePrefixes()) +
+                                 tensor_split_dims_mapping)
   var = gshard_utils.MeshSplit(
-      var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
+      var, p.device_mesh, tensor_split_dims_mapping, use_sharding_op=False)
 
   return var
 
@@ -1742,8 +1746,12 @@ def _CreateVariableStateless(name,
         aggregation=aggregation)
 
   # Shard the variable according to the sharding spec.
+  tensor_split_dims_mapping = p.tensor_split_dims_mapping
+  if tensor_split_dims_mapping is not None:
+    tensor_split_dims_mapping = ([-1] * len(GetVariableShapePrefixes()) +
+                                 tensor_split_dims_mapping)
   var = gshard_utils.MeshSplit(
-      var, p.device_mesh, p.tensor_split_dims_mapping, use_sharding_op=False)
+      var, p.device_mesh, tensor_split_dims_mapping, use_sharding_op=False)
 
   return var
 

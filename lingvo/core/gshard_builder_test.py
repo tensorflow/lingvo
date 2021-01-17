@@ -205,6 +205,43 @@ class MoEBuilderTest(test_utils.TestCase):
       sess.run(tf.global_variables_initializer())
       _ = sess.run([out, aux_loss])
 
+  def testRepeatMoEFProp(self):
+    """Test to verify RecurrentDenseBuilder.DecoderLayerStack().
+
+    Test without this change fails.
+    """
+    batch_dim = 2
+    length_dim = 4
+    input_dim = 4
+    builder = gshard_builder.RecurrentDenseBuilder.Params().Set(
+        model_dim=input_dim,
+        num_devices=2,
+        moe_hidden_dim=16,
+        e_dim=2,
+        attention_key_value_dim=input_dim,
+        attention_num_heads=1,
+        c_dim=2,
+        emh_split=[-1, 0, -1, -1],
+        ehm_split=[-1, 0, -1, -1])
+    b = builder.Instantiate()
+    layers = [
+        b.DecSelfAttention('dec_self_attention'),
+        b.MoE('moe', decoder=True)
+    ]
+    p = b.DecoderLayerStack('rep', layers, 2)
+    with self.session(graph=tf.Graph()) as sess:
+      tf.random.set_seed(2019)
+      # we will reduce the length_dim by 2 dynamically.
+      layer = p.Instantiate()
+      inputs = tf.ones([batch_dim, length_dim, input_dim])
+      segment_ids = tf.ones([batch_dim, length_dim])
+      segment_pos = tf.ones([batch_dim, length_dim])
+      outputs = layer.FPropDefaultTheta(inputs, segment_ids, segment_pos,
+                                        inputs, segment_ids, segment_pos,
+                                        tf.zeros([]))
+      sess.run(tf.global_variables_initializer())
+      sess.run(outputs)
+
 
 class UniTransformerTest(test_utils.TestCase):
 

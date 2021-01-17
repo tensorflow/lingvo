@@ -18,6 +18,7 @@
 from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import builder
+from lingvo.core import builder_layers
 from lingvo.core import gshard_layers
 from lingvo.core import gshard_utils
 from lingvo.core import layers
@@ -1945,6 +1946,70 @@ class DenseBuilder(MoEBuilder):
          self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
     )
+
+
+class RecurrentDenseBuilder(DenseBuilder):
+  """Same as DenseBuilder but layers are stacked using recurrent."""
+
+  # Required manually changing Split() split dimension for variables creating
+  # with VarLayer().
+  # TODO(huangyp): either adds a warning message or fix it.
+  def _Repeat(self, name, body, repeat=1):
+    return builder_layers.RepeatLayer.Params().Set(
+        name=name, body=body, repeat=repeat)
+
+  def _RepeatableDecoderLayer(self, name, layer):
+    block = self._Graph(name, [
+        'inputs', 'segment_id', 'segment_pos', 'encoder_output',
+        'encoder_segment_id', 'encoder_segment_pos', 'input_loss'
+    ], [
+        'outputs', 'segment_id', 'segment_pos', 'encoder_output',
+        'encoder_segment_id', 'encoder_segment_pos', 'output_loss'
+    ], ('inputs,segment_id,segment_pos,encoder_output,encoder_segment_id,'
+        'encoder_segment_pos->outputs,aux_loss',
+        self.DecoderLayer('layer', layer)),
+                        ('input_loss,aux_loss->output_loss', self._Add('_add')))
+    return block
+
+  def DecoderLayerStack(self, name, sub_layers, num=1):
+    """Clean DecoderLayerStack."""
+
+    recurrent_cells = [
+        self._RepeatableDecoderLayer(l.name + '_rep', l) for l in sub_layers
+    ]
+    recurrent_body = self._Seq('blocks_body', *recurrent_cells)
+    repeated_blocks = self._Repeat(
+        name='blocks', body=recurrent_body, repeat=num)
+
+    stack = [
+        ('inputs->inputs_split', self.Split('inputs_split')),
+        ('segment_id->segment_id_split', self.Split('segment_id_split')),
+        ('segment_pos->segment_pos_split', self.Split('segment_pos_split')),
+        ('encoder_output->encoder_output_split',
+         self.Split('encoder_output_split')),
+        ('encoder_segment_id->encoder_segment_id_split',
+         self.Split('encoder_segment_id_split')),
+        ('encoder_segment_pos->encoder_segment_pos_split',
+         self.Split('encoder_segment_pos_split')),
+        ('inputs->input_dropout',
+         self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
+        ('input_dropout,segment_id_split,segment_pos_split,encoder_output,'
+         'encoder_segment_id_split,encoder_segment_pos_split,input_loss->'
+         'y,o_segment_id_split,o_segment_pos_split,o_encoder_output,'
+         'o_encoder_segment_id_split,o_encoder_segment_pos_split,output_loss',
+         repeated_blocks),
+        ('y->y_norm', self._LN('final_layer_norm')),
+        ('y_norm->y_dropout',
+         self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
+        ('y_dropout,segment_id_split->outputs', self.Mask()),
+    ]
+    return self._Graph(name, [
+        'inputs', 'segment_id', 'segment_pos', 'encoder_output',
+        'encoder_segment_id', 'encoder_segment_pos', 'input_loss'
+    ], [
+        'outputs',
+        'output_loss',
+    ], *stack)
 
 
 class UniTransformer(base_model.BaseTask):
