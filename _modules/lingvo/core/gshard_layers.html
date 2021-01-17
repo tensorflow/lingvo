@@ -238,6 +238,8 @@
         <span class="n">var_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_var_from_collection</span><span class="p">(</span><span class="n">vp</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">var_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">var_value</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var_value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
+        <span class="n">var_value</span> <span class="o">=</span> <span class="n">var_value</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
       <span class="n">retval</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MaybeCastToFPropDtype</span><span class="p">(</span><span class="n">var_value</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">retval</span></div></div>
 
@@ -277,12 +279,17 @@
       <span class="c1"># In-place annotate the variable (no sharding op). This makes sure that</span>
       <span class="c1"># in some backend implementation, even if the following sharding is</span>
       <span class="c1"># optimized away, the backend can still infer the variable sharding.</span>
+      <span class="n">split_dims</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span>
+      <span class="k">if</span> <span class="n">split_dims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Fix the rank difference between variable shape and annotation</span>
+        <span class="c1"># due to variable shape prefix introduced in builder_layers.RepeatLayer.</span>
+        <span class="n">shape_prefix_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_dims</span><span class="p">)</span>
+        <span class="n">split_dims</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape_prefix_len</span> <span class="o">+</span> <span class="n">split_dims</span>
       <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-          <span class="n">v</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
-          <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">split_dims</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 

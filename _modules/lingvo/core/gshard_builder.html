@@ -170,6 +170,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
@@ -2097,6 +2098,70 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">,</span> <span class="mi">2</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
     <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RecurrentDenseBuilder"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder">[docs]</a><span class="k">class</span> <span class="nc">RecurrentDenseBuilder</span><span class="p">(</span><span class="n">DenseBuilder</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Same as DenseBuilder but layers are stacked using recurrent.&quot;&quot;&quot;</span>
+
+  <span class="c1"># Required manually changing Split() split dimension for variables creating</span>
+  <span class="c1"># with VarLayer().</span>
+  <span class="c1"># TODO(huangyp): either adds a warning message or fix it.</span>
+<div class="viewcode-block" id="RecurrentDenseBuilder._Repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder._Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">_Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">RepeatLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">repeat</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RecurrentDenseBuilder._RepeatableDecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder._RepeatableDecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">_RepeatableDecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span>
+        <span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;input_loss&#39;</span>
+    <span class="p">],</span> <span class="p">[</span>
+        <span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;output_loss&#39;</span>
+    <span class="p">],</span> <span class="p">(</span><span class="s1">&#39;inputs,segment_id,segment_pos,encoder_output,encoder_segment_id,&#39;</span>
+        <span class="s1">&#39;encoder_segment_pos-&gt;outputs,aux_loss&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">)),</span>
+                        <span class="p">(</span><span class="s1">&#39;input_loss,aux_loss-&gt;output_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;_add&#39;</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">block</span></div>
+
+<div class="viewcode-block" id="RecurrentDenseBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack.&quot;&quot;&quot;</span>
+
+    <span class="n">recurrent_cells</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_RepeatableDecoderLayer</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_rep&#39;</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span>
+    <span class="p">]</span>
+    <span class="n">recurrent_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;blocks_body&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">recurrent_cells</span><span class="p">)</span>
+    <span class="n">repeated_blocks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Repeat</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">recurrent_body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">num</span><span class="p">)</span>
+
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;inputs-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_output-&gt;encoder_output_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_output_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_segment_id-&gt;encoder_segment_id_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_id_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;encoder_segment_pos-&gt;encoder_segment_pos_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_pos_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs-&gt;input_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_dropout,segment_id_split,segment_pos_split,encoder_output,&#39;</span>
+         <span class="s1">&#39;encoder_segment_id_split,encoder_segment_pos_split,input_loss-&gt;&#39;</span>
+         <span class="s1">&#39;y,o_segment_id_split,o_segment_pos_split,o_encoder_output,&#39;</span>
+         <span class="s1">&#39;o_encoder_segment_id_split,o_encoder_segment_pos_split,output_loss&#39;</span><span class="p">,</span>
+         <span class="n">repeated_blocks</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;y-&gt;y_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span>
+        <span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;input_loss&#39;</span>
+    <span class="p">],</span> <span class="p">[</span>
+        <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;output_loss&#39;</span><span class="p">,</span>
+    <span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="UniTransformer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer">[docs]</a><span class="k">class</span> <span class="nc">UniTransformer</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>

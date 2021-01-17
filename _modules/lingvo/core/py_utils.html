@@ -1783,8 +1783,12 @@
             <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
   <span class="c1"># Shard the variable according to the sharding spec.</span>
+  <span class="n">tensor_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span>
+  <span class="k">if</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">tensor_split_dims_mapping</span> <span class="o">=</span> <span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">GetVariableShapePrefixes</span><span class="p">())</span> <span class="o">+</span>
+                                 <span class="n">tensor_split_dims_mapping</span><span class="p">)</span>
   <span class="n">var</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-      <span class="n">var</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">var</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">var</span></div>
 
@@ -1894,8 +1898,12 @@
         <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
   <span class="c1"># Shard the variable according to the sharding spec.</span>
+  <span class="n">tensor_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span>
+  <span class="k">if</span> <span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">tensor_split_dims_mapping</span> <span class="o">=</span> <span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">GetVariableShapePrefixes</span><span class="p">())</span> <span class="o">+</span>
+                                 <span class="n">tensor_split_dims_mapping</span><span class="p">)</span>
   <span class="n">var</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-      <span class="n">var</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">var</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">var</span></div>
 
