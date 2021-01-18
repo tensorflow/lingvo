@@ -332,6 +332,45 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.assertFalse(m2.called)
 
   @parameterized.named_parameters(
+      ('WithoutRelPosAtten', False),
+      ('WithRelPosAtten', True),
+  )
+  def testApplyGShard(self, use_relative_atten):
+    with self.session() as sess:
+      conformer_p = conformer_layer.ConformerLayer.CommonParams(
+          input_dim=self.dim,
+          atten_num_heads=self.heads,
+          atten_local_context=self.context,
+          use_relative_atten=use_relative_atten,
+          kernel_size=2,
+          fflayer_hidden_dim=4 * self.dim)
+      conformer_p.name = 'conformer_layer'
+      conformer_layer.ApplyGshard(
+          conformer_p,
+          device_mesh=[1, 2],
+          proj_w_split_list=[[0, 1], [1, 0]],
+          proj_activation_split_list=[[0, -1, 1], [0, -1, -1]],
+          atten_dnh_w_split=[0, 1, -1],
+          atten_blnh_activation_split=[0, -1, 1, -1],
+          atten_bld_activation_split=[0, -1, -1],
+          lconv_df_w_split=[0, 1],
+          lconv_hwim_w_split=[-1, -1, 1, -1],
+          lconv_fd_w_split=[-1, -1],
+          lconv_blf_activation_split=[0, -1, 1],
+          lconv_bld_activation_split=[0, -1, -1])
+      inputs, paddings = self._GetInputs()
+      conformer_l = conformer_p.Instantiate()
+      outputs = conformer_l.FProp(
+          conformer_l.theta,
+          py_utils.NestedMap(
+              features=tf.convert_to_tensor(inputs),
+              paddings=tf.convert_to_tensor(paddings)))
+      tf.logging.info('outputs=%s', outputs)
+      tf.global_variables_initializer().run()
+      out_vals = sess.run(outputs)
+      print([x.shape for x in out_vals.Flatten()])
+
+  @parameterized.named_parameters(
       ('Dropout', 'dropout_prob', 0.1),
       ('LayerOrder', 'layer_order', 'conv_before_mhsa'),
       ('FFLayerActivation', 'fflayer_activation', 'GELU'),

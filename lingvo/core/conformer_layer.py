@@ -889,6 +889,8 @@ def ApplyGshard(conformer_tpl,
   conformer_tpl.trans_atten_tpl.atten_tpl.device_mesh = device_mesh
   conformer_tpl.trans_atten_tpl.atten_tpl.weight_split_dims_mapping = (
       atten_dnh_w_split)
+  conformer_tpl.trans_atten_tpl.atten_tpl.proj_tpl.weight_split_dims_mapping = (
+      atten_dnh_w_split)
   conformer_tpl.trans_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = (
       atten_blnh_activation_split)
   conformer_tpl.trans_atten_tpl.atten_tpl.activation_split_dims_mapping.bld = (
