@@ -197,6 +197,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    if p.device_mesh is not None:
+      assert p.weight_split_dims_mapping is not None, self.path
     if p.make_output_proj_no_op and not p.is_output_projection:
       raise ValueError('make_output_proj_no_op must be used with output '
                        'projection set to True.')
