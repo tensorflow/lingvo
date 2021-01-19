@@ -287,6 +287,10 @@ class TensorShardingSpec:
         mapping[self.split_dims_mapping[i]] = i
     return mapping
 
+  @property
+  def uneven_padding(self) -> Optional[List[int]]:
+    return self._uneven_padding
+
 
 def GetVarSharding(var: tf.Variable) -> TensorShardingSpec:
   """Returns the sharding directly attached to a variable."""
@@ -296,4 +300,8 @@ def GetVarSharding(var: tf.Variable) -> TensorShardingSpec:
 
   proto = xla_data_pb2.OpSharding()
   proto.ParseFromString(sharding)
-  return TensorShardingSpec.FromXlaOpSharding(proto)
+  spec_without_padding = TensorShardingSpec.FromXlaOpSharding(proto)
+  # Consider uneven padding.
+  return TensorShardingSpec.FromFullShape(
+      [int(d) for d in var.shape], spec_without_padding.split_dims_mapping,
+      spec_without_padding.device_mesh)
