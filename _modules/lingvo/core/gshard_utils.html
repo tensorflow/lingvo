@@ -437,7 +437,11 @@
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">)):</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">mapping</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">i</span>
-    <span class="k">return</span> <span class="n">mapping</span></div>
+    <span class="k">return</span> <span class="n">mapping</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">uneven_padding</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span></div>
 
 
 <div class="viewcode-block" id="GetVarSharding"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.GetVarSharding">[docs]</a><span class="k">def</span> <span class="nf">GetVarSharding</span><span class="p">(</span><span class="n">var</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorShardingSpec</span><span class="p">:</span>
@@ -448,7 +452,11 @@
 
   <span class="n">proto</span> <span class="o">=</span> <span class="n">xla_data_pb2</span><span class="o">.</span><span class="n">OpSharding</span><span class="p">()</span>
   <span class="n">proto</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">sharding</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="o">.</span><span class="n">FromXlaOpSharding</span><span class="p">(</span><span class="n">proto</span><span class="p">)</span></div>
+  <span class="n">spec_without_padding</span> <span class="o">=</span> <span class="n">TensorShardingSpec</span><span class="o">.</span><span class="n">FromXlaOpSharding</span><span class="p">(</span><span class="n">proto</span><span class="p">)</span>
+  <span class="c1"># Consider uneven padding.</span>
+  <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="o">.</span><span class="n">FromFullShape</span><span class="p">(</span>
+      <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">],</span> <span class="n">spec_without_padding</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">,</span>
+      <span class="n">spec_without_padding</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
