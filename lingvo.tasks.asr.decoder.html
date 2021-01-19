@@ -511,9 +511,8 @@ the stacked array.</p>
 <li><p><strong>targets</strong> – a NestedMap, usually input_batch.tgt.</p></li>
 <li><p><strong>atten_probs</strong> – a TensorArray of max_target_length elements, each of shape
 [batch, max_source_length].</p></li>
-<li><p><strong>rnn_outs</strong> – a list of TensorArray, one for each RNN layer. Each
-TensorArray has max_target_length elements, each of shape [batch,
-rnn_output_dim].</p></li>
+<li><p><strong>rnn_outs</strong> – a list of TensorArray, one for each RNN layer. Each TensorArray
+has max_target_length elements, each of shape [batch, rnn_output_dim].</p></li>
 <li><p><strong>softmax_input</strong> – a Tensor of shape [batch, max_target_length, vocab_size].</p></li>
 <li><p><strong>additional_atten_probs</strong> – an optional list of (name, TensorArray) to display
 along with atten_probs.</p></li>
@@ -575,8 +574,8 @@ emitted.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this
-layer and its children layers.</p></li>
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
 <li><p><strong>predictions</strong> – A NestedMap containing logits (and possibly other fields).</p></li>
 <li><p><strong>targets</strong> – A dict of string to tensors representing the targets one is
 trying to predict. Each tensor in targets is of shape [batch, time].</p></li>
@@ -680,14 +679,13 @@ care of in sub-classes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this
-layer and its children layers.</p></li>
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
 <li><p><strong>packed_src</strong> – A NestedMap to represent the packed source tensors generated
 by the attention model.</p></li>
-<li><p><strong>cur_target_info</strong> – TargetInfo namedtuple, which represents the targets
-which represents information about the target at this step. It is up
-to the various sub-classes to determine how to process the current
-target.</p></li>
+<li><p><strong>cur_target_info</strong> – TargetInfo namedtuple, which represents the targets which
+represents information about the target at this step. It is up to the
+various sub-classes to determine how to process the current target.</p></li>
 <li><p><strong>decoder_step_state</strong> – DecoderStepState which encapsulates the state of the
 decoder before computing outputs at the current step.</p></li>
 <li><p><strong>per_step_src_padding</strong> – Optional padding to be applied to the source_encs
@@ -776,9 +774,8 @@ current step.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap object containing weights for the attention layers.
 Expects a member named ‘atten’.</p></li>
-<li><p><strong>rnn_out</strong> – A Tensor of shape [batch_size, query_dim]; output of the
-first layer of decoder RNN, which is the query vector used for
-attention.</p></li>
+<li><p><strong>rnn_out</strong> – A Tensor of shape [batch_size, query_dim]; output of the first
+layer of decoder RNN, which is the query vector used for attention.</p></li>
 <li><p><strong>packed_src</strong> – A NestedMap returned by self.atten.InitForSourcePacked.</p></li>
 <li><p><strong>attention_state</strong> – The attention state computed at the previous timestep.
 Varies with the type of attention, but is usually a Tensor or a
@@ -812,14 +809,13 @@ NestedMap of Tensors of shape [batch_size, &lt;state_dim&gt;].</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this
-layer and its children layers.</p></li>
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
 <li><p><strong>packed_src</strong> – A NestedMap to represent the packed source tensors generated
 by the attention model.</p></li>
-<li><p><strong>cur_target_info</strong> – TargetInfo namedtuple, which represents the targets
-which represents information about the target at this step. It is up
-to the various sub-classes to determine how to process the current
-target.</p></li>
+<li><p><strong>cur_target_info</strong> – TargetInfo namedtuple, which represents the targets which
+represents information about the target at this step. It is up to the
+various sub-classes to determine how to process the current target.</p></li>
 <li><p><strong>decoder_step_state</strong> – DecoderStepState which encapsulates the state of the
 decoder before computing outputs at the current step.</p></li>
 <li><p><strong>per_step_src_padding</strong> – Optional padding to be applied to the source_encs
