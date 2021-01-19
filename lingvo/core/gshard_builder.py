@@ -2049,6 +2049,8 @@ class UniTransformer(base_model.BaseTask):
     p.Define('gated_gelu', False, 'FFN gated GELU. '
              'Deprecated. Use gated_ffn_activation=gelu.')
     p.Define('gated_ffn_activation', None, 'Transformer gated FFN activation.')
+    p.Define('num_layers_in_block', 1,
+             'Number of transformer layers in DecoderLayerStack.sub_layers.')
     return p
 
   def __init__(self, params):
@@ -2074,14 +2076,22 @@ class UniTransformer(base_model.BaseTask):
       dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
       self.CreateChild('dec_pos_emb', dec_pos_emb)
 
-    dec = b.DecoderLayerStack('decoder', [
-        (b.DecSelfAttentionRelativeBias('dec_self_attention')
-         if not p.positional_embedding else
-         b.DecSelfAttention('dec_self_attention')),
-        (b.DenseReluDense('dense_relu_dense', decoder=True)
-         if gated_ffn_activation is None else b.DenseReluDenseGated(
-             'dense_relu_dense', gated_ffn_activation, decoder=True)),
-    ], p.num_transformer_layers)
+    assert p.num_transformer_layers % p.num_layers_in_block == 0
+    num_blocks = p.num_transformer_layers // p.num_layers_in_block
+
+    decoder_sub_layers = []
+    for layer_idx in range(p.num_layers_in_block):
+      str_i = '' if layer_idx == 0 else '_%d' % layer_idx
+      decoder_sub_layers += [
+          (b.DecSelfAttentionRelativeBias('dec_self_attention' +
+                                          str_i) if not p.positional_embedding
+           else b.DecSelfAttention('dec_self_attention' + str_i)),
+          (b.DenseReluDense('dense_relu_dense' + str_i, decoder=True)
+           if gated_ffn_activation is None else b.DenseReluDenseGated(
+               'dense_relu_dense' + str_i, gated_ffn_activation, decoder=True))
+      ]
+
+    dec = b.DecoderLayerStack('decoder', decoder_sub_layers, num_blocks)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
     emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
