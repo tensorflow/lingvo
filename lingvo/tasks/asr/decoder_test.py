@@ -789,7 +789,7 @@ class DecoderWithConfidenceTest(test_utils.TestCase):
       self.assertAllEqual(predictions_val['logits'].shape, [4, 5, 32])
       self.assertAllEqual(predictions_val['softmax_input'].shape, [5, 4, 12])
       if p.confidence is not None:
-        self.assertAllEqual(predictions_val['confidence_scores'].shape, [4, 5])
+        self.assertAllEqual(predictions_val['confidence_logits'].shape, [4, 5])
 
   def testComputePredictionsDynamic(self):
     self._testComputePredictionsHelper(use_while_loop_based_unrolling=True)
