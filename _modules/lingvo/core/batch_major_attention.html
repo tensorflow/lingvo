@@ -4566,6 +4566,17 @@
         <span class="s1">&#39;Padding algorithm. See the &quot;returns&quot; section of &#39;</span>
         <span class="s1">&#39;`tf.nn.convolution` for details. &#39;</span>
         <span class="s1">&#39;Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(zihangd): remove this option after verifying this change does not</span>
+    <span class="c1"># harm existing results.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;exclude_pad_effect&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Ignore the padded values when applying MAX|AVG pooling to recover the &#39;</span>
+        <span class="s1">&#39;case where there is no padding at all. Specifically, for MAX pooling, &#39;</span>
+        <span class="s1">&#39;values of padding positions are set to dtype.min. For AVG pooling, &#39;</span>
+        <span class="s1">&#39;the padding positions are set to 0 and then the token count in the &#39;</span>
+        <span class="s1">&#39;corresponding window is reduced accordingly.&#39;</span>
+        <span class="s1">&#39;This is a temporary option for back compatibility as the old &#39;</span>
+        <span class="s1">&#39;implementation does not consider this.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="FunnelPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -4639,6 +4650,17 @@
         <span class="n">paddings</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">paddings</span><span class="p">[:,</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span><span class="p">:]</span> <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">exclude_pad_effect</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;MAX&#39;</span><span class="p">:</span>
+        <span class="c1"># Fill dtype.min in padded positions.</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">min</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">inputs</span><span class="p">,</span>
+                                       <span class="n">min_value</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;AVG&#39;</span><span class="p">:</span>
+        <span class="c1"># Fill 0 in padded positions.</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">inputs</span><span class="p">,</span>
+                                       <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+
     <span class="n">pool_window</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pool_window</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span>
     <span class="n">pooled_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span>
@@ -4646,6 +4668,20 @@
         <span class="n">pooling_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">],</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;AVG&#39;</span> <span class="ow">and</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">exclude_pad_effect</span><span class="p">):</span>
+      <span class="c1"># Count the fraction of non-padding elements inside each pooling window.</span>
+      <span class="n">in_mask</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
+      <span class="n">non_padding_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+          <span class="n">in_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+          <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="n">pool_window</span><span class="p">],</span>
+          <span class="n">pooling_type</span><span class="o">=</span><span class="s1">&#39;AVG&#39;</span><span class="p">,</span>
+          <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">],</span>
+          <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
+      <span class="c1"># Divide by non-padding ratios to eliminate the effect of padded values.</span>
+      <span class="n">pooled_tensor</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reciprocal_no_nan</span><span class="p">(</span><span class="n">non_padding_ratio</span><span class="p">)</span>
+
     <span class="n">pooled_paddings</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">paddings</span><span class="p">[:,</span> <span class="p">::</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span> <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
@@ -4657,6 +4693,11 @@
         <span class="n">pooled_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">intact_paddings</span><span class="p">,</span> <span class="n">pooled_paddings</span><span class="p">],</span>
                                     <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                     <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_intact_pooled_paddings&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Set padding values to 0. If not set, in the case of max pooling, padded</span>
+    <span class="c1"># values will be dtype.min, which can cause numerical instability.</span>
+    <span class="k">if</span> <span class="n">pooled_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">pooled_tensor</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">pooled_paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">pooled_tensor</span><span class="p">,</span> <span class="n">pooled_paddings</span></div></div>
 
