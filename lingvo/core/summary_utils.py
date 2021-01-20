@@ -330,7 +330,15 @@ class StepRateTracker:
     self._time_steps.append((time.time(), current_steps, total_examples))
     # Keeps a relative long history to compute a smooth steps/second.
     # Removes duplicate stats for step = 0 to get rid of the warm-up period.
-    while (self._time_steps[-1][1] - self._time_steps[0][1] > 10000 or
+    # Scale up the amount of history used. The first few steps are generally
+    # much slower and can skew the statistic significantly otherwise.
+    if self._time_steps[-1][1] < 1000:
+      history = 100
+    elif self._time_steps[-1][1] < 10000:
+      history = 1000
+    else:
+      history = 10000
+    while (self._time_steps[-1][1] - self._time_steps[0][1] > history or
            (len(self._time_steps) > 1 and
             self._time_steps[0][1] == self._time_steps[1][1])):
       del self._time_steps[0]
