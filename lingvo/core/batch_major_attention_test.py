@@ -3069,6 +3069,77 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters(
       {
+          'testcase_name': '_avg_pool_exclude',
+          'stride': 2,
+          'pooling_type': 'AVG',
+          'exclude_pad_effect': True,
+      }, {
+          'testcase_name': '_max_pool_exclude',
+          'stride': 2,
+          'pooling_type': 'MAX',
+          'exclude_pad_effect': True,
+      }, {
+          'testcase_name': '_avg_pool',
+          'stride': 2,
+          'pooling_type': 'AVG',
+          'exclude_pad_effect': False,
+      }, {
+          'testcase_name': '_max_pool',
+          'stride': 2,
+          'pooling_type': 'MAX',
+          'exclude_pad_effect': False,
+      })
+  def testFunnelPoolingFixPaddingEffect(self, stride, pooling_type,
+                                        exclude_pad_effect):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      funnel_pooling_params = attention.FunnelPoolingLayer.Params().Set(
+          name='funnel_pool',
+          stride=stride,
+          pooling_type=pooling_type,
+          exclude_pad_effect=exclude_pad_effect)
+      l = funnel_pooling_params.Instantiate()
+
+      inputs_np = np.random.random([bs, sl, d]) * 10
+      non_pad_len = np.random.randint(sl // 2, sl, size=[bs])
+      paddings_np = np.arange(sl)[None, :] >= non_pad_len[:, None]
+      paddings_np = paddings_np.astype(np.float)
+
+      inputs = tf.constant(inputs_np, dtype=np.float)
+      paddings = tf.constant(paddings_np, dtype=np.float)
+
+      pooled_tensor, pooled_paddings = l.FPropDefaultTheta(inputs, paddings)
+      tf.global_variables_initializer().run()
+      pooled_tensor_np, pooled_paddings_np = sess.run(
+          [pooled_tensor, pooled_paddings])
+      self.assertAllEqual([bs, sl // stride, d], pooled_tensor_np.shape)
+      self.assertAllEqual([bs, sl // stride], pooled_paddings_np.shape)
+      self.assertAllClose(paddings_np[:, ::stride], pooled_paddings_np)
+
+      # construct groudtruth
+      inputs_4d = inputs_np.copy().reshape([bs, sl // stride, stride, d])
+      paddings_4d = paddings_np.copy().reshape([bs, sl // stride, stride, 1])
+      if pooling_type == 'AVG':
+        if exclude_pad_effect:
+          not_padding_4d = 1.0 - paddings_4d
+          target_tensor = np.sum(inputs_4d * not_padding_4d, axis=2)
+          target_tensor /= 1e-8 + np.sum(not_padding_4d, axis=2)
+        else:
+          target_tensor = np.mean(inputs_4d, axis=2)
+      elif pooling_type == 'MAX':
+        if exclude_pad_effect:
+          padding_mask = np.tile(paddings_4d > 0, [1, 1, 1, d])
+          inputs_4d[padding_mask] = np.finfo(inputs_4d.dtype).min
+        target_tensor = np.max(inputs_4d, axis=2)
+      target_tensor *= (1.0 - paddings_np[:, ::stride, None])
+
+      self.assertAllClose(target_tensor, pooled_tensor_np)
+
+  @parameterized.named_parameters(
+      {
           'testcase_name': '_baseline',
           'split': 1,
           'num_micro_batches': 1,
