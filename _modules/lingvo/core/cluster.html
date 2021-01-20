@@ -275,7 +275,8 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="_Cluster.InitDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.InitDevices">[docs]</a>  <span class="k">def</span> <span class="nf">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_all_devices</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">sess</span><span class="o">.</span><span class="n">list_devices</span><span class="p">()]</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">session_devices</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">sess</span><span class="o">.</span><span class="n">list_devices</span><span class="p">()]</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;InitDevices </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session_devices</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="_Cluster.ListDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.ListDevices">[docs]</a>  <span class="k">def</span> <span class="nf">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lists devices in the job.</span>
@@ -299,9 +300,9 @@
       <span class="n">devices_per_replica</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="ow">or</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">replicas</span><span class="p">,</span> <span class="n">devices_per_replica</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_all_devices&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;session_devices&#39;</span><span class="p">):</span>
       <span class="n">devices</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_devices</span>
+          <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_devices</span>
           <span class="k">if</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/&#39;</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">and</span> <span class="sa">f</span><span class="s1">&#39;/device:</span><span class="si">{</span><span class="n">device_type</span><span class="si">}</span><span class="s1">:&#39;</span> <span class="ow">in</span> <span class="n">d</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
@@ -330,7 +331,15 @@
           <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Devices not initialized from session, eg. exporting inference graph or</span>
-      <span class="c1"># remote sessions not linked to this session.</span>
+      <span class="c1"># remote sessions not linked to this session, or InitDevices was not</span>
+      <span class="c1"># called. In such case we build device strings manually, but there&#39;s no</span>
+      <span class="c1"># guarantee that those strings will be correct.</span>
+      <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;session_devices&#39;</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;ListDevices: No devices found in the session for </span><span class="si">{</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">.&#39;</span>
+        <span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ListDevices: InitDevices was not called.&#39;</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">replicas</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">devices_per_replica</span><span class="p">):</span>
           <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">device_type</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
@@ -394,17 +403,6 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;controller&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">controller</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;evaler&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">evaler</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;decoder&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span>
-
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
@@ -427,7 +425,18 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">job_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span>
+    <span class="sd">&quot;&quot;&quot;Returns the current job specs.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;controller&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">controller</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;evaler&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">evaler</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;decoder&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">asynchronous</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -441,20 +450,20 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">num_replicas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">replicas</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">replicas</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tpus_per_replica</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">tpus_per_replica</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">tpus_per_replica</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">num_tpu_hosts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">num_devices_per_replica</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="ow">or</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="ow">or</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">total_worker_devices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -462,14 +471,14 @@
     <span class="n">worker_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span>
     <span class="n">devices_per_replica</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">worker_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="ow">or</span> <span class="n">worker_spec</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="ow">or</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span><span class="p">)</span>
     <span class="n">num_replicas</span> <span class="o">=</span> <span class="n">worker_spec</span><span class="o">.</span><span class="n">replicas</span>
     <span class="k">return</span> <span class="n">devices_per_replica</span> <span class="o">*</span> <span class="n">num_replicas</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">num_devices_per_split</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return number of accelerators to use per split.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">devices_per_split</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">devices_per_split</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">num_splits_per_replica</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -498,7 +507,7 @@
 <span class="sd">      A 2D array (python list of python lists) of strings. ret[i, j]</span>
 <span class="sd">      is the j-th visible device on i-th visible replica.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">tpus_per_replica</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">tpus_per_replica</span><span class="p">:</span>
       <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_devices_per_split</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_devices_per_split</span><span class="p">):</span>
         <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
@@ -506,20 +515,20 @@
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">asynchronous</span><span class="p">:</span>
       <span class="c1"># In async mode, each trainer task can only use its own devices.</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">:(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:]</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">:(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:]</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">synchronous</span><span class="p">:</span>
       <span class="c1"># In sync mode, trainer_client can use every device.</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">synchronous</span><span class="p">:</span>
       <span class="c1"># executor_tpu can use every device.</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">):</span>
       <span class="c1"># Our current policy is that each controller/evaler/decoder task</span>
       <span class="c1"># only uses 1 replica.</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">:(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:]</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">:(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:]</span>
 
     <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">)</span>
 
@@ -536,7 +545,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">all_worker_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="o">.</span><span class="n">additional_worker_names</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">additional_worker_names</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">input_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
