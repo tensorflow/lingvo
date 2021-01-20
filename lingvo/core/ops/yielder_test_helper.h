@@ -25,9 +25,9 @@ namespace lingvo {
 class MockRecordYielder : public BasicRecordYielder {
  public:
   MockRecordYielder() : BasicRecordYielder() {}
-  MOCK_METHOD1(Yield, Status(Record* record));
-  MOCK_METHOD0(Close, void());
-  MOCK_CONST_METHOD0(current_epoch, int64());
+  MOCK_METHOD(Status, Yield, (Record * record), (override));
+  MOCK_METHOD(void, Close, (), (override));
+  MOCK_METHOD(int64, current_epoch, (), (const, override));
 };
 
 // Generates n plain text files with m lines each.
