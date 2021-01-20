@@ -15,6 +15,7 @@
 # ==============================================================================
 """Cluster factory."""
 
+import copy
 from lingvo.core import cluster
 
 Cluster = cluster._Cluster  # pylint: disable=protected-access
@@ -51,7 +52,8 @@ def ForTestingWorker(mode=None,
                      do_eval=None,
                      num_tpu_hosts=None):
   """Returns a Cluster for unittesting with a worker."""
-  p = Current().params.Copy()
+  ret = copy.deepcopy(Current())
+  p = ret.params
   if mode is not None:
     p.mode = mode
   if job is not None:
@@ -71,7 +73,7 @@ def ForTestingWorker(mode=None,
     p.do_eval = do_eval
   if num_tpu_hosts is not None:
     p.worker.num_tpu_hosts = num_tpu_hosts
-  return p.Instantiate()
+  return ret
 
 
 def SetEval(mode):
@@ -94,7 +96,9 @@ def SetEval(mode):
   Returns:
     A new Cluster instance.
   """
-  return Current().params.Copy().Set(do_eval=mode).Instantiate()
+  ret = copy.deepcopy(Current())
+  ret.params.do_eval = mode
+  return ret
 
 
 def SetImmediatelyInstantiateVariables(mode):
@@ -106,8 +110,9 @@ def SetImmediatelyInstantiateVariables(mode):
   Returns:
     A new Cluster instance.
   """
-  return Current().params.Copy().Set(
-      immediately_instantiate_variables=mode).Instantiate()
+  ret = copy.deepcopy(Current())
+  ret.params.immediately_instantiate_variables = mode
+  return ret
 
 
 def SetModelSplit(split_id):
@@ -126,4 +131,6 @@ def SetModelSplit(split_id):
   Returns:
     A new Cluster instance.
   """
-  return Current().params.Copy().Set(split_id=split_id).Instantiate()
+  ret = copy.deepcopy(Current())
+  ret.params.split_id = split_id
+  return ret

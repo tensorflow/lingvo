@@ -123,7 +123,8 @@ class _Cluster:
     return p
 
   def InitDevices(self, sess):
-    self._all_devices = [d.name for d in sess.list_devices()]
+    self.session_devices = [d.name for d in sess.list_devices()]
+    tf.logging.info('InitDevices %s' % sorted(self.session_devices))
 
   def ListDevices(self, job_spec):
     """Lists devices in the job.
@@ -147,9 +148,9 @@ class _Cluster:
       devices_per_replica = job_spec.num_tpu_hosts or job_spec.cpus_per_replica
     ret = np.empty((replicas, devices_per_replica), np.object)
 
-    if hasattr(self, '_all_devices'):
+    if hasattr(self, 'session_devices'):
       devices = [
-          d for d in self._all_devices
+          d for d in self.session_devices
           if f'{job_spec.name}/' in d and f'/device:{device_type}:' in d
       ]
     else:
@@ -178,7 +179,15 @@ class _Cluster:
           ret[i, j] = next(it)
     else:
       # Devices not initialized from session, eg. exporting inference graph or
-      # remote sessions not linked to this session.
+      # remote sessions not linked to this session, or InitDevices was not
+      # called. In such case we build device strings manually, but there's no
+      # guarantee that those strings will be correct.
+      if hasattr(self, 'session_devices'):
+        tf.logging.info(
+            f'ListDevices: No devices found in the session for {job_spec.name}.'
+        )
+      else:
+        tf.logging.info('ListDevices: InitDevices was not called.')
       for i in range(replicas):
         for j in range(devices_per_replica):
           ret[i, j] = MakeDeviceString(job_spec.name, i, device_type, j)
@@ -242,17 +251,6 @@ class _Cluster:
     else:
       assert False, (p.mode, p.job)
 
-    if p.job == 'controller':
-      self._job_spec = p.controller
-    elif p.job in ('trainer', 'worker', 'trainer_client'):
-      self._job_spec = p.worker
-    elif p.job == 'evaler':
-      self._job_spec = p.evaler
-    elif p.job == 'decoder':
-      self._job_spec = p.decoder
-    elif p.job == 'executor_tpu':
-      self._job_spec = p.worker
-
   @property
   def params(self):
     return self._params
@@ -275,7 +273,18 @@ class _Cluster:
 
   @property
   def job_spec(self):
-    return self._job_spec
+    """Returns the current job specs."""
+    p = self.params
+    if p.job == 'controller':
+      return p.controller
+    elif p.job in ('trainer', 'worker', 'trainer_client'):
+      return p.worker
+    elif p.job == 'evaler':
+      return p.evaler
+    elif p.job == 'decoder':
+      return p.decoder
+    elif p.job == 'executor_tpu':
+      return p.worker
 
   @property
   def asynchronous(self):
@@ -289,20 +298,20 @@ class _Cluster:
 
   @property
   def num_replicas(self):
-    return self._job_spec.replicas
+    return self.job_spec.replicas
 
   @property
   def tpus_per_replica(self):
-    return self._job_spec.tpus_per_replica
+    return self.job_spec.tpus_per_replica
 
   @property
   def num_tpu_hosts(self):
-    return self._job_spec.num_tpu_hosts
+    return self.job_spec.num_tpu_hosts
 
   @property
   def num_devices_per_replica(self):
-    return (self._job_spec.gpus_per_replica or
-            self._job_spec.tpus_per_replica or self._job_spec.cpus_per_replica)
+    return (self.job_spec.gpus_per_replica or self.job_spec.tpus_per_replica or
+            self.job_spec.cpus_per_replica)
 
   @property
   def total_worker_devices(self):
@@ -310,14 +319,14 @@ class _Cluster:
     worker_spec = self.params.worker
     devices_per_replica = (
         worker_spec.gpus_per_replica or worker_spec.tpus_per_replica or
-        self._job_spec.cpus_per_replica)
+        self.job_spec.cpus_per_replica)
     num_replicas = worker_spec.replicas
     return devices_per_replica * num_replicas
 
   @property
   def num_devices_per_split(self):
     """Return number of accelerators to use per split."""
-    return self._job_spec.devices_per_split
+    return self.job_spec.devices_per_split
 
   @property
   def num_splits_per_replica(self):
@@ -346,7 +355,7 @@ class _Cluster:
       A 2D array (python list of python lists) of strings. ret[i, j]
       is the j-th visible device on i-th visible replica.
     """
-    if self._job_spec.tpus_per_replica:
+    if self.job_spec.tpus_per_replica:
       ret = np.empty((1, self.num_devices_per_split), np.object)
       for i in range(self.num_devices_per_split):
         ret[0, i] = tf.tpu.core(i)
@@ -354,20 +363,20 @@ class _Cluster:
 
     if self.job == 'trainer' and self.asynchronous:
       # In async mode, each trainer task can only use its own devices.
-      return self.ListDevices(self._job_spec)[self.task:(self.task + 1), :]
+      return self.ListDevices(self.job_spec)[self.task:(self.task + 1), :]
 
     if self.job == 'trainer_client' and self.synchronous:
       # In sync mode, trainer_client can use every device.
-      return self.ListDevices(self._job_spec)
+      return self.ListDevices(self.job_spec)
 
     if self.job == 'executor_tpu' and self.synchronous:
       # executor_tpu can use every device.
-      return self.ListDevices(self._job_spec)
+      return self.ListDevices(self.job_spec)
 
     if self.job in ('controller', 'evaler', 'decoder'):
       # Our current policy is that each controller/evaler/decoder task
       # only uses 1 replica.
-      return self.ListDevices(self._job_spec)[self.task:(self.task + 1), :]
+      return self.ListDevices(self.job_spec)[self.task:(self.task + 1), :]
 
     assert False, (self.job, self.mode)
 
@@ -384,7 +393,7 @@ class _Cluster:
 
   @property
   def all_worker_names(self):
-    return [self._job_spec.name] + self._job_spec.additional_worker_names
+    return [self.job_spec.name] + self.job_spec.additional_worker_names
 
   @property
   def input_targets(self):
