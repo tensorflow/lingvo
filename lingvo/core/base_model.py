@@ -32,6 +32,7 @@ from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 from lingvo.core import decoder_lib
+from lingvo.core import input_policy
 from model_pruning.python import pruning
 
 
@@ -314,8 +315,9 @@ class BaseTask(base_layer.BaseLayer):
               'input.num_batcher_threads > 1 inside eval mode.  '
               'The input generator may not iterate over exactly '
               'one epoch per run')
-      tf.logging.info('input_params: %s', p.input)
-      self.CreateChild('input', p.input)
+      input_params = input_policy.Apply(p.input)
+      tf.logging.info('input_params: %s', input_params)
+      self.CreateChild('input', input_params)
 
     tp = p.train
 

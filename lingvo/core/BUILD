@@ -264,7 +264,6 @@ py_library(
         ":py_utils",
         ":tokenizers",
         "//lingvo:compat",
-        "//lingvo/core:input_policy",
         "//lingvo/core/ops",
         # Implicit tensorflow dependency.
     ],
@@ -430,6 +429,7 @@ py_library(
         # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
         "//lingvo/core:decoder_lib",
+        "//lingvo/core:input_policy",
     ],
 )
 
