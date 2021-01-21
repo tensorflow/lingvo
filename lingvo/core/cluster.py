@@ -532,9 +532,9 @@ class _LeastLoadedPlacer(VarPlacer):
   def __init__(self, cluster):
     super().__init__(cluster)
     # A min heap of (size, device)
-    var_devices = cluster.ListDevices(cluster.params.ps).flatten().tolist()
+    var_devices = cluster.ListDevices(cluster.params.ps)
     tf.logging.info('_LeastLoadedPlacer : %s', var_devices)
-    self._var_space_pq = [(0, d) for d in var_devices]
+    self._var_space_pq = [(0, d) for d in var_devices.flatten().tolist()]
 
   def _AssignVar(self, var_op):
     size = var_op.get_attr('dtype').size

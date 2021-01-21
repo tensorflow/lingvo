@@ -122,6 +122,8 @@ class Trainer(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
+      for task in self._model.tasks:
+        task.input.Initialize(sess)
       global_step = self._WaitUntilInit(sess, self._start_up_delay_steps)
 
       status_interval_steps = 100

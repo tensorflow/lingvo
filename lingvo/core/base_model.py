@@ -479,8 +479,7 @@ class BaseTask(base_layer.BaseLayer):
     if py_utils.use_tpu():
       return self._FPropTpu(theta, input_batch)
 
-    cluster = self.cluster
-    num_splits = cluster.num_splits_per_client
+    num_splits = self.cluster.num_splits_per_client
 
     if not isinstance(input_batch, list):
       input_batch = [input_batch]
@@ -488,17 +487,17 @@ class BaseTask(base_layer.BaseLayer):
     assert len(input_batch) == num_splits, (len(input_batch), num_splits)
 
     # dev_list_per_replica[i][j] is the i-th worker's j-th device.
-    dev_list_per_replica = cluster.available_devices.tolist()
+    dev_list_per_replica = self.cluster.available_devices.tolist()
 
     # Asserts invariant of the total number of splits w.r.t.,
     # splits per worker.
-    splits_per_replica = cluster.num_splits_per_replica
+    splits_per_replica = self.cluster.num_splits_per_replica
     assert num_splits == splits_per_replica * len(dev_list_per_replica), (
         num_splits, splits_per_replica, len(dev_list_per_replica))
 
     all_metrics = []
     all_per_example_tensors = []
-    with cluster:
+    with self.cluster:
       for w_id, w_devs in enumerate(dev_list_per_replica):
         # Make local copy of the vars, shard on devices for this worker.
         theta_local = py_utils.CreateLocalTheta(
