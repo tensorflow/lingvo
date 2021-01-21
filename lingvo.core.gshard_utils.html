@@ -184,17 +184,17 @@
 <li><p><strong>split_dimension</strong> – xla_sharding.split arg.</p></li>
 <li><p><strong>num_devices</strong> – xla_sharding.split arg.</p></li>
 <li><p><strong>use_sharding_op</strong> – <p>If true, adds a sharding op to set the sharding: tensor =
-gen_xla_ops.xla_sharding(tensor)
-hyouklee&#64;: use_sharding_op=False “It adds the sharding attribute to the op</p>
-<blockquote>
-<div><p>itself. The outcome is that, that information could be lost by TF graph
+gen_xla_ops.xla_sharding(tensor)</p>
+<dl class="simple">
+<dt>hyouklee&#64;: use_sharding_op=False “It adds the sharding attribute to the op</dt><dd><p>itself. The outcome is that, that information could be lost by TF graph
 transformations. Also, directly attaching the sharding annotation to the
 op caused some compilation failures in the past (due to incompatible
 shardings), so the plan is to make use_sharding_op to be the default.”
 “The only case I would set it to False today is when annotating weights.
 Weight annotation does some special handling, so there may be some
 changes needed in that logic if we add separate sharding op.”</p>
-</div></blockquote>
+</dd>
+</dl>
 </p></li>
 <li><p><strong>input_shape</strong> – The shape of the original tensor.</p></li>
 </ul>

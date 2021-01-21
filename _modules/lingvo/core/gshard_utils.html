@@ -192,6 +192,7 @@
 <span class="sd">    num_devices: xla_sharding.split arg.</span>
 <span class="sd">    use_sharding_op: If true, adds a sharding op to set the sharding: tensor =</span>
 <span class="sd">      gen_xla_ops.xla_sharding(tensor)</span>
+
 <span class="sd">      hyouklee@: use_sharding_op=False &quot;It adds the sharding attribute to the op</span>
 <span class="sd">        itself. The outcome is that, that information could be lost by TF graph</span>
 <span class="sd">        transformations. Also, directly attaching the sharding annotation to the</span>
@@ -200,6 +201,7 @@
 <span class="sd">        &quot;The only case I would set it to False today is when annotating weights.</span>
 <span class="sd">        Weight annotation does some special handling, so there may be some</span>
 <span class="sd">        changes needed in that logic if we add separate sharding op.&quot;</span>
+
 <span class="sd">    input_shape: The shape of the original tensor.</span>
 
 <span class="sd">  Returns:</span>
