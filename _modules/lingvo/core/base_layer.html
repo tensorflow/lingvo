@@ -442,7 +442,7 @@
     <span class="c1"># Copy-over the BaseLayer params.</span>
     <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
       <span class="n">to_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">dtype</span>
-    <span class="k">if</span> <span class="n">from_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">to_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">fprop_dtype</span>
     <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">to_params</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">random_seed</span>
