@@ -290,7 +290,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # Copy-over the BaseLayer params.
     if to_params.dtype == tf.float32:
       to_params.dtype = from_params.dtype
-    if from_params.fprop_dtype is not None:
+    if to_params.fprop_dtype is None:
       to_params.fprop_dtype = from_params.fprop_dtype
     if to_params.random_seed is None:
       to_params.random_seed = from_params.random_seed

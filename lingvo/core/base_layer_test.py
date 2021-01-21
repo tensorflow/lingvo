@@ -86,21 +86,25 @@ class BaseLayerTest(test_utils.TestCase):
     from_param.vn.global_vn = True
     from_param.random_seed = 1234
     from_param.skip_lp_regularization = True
+    from_param.fprop_dtype = tf.bfloat16
     # Target use default, overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
     self.assertTrue(to_param.vn.global_vn)
     self.assertEqual(1234, to_param.random_seed)
     self.assertTrue(to_param.skip_lp_regularization)
+    self.assertEqual(tf.bfloat16, to_param.fprop_dtype)
     to_param = layer_base_p.Copy()
     to_param.vn.per_step_vn = True
     to_param.random_seed = 4321
     to_param.skip_lp_regularization = False
+    to_param.fprop_dtype = tf.float32
     # Target does not use default, should not overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
     self.assertTrue(to_param.vn.per_step_vn)
     self.assertFalse(to_param.vn.global_vn)
     self.assertEqual(4321, to_param.random_seed)
     self.assertFalse(to_param.skip_lp_regularization)
+    self.assertEqual(tf.float32, to_param.fprop_dtype)
 
   def testCreateChild(self):
     layer_p = TestParentLayer.Params()
