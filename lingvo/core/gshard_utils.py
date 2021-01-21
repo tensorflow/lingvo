@@ -38,16 +38,13 @@ def Split(x,
     x: Tensor to annotate.
     split_dimension: xla_sharding.split arg.
     num_devices: xla_sharding.split arg.
-    use_sharding_op: If true, adds a sharding op to set the sharding:
-      tensor = gen_xla_ops.xla_sharding(tensor)
-
-      hyouklee@: use_sharding_op=False
-        "It adds the sharding attribute to the op itself. The outcome is that,
-        that information could be lost by TF graph transformations. Also,
-        directly attaching the sharding annotation to the op caused some
-        compilation failures in the past (due to incompatible shardings), so the
-        plan is to make use_sharding_op to be the default."
-
+    use_sharding_op: If true, adds a sharding op to set the sharding: tensor =
+      gen_xla_ops.xla_sharding(tensor)
+      hyouklee@: use_sharding_op=False "It adds the sharding attribute to the op
+        itself. The outcome is that, that information could be lost by TF graph
+        transformations. Also, directly attaching the sharding annotation to the
+        op caused some compilation failures in the past (due to incompatible
+        shardings), so the plan is to make use_sharding_op to be the default."
         "The only case I would set it to False today is when annotating weights.
         Weight annotation does some special handling, so there may be some
         changes needed in that logic if we add separate sharding op."
@@ -261,6 +258,20 @@ class TensorShardingSpec:
     return TensorShardingSpec(self._split_dims_mapping[num_dims:],
                               self.device_mesh, new_padding)
 
+  def RemoveDim(self, dim) -> 'TensorShardingSpec':
+    """Returns a copy of self with dimension 'dim' removed."""
+    if self.is_replicated:
+      return self
+    if dim < 0:
+      num_dims = len(self._split_dims_mapping)
+      dim = num_dims + dim
+    assert dim >= 0 and dim < len(self._split_dims_mapping)
+    new_padding = (None if self._uneven_padding is None else
+                   self._uneven_padding[:dim] + self._uneven_padding[dim + 1:])
+    split_dims_mapping = (
+        self._split_dims_mapping[:dim] + self._split_dims_mapping[dim + 1:])
+    return TensorShardingSpec(split_dims_mapping, self.device_mesh, new_padding)
+
   @classmethod
   def ReplicatedSpec(cls):
     return TensorShardingSpec()
@@ -275,7 +286,12 @@ class TensorShardingSpec:
 
   @property
   def is_replicated(self) -> bool:
-    return self.split_dims_mapping is None or max(self.split_dims_mapping) < 0
+    if self.split_dims_mapping is None:
+      return True
+    for mesh_dim in self.split_dims_mapping:
+      if mesh_dim >= 0 and self.device_mesh.shape[mesh_dim] > 1:
+        return False
+    return True
 
   @property
   def mesh_dim_to_tensor_dim_mapping(self) -> Dict[int, int]:
