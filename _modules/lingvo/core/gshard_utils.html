@@ -190,16 +190,13 @@
 <span class="sd">    x: Tensor to annotate.</span>
 <span class="sd">    split_dimension: xla_sharding.split arg.</span>
 <span class="sd">    num_devices: xla_sharding.split arg.</span>
-<span class="sd">    use_sharding_op: If true, adds a sharding op to set the sharding:</span>
-<span class="sd">      tensor = gen_xla_ops.xla_sharding(tensor)</span>
-
-<span class="sd">      hyouklee@: use_sharding_op=False</span>
-<span class="sd">        &quot;It adds the sharding attribute to the op itself. The outcome is that,</span>
-<span class="sd">        that information could be lost by TF graph transformations. Also,</span>
-<span class="sd">        directly attaching the sharding annotation to the op caused some</span>
-<span class="sd">        compilation failures in the past (due to incompatible shardings), so the</span>
-<span class="sd">        plan is to make use_sharding_op to be the default.&quot;</span>
-
+<span class="sd">    use_sharding_op: If true, adds a sharding op to set the sharding: tensor =</span>
+<span class="sd">      gen_xla_ops.xla_sharding(tensor)</span>
+<span class="sd">      hyouklee@: use_sharding_op=False &quot;It adds the sharding attribute to the op</span>
+<span class="sd">        itself. The outcome is that, that information could be lost by TF graph</span>
+<span class="sd">        transformations. Also, directly attaching the sharding annotation to the</span>
+<span class="sd">        op caused some compilation failures in the past (due to incompatible</span>
+<span class="sd">        shardings), so the plan is to make use_sharding_op to be the default.&quot;</span>
 <span class="sd">        &quot;The only case I would set it to False today is when annotating weights.</span>
 <span class="sd">        Weight annotation does some special handling, so there may be some</span>
 <span class="sd">        changes needed in that logic if we add separate sharding op.&quot;</span>
@@ -413,6 +410,20 @@
     <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[</span><span class="n">num_dims</span><span class="p">:],</span>
                               <span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">new_padding</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="TensorShardingSpec.RemoveDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.RemoveDim">[docs]</a>  <span class="k">def</span> <span class="nf">RemoveDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;TensorShardingSpec&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns a copy of self with dimension &#39;dim&#39; removed.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_replicated</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span>
+    <span class="k">if</span> <span class="n">dim</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">num_dims</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">)</span>
+      <span class="n">dim</span> <span class="o">=</span> <span class="n">num_dims</span> <span class="o">+</span> <span class="n">dim</span>
+    <span class="k">assert</span> <span class="n">dim</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">dim</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">)</span>
+    <span class="n">new_padding</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span><span class="p">[:</span><span class="n">dim</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uneven_padding</span><span class="p">[</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:])</span>
+    <span class="n">split_dims_mapping</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[:</span><span class="n">dim</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_dims_mapping</span><span class="p">[</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="p">(</span><span class="n">split_dims_mapping</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">new_padding</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TensorShardingSpec.ReplicatedSpec"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.TensorShardingSpec.ReplicatedSpec">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">ReplicatedSpec</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="p">()</span></div>
@@ -427,7 +438,12 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">is_replicated</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">mesh_dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">mesh_dim</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">mesh_dim</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">mesh_dim_to_tensor_dim_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
