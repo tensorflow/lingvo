@@ -40,6 +40,7 @@ def Split(x,
     num_devices: xla_sharding.split arg.
     use_sharding_op: If true, adds a sharding op to set the sharding: tensor =
       gen_xla_ops.xla_sharding(tensor)
+
       hyouklee@: use_sharding_op=False "It adds the sharding attribute to the op
         itself. The outcome is that, that information could be lost by TF graph
         transformations. Also, directly attaching the sharding annotation to the
@@ -48,6 +49,7 @@ def Split(x,
         "The only case I would set it to False today is when annotating weights.
         Weight annotation does some special handling, so there may be some
         changes needed in that logic if we add separate sharding op."
+
     input_shape: The shape of the original tensor.
 
   Returns:
