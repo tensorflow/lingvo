@@ -274,6 +274,8 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WaitUntilInit</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_up_delay_steps</span><span class="p">)</span>
 
       <span class="n">status_interval_steps</span> <span class="o">=</span> <span class="mi">100</span>
