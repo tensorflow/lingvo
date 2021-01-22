@@ -242,6 +242,82 @@ class MoEBuilderTest(test_utils.TestCase):
       sess.run(tf.global_variables_initializer())
       sess.run(outputs)
 
+  def testEncNotVisible(self):
+
+    def _Notvisible(x):
+      a, b = tf.expand_dims(x, -1), tf.expand_dims(x, -2)
+      return tf.cast(
+          tf.math.logical_or(
+              tf.not_equal(a, b),
+              # also ignoring segment_id=0
+              tf.math.logical_not(
+                  tf.math.logical_or(tf.cast(a, tf.bool), tf.cast(b,
+                                                                  tf.bool)))),
+          tf.float32)
+
+    builder = gshard_builder.DenseBuilder.Params().Set(
+        dtype=tf.float32).Instantiate()
+    graph = tf.Graph()
+    with graph.as_default():
+      segment_ids = tf.convert_to_tensor([[1, 1, 1, 1]], dtype=tf.int32)
+      y = builder._EncNotVisible(segment_ids, segment_ids)
+      y2 = _Notvisible(segment_ids)
+    with self.session(graph=graph) as sess:
+      sess.run(tf.global_variables_initializer())
+      y_val, y2_val = sess.run([y, y2])
+      self.assertAllEqual(y_val, y2_val)
+
+  def testDecNotVisible(self):
+
+    def _Notvisible(seg_id, seg_pos):
+      a, b = tf.expand_dims(seg_id, -1), tf.expand_dims(seg_id, -2)
+      return tf.cast(
+          tf.math.logical_or(
+              tf.less(tf.expand_dims(seg_pos, -1), tf.expand_dims(seg_pos, -2)),
+              tf.math.logical_or(
+                  tf.not_equal(a, b),
+                  tf.math.logical_not(
+                      tf.math.logical_or(
+                          tf.cast(a, tf.bool), tf.cast(b, tf.bool))))),
+          tf.float32)
+
+    builder = gshard_builder.DenseBuilder.Params().Set(
+        dtype=tf.float32).Instantiate()
+    graph = tf.Graph()
+    with graph.as_default():
+      segment_ids = tf.convert_to_tensor([[1, 1, 1, 1]], dtype=tf.int32)
+      segment_pos = tf.convert_to_tensor([[1, 2, 3, 4]], dtype=tf.int32)
+      y = builder._DecNotVisible(segment_ids, segment_pos)
+      y2 = _Notvisible(segment_ids, segment_pos)
+    with self.session(graph=graph) as sess:
+      sess.run(tf.global_variables_initializer())
+      y_val, y2_val = sess.run([y, y2])
+      self.assertAllEqual(y_val, y2_val)
+
+  def testEmbedding(self):
+    builder = gshard_builder.DenseBuilder.Params().Set(
+        model_dim=4, model_dim_reshape_segments=2).Instantiate()
+    ids = [[1, 2, 3], [3, 2, 1]]
+    graph = tf.Graph()
+    with graph.as_default():
+      tf.random.set_seed(24332)
+      py_utils.GetOrCreateGlobalStepVar()
+      emb_layer_p = builder.Embedding('emb', vocab_dim=4)
+      emb_layer = emb_layer_p.Instantiate()
+      enc_out = emb_layer.FPropDefaultTheta(
+          tf.convert_to_tensor(ids, dtype=tf.int32))
+
+    expected_val = [[[[-0.67452705, -2.6386688], [1.1666715, 0.04592554]],
+                     [[-1.0561675, -0.48270327], [0.7765603, 0.6768117]],
+                     [[0.8349989, 0.67100984], [-0.15557083, 1.275625]]],
+                    [[[0.8349989, 0.67100984], [-0.15557083, 1.275625]],
+                     [[-1.0561675, -0.48270327], [0.7765603, 0.6768117]],
+                     [[-0.67452705, -2.6386688], [1.1666715, 0.04592554]]]]
+    with self.session(graph=graph) as sess:
+      sess.run(tf.global_variables_initializer())
+      enc_out_vals = sess.run(enc_out)
+      self.assertAllClose(expected_val, enc_out_vals)
+
 
 class UniTransformerTest(test_utils.TestCase):
 

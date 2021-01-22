@@ -716,26 +716,23 @@ class MoEBuilder(builder.Base):
           wo, [p.attention_num_heads, p.attention_key_value_dim, p.model_dim])
     return tf.einsum('HDM,BLHD->BLM', wo, o)
 
+  def _EncNotVisible(self, a, b):
+    """a, b are encoder_segment_id, decoder_segment_id Tensors."""
+    a, b = tf.expand_dims(a, -1), tf.expand_dims(b, -2)
+    # NotVisible == (a != b) || !((a!=0) || (b != 0))
+    #            == (a != b) || ((a==0) && (b == 0))
+    # ignore segment_id == 0.
+    ret = tf.equal(a, 0)
+    ret = tf.logical_and(ret, tf.equal(b, 0))
+    ret = tf.logical_or(ret, tf.not_equal(a, b))
+    return tf.cast(ret, py_utils.FPropDtype(self.params))
+
   def SelfAttention(self,
                     name,
                     device_mesh=None,
                     w_qkv_mhd_mesh_split=None,
                     wo_hdm_mesh_split=None):
     """TransformerEncoder SelfAttention."""
-
-    p = self.params
-
-    def _Notvisible(x):
-      a, b = tf.expand_dims(x, -1), tf.expand_dims(x, -2)
-      return tf.cast(
-          tf.math.logical_or(
-              tf.not_equal(a, b),
-              # also ignoring segment_id=0
-              tf.math.logical_not(
-                  tf.math.logical_or(tf.cast(a, tf.bool), tf.cast(b,
-                                                                  tf.bool)))),
-          py_utils.FPropDtype(p))
-
     # pyformat: disable
     return self._Graph(
         name,
@@ -751,7 +748,7 @@ class MoEBuilder(builder.Base):
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('segment_id->bias',
          self._Fn('bias',
-                  fn=lambda x: _Notvisible(x) * (-1e+09),
+                  fn=lambda x: self._EncNotVisible(x, x) * (-1e+09),
                   fn_out=lambda x: x + x[-1])),
         ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('q,k,v,bias->o', self.Attention('attention')),
@@ -765,20 +762,6 @@ class MoEBuilder(builder.Base):
                       w_qkv_mhd_mesh_split=None,
                       wo_hdm_mesh_split=None):
     """Transformer Decoder-Encoder Attention."""
-
-    p = self.params
-
-    def _Notvisible(a, b):
-      """a, b are encoder_segment_id,(decoder_)segment_id Tensors."""
-      a, b = tf.expand_dims(a, -1), tf.expand_dims(b, -2)
-      return tf.cast(
-          tf.math.logical_or(
-              tf.not_equal(a, b),
-              tf.math.logical_not(
-                  tf.math.logical_or(tf.cast(a, tf.bool), tf.cast(b,
-                                                                  tf.bool)))),
-          py_utils.FPropDtype(p))
-
     # pyformat: disable
     return self._Graph(
         name,
@@ -796,7 +779,7 @@ class MoEBuilder(builder.Base):
         ('->wq,wk,wv,wo', self._AttentionWeights(
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('segment_id,encoder_segment_id->bias',
-         self._Fn('bias', fn=lambda a, b: -1e+09 * _Notvisible(a, b))),
+         self._Fn('bias', fn=lambda a, b: -1e+09 * self._EncNotVisible(a, b))),
         ('inputs,wq->q', self._ComputeQKV('q')),
         ('encoder_output,wk->k', self._ComputeQKV('k')),
         ('encoder_output,wv->v', self._ComputeQKV('v')),
@@ -805,6 +788,18 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
+  def _DecNotVisible(self, segment_id, segment_pos):
+    """Causal padding with segment_id and segment_pos."""
+    a, b = tf.expand_dims(segment_id, -1), tf.expand_dims(segment_id, -2)
+    ret = tf.equal(a, 0)
+    ret = tf.logical_and(ret, tf.equal(b, 0))
+    ret = tf.logical_or(ret, tf.not_equal(a, b))
+    # position (~row) is less that memory position(~column)
+    causal = tf.less(
+        tf.expand_dims(segment_pos, -1), tf.expand_dims(segment_pos, -2))
+    ret = tf.math.logical_or(causal, ret)
+    return tf.cast(ret, py_utils.FPropDtype(self.params))
+
   def DecSelfAttention(self,
                        name,
                        device_mesh=None,
@@ -812,7 +807,7 @@ class MoEBuilder(builder.Base):
                        wo_hdm_mesh_split=None):
     """TransformerDecoder SelfAttention.
 
-    Note that attention bias (see _Notvisible) ensures that current position
+    Note that attention bias (see _DecNotvisible) ensures that current position
     (~row) is less that memory position(~column).
 
     Args:
@@ -825,26 +820,6 @@ class MoEBuilder(builder.Base):
       layer params for TransformerDecoder SelfAttention.
     """
     p = self.params
-    fprop_dtype = py_utils.FPropDtype(self.params)
-
-    def _Notvisible(
-        segment_id,
-        segment_pos,
-    ):  # pylint: disable=missing-docstring
-      a, b = tf.expand_dims(segment_id, -1), tf.expand_dims(segment_id, -2)
-      return tf.cast(
-          tf.math.logical_or(
-              tf.less(  # position (~row) is less that memory position(~column)
-                  tf.expand_dims(segment_pos, -1),
-                  tf.expand_dims(segment_pos, -2)),
-              tf.math.logical_or(
-                  tf.not_equal(a, b),
-                  # also ignoring segment_id=0
-                  tf.math.logical_not(
-                      tf.math.logical_or(
-                          tf.cast(a, tf.bool), tf.cast(b, tf.bool))))),
-          fprop_dtype)
-
     state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
 
     # pyformat: disable
@@ -868,7 +843,7 @@ class MoEBuilder(builder.Base):
         ('v->v_full', self._State('v_state', state_shape)),
         ('segment_id,segment_pos->bias',
          self._Fn('bias',
-                  fn=lambda x, y: _Notvisible(x, y) * (-1e+09),
+                  fn=lambda x, y: self._DecNotVisible(x, y) * (-1e+09),
                   fn_out=lambda x, y: x + x[-1])),
         ('bias->bias_full', self._Override('dec_self_attention_bias')),
         ('q,k_full,v_full,bias_full->o', self.Attention('attention')),
@@ -982,17 +957,6 @@ class MoEBuilder(builder.Base):
     else:
       assert p.relative_attention_type == 'bias', p.relative_attention_type
 
-    def _Notvisible(x):
-      a, b = tf.expand_dims(x, -1), tf.expand_dims(x, -2)
-      return tf.cast(
-          tf.math.logical_or(
-              tf.not_equal(a, b),
-              # also ignoring segment_id=0
-              tf.math.logical_not(
-                  tf.math.logical_or(tf.cast(a, tf.bool), tf.cast(b,
-                                                                  tf.bool)))),
-          py_utils.FPropDtype(p))
-
     # pyformat: disable
     return self._Graph(
         name,
@@ -1010,7 +974,7 @@ class MoEBuilder(builder.Base):
          self._RelativeAttentionBiasWeights('wrb', collections)),
         ('segment_id->segment_bias',
          self._Fn('bias',
-                  fn=lambda x: _Notvisible(x) * (-1e+09),
+                  fn=lambda x: self._EncNotVisible(x, x) * (-1e+09),
                   fn_out=lambda x: x + x[-1])),
         ('segment_bias,segment_pos,relative_bias_weights->bias',
          self._Fn('relative_bias', fn=self._EncoderAddRelativeBias)),
@@ -1027,7 +991,7 @@ class MoEBuilder(builder.Base):
                                    wo_hdm_mesh_split=None):
     """DecSelfAttention with relative Attention Bias.
 
-    Note that attention bias (see _Notvisible) ensures that current position
+    Note that attention bias (see _DecNotVisible) ensures that current position
     (~row) is less that memory position(~column).
 
     In addition to masking bias we use per-head per-relative position bucket
@@ -1050,7 +1014,6 @@ class MoEBuilder(builder.Base):
       The layer params.
     """
     p = self.params
-    fprop_dtype = py_utils.FPropDtype(self.params)
     collections = None
     if p.relative_attention_type == 'bias_shared':
       # Collection name is used as a unique ID to retrieve the shared variable.
@@ -1062,26 +1025,8 @@ class MoEBuilder(builder.Base):
     else:
       assert p.relative_attention_type == 'bias', p.relative_attention_type
 
-    def _Notvisible(
-        segment_id,
-        segment_pos,
-    ):  # pylint: disable=missing-docstring
-      a, b = tf.expand_dims(segment_id, -1), tf.expand_dims(segment_id, -2)
-      return tf.cast(
-          tf.math.logical_or(
-              tf.less(  # position (~row) is less that memory position(~column)
-                  tf.expand_dims(segment_pos, -1),
-                  tf.expand_dims(segment_pos, -2)),
-              tf.math.logical_or(
-                  tf.not_equal(a, b),
-                  # also ignoring segment_id=0
-                  tf.math.logical_not(
-                      tf.math.logical_or(
-                          tf.cast(a, tf.bool), tf.cast(b, tf.bool))))),
-          fprop_dtype)
-
     def _ComputeBias(segment_id, segment_pos):
-      return _Notvisible(segment_id, segment_pos) * (-1e+09)
+      return self._DecNotVisible(segment_id, segment_pos) * (-1e+09)
 
     state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
 
@@ -1752,18 +1697,18 @@ class DenseBuilder(MoEBuilder):
     p = self.params
     return self._Graph(
         name, ['ids'], ['outputs'],
-        ('->emb',
+        ('->emb_orig',
          self._EmbeddingWeight('w', vocab_dim, self._device_mesh,
                                p.emb_w_split)),
+        ('emb_orig->emb',
+         self._Fn('reshape_emb_w', fn=lambda x: self._ReshapeM(x, 1))),
         ('ids->one_hot_ids', self._OneHotEncode('one_hot_ids', vocab_dim)),
         ('one_hot_ids->one_hot_ids_split',
          self.MeshSplit('one_hot_ids_split', p.one_hot_ids_split)),
         ('emb,one_hot_ids_split->outputs_pre_split',
-         self._Fn('einsum', fn=lambda w, x: tf.einsum('VH,BLV->BLH', w, x))),
-        ('outputs_pre_split->outputs_pre_reshape',
-         self.MeshSplit('output_split', p.emb_out_split)),
-        ('outputs_pre_reshape->outputs',
-         self._Fn('outputs_reshape', fn=lambda x: self._ReshapeM(x, 2))))
+         self.EinsumWithModelDim('einsum', 'VM,BLV->BLM')),
+        ('outputs_pre_split->outputs',
+         self.MeshSplit('out_split', self._AdjustMSplit(p.emb_out_split, 2))))
 
   @property
   def _attention_output_hdm_w_split(self):
