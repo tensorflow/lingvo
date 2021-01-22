@@ -88,7 +88,9 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(0.095987, mean_diff.eval())
       self.assertAllClose(0.364456, var_diff.eval())
 
-  def testBatchNormLayerFProp(self):
+  @parameterized.named_parameters(('F32Input', tf.float32, 47.8371887),
+                                  ('BF16Input', tf.bfloat16, 47.8373))
+  def testBatchNormLayerFProp(self, input_dtype, expected_sig2):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
@@ -98,16 +100,16 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
 
       bn_layer = layers.BatchNormLayer(params)
-      in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
+      in_padding1 = tf.zeros([2, 8, 1], dtype=input_dtype)
       bn_in1 = tf.constant(
-          np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
+          np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=input_dtype)
 
       bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
       sig1 = tf.reduce_sum(bn_out)
       sig2 = tf.reduce_sum(bn_out * bn_out)
       self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(0.0, sig1.eval(), atol=1e-5)
-      self.assertAllClose(47.8371887, sig2.eval())
+      self.assertAllClose(expected_sig2, sig2.eval())
 
   def testBatchNormLayerFPropUseGlobalStatsForTraining(self):
     with self.session(use_gpu=True):
@@ -378,15 +380,19 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       ])
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
 
-  def testFPropWithPaddings(self):
+  @parameterized.named_parameters(('F32Input', tf.float32),
+                                  ('BF16Input', tf.bfloat16))
+  def testFPropWithPaddings(self, input_dtype):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
       params.dim = 4
       params.num_groups = 2
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      gn_in = tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4])
-      paddings = tf.convert_to_tensor([[0, 0], [0, 1]], dtype=tf.float32)
+      gn_in = tf.cast(
+          tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4]),
+          input_dtype)
+      paddings = tf.convert_to_tensor([[0, 0], [0, 1]], dtype=input_dtype)
 
       gn_layer = bn_layers.GroupNormLayer(params)
       gn_out, paddings_out = gn_layer.FPropDefaultTheta(gn_in, paddings)
@@ -1862,7 +1868,9 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
                            bn_decay=0.999,
                            bn_use_moving_avg_in_training=False,
                            use_einsum=True,
-                           block_dim=0):
+                           block_dim=0,
+                           input_dtype=tf.float32,
+                           fprop_dtype=None):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True):
@@ -1886,6 +1894,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.use_einsum = use_einsum
       params.block_dim = block_dim
       params.use_blocked_matmul = True if block_dim > 0 else False
+      params.fprop_dtype = fprop_dtype
 
       if quantized:
         cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
@@ -1894,9 +1903,9 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
         ).Set(cc_schedule=cc_schedule.Copy())
         params.qdomain.default = qdomain_default.Copy()
 
-      in_padding = tf.zeros([2, 4, 1], dtype=tf.float32)
+      in_padding = tf.zeros([2, 4, 1], dtype=input_dtype)
       inputs = tf.constant(
-          np.random.normal(0.1, 0.5, [2, 4, input_dim]), dtype=tf.float32)
+          np.random.normal(0.1, 0.5, [2, 4, input_dim]), dtype=input_dtype)
       if reshape_to_2d:
         in_padding = tf.reshape(in_padding, [-1, 1])
         inputs = tf.reshape(inputs, [-1, input_dim])
@@ -2248,6 +2257,32 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual = output.eval()
       print(['actual = ', np.array_repr(actual)])
       self.assertAllClose(expected_output, actual)
+
+  @parameterized.named_parameters(
+      ('F32FPropF32Input', tf.float32, tf.float32, 0.668211),
+      ('F32FPropBF16Input', tf.float32, tf.bfloat16, 0.669565),
+      ('BF16FPropF32Input', tf.bfloat16, tf.float32, 0.667969),
+      ('BF16FPropBF16Input', tf.bfloat16, tf.bfloat16, 0.667969),
+  )
+  def testFCLayerDtypes(self, fprop_dtype, input_dtype, expected_sum=0.):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.FCLayer.Params()
+      params.name = 'fc'
+      params.input_dim = 3
+      params.output_dim = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.fprop_dtype = fprop_dtype
+      params.random_seed = 123
+
+      proj_layer = layers.FCLayer(params)
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=input_dtype)
+
+      output = proj_layer.FPropDefaultTheta(inputs)
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllClose(expected_sum, tf.reduce_sum(output).eval())
 
   def testFCLayerBackProp(self):
     with self.session(use_gpu=True) as sess:
@@ -3822,9 +3857,15 @@ class SharedSoftmaxLayerTest(SoftmaxLayerTest):
 
 class EinsumSoftmaxLayerTest(test_utils.TestCase, parameterized.TestCase):
 
-  @parameterized.named_parameters(('no_label_smoothing', False, 27.981373),
-                                  ('with_label_smoothing', True, 28.038475))
-  def testEinsumSoftmax(self, label_smoothing, expected_loss):
+  @parameterized.named_parameters(
+      ('no_label_smoothing', False, 27.981373),
+      ('bfloat16_input', False, 27.980932, tf.bfloat16),
+      ('with_label_smoothing', True, 28.038475),
+  )
+  def testEinsumSoftmax(self,
+                        label_smoothing,
+                        expected_loss,
+                        input_dtype=tf.float32):
     with self.session(use_gpu=False) as sess:
       tf.random.set_seed(123)
       input_dim = 10
@@ -3835,7 +3876,7 @@ class EinsumSoftmaxLayerTest(test_utils.TestCase, parameterized.TestCase):
       softmax = params.Instantiate()
       sess.run(tf.global_variables_initializer())
       np.random.seed(12345)
-      inputs = tf.constant(np.random.rand(2, 4, 10), dtype=tf.float32)
+      inputs = tf.constant(np.random.rand(2, 4, 10), dtype=input_dtype)
       logits = softmax.Logits(softmax.theta, inputs)
       self.assertAllEqual([2, 4, num_classes], py_utils.GetShape(logits))
       class_ids = tf.constant([[3, 4, 5, 2], [4, 5, 6, 2]], dtype=tf.int32)
@@ -4406,6 +4447,37 @@ class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
         self.assertAllClose(sym_output, npy_output)
       else:
         self.assertAllClose(sym_output, npy_output, atol=atol)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'F32Input',
+          'input_dtype': tf.float32,
+      },
+      {
+          'testcase_name': 'BF16Input',
+          'input_dtype': tf.bfloat16,
+      },
+  )
+  def testLayerNormDtypes(self, input_dtype):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.LayerNorm.Params()
+      p.name = 'ln'
+      p.random_seed = 123
+      p.input_dim = 3
+      layer_norm = layers.LayerNorm(p)
+      npy_input = np.random.normal(1.0, 0.5,
+                                   [2, 4, 4, p.input_dim]).astype('float32')
+      inputs = tf.constant(npy_input, dtype=input_dtype)
+      output = layer_norm.FPropDefaultTheta(inputs)
+
+      self.evaluate(tf.global_variables_initializer())
+      output = self.evaluate(output)
+
+      # Mean should be zero and variance should be close to one.
+      self.assertNear(0.0, output.sum(), 1e-5)
+      self.assertNear(1.0, np.var(output), 1e-4)
 
   def testLayerNormFPropDirectScale(self):
     with self.session(use_gpu=True):

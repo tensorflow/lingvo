@@ -1086,6 +1086,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """
     p = self.params
     with tf.name_scope(p.name):
+      inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       if paddings is None:
         paddings = tf.zeros(
             tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
@@ -3226,6 +3227,7 @@ class EinsumSoftmax(base_layer.BaseLayer):
       logits [..., num_classes].
     """
     p = self.params
+    inputs = self._CastToFPropDtype(inputs)
     logits = tf.einsum('...d,dv->...v', inputs, theta.w)
     logits = gshard_utils.MeshSplit(
         logits,
@@ -3781,6 +3783,7 @@ class LayerNorm(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       inputs = py_utils.with_dependencies(
           [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
+      inputs = self._CastToFPropDtype(inputs)
 
       cur_scale, cur_bias = self._GetScaleAndBias(theta)
 

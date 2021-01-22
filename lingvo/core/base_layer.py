@@ -1020,6 +1020,18 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     ]
     return tf.group(*update_ops)
 
+  def _CastToFPropDtype(self, value):
+
+    def _Cast(x):
+      if x is None:
+        return None
+      x = tf.convert_to_tensor(x)
+      if not x.dtype.is_floating:
+        return x
+      return tf.cast(x, py_utils.FPropDtype(self.params))
+
+    return tf.nest.map_structure(_Cast, value)
+
 
 def IsLayerParams(x):
   return (isinstance(x, hyperparams.InstantiableParams) and

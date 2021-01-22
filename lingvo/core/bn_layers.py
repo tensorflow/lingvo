@@ -387,6 +387,8 @@ class BatchNormLayer(base_layer.BaseLayer):
       Output after applying batch normalization, with the same shape as
       'inputs'.
     """
+    inputs, paddings = self._CastToFPropDtype((inputs, paddings))
+
     if py_utils.testonly_skip_norm_layers():
       return inputs
 
@@ -825,6 +827,8 @@ class GroupNormLayer(base_layer.BaseLayer):
       the same shape as 'inputs'. Or a output, output_paddings pair if input
       paddings is not None.
     """
+    inputs, paddings = self._CastToFPropDtype((inputs, paddings))
+
     if py_utils.testonly_skip_norm_layers():
       if paddings is None:
         return inputs
