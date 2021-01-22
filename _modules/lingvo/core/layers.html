@@ -1238,6 +1238,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">((</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
@@ -3378,6 +3379,7 @@
 <span class="sd">      logits [..., num_classes].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...d,dv-&gt;...v&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
         <span class="n">logits</span><span class="p">,</span>
@@ -3933,6 +3935,7 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
           <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)],</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
       <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetScaleAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
 
