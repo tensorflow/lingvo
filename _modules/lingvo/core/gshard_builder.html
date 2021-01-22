@@ -868,26 +868,23 @@
           <span class="n">wo</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;HDM,BLHD-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="MoEBuilder._EncNotVisible"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._EncNotVisible">[docs]</a>  <span class="k">def</span> <span class="nf">_EncNotVisible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;a, b are encoder_segment_id, decoder_segment_id Tensors.&quot;&quot;&quot;</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># NotVisible == (a != b) || !((a!=0) || (b != 0))</span>
+    <span class="c1">#            == (a != b) || ((a==0) &amp;&amp; (b == 0))</span>
+    <span class="c1"># ignore segment_id == 0.</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span></div>
+
 <div class="viewcode-block" id="MoEBuilder.SelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                     <span class="n">name</span><span class="p">,</span>
                     <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;TransformerEncoder SelfAttention.&quot;&quot;&quot;</span>
-
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-
-    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
-              <span class="c1"># also ignoring segment_id=0</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span>
-                                                                  <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)))),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
@@ -903,7 +900,7 @@
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id-&gt;bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
-                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
+                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncNotVisible</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
                   <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k,v,bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
@@ -917,20 +914,6 @@
                       <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                       <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer Decoder-Encoder Attention.&quot;&quot;&quot;</span>
-
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-
-    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;a, b are encoder_segment_id,(decoder_)segment_id Tensors.&quot;&quot;&quot;</span>
-      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span>
-                                                                  <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)))),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
@@ -948,7 +931,7 @@
         <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id,encoder_segment_id-&gt;bias&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="o">-</span><span class="mf">1e+09</span> <span class="o">*</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="o">-</span><span class="mf">1e+09</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncNotVisible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;encoder_output,wk-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;encoder_output,wv-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)),</span>
@@ -957,6 +940,18 @@
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
 
+<div class="viewcode-block" id="MoEBuilder._DecNotVisible"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DecNotVisible">[docs]</a>  <span class="k">def</span> <span class="nf">_DecNotVisible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Causal padding with segment_id and segment_pos.&quot;&quot;&quot;</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+    <span class="c1"># position (~row) is less that memory position(~column)</span>
+    <span class="n">causal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">causal</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span></div>
+
 <div class="viewcode-block" id="MoEBuilder.DecSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">name</span><span class="p">,</span>
                        <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -964,7 +959,7 @@
                        <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;TransformerDecoder SelfAttention.</span>
 
-<span class="sd">    Note that attention bias (see _Notvisible) ensures that current position</span>
+<span class="sd">    Note that attention bias (see _DecNotvisible) ensures that current position</span>
 <span class="sd">    (~row) is less that memory position(~column).</span>
 
 <span class="sd">    Args:</span>
@@ -977,26 +972,6 @@
 <span class="sd">      layer params for TransformerDecoder SelfAttention.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span>
-        <span class="n">segment_id</span><span class="p">,</span>
-        <span class="n">segment_pos</span><span class="p">,</span>
-    <span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
-      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>  <span class="c1"># position (~row) is less that memory position(~column)</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)),</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
-                  <span class="c1"># also ignoring segment_id=0</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
-                      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-                          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))))),</span>
-          <span class="n">fprop_dtype</span><span class="p">)</span>
-
     <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
 
     <span class="c1"># pyformat: disable</span>
@@ -1020,7 +995,7 @@
         <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id,segment_pos-&gt;bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
-                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
+                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecNotVisible</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
                   <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;bias-&gt;bias_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,bias_full-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
@@ -1134,17 +1109,6 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span>
 
-    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
-              <span class="c1"># also ignoring segment_id=0</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span>
-                                                                  <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)))),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
@@ -1162,7 +1126,7 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
-                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
+                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncNotVisible</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
                   <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;segment_bias,segment_pos,relative_bias_weights-&gt;bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_EncoderAddRelativeBias</span><span class="p">)),</span>
@@ -1179,7 +1143,7 @@
                                    <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DecSelfAttention with relative Attention Bias.</span>
 
-<span class="sd">    Note that attention bias (see _Notvisible) ensures that current position</span>
+<span class="sd">    Note that attention bias (see _DecNotVisible) ensures that current position</span>
 <span class="sd">    (~row) is less that memory position(~column).</span>
 
 <span class="sd">    In addition to masking bias we use per-head per-relative position bucket</span>
@@ -1202,7 +1166,6 @@
 <span class="sd">      The layer params.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
     <span class="n">collections</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias_shared&#39;</span><span class="p">:</span>
       <span class="c1"># Collection name is used as a unique ID to retrieve the shared variable.</span>
@@ -1214,26 +1177,8 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span>
 
-    <span class="k">def</span> <span class="nf">_Notvisible</span><span class="p">(</span>
-        <span class="n">segment_id</span><span class="p">,</span>
-        <span class="n">segment_pos</span><span class="p">,</span>
-    <span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
-      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>  <span class="c1"># position (~row) is less that memory position(~column)</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)),</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span>
-                  <span class="c1"># also ignoring segment_id=0</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
-                      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-                          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))))),</span>
-          <span class="n">fprop_dtype</span><span class="p">)</span>
-
     <span class="k">def</span> <span class="nf">_ComputeBias</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">_Notvisible</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecNotVisible</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">)</span>
 
     <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
 
@@ -1904,18 +1849,18 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ids&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;emb&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;emb_orig&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_EmbeddingWeight</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
                                <span class="n">p</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;emb_orig-&gt;emb&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_emb_w&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;ids-&gt;one_hot_ids&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OneHotEncode</span><span class="p">(</span><span class="s1">&#39;one_hot_ids&#39;</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;one_hot_ids-&gt;one_hot_ids_split&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;one_hot_ids_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">one_hot_ids_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;emb,one_hot_ids_split-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;einsum&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;VH,BLV-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs_pre_reshape&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;output_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_out_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;outputs_pre_reshape-&gt;outputs&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">))))</span></div>
+         <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;einsum&#39;</span><span class="p">,</span> <span class="s1">&#39;VM,BLV-&gt;BLM&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;out_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb_out_split</span><span class="p">,</span> <span class="mi">2</span><span class="p">))))</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_attention_output_hdm_w_split</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

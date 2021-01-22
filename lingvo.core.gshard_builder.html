@@ -453,6 +453,12 @@ params.self.params.attention_key_value_dim.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._EncNotVisible">
+<code class="sig-name descname">_EncNotVisible</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EncNotVisible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncNotVisible" title="Permalink to this definition">¶</a></dt>
+<dd><p>a, b are encoder_segment_id, decoder_segment_id Tensors.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.SelfAttention">
 <code class="sig-name descname">SelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerEncoder SelfAttention.</p>
@@ -465,10 +471,16 @@ params.self.params.attention_key_value_dim.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._DecNotVisible">
+<code class="sig-name descname">_DecNotVisible</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">segment_id</span></em>, <em class="sig-param"><span class="n">segment_pos</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DecNotVisible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecNotVisible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Causal padding with segment_id and segment_pos.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">
 <code class="sig-name descname">DecSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerDecoder SelfAttention.</p>
-<p>Note that attention bias (see _Notvisible) ensures that current position
+<p>Note that attention bias (see _DecNotvisible) ensures that current position
 (~row) is less that memory position(~column).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -510,7 +522,7 @@ params.self.params.attention_key_value_dim.</p>
 <dt id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">
 <code class="sig-name descname">DecSelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>DecSelfAttention with relative Attention Bias.</p>
-<p>Note that attention bias (see _Notvisible) ensures that current position
+<p>Note that attention bias (see _DecNotVisible) ensures that current position
 (~row) is less that memory position(~column).</p>
 <p>In addition to masking bias we use per-head per-relative position bucket
 relative_bias_weights tensor (see _RelativeAttentionBiasWeights) of shape
@@ -783,7 +795,7 @@ numpy.einsum.</p></li>
 <dt id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention">
 <code class="sig-name descname">DecSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerDecoder SelfAttention.</p>
-<p>Note that attention bias (see _Notvisible) ensures that current position
+<p>Note that attention bias (see _DecNotvisible) ensures that current position
 (~row) is less that memory position(~column).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -810,7 +822,7 @@ numpy.einsum.</p></li>
 <dt id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias">
 <code class="sig-name descname">DecSelfAttentionRelativeBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>DecSelfAttention with relative Attention Bias.</p>
-<p>Note that attention bias (see _Notvisible) ensures that current position
+<p>Note that attention bias (see _DecNotVisible) ensures that current position
 (~row) is less that memory position(~column).</p>
 <p>In addition to masking bias we use per-head per-relative position bucket
 relative_bias_weights tensor (see _RelativeAttentionBiasWeights) of shape
