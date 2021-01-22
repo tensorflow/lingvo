@@ -123,8 +123,8 @@ class _Cluster:
     return p
 
   def InitDevices(self, sess):
-    self.session_devices = [d.name for d in sess.list_devices()]
-    tf.logging.info('InitDevices %s' % sorted(self.session_devices))
+    self._session_devices = [d.name for d in sess.list_devices()]
+    tf.logging.info('InitDevices %s' % sorted(self._session_devices))
 
   def ListDevices(self, job_spec):
     """Lists devices in the job.
@@ -148,9 +148,9 @@ class _Cluster:
       devices_per_replica = job_spec.num_tpu_hosts or job_spec.cpus_per_replica
     ret = np.empty((replicas, devices_per_replica), np.object)
 
-    if hasattr(self, 'session_devices'):
+    if self._session_devices:
       devices = [
-          d for d in self.session_devices
+          d for d in self._session_devices
           if f'{job_spec.name}/' in d and f'/device:{device_type}:' in d
       ]
     else:
@@ -182,7 +182,7 @@ class _Cluster:
       # remote sessions not linked to this session, or InitDevices was not
       # called. In such case we build device strings manually, but there's no
       # guarantee that those strings will be correct.
-      if hasattr(self, 'session_devices'):
+      if self._session_devices is not None:
         tf.logging.info(
             f'ListDevices: No devices found in the session for {job_spec.name}.'
         )
@@ -209,12 +209,16 @@ class _Cluster:
 
   def __init__(self, params):
     self._params = params.Copy()
-    p = self.params
+    self._session_devices = None
+    self._CheckInvariants()
 
-    # A set of invariants about the setup of the cluster.
-    #
-    # NOTE. Two job specs can be identical. E.g., if p.worker.name is
-    # the same as p.ps.name, that means ps is colocated with worker.
+  def _CheckInvariants(self):
+    """A set of invariants about the setup of the cluster.
+
+    NOTE. Two job specs can be identical. E.g., if p.worker.name is
+    the same as p.ps.name, that means ps is colocated with worker.
+    """
+    p = self.params
     assert p.ps.replicas >= 0
     assert p.ps.gpus_per_replica >= 0
     if p.mode == 'async' and p.job == 'controller':
