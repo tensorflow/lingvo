@@ -411,11 +411,16 @@ class CorrelationMetric(BaseMetric):
 class AverageKeyedCorrelationMetric(BaseMetric):
   """Class to compute correlation per key, then report average across all keys."""
 
-  def __init__(self, mode='pearson'):
+  def __init__(self, mode='pearson', bypass_nan=True):
     """Constructor of the class.
 
     Args:
       mode: Possible values: 'pearson', 'spearman', 'kendalltau'.
+      bypass_nan: for keys that has only 1 example, the metric will be NaN,
+        turn on this flag to skip those keys.
+        Depending on the scipy library, it may raise ValueException instead
+        of produce NaN. In this case, the Exception will be suppressed and the
+        key is skipped during calculation.
 
     Raises:
       ImportError: If user has not installed scipy.stats, raise an ImportError.
@@ -425,6 +430,7 @@ class AverageKeyedCorrelationMetric(BaseMetric):
 
     assert mode in ['pearson', 'spearman', 'kendalltau']
     self._mode = mode
+    self._bypass_nan = bypass_nan
     self._target = collections.defaultdict(list)
     self._pred = collections.defaultdict(list)
 
@@ -453,9 +459,17 @@ class AverageKeyedCorrelationMetric(BaseMetric):
     for k in self._target:
       target = self._target[k]
       pred = self._pred[k]
-      results.append(corr_f(target, pred)[0])
+      try:
+        raw_corr = corr_f(target, pred)[0]
+        if not self._bypass_nan or not np.isnan(raw_corr):
+          results.append(raw_corr)
+      except ValueError:
+        continue
 
-    return np.mean(results)
+    if not self._bypass_nan or results:
+      return np.mean(results)
+    else:
+      return 0.0
 
 
 class SamplingMetric(ConfigurableMetric):
