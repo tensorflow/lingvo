@@ -563,11 +563,16 @@
 <div class="viewcode-block" id="AverageKeyedCorrelationMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.AverageKeyedCorrelationMetric">[docs]</a><span class="k">class</span> <span class="nc">AverageKeyedCorrelationMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Class to compute correlation per key, then report average across all keys.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pearson&#39;</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pearson&#39;</span><span class="p">,</span> <span class="n">bypass_nan</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructor of the class.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      mode: Possible values: &#39;pearson&#39;, &#39;spearman&#39;, &#39;kendalltau&#39;.</span>
+<span class="sd">      bypass_nan: for keys that has only 1 example, the metric will be NaN,</span>
+<span class="sd">        turn on this flag to skip those keys.</span>
+<span class="sd">        Depending on the scipy library, it may raise ValueException instead</span>
+<span class="sd">        of produce NaN. In this case, the Exception will be suppressed and the</span>
+<span class="sd">        key is skipped during calculation.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ImportError: If user has not installed scipy.stats, raise an ImportError.</span>
@@ -577,6 +582,7 @@
 
     <span class="k">assert</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pearson&#39;</span><span class="p">,</span> <span class="s1">&#39;spearman&#39;</span><span class="p">,</span> <span class="s1">&#39;kendalltau&#39;</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">=</span> <span class="n">mode</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bypass_nan</span> <span class="o">=</span> <span class="n">bypass_nan</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
@@ -605,9 +611,17 @@
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">:</span>
       <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
       <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-      <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">corr_f</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">raw_corr</span> <span class="o">=</span> <span class="n">corr_f</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bypass_nan</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">raw_corr</span><span class="p">):</span>
+          <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">raw_corr</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">continue</span>
 
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bypass_nan</span> <span class="ow">or</span> <span class="n">results</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mf">0.0</span></div>
 
 
 <div class="viewcode-block" id="SamplingMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.SamplingMetric">[docs]</a><span class="k">class</span> <span class="nc">SamplingMetric</span><span class="p">(</span><span class="n">ConfigurableMetric</span><span class="p">):</span>
