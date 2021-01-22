@@ -1036,6 +1036,11 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamAttenLogits">
+<code class="sig-name descname">_StreamAttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_proj</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamAttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamAttenLogits" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs">
 <code class="sig-name descname">AttenProbs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.AttenProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute attention probability.</p>
@@ -1212,6 +1217,11 @@ Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.IsInferenceStepStatic">
+<code class="sig-name descname">IsInferenceStepStatic</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.IsInferenceStepStatic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.IsInferenceStepStatic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">
 <code class="sig-name descname">StreamStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.StreamStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
@@ -1326,6 +1336,11 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL._StreamAttenLogits">
+<code class="sig-name descname">_StreamAttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL._StreamAttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL._StreamAttenLogits" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogitsOneStep">
 <code class="sig-name descname">_AttenLogitsOneStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">time_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL._AttenLogitsOneStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogitsOneStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits for one single target (query) step.</p>
@@ -1391,17 +1406,13 @@ updated_value_vec: [T, B, N, H].</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL.zero_state">
-<code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the initial state given the batch size.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL.StreamStep">
 <code class="sig-name descname">StreamStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL.StreamStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL.StreamStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
-<p>This differs from ExtendStep() which requires key/value seq lengths being
-known in advance.</p>
+<p>Note: Rel pos emb relies on the shape of key. It expects the seq length
+of key is ‘q.length + left - 1’. See ‘_AttenLogits()’.
+‘p.inference_step_max_length’ must be same to ‘q.length’, when
+‘p.inference_step_max_length &gt; 0’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">

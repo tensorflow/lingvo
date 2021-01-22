@@ -1571,6 +1571,10 @@
 <div class="viewcode-block" id="LocalSelfAttention._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BUTNH,BUSNH-&gt;BNUTS&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="LocalSelfAttention._StreamAttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamAttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamAttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="c1"># [B, Q, N, T]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQNH,BTNH-&gt;BQNT&#39;</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="LocalSelfAttention.AttenProbs"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">AttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
                  <span class="n">query</span><span class="p">,</span>
@@ -1897,6 +1901,10 @@
     <span class="n">masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">context_len</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="LocalSelfAttention.IsInferenceStepStatic"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.IsInferenceStepStatic">[docs]</a>  <span class="k">def</span> <span class="nf">IsInferenceStepStatic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
+
 <div class="viewcode-block" id="LocalSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
 
@@ -1918,8 +1926,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">,</span> <span class="s1">&#39;Value projection must be enabled.&#39;</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;StreamStep() does not support look ahead.&#39;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">IsInferenceStepStatic</span><span class="p">():</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDynamicLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div>
@@ -2017,7 +2024,7 @@
         <span class="n">new_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:]</span>
 
       <span class="c1"># [B, Q, N, T]</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQNH,BTNH-&gt;BQNT&#39;</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamAttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 
       <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
@@ -2108,7 +2115,7 @@
       <span class="n">t</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
 
       <span class="c1"># [B, Q, N, T]</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQNH,BTNH-&gt;BQNT&#39;</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamAttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 
       <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
@@ -2181,6 +2188,10 @@
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid rel_pos_emb_dim: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+      <span class="c1"># Rel pos emb relies on the shape of query and key.</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Rel pos emb does not support 3d recurrent state.&#39;</span><span class="p">)</span>
 
     <span class="n">emb_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">embedding_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
@@ -2264,6 +2275,15 @@
       <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">term_ac</span> <span class="o">+</span> <span class="n">term_bd</span></div>
 
+<div class="viewcode-block" id="LocalSelfAttentionXL._StreamAttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL._StreamAttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamAttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="c1"># BQNH -&gt; BUQNH</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># BTNH -&gt; BUSNH</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="c1"># BNUQT -&gt; BNQT -&gt; BQNT</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span></div>
+
 <div class="viewcode-block" id="LocalSelfAttentionXL._AttenLogitsOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogitsOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogitsOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Attention logits for one single target (query) step.</span>
 
@@ -2314,11 +2334,32 @@
                  <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
-<div class="viewcode-block" id="LocalSelfAttentionXL.zero_state"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
-
 <div class="viewcode-block" id="LocalSelfAttentionXL.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+    <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
+
+<span class="sd">    Note: Rel pos emb relies on the shape of key. It expects the seq length</span>
+<span class="sd">    of key is &#39;q.length + left - 1&#39;. See &#39;_AttenLogits()&#39;.</span>
+<span class="sd">    &#39;p.inference_step_max_length&#39; must be same to &#39;q.length&#39;, when</span>
+<span class="sd">    &#39;p.inference_step_max_length &gt; 0&#39;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap of layer params.</span>
+<span class="sd">      query_vec: A query vector of shape [B, Q, D].</span>
+<span class="sd">      paddings: A 0/1 valued tensor of shape [B, Q].</span>
+<span class="sd">      state0: A NestedMap of the same structure as returned by zero_state().</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: Output of the given query vector with shape [B, Q, D].</span>
+<span class="sd">      padding: the same as input paddings.</span>
+<span class="sd">      state1: Updated state of the same structure as state0.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">IsInferenceStepStatic</span><span class="p">():</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="c1"># Rel pos emb expects the seq length of key is `q.length + left - 1`.</span>
+      <span class="k">assert</span> <span class="n">q</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;inference_step_max_length must be same to the seq length of query.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="RoutingAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention">[docs]</a><span class="k">class</span> <span class="nc">RoutingAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
