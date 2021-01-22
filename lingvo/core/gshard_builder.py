@@ -1141,9 +1141,73 @@ class MoEBuilder(builder.Base):
     return self._Fn(name,
                     lambda: tf.constant(0.0, py_utils.FPropDtype(self.params)))
 
-  def _LN(self, name):
+  def DepthwiseConvAutoregressive(self, name, kernel_size):
+    r"""Depthwise convolution for autoregressive models.
+
+    Same implementation as mesh_tensorflow/
+    transformer/transformer.sublayer_depthwise_conv_autoregressive
+
+    Given an input x of shape [B, L, M] and kernel_size K, there are K variables
+    W[k] each with shape [M] so they represent the conv kernel [K, M].
+
+    The output
+      Y[:, t, :] = \sum_k W[k] * X[:, t - k, :]
+      Y = W[0] * X + W[1] * Shift(X, 1) + W[2] * Shift(X, 2), ...
+      where Shift(X, d) function rolls X forward in the time dimension by d.
+
+    Args:
+      name: Name of the layer.
+      kernel_size: an integer.
+
+    Returns:
+      A layer params that computes DepthwiseConvAutoregressive.
+    """
+
+    def _GetScaleVar(shift_distance):
+      init_const = 0.5 if shift_distance == 0 else 0.5 / kernel_size
+      scale_var_weight_params = py_utils.WeightParams(
+          init=py_utils.WeightInit.Constant(init_const),
+          dtype=self.params.dtype,
+          shape=[self.params.model_dim])
+      return self._Var(
+          name='w_%d' % shift_distance,
+          weights=[('scale', scale_var_weight_params)])
+
+    def _Shift(x):
+      """Shift x to right by 1 in time dim and pad with zeors."""
+      return tf.concat([tf.zeros_like(x[:, -1:]), x[:, :-1]], axis=1)
+
+    # Y = W[0] * X + W[1] * Shift(X, 1) + W[2] * Shift(X, 2) + ...
+    # Iteratively:
+    # Y_1 = W[0] * X_0
+    # Y_2 = Y_1 + W[1] * X_1 = Y_1 + W[1] * _Shift(X_0)
+    # ...
+    # Y_{d+1} = Y_d + W[d] * X_d = Y_d + W[d] * _Shift(X_{d-1})
+    sub_params = [('->w_0', _GetScaleVar(0)),
+                  ('x_0,w_0->y_1', self._Fn('mul0', lambda x, w: x * w))]
+
+    for d in range(1, kernel_size):
+      sub_params += [('x_%d->x_%d' % (d - 1, d),
+                      self._Fn('shift_%d' % d, _Shift)),
+                     ('->w_%d' % d, _GetScaleVar(d)),
+                     ('y_%d,x_%d,w_%d->y_%d' % (d, d, d, d + 1),
+                      self._Fn('scale_%d' % d, lambda x, x2, w: x + x2 * w))]
+
+    return self._Graph(name, ['x_0'], ['y_%d' % kernel_size], *sub_params)
+
+  def _LNNoScale(self, name):
+
+    def _RmsNormNoScale(x):
+      eps = self.params.layer_norm_epsilon
+      axis = [d + 2 for d in range(len(x.shape) - 2)]
+      variance = tf.reduce_mean(tf.math.square(x), keepdims=True, axis=axis)
+      return x * tf.math.rsqrt(variance + eps)
+
+    return self._Fn(name, _RmsNormNoScale)
+
+  def _LN(self, name, scale=True):
     """Overriding with bias-less layer norm."""
-    return self._LNInternal(name)
+    return self._LNInternal(name) if scale else self._LNNoScale(name)
 
   def _LNInternal(self, name, ln_weight_reshape=None):
     """Internal implementation of _LN with optional reshape of the weight."""
