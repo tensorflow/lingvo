@@ -1293,9 +1293,73 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
                     <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)))</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DepthwiseConvAutoregressive"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Depthwise convolution for autoregressive models.</span>
+
+<span class="sd">    Same implementation as mesh_tensorflow/</span>
+<span class="sd">    transformer/transformer.sublayer_depthwise_conv_autoregressive</span>
+
+<span class="sd">    Given an input x of shape [B, L, M] and kernel_size K, there are K variables</span>
+<span class="sd">    W[k] each with shape [M] so they represent the conv kernel [K, M].</span>
+
+<span class="sd">    The output</span>
+<span class="sd">      Y[:, t, :] = \sum_k W[k] * X[:, t - k, :]</span>
+<span class="sd">      Y = W[0] * X + W[1] * Shift(X, 1) + W[2] * Shift(X, 2), ...</span>
+<span class="sd">      where Shift(X, d) function rolls X forward in the time dimension by d.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: Name of the layer.</span>
+<span class="sd">      kernel_size: an integer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A layer params that computes DepthwiseConvAutoregressive.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_GetScaleVar</span><span class="p">(</span><span class="n">shift_distance</span><span class="p">):</span>
+      <span class="n">init_const</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="n">shift_distance</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">kernel_size</span>
+      <span class="n">scale_var_weight_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">init_const</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shift_distance</span><span class="p">,</span>
+          <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale_var_weight_params</span><span class="p">)])</span>
+
+    <span class="k">def</span> <span class="nf">_Shift</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Shift x to right by 1 in time dim and pad with zeors.&quot;&quot;&quot;</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Y = W[0] * X + W[1] * Shift(X, 1) + W[2] * Shift(X, 2) + ...</span>
+    <span class="c1"># Iteratively:</span>
+    <span class="c1"># Y_1 = W[0] * X_0</span>
+    <span class="c1"># Y_2 = Y_1 + W[1] * X_1 = Y_1 + W[1] * _Shift(X_0)</span>
+    <span class="c1"># ...</span>
+    <span class="c1"># Y_{d+1} = Y_d + W[d] * X_d = Y_d + W[d] * _Shift(X_{d-1})</span>
+    <span class="n">sub_params</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;-&gt;w_0&#39;</span><span class="p">,</span> <span class="n">_GetScaleVar</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;x_0,w_0-&gt;y_1&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;mul0&#39;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">w</span><span class="p">))]</span>
+
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">):</span>
+      <span class="n">sub_params</span> <span class="o">+=</span> <span class="p">[(</span><span class="s1">&#39;x_</span><span class="si">%d</span><span class="s1">-&gt;x_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;shift_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">d</span><span class="p">,</span> <span class="n">_Shift</span><span class="p">)),</span>
+                     <span class="p">(</span><span class="s1">&#39;-&gt;w_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">d</span><span class="p">,</span> <span class="n">_GetScaleVar</span><span class="p">(</span><span class="n">d</span><span class="p">)),</span>
+                     <span class="p">(</span><span class="s1">&#39;y_</span><span class="si">%d</span><span class="s1">,x_</span><span class="si">%d</span><span class="s1">,w_</span><span class="si">%d</span><span class="s1">-&gt;y_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;scale_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">d</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">w</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">*</span> <span class="n">w</span><span class="p">))]</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x_0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;y_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">kernel_size</span><span class="p">],</span> <span class="o">*</span><span class="n">sub_params</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._LNNoScale"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LNNoScale">[docs]</a>  <span class="k">def</span> <span class="nf">_LNNoScale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_RmsNormNoScale</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">layer_norm_epsilon</span>
+      <span class="n">axis</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="o">+</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)]</span>
+      <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_RmsNormNoScale</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Overriding with bias-less layer norm.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">if</span> <span class="n">scale</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNNoScale</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._LNInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LNInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_LNInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Internal implementation of _LN with optional reshape of the weight.&quot;&quot;&quot;</span>

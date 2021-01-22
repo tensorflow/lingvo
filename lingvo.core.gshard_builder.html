@@ -547,8 +547,40 @@ to compute per position-pair bias.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">
+<code class="sig-name descname">DepthwiseConvAutoregressive</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">kernel_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DepthwiseConvAutoregressive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Depthwise convolution for autoregressive models.</p>
+<p>Same implementation as mesh_tensorflow/
+transformer/transformer.sublayer_depthwise_conv_autoregressive</p>
+<p>Given an input x of shape [B, L, M] and kernel_size K, there are K variables
+W[k] each with shape [M] so they represent the conv kernel [K, M].</p>
+<dl class="simple">
+<dt>The output</dt><dd><p>Y[:, t, :] = sum_k W[k] * X[:, t - k, :]
+Y = W[0] * X + W[1] * Shift(X, 1) + W[2] * Shift(X, 2), …
+where Shift(X, d) function rolls X forward in the time dimension by d.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Name of the layer.</p></li>
+<li><p><strong>kernel_size</strong> – an integer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A layer params that computes DepthwiseConvAutoregressive.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._LNNoScale">
+<code class="sig-name descname">_LNNoScale</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LNNoScale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LNNoScale" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder._LN">
-<code class="sig-name descname">_LN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LN" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_LN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overriding with bias-less layer norm.</p>
 </dd></dl>
 
