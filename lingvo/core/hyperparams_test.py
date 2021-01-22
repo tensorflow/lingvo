@@ -661,6 +661,23 @@ escaping_single : 'In "quotes"'
         '>   beta: 0.5\n'
         '<   beta: 0.75\n')
 
+  def testDiffDict(self):
+    a = hyperparams.Params()
+    a.Define('a', 42, '')
+    a.Define('as_dict', {}, '')
+    a.as_dict['key'] = 'value'
+    b = a.Copy()
+    # Everything is the same so we don't expect diffs.
+    self.assertEqual(a.TextDiff(b), '')
+    b.as_dict['key'] = 'another_value'
+    b.as_dict['another_key'] = 1
+
+    self.assertEqual(
+        a.TextDiff(b), '? as_dict:\n'
+        '<   another_key: 1\n'
+        '>   key: value\n'
+        '<   key: another_value\n')
+
   def testInstantiate(self):
     a = hyperparams.InstantiableParams(InstantiableClass)
     a.Define('new_param', None, 'A meaningless param.')

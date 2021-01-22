@@ -22,7 +22,7 @@ import importlib
 import inspect
 import re
 import sys
-from typing import Any, TypeVar, Generic, Sequence
+from typing import Any, Dict, TypeVar, Generic, Iterable, Sequence, Tuple
 
 import dataclasses
 import lingvo.compat as tf
@@ -433,6 +433,9 @@ class Params:
     for name, param in self._params.items():
       yield (name, param.Get())
 
+  def GetKeys(self) -> Iterable[str]:
+    return list(self._params.keys())
+
   def ToProto(self):
     """Writes to a Hyperparams proto.
 
@@ -826,7 +829,7 @@ class Params:
       if a == b:
         return ''
 
-      if isinstance(a, Params) and isinstance(b, Params):
+      if isinstance(a, (Params, dict)) and isinstance(b, (Params, dict)):
         diff = ''
         diff += '?' + spaces + key + ':\n'
         diff += TextDiffParamsHelper(a, b, spaces + '  ')
@@ -862,19 +865,35 @@ class Params:
           diff += '<' + spaces + key_i + ': ' + str(b[i]) + '\n'
       return diff
 
-    def TextDiffParamsHelper(a: Params, b: Params, spaces: str) -> str:
+    def GetKeys(params_or_dict: Tuple[Params, Dict[str, Any]]) -> Iterable[str]:
+      if isinstance(params_or_dict, Params):
+        return params_or_dict.GetKeys()
+      else:
+        return params_or_dict.keys()
+
+    def GetValue(params_or_dict: Tuple[Params, Dict[str, Any]],
+                 key: str) -> Any:
+      if isinstance(params_or_dict, Params):
+        return params_or_dict.Get(key)
+      else:
+        return params_or_dict.get(key)
+
+    def TextDiffParamsHelper(a: Tuple[Params, Dict[str, Any]],
+                             b: Tuple[Params, Dict[str,
+                                                   Any]], spaces: str) -> str:
       """Return the differences between a and b as a string."""
-      a_keys = set([key for key, _ in a.IterParams()])
-      b_keys = set([key for key, _ in b.IterParams()])
+      a_keys = set(GetKeys(a))
+      b_keys = set(GetKeys(b))
       all_keys = a_keys.union(b_keys)
       diff = ''
       for key in sorted(all_keys):
         if key in a_keys and key not in b_keys:
-          diff += '>' + spaces + key + ': ' + str(a.Get(key)) + '\n'
+          diff += '>' + spaces + key + ': ' + str(GetValue(a, key)) + '\n'
         elif key in b_keys and key not in a_keys:
-          diff += '<' + spaces + key + ': ' + str(b.Get(key)) + '\n'
-        elif a.Get(key) != b.Get(key):
-          diff += TextDiffHelper(a.Get(key), b.Get(key), key, spaces)
+          diff += '<' + spaces + key + ': ' + str(GetValue(b, key)) + '\n'
+        elif GetValue(a, key) != GetValue(b, key):
+          diff += TextDiffHelper(
+              GetValue(a, key), GetValue(b, key), key, spaces)
       return diff
 
     return TextDiffParamsHelper(self, other, spaces=' ')
