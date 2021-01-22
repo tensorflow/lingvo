@@ -1430,29 +1430,38 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('Basic',),
-      ('Basic3d', False, 1, 1, True),
-      ('BasicS4', False, 4, 4),
-      ('BasicS4L8', False, 4, 8),
-      ('BasicS4L83d', False, 4, 8, True),
-      ('BasicDynamic', False, 1, None),
-      ('BasicS4Dynamic', False, 4, None),
-      ('SkipNorm', True),
-      ('SkipNormS2', True, 2, 2),
-      ('SkipNormS2L3', True, 2, 3),
-      ('SkipNormDynamic', True, 1, None),
-      ('SkipNormS2Dynamic', True, 2, None),
+      ('Basic3d', attention.LocalSelfAttention, False, 1, 1, True),
+      ('BasicS4', attention.LocalSelfAttention, False, 4, 4),
+      ('BasicS4L8', attention.LocalSelfAttention, False, 4, 8),
+      ('BasicS4L83d', attention.LocalSelfAttention, False, 4, 8, True),
+      ('BasicDynamic', attention.LocalSelfAttention, False, 1, None),
+      ('BasicS4Dynamic', attention.LocalSelfAttention, False, 4, None),
+      ('SkipNorm', attention.LocalSelfAttention, True),
+      ('SkipNormS2', attention.LocalSelfAttention, True, 2, 2),
+      ('SkipNormS2L3', attention.LocalSelfAttention, True, 2, 3),
+      ('SkipNormDynamic', attention.LocalSelfAttention, True, 1, None),
+      ('SkipNormS2Dynamic', attention.LocalSelfAttention, True, 2, None),
+      ('BasicXL', attention.LocalSelfAttentionXL),
+      ('BasicS4XL', attention.LocalSelfAttentionXL, False, 4, 4),
+      ('BasicDynamicXL', attention.LocalSelfAttentionXL, False, 1, None),
+      ('BasicS4DynamicXL', attention.LocalSelfAttentionXL, False, 4, None),
+      ('SkipNormXL', attention.LocalSelfAttentionXL, True),
+      ('SkipNormS2XL', attention.LocalSelfAttentionXL, True, 2, 2),
+      ('SkipNormDynamicXL', attention.LocalSelfAttentionXL, True, 1, None),
+      ('SkipNormS2DynamicXL', attention.LocalSelfAttentionXL, True, 2, None),
   )
   def testStreamStep(self,
+                     p_cls=attention.LocalSelfAttention,
                      testonly_skip_norm_layers=False,
                      stride=1,
                      inference_step_max_length=1,
                      use_3d_recurrent_state=False):
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestStreamStepHelper(stride, inference_step_max_length,
+      self._TestStreamStepHelper(p_cls, stride, inference_step_max_length,
                                  use_3d_recurrent_state)
 
-  def _TestStreamStepHelper(self, stride, inference_step_max_length,
+  def _TestStreamStepHelper(self, p_cls, stride, inference_step_max_length,
                             use_3d_recurrent_state):
     batch_size, max_seqlen, input_dim = 2, 32, 4
     hidden_dim, num_heads = 4, 2
@@ -1475,36 +1484,37 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
 
     # Builds graph.
-    p = attention.LocalSelfAttention.Params().Set(
+    p = p_cls.Params().Set(
         name='local_self_atten',
         num_heads=num_heads,
         input_dim=input_dim,
         hidden_dim=hidden_dim,
         left_context=left_context,
         right_context=0)
+    if p_cls == attention.LocalSelfAttentionXL:
+      p.Set(rel_pos_emb_dim=input_dim)
     p.use_3d_recurrent_state = use_3d_recurrent_state
     p.inference_step_max_length = inference_step_max_length
 
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-    l = p.Instantiate()
-    init_op = tf.global_variables_initializer()
-
-    base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
-    base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
-
-    state = l.zero_state(batch_size)
-    outputs = []
-    assert max_seqlen % stride == 0
-    for i in range(max_seqlen // stride):
-      output, _, state = l.StreamStep(l.theta,
-                                      inputs[:, stride * i:stride * (i + 1), :],
-                                      paddings[:, stride * i:stride * (i + 1)],
-                                      state)
-      outputs.append(output)
-    outputs = tf.concat(outputs, axis=1)
-    outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
-
     with self.session(use_gpu=False) as sess:
+      l = p.Instantiate()
+      init_op = tf.global_variables_initializer()
+
+      base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
+      base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+
+      state = l.zero_state(batch_size)
+      outputs = []
+      assert max_seqlen % stride == 0
+      for i in range(max_seqlen // stride):
+        output, _, state = l.StreamStep(
+            l.theta, inputs[:, stride * i:stride * (i + 1), :],
+            paddings[:, stride * i:stride * (i + 1)], state)
+        outputs.append(output)
+      outputs = tf.concat(outputs, axis=1)
+      outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+
       sess.run(init_op)
 
       expected, actual = sess.run([base_outputs, outputs])

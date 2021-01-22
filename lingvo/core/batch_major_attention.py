@@ -1419,6 +1419,10 @@ class LocalSelfAttention(MultiHeadedAttention):
   def _AttenLogits(self, theta, query, key):
     return tf.einsum('BUTNH,BUSNH->BNUTS', query, key)
 
+  def _StreamAttenLogits(self, theta, query_proj, key):
+    # [B, Q, N, T]
+    return tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
+
   def AttenProbs(self,
                  theta,
                  query,
@@ -1745,6 +1749,10 @@ class LocalSelfAttention(MultiHeadedAttention):
     masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
     return py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
 
+  def IsInferenceStepStatic(self):
+    p = self.params
+    return p.inference_step_max_length is not None and p.inference_step_max_length > 0
+
   def StreamStep(self, theta, query_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
 
@@ -1766,8 +1774,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     assert p.enable_value_proj, 'Value projection must be enabled.'
     assert p.right_context == 0, ('StreamStep() does not support look ahead.')
 
-    if (p.inference_step_max_length is not None and
-        p.inference_step_max_length > 0):
+    if self.IsInferenceStepStatic():
       return self._StreamStepStaticLength(theta, query_vec, paddings, state0)
     else:
       return self._StreamStepDynamicLength(theta, query_vec, paddings, state0)
@@ -1865,7 +1872,7 @@ class LocalSelfAttention(MultiHeadedAttention):
         new_masks = tf.concat([state0.masks, 1 - paddings], axis=1)[:, -s:]
 
       # [B, Q, N, T]
-      logits = tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
+      logits = self._StreamAttenLogits(theta, query_proj, key)
 
       very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
 
@@ -1956,7 +1963,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       t = py_utils.GetShape(state_paddings)[1]
 
       # [B, Q, N, T]
-      logits = tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
+      logits = self._StreamAttenLogits(theta, query_proj, key)
 
       very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
 
@@ -2029,6 +2036,10 @@ class LocalSelfAttentionXL(LocalSelfAttention):
     params = self.params
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
       raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
+
+    if params.use_3d_recurrent_state:
+      # Rel pos emb relies on the shape of query and key.
+      raise ValueError('Rel pos emb does not support 3d recurrent state.')
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
         embedding_dim=params.rel_pos_emb_dim)
@@ -2112,6 +2123,15 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       term_bd = tf.reshape(term_d, [1, n, 1, w, c])
     return term_ac + term_bd
 
+  def _StreamAttenLogits(self, theta, query, key):
+    # BQNH -> BUQNH
+    query = tf.expand_dims(query, 1)
+    # BTNH -> BUSNH
+    key = tf.expand_dims(key, 1)
+    logits = self._AttenLogits(theta, query, key)
+    # BNUQT -> BNQT -> BQNT
+    return tf.transpose(tf.squeeze(logits, 2), [0, 2, 1, 3])
+
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.
 
@@ -2162,11 +2182,32 @@ class LocalSelfAttentionXL(LocalSelfAttention):
                  use_short_seq_opt=False):
     raise NotImplementedError
 
-  def zero_state(self, batch_size):
-    raise NotImplementedError
-
   def StreamStep(self, theta, query_vec, paddings, state0):
-    raise NotImplementedError
+    """Computes the value vector given the query of the current step.
+
+    Note: Rel pos emb relies on the shape of key. It expects the seq length
+    of key is 'q.length + left - 1'. See '_AttenLogits()'.
+    'p.inference_step_max_length' must be same to 'q.length', when
+    'p.inference_step_max_length > 0'.
+
+    Args:
+      theta: A NestedMap of layer params.
+      query_vec: A query vector of shape [B, Q, D].
+      paddings: A 0/1 valued tensor of shape [B, Q].
+      state0: A NestedMap of the same structure as returned by zero_state().
+
+    Returns:
+      output: Output of the given query vector with shape [B, Q, D].
+      padding: the same as input paddings.
+      state1: Updated state of the same structure as state0.
+    """
+    if self.IsInferenceStepStatic():
+      p = self.params
+      _, q = py_utils.GetShape(query_vec, 2)
+      # Rel pos emb expects the seq length of key is `q.length + left - 1`.
+      assert q == p.inference_step_max_length, (
+          'inference_step_max_length must be same to the seq length of query.')
+    return super().StreamStep(theta, query_vec, paddings, state0)
 
 
 class RoutingAttention(MultiHeadedAttention):
