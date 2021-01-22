@@ -275,8 +275,8 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="_Cluster.InitDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.InitDevices">[docs]</a>  <span class="k">def</span> <span class="nf">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">session_devices</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">sess</span><span class="o">.</span><span class="n">list_devices</span><span class="p">()]</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;InitDevices </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session_devices</span><span class="p">))</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_session_devices</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">sess</span><span class="o">.</span><span class="n">list_devices</span><span class="p">()]</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;InitDevices </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_session_devices</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="_Cluster.ListDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.ListDevices">[docs]</a>  <span class="k">def</span> <span class="nf">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lists devices in the job.</span>
@@ -300,9 +300,9 @@
       <span class="n">devices_per_replica</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="ow">or</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">cpus_per_replica</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">replicas</span><span class="p">,</span> <span class="n">devices_per_replica</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;session_devices&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_devices</span><span class="p">:</span>
       <span class="n">devices</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_devices</span>
+          <span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_devices</span>
           <span class="k">if</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/&#39;</span> <span class="ow">in</span> <span class="n">d</span> <span class="ow">and</span> <span class="sa">f</span><span class="s1">&#39;/device:</span><span class="si">{</span><span class="n">device_type</span><span class="si">}</span><span class="s1">:&#39;</span> <span class="ow">in</span> <span class="n">d</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
@@ -334,7 +334,7 @@
       <span class="c1"># remote sessions not linked to this session, or InitDevices was not</span>
       <span class="c1"># called. In such case we build device strings manually, but there&#39;s no</span>
       <span class="c1"># guarantee that those strings will be correct.</span>
-      <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;session_devices&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_devices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="sa">f</span><span class="s1">&#39;ListDevices: No devices found in the session for </span><span class="si">{</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">.&#39;</span>
         <span class="p">)</span>
@@ -361,12 +361,16 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_session_devices</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_CheckInvariants</span><span class="p">()</span>
 
-    <span class="c1"># A set of invariants about the setup of the cluster.</span>
-    <span class="c1">#</span>
-    <span class="c1"># NOTE. Two job specs can be identical. E.g., if p.worker.name is</span>
-    <span class="c1"># the same as p.ps.name, that means ps is colocated with worker.</span>
+<div class="viewcode-block" id="_Cluster._CheckInvariants"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._CheckInvariants">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckInvariants</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A set of invariants about the setup of the cluster.</span>
+
+<span class="sd">    NOTE. Two job specs can be identical. E.g., if p.worker.name is</span>
+<span class="sd">    the same as p.ps.name, that means ps is colocated with worker.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;async&#39;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;controller&#39;</span><span class="p">:</span>
@@ -401,7 +405,7 @@
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">&gt;=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
