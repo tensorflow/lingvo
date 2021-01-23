@@ -408,6 +408,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">make_output_proj_no_op</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">inputs</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span><span class="p">:</span>
@@ -924,18 +925,22 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">atten_dim</span><span class="p">:</span>
       <span class="n">atten_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
     <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">atten_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
+    <span class="c1"># empty() is not supported for bfloat16 on CPU.</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
     <span class="c1"># TODO(shafey): Determine if we want to make the cached shape 128 to</span>
     <span class="c1"># avoid padding and more efficient interpolation in beamsearch.</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">key</span><span class="o">=</span><span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">target_max_length</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span>
                    <span class="n">dim_per_head</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
         <span class="n">value</span><span class="o">=</span><span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">target_max_length</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span>
                    <span class="n">dim_per_head</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -991,21 +996,26 @@
     <span class="n">query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
 
     <span class="c1"># Using a if condtion, in case it&#39;s more efficient to update the same index.</span>
+    <span class="n">new_key_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_key_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">new_value_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_value_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cached_states</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">synced_time_step</span><span class="p">:</span>
       <span class="c1"># The extended_key and extended_value have shape [T, B, N, H].</span>
-      <span class="n">extended_key</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
-          <span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_key_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
-      <span class="n">extended_value</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
-          <span class="n">cached_states</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_value_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
+      <span class="n">extended_key</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span>
+                                                      <span class="n">time_step</span><span class="p">,</span> <span class="n">new_key_proj</span><span class="p">)</span>
+      <span class="n">extended_value</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                                        <span class="n">time_step</span><span class="p">,</span>
+                                                        <span class="n">new_value_proj</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># The extended_key and extended_value have shape [T, B, N, H].</span>
       <span class="n">selected_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">+</span> <span class="n">time_step</span> <span class="o">*</span> <span class="n">b</span>
       <span class="n">extended_key</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]),</span> <span class="n">selected_indices</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_key_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
+          <span class="n">new_key_proj</span><span class="p">)</span>
       <span class="n">extended_value</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cached_states</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]),</span> <span class="n">selected_indices</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_value_proj</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
+          <span class="n">new_value_proj</span><span class="p">)</span>
       <span class="n">extended_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">extended_key</span><span class="p">,</span> <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
       <span class="n">extended_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">extended_value</span><span class="p">,</span> <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
     <span class="n">updated_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">extended_key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">extended_value</span><span class="p">)</span>
@@ -1016,8 +1026,8 @@
     <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAttenOneStep</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span>
         <span class="n">query_proj</span><span class="p">,</span>
-        <span class="n">extended_key</span><span class="p">,</span>
-        <span class="n">extended_value</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">extended_key</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">extended_value</span><span class="p">),</span>
         <span class="n">paddings</span><span class="p">,</span>
         <span class="n">segment_mask</span><span class="p">,</span>
         <span class="n">per_step_padding</span><span class="p">,</span>
@@ -3164,6 +3174,13 @@
       <span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">left_context</span><span class="o">=</span><span class="n">left_context</span><span class="p">,</span> <span class="n">right_context</span><span class="o">=</span><span class="n">right_context</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+<div class="viewcode-block" id="TransformerAttentionLayer.SetFPropDtype"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.SetFPropDtype">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetFPropDtype</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
+    <span class="k">if</span> <span class="n">fprop_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
 <div class="viewcode-block" id="TransformerAttentionLayer._InitAttentionParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer._InitAttentionParams">[docs]</a>  <span class="k">def</span> <span class="nf">_InitAttentionParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns an initialized transformer attention parameters.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -3275,12 +3292,19 @@
 <span class="sd">      atten_probs: [B, N, T, S].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">per_step_padding_override</span><span class="p">,</span>
+     <span class="n">segment_mask</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span>
+         <span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">per_step_padding_override</span><span class="p">,</span>
+          <span class="n">segment_mask</span><span class="p">))</span>
+
     <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
     <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
 
     <span class="c1"># Layer normalization.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
 
     <span class="c1"># For self-attention: keys = queries.</span>
     <span class="k">if</span> <span class="n">source_vecs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -3375,6 +3399,7 @@
 <span class="sd">      ValueError: If not used as masked/causal self-attention.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;ExtendStep should be used only by masked/causal self-attention.&#39;</span><span class="p">)</span>
@@ -3404,6 +3429,7 @@
     <span class="c1"># Layer normalization.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
 
     <span class="c1"># Multiheaded masked/causal self-attention.</span>
     <span class="k">def</span> <span class="nf">_AttenExtendStep</span><span class="p">(</span><span class="n">atten</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">cached_states</span><span class="p">):</span>
@@ -3464,10 +3490,12 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/StreamStep&#39;</span><span class="p">):</span>
+      <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">((</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">))</span>
       <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
         <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+        <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
 
       <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
@@ -3576,6 +3604,14 @@
     <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[[</span>
         <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
     <span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span></div>
+
+<div class="viewcode-block" id="TransformerLayer.SetFPropDtype"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.SetFPropDtype">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetFPropDtype</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
+    <span class="k">for</span> <span class="n">sub_p</span> <span class="ow">in</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tr_self_atten_tpl</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">sub_p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sub_p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetFPropDtype</span><span class="p">(</span><span class="n">sub_p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TransformerLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
