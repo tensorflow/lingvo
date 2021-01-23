@@ -160,6 +160,16 @@ class LConvLayer(base_layer.BaseLayer):
           conv_layers_with_time_padding.CausalDepthwiseConv2DLayer.Params())
     return p
 
+  @classmethod
+  def SetFPropDtype(cls, p, fprop_dtype):
+    p.fprop_dtype = fprop_dtype
+    if not py_utils.use_tpu():
+      # Depthwise conv supports bfloat16 only on TPUs.
+      p.depthwise_conv_tpl.fprop_dtype = tf.float32
+    p.ln_tpl.fprop_dtype = tf.float32
+    p.conv_norm_layer_tpl.fprop_dtype = tf.float32
+    return p
+
   def __init__(self, params):
     super().__init__(params)
     p = self.params
@@ -264,7 +274,7 @@ class LConvLayer(base_layer.BaseLayer):
         raise NotImplementedError(
             'Only bn_layers.{BatchNormLayer,GroupNormLayer}, layers.LayerNorm '
             'are supported.')
-    return inputs
+    return self._CastToFPropDtype(inputs)
 
   def FProp(self, theta, inputs, paddings):
     """Builds FProp graph.
@@ -281,9 +291,11 @@ class LConvLayer(base_layer.BaseLayer):
 
     p = self.params
     with tf.name_scope(p.name):
+      inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       unnormalized_inputs = inputs
 
       inputs = self.ln.FProp(theta.ln, inputs)
+      inputs = self._CastToFPropDtype(inputs)
       if p.split_act_gated_linear_start:
         act_inputs = self.linear_start_act.FProp(theta.linear_start_act, inputs)
         gated_inputs = self.linear_start_gated.FProp(theta.linear_start_gated,
@@ -305,8 +317,13 @@ class LConvLayer(base_layer.BaseLayer):
       theta.depthwise_conv1d.w = gshard_utils.MeshSplit(
           theta.depthwise_conv1d.w, p.device_mesh,
           p.weight_split_dims_mapping.hwim)
+      if inputs.dtype == tf.bfloat16 and not py_utils.use_tpu():
+        # Depthwise conv doesn't support bfloat32 on CPU.
+        inputs = tf.cast(inputs, tf.float32)
+        paddings = tf.cast(paddings, tf.float32)
       inputs, paddings = self.depthwise_conv1d.FProp(theta.depthwise_conv1d,
                                                      inputs, paddings)
+      inputs, paddings = self._CastToFPropDtype((inputs, paddings))
 
       inputs = gshard_utils.MeshSplit(inputs, p.device_mesh,
                                       adapted_blf_dims_mapping)
@@ -507,7 +524,9 @@ class ConformerLayer(base_layer.BaseLayer):
                    fflayer_hidden_dim=None,
                    fflayer_activation='SWISH',
                    layer_order='mhsa_before_conv',
-                   dropout_prob=0.):
+                   dropout_prob=0.,
+                   conv_norm_layer_tpl=None,
+                   fprop_dtype=None):
     assert all([input_dim, atten_num_heads, kernel_size, fflayer_hidden_dim])
 
     if _AttenCtxIsSet(atten_local_context):
@@ -530,6 +549,20 @@ class ConformerLayer(base_layer.BaseLayer):
         is_causal=is_causal,
         layer_order=layer_order,
         dropout_prob=dropout_prob)
+    if conv_norm_layer_tpl is not None:
+      p.lconv_tpl.conv_norm_layer_tpl = conv_norm_layer_tpl
+    if fprop_dtype is not None:
+      p.cls.SetFPropDtype(p, fprop_dtype)
+    return p
+
+  @classmethod
+  def SetFPropDtype(cls, p, fprop_dtype):
+    p.fprop_dtype = fprop_dtype
+    for sub_p in (p.lconv_tpl, p.trans_atten_tpl, p.fflayer_start_tpl,
+                  p.fflayer_end_tpl):
+      sub_p.cls.SetFPropDtype(sub_p, fprop_dtype)
+    if fprop_dtype == tf.bfloat16:
+      p.final_ln_tpl.fprop_dtype = tf.float32
     return p
 
   @classmethod
@@ -752,6 +785,7 @@ class ConformerLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       inputs = in_nmap.features
       paddings = in_nmap.paddings
+      inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap = py_utils.NestedMap()
       in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
       inputs = in_nmap.features
@@ -769,6 +803,7 @@ class ConformerLayer(base_layer.BaseLayer):
       if 'aux_loss' in in_nmap:
         out_nmap.aux_loss = in_nmap.aux_loss
       inputs = self.final_ln.FProp(theta.final_ln, inputs)
+      inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap.features = inputs
       out_nmap.paddings = paddings
       return out_nmap

@@ -140,7 +140,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     p.name = 'conformer_layer'
     return p
 
-  def _GetInputs(self):
+  def _GetInputs(self, dtype=tf.float32):
     inputs = np.random.rand(self.batch, self.maxlen,
                             self.dim).astype(np.float32)
     paddings = np.zeros((self.batch, self.maxlen), np.float32)
@@ -149,7 +149,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     for i in range(self.batch):
       for j in range(self.maxlen):
         paddings[i][j] = 1. if j >= seqlen[i] else 0.
-    return inputs, paddings
+    return tf.constant(inputs, dtype=dtype), tf.constant(paddings, dtype=dtype)
 
   def _GetGrad(self, l, inputs, paddings):
     in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
@@ -172,6 +172,27 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
     l = p.Instantiate()
     inputs, paddings = self._GetInputs()
+    outputs, grads = self._GetGrad(l, inputs, paddings)
+
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      out_vals = sess.run(outputs)
+      grad_vals = sess.run(grads)
+      print([x.shape for x in out_vals])
+      print([g.shape for g in grad_vals])
+
+  @parameterized.named_parameters(
+      ('F32FPropF32Input', tf.float32, tf.float32),
+      ('F32FPropBF16Input', tf.float32, tf.bfloat16),
+      ('BF16FPropF32Input', tf.bfloat16, tf.float32),
+      ('BF16FPropBF16Input', tf.bfloat16, tf.bfloat16),
+  )
+  def testFPropDtypes(self, fprop_dtype, input_dtype):
+    p = self._GetParams()
+    p.cls.SetFPropDtype(p, fprop_dtype)
+
+    l = p.Instantiate()
+    inputs, paddings = self._GetInputs(dtype=input_dtype)
     outputs, grads = self._GetGrad(l, inputs, paddings)
 
     with self.session() as sess:
