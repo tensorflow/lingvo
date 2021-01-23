@@ -545,6 +545,10 @@ def HasShape(tensor, expected_shape, ndims=None):
     return with_dependencies([assert_op], tensor)
 
 
+def HasSameShape(x, ref):
+  return HasShape(x, GetShape(ref))
+
+
 def GetSize(tensor):
   shape = GetShape(tensor)
   if (isinstance(shape, tf.Tensor) or
