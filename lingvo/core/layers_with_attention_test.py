@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for layers_with_attention."""
 
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
@@ -24,7 +25,7 @@ from lingvo.core.test_utils import CompareToGoldenSingleFloat
 import numpy as np
 
 
-class LayersWithAttentionTest(test_utils.TestCase):
+class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testTransformerFeedForwardLayerConstruction(self):
     p = layers_with_attention.TransformerFeedForwardLayer.Params()
@@ -73,6 +74,40 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # pylint: enable=bad-whitespace
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
+
+  @parameterized.named_parameters(
+      ('F32FPropF32Input', tf.float32, tf.float32, 7.182965),
+      ('F32FPropBF16Input', tf.float32, tf.bfloat16, 7.183718),
+      ('BF16FPropF32Input', tf.bfloat16, tf.float32, 7.15625),
+      ('BF16FPropBF16Input', tf.bfloat16, tf.bfloat16, 7.15625),
+  )
+  def testTransformerFeedForwardLayerFPropDtype(self,
+                                                fprop_dtype,
+                                                input_dtype,
+                                                expected_sum=0.):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      inputs = tf.cast(
+          tf.random.normal([5, 2, 3], seed=948387483), dtype=input_dtype)
+      paddings = tf.zeros([5, 2], dtype=input_dtype)
+      p = layers_with_attention.TransformerFeedForwardLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 3
+      p.hidden_dim = 7
+      p.random_seed = 1234
+      p.cls.SetFPropDtype(p, fprop_dtype)
+
+      # fprop_dtype set accordingly.
+      self.assertEqual(fprop_dtype, p.fprop_dtype)
+      if fprop_dtype == tf.bfloat16:
+        # Layer norm always uses f32.
+        self.assertEqual(tf.float32, p.ln_tpl.fprop_dtype)
+
+      transformer_fflayer = layers_with_attention.TransformerFeedForwardLayer(p)
+      h = transformer_fflayer.FPropDefaultTheta(inputs, paddings)
+      h *= tf.cast(1 - paddings[:, :, tf.newaxis], h.dtype)
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllClose(expected_sum, tf.reduce_sum(h).eval())
 
   def testTransformerFeedForwardLayerSpecOutDim(self):
     with self.session(use_gpu=True):

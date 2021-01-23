@@ -256,6 +256,7 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     """
     p = self.params
     with tf.name_scope(p.name):
+      inputs = self._CastToFPropDtype(inputs)
       if p.make_output_proj_no_op:
         return inputs
       if p.is_output_projection:
@@ -772,18 +773,22 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     if not atten_dim:
       atten_dim = p.input_dim
     dim_per_head = atten_dim // num_heads
+    # empty() is not supported for bfloat16 on CPU.
+    dtype = py_utils.FPropDtype(p)
+    if dtype == tf.bfloat16 and not py_utils.use_tpu():
+      dtype = tf.float32
     # TODO(shafey): Determine if we want to make the cached shape 128 to
     # avoid padding and more efficient interpolation in beamsearch.
     return py_utils.NestedMap(
         key=inplace_ops.empty(
             shape=(target_max_length, target_batch_size, num_heads,
                    dim_per_head),
-            dtype=py_utils.FPropDtype(p),
+            dtype=dtype,
             init=True),
         value=inplace_ops.empty(
             shape=(target_max_length, target_batch_size, num_heads,
                    dim_per_head),
-            dtype=py_utils.FPropDtype(p),
+            dtype=dtype,
             init=True))
 
   def ExtendStep(self,
@@ -839,21 +844,26 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     query_proj = self.query.FProp(theta.query, query_vec)
 
     # Using a if condtion, in case it's more efficient to update the same index.
+    new_key_proj = tf.cast(
+        tf.reshape(new_key_proj, [b, n, h]), dtype=cached_states.key.dtype)
+    new_value_proj = tf.cast(
+        tf.reshape(new_value_proj, [b, n, h]), dtype=cached_states.value.dtype)
     if synced_time_step:
       # The extended_key and extended_value have shape [T, B, N, H].
-      extended_key = inplace_ops.alias_inplace_update(
-          cached_states.key, time_step, tf.reshape(new_key_proj, [b, n, h]))
-      extended_value = inplace_ops.alias_inplace_update(
-          cached_states.value, time_step, tf.reshape(new_value_proj, [b, n, h]))
+      extended_key = inplace_ops.alias_inplace_update(cached_states.key,
+                                                      time_step, new_key_proj)
+      extended_value = inplace_ops.alias_inplace_update(cached_states.value,
+                                                        time_step,
+                                                        new_value_proj)
     else:
       # The extended_key and extended_value have shape [T, B, N, H].
       selected_indices = tf.range(b) + time_step * b
       extended_key = inplace_ops.alias_inplace_update(
           tf.reshape(cached_states.key, [-1, n, h]), selected_indices,
-          tf.reshape(new_key_proj, [b, n, h]))
+          new_key_proj)
       extended_value = inplace_ops.alias_inplace_update(
           tf.reshape(cached_states.value, [-1, n, h]), selected_indices,
-          tf.reshape(new_value_proj, [b, n, h]))
+          new_value_proj)
       extended_key = tf.reshape(extended_key, [t, b, n, h])
       extended_value = tf.reshape(extended_value, [t, b, n, h])
     updated_state = py_utils.NestedMap(key=extended_key, value=extended_value)
@@ -864,8 +874,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     encoded = self._DotAttenOneStep(
         theta,
         query_proj,
-        extended_key,
-        extended_value,
+        self._CastToFPropDtype(extended_key),
+        self._CastToFPropDtype(extended_value),
         paddings,
         segment_mask,
         per_step_padding,
@@ -3012,6 +3022,13 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       p.atten_tpl.Set(left_context=left_context, right_context=right_context)
     return p
 
+  @classmethod
+  def SetFPropDtype(cls, p, fprop_dtype):
+    p.fprop_dtype = fprop_dtype
+    if fprop_dtype == tf.bfloat16:
+      p.ln_tpl.fprop_dtype = tf.float32
+    return p
+
   def _InitAttentionParams(self, atten_tpl):
     """Returns an initialized transformer attention parameters."""
     p = self.params
@@ -3123,12 +3140,19 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       atten_probs: [B, N, T, S].
     """
     p = self.params
+
+    (query_vec, source_vecs, paddings, per_step_padding_override,
+     segment_mask) = self._CastToFPropDtype(
+         (query_vec, source_vecs, paddings, per_step_padding_override,
+          segment_mask))
+
     b, t, _ = py_utils.GetShape(query_vec, 3)
     unnormalized_query_vec = query_vec
 
     # Layer normalization.
     if p.ln_tpl:
       query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+      query_vec = self._CastToFPropDtype(query_vec)
 
     # For self-attention: keys = queries.
     if source_vecs is None:
@@ -3223,6 +3247,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       ValueError: If not used as masked/causal self-attention.
     """
     p = self.params
+    query_vec = self._CastToFPropDtype(query_vec)
     if not p.is_masked:
       raise ValueError(
           'ExtendStep should be used only by masked/causal self-attention.')
@@ -3252,6 +3277,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     # Layer normalization.
     if p.ln_tpl:
       query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+      query_vec = self._CastToFPropDtype(query_vec)
 
     # Multiheaded masked/causal self-attention.
     def _AttenExtendStep(atten, theta, cached_states):
@@ -3312,10 +3338,12 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p = self.params
     assert p.is_masked
     with tf.name_scope(f'{p.name}/StreamStep'):
+      query_vec, paddings = self._CastToFPropDtype((query_vec, paddings))
       unnormalized_query_vec = query_vec
 
       if p.ln_tpl:
         query_vec = self.layer_norm.FProp(self.theta.layer_norm, query_vec)
+        query_vec = self._CastToFPropDtype(query_vec)
 
       output, paddings, atten_state1 = self.atten.StreamStep(
           theta.atten, query_vec, paddings, state0.atten)
@@ -3424,6 +3452,14 @@ class TransformerLayer(base_layer.BaseLayer):
     params.tr_fflayer_tpl.fflayer_tpl.activation_split_dims_mapping_list = [[
         0, -1, 1
     ], [1, -1, -1]]
+
+  @classmethod
+  def SetFPropDtype(cls, p, fprop_dtype):
+    p.fprop_dtype = fprop_dtype
+    for sub_p in (p.tr_atten_tpl, p.tr_self_atten_tpl, p.tr_fflayer_tpl):
+      if sub_p is not None:
+        sub_p.cls.SetFPropDtype(sub_p, fprop_dtype)
+    return p
 
   @classmethod
   def CommonParams(cls,

@@ -2347,6 +2347,60 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ]
       self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=1))
 
+  @parameterized.named_parameters(
+      ('F32FPropF32Input', tf.float32, tf.float32),
+      ('F32FPropBF16Input', tf.float32, tf.bfloat16),
+      ('BF16FPropF32Input', tf.bfloat16, tf.float32),
+      ('BF16FPropBF16Input', tf.bfloat16, tf.bfloat16),
+      ('BF16AddNormalizedInput', tf.bfloat16, tf.bfloat16, False),
+  )
+  def testTransformerLayerFPropDtypes(self,
+                                      fprop_dtype,
+                                      input_dtype,
+                                      add_unnormalized_input=True):
+    with self.session(use_gpu=True) as sess:
+      (query_vec, _, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs(dtype=input_dtype)
+      paddings = tf.zeros([2, 5])
+      p = attention.TransformerDecoderLayer.Params()
+      p.name = 'transformer_layer'
+      p.input_dim = 4
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_heads = 2
+      p.tr_atten_tpl.add_unnormalized_input = add_unnormalized_input
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      p.random_seed = 1234
+
+      p.cls.SetFPropDtype(p, fprop_dtype)
+      # fprop_dtype set accordingly.
+      self.assertEqual(fprop_dtype, p.fprop_dtype)
+      if fprop_dtype == tf.bfloat16:
+        # Layer norm always uses f32.
+        self.assertEqual(tf.float32, p.tr_fflayer_tpl.ln_tpl.fprop_dtype)
+        self.assertEqual(tf.float32, p.tr_atten_tpl.ln_tpl.fprop_dtype)
+
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+
+      ctx_vec, _ = l.FProp(l.theta, query_vec, paddings, aux_vec, aux_paddings)
+      ctx_vec *= tf.cast(1 - paddings[:, :, tf.newaxis], ctx_vec.dtype)
+
+      tgt_batch, tgt_len = py_utils.GetShape(paddings)
+      prefix_states = l.InitStates(l.theta, tgt_batch, tgt_len)
+      extend_step_outputs = []
+      for i in range(tgt_len):
+        layer_output, _, prefix_states = l.ExtendStep(
+            l.theta, tf.expand_dims(query_vec[:, i, :], 1), aux_vec,
+            aux_paddings, prefix_states, i)
+        extend_step_outputs.append(
+            tf.squeeze(layer_output, 1) *
+            tf.cast(1 - paddings[:, i, tf.newaxis], layer_output.dtype))
+      extend_step_outputs = tf.stack(extend_step_outputs, axis=1)
+      ctx_sum, step_sum = sess.run(
+          [tf.reduce_sum(ctx_vec),
+           tf.reduce_sum(extend_step_outputs)])
+      self.assertAllClose(ctx_sum, step_sum)
+
   @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
   def testTransformerLayerFPropWithCrossAttention(self, multiplier):
     with self.session(use_gpu=True) as sess:

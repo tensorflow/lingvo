@@ -500,6 +500,14 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('pre_layer_norm', True, 'Pre or post layer norm')
     return p
 
+  @classmethod
+  def SetFPropDtype(cls, p, fprop_dtype):
+    p.fprop_dtype = fprop_dtype
+    if fprop_dtype == tf.bfloat16:
+      # Use float32 for layer normalization.
+      p.ln_tpl.fprop_dtype = tf.float32
+    return p
+
   def __init__(self, params):
     super().__init__(params)
     p = self.params
@@ -564,6 +572,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     """
     p = self.params
     with tf.name_scope(p.name):
+      inputs = self._CastToFPropDtype(inputs)
       if self.params.pre_layer_norm:
         inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
       else:
