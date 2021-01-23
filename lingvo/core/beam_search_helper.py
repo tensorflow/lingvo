@@ -510,8 +510,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
                               1)), tf.int32)
       else:
         encoded_seq_lengths = tf.cast(
-            tf.round(tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1)),
-            tf.int32)
+            tf.round(
+                tf.reduce_sum(
+                    1.0 - tf.cast(tf.transpose(source_paddings), tf.float32),
+                    1)), tf.int32)
 
     # [num_beams, num_hyps_per_beam].
     topk_hyps = ops.top_k_terminated_hyps(
