@@ -71,7 +71,8 @@ def InfeedContextScope(infeed_host_index, num_infeed_hosts):
 
 
 def GetInfeedContext():
-  return _INFEED_CONTEXT.stack[-1] if _INFEED_CONTEXT.stack else None
+  return _INFEED_CONTEXT.stack[-1] if _INFEED_CONTEXT.stack else InfeedContext(
+      infeed_host_index=0, num_infeed_hosts=1)
 
 
 class BaseInputGenerator(base_layer.BaseLayer):
@@ -1163,35 +1164,43 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
       raise ValueError(
           'TFDataSequenceInputGenerator does not support p.file_datasource.')
     super().__init__(params)
-    self._iterator = None
+    self._iterator = {}
+
+  @property
+  def host_id(self):
+    p = self.params
+    if p.use_per_host_infeed:
+      return GetInfeedContext().infeed_host_index
+    return 0
 
   def _InitIterator(self):
     # We can't create self._iterator in __init__() as _GetDataset(), etc.
     # might require members that are set in subclasses.
-    if self._iterator is not None:
-      raise ValueError('InitIterator has already been called.')
+    if self.host_id in self._iterator:
+      raise ValueError(f'InitIterator has been called for host {self.host_id}.')
     with py_utils.GlobalStepContext(None):
       # Hide global_step tensor from being captured by dataset function.
       dataset = self._GetDatasetInternal()
     dataset = self._BatchDataset(dataset)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     if tf.executing_eagerly():
-      self._iterator = iter(dataset)
+      it = iter(dataset)
     else:
-      self._iterator = tf.data.make_initializable_iterator(dataset)
+      it = tf.data.make_initializable_iterator(dataset)
+    self._iterator[self.host_id] = it
 
   def Initialize(self, sess):
-    if self._iterator is None:
+    if self.host_id not in self._iterator:
       self._InitIterator()
     if not tf.executing_eagerly():
-      sess.run(self._iterator.initializer)
+      sess.run([it.initializer for it in self._iterator.values()])
     super().Initialize(sess)
 
   def _InputBatch(self):
     """Returns a NestedMap containing an input batch."""
-    if self._iterator is None:
+    if self.host_id not in self._iterator:
       self._InitIterator()
-    batch = self._iterator.get_next()
+    batch = self._iterator[self.host_id].get_next()
 
     # Set tensor shapes.
     if py_utils.use_tpu():
