@@ -954,8 +954,16 @@
                                       <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">group_variance</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
     <span class="p">],</span> <span class="n">group_variance</span><span class="p">)</span>
 
-    <span class="n">grouped_inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">grouped_inputs</span> <span class="o">-</span> <span class="n">group_mean</span>
-                     <span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">group_variance</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">:</span>
+      <span class="c1"># tf.rsqrt is not implemented for bfloat16, hence we always cast into</span>
+      <span class="c1"># tf.float32.</span>
+      <span class="n">group_stddev_inv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span>
+          <span class="n">group_mean</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">group_stddev_inv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">)</span>
+
+    <span class="n">grouped_inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">grouped_inputs</span> <span class="o">-</span> <span class="n">group_mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">group_stddev_inv</span>
     <span class="c1"># Merges the last two dims.</span>
     <span class="n">grouped_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">grouped_inputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
