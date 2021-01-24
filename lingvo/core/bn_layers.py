@@ -802,8 +802,16 @@ class GroupNormLayer(base_layer.BaseLayer):
                                       tf.cast(0, group_variance.dtype))
     ], group_variance)
 
-    grouped_inputs = (grouped_inputs - group_mean
-                     ) * tf.math.rsqrt(group_variance + self._epsilon)
+    if group_variance.dtype == tf.bfloat16:
+      # tf.rsqrt is not implemented for bfloat16, hence we always cast into
+      # tf.float32.
+      group_stddev_inv = tf.cast(
+          tf.math.rsqrt(tf.cast(group_variance + self._epsilon, tf.float32)),
+          group_mean.dtype)
+    else:
+      group_stddev_inv = tf.math.rsqrt(group_variance + self._epsilon)
+
+    grouped_inputs = (grouped_inputs - group_mean) * group_stddev_inv
     # Merges the last two dims.
     grouped_inputs = tf.reshape(grouped_inputs, input_shape[:-2] + [-1])
 

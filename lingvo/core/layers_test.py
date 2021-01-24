@@ -380,9 +380,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       ])
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
 
-  @parameterized.named_parameters(('F32Input', tf.float32),
-                                  ('BF16Input', tf.bfloat16))
-  def testFPropWithPaddings(self, input_dtype):
+  def testFPropWithPaddings(self):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
@@ -390,9 +388,8 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.num_groups = 2
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       gn_in = tf.cast(
-          tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4]),
-          input_dtype)
-      paddings = tf.convert_to_tensor([[0, 0], [0, 1]], dtype=input_dtype)
+          tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4]), tf.float32)
+      paddings = tf.convert_to_tensor([[0, 0], [0, 1]], dtype=tf.float32)
 
       gn_layer = bn_layers.GroupNormLayer(params)
       gn_out, paddings_out = gn_layer.FPropDefaultTheta(gn_in, paddings)
@@ -414,6 +411,32 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       print(gn_out.eval())
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
       self.assertAllEqual(paddings.eval(), paddings_out.eval())
+
+  @parameterized.named_parameters(
+      ('F32FPropF32Input', tf.float32, tf.float32, 31.040909),
+      ('F32FPropBF16Input', tf.float32, tf.bfloat16, 31.040909),
+      ('BF16FPropF32Input', tf.bfloat16, tf.float32, 31.),
+      ('BF16FPropBF16Input', tf.bfloat16, tf.bfloat16, 31.),
+  )
+  def testFPropDtypes(self, fprop_dtype, input_dtype, expected_sum=0.):
+    with self.session(use_gpu=True):
+      params = bn_layers.GroupNormLayer.Params()
+      params.name = 'gn'
+      params.dim = 4
+      params.num_groups = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.fprop_dtype = fprop_dtype
+      params.random_seed = 123
+      gn_in = tf.cast(
+          tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4]),
+          input_dtype)
+      paddings = tf.convert_to_tensor([[0, 0], [0, 1]], dtype=input_dtype)
+
+      gn_layer = bn_layers.GroupNormLayer(params)
+      gn_out, _ = gn_layer.FPropDefaultTheta(gn_in, paddings)
+
+      tf.global_variables_initializer().run()
+      self.assertAllClose(expected_sum, tf.reduce_sum(gn_out).eval())
 
   def testFPropWithPaddings3DInput(self):
     with self.session(use_gpu=True):
