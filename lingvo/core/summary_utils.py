@@ -208,7 +208,7 @@ def AddAttentionSummaryBatchMajor(name,
       fig.AddSubplot(
           args,
           TrimPaddingAndPlotAttention,
-          title=name,
+          title=atten.name,
           xlabel='Input',
           ylabel='Output')
 
