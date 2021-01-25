@@ -1743,6 +1743,64 @@ class DenseBuilder(MoEBuilder):
         name, self._device_mesh, self.params.mhd_w_split,
         self._attention_output_hdm_w_split)
 
+  def ParallelDecSelfAttentionRelativeBiasFFN(self,
+                                              name,
+                                              activation_fn,
+                                              hidden_dim_reshape_segments=4):
+    """Runs DecSelfAttentionRelativeBias and FFN layers in parallel."""
+    p = self.params
+    collections = None
+    if p.relative_attention_type == 'bias_shared':
+      # Collection name is used as a unique ID to retrieve the shared variable.
+      #
+      # This name must be different for SelfAttentionRelativeBias (Encoder), and
+      # must have a suffix matching shared_var_collection_suffix, e.g.
+      # 'shared_var'.
+      collections = ['_dec_self_attention_shared_var']
+    else:
+      assert p.relative_attention_type == 'bias', p.relative_attention_type
+
+    def _ComputeBias(segment_id, segment_pos):
+      return self._DecNotVisible(segment_id, segment_pos) * (-1e+09)
+
+    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+
+    def _ComputeOutput(o, h1, h2, wo1, wo2):
+      h = tf.math.multiply(activation_fn(h1), h2)
+      return self._ComputeCombinedOutputs(o, h, wo1, wo2,
+                                          hidden_dim_reshape_segments)
+
+    graph_inputs = [
+        'inputs', 'segment_id', 'segment_pos', 'unused_encoder_output',
+        'unused_encoder_segment_id', 'unused_encoder_segment_pos'
+    ]
+    graph_outputs = ['outputs', 'aux_loss']
+    sub_layers = [
+        ('->wq,wk,wv,wo1',
+         self._AttentionWeights('w_atten', self._device_mesh, p.mhd_w_split,
+                                self._attention_output_hdm_w_split)),
+        ('->wi_0,wi_1,wo2',
+         self._DenseReluDenseWeightsGatedGELU('w_fflayer', self._device_mesh,
+                                              p.mh_wi_split, p.hm_wo_split)),
+        ('->relative_bias_weights',
+         self._RelativeAttentionBiasWeights('wrb', collections)),
+        ('inputs,wq,wk,wv,wi_0,wi_1->q,k,v,h1,h2',
+         self._ComputeQKVH('qkvh', hidden_dim_reshape_segments)),
+        ('k->k_full', self._State('k_state', state_shape)),
+        ('v->v_full', self._State('v_state', state_shape)),
+        ('segment_pos->key_segment_pos',
+         self._State('seg_pos', [None, None], dtype=tf.int32)),
+        ('segment_id,segment_pos->qq_bias', self._Fn('bias', fn=_ComputeBias)),
+        ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
+        # Decoder _AddRelativeBias always has bidirectional=False.
+        ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
+         self._Fn('relative_bias', fn=self._AddRelativeBias)),
+        ('q,k_full,v_full,qhk_bias->o', self.Attention('attention')),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+        ('o,h1,h2,wo1,wo2->outputs', self._Fn('outputs', fn=_ComputeOutput))
+    ]
+    return self._Graph(name, graph_inputs, graph_outputs, *sub_layers)
+
   def Attention(self, name):
     """Attention with multiple attention heads."""
     p = self.params
@@ -1805,11 +1863,13 @@ class DenseBuilder(MoEBuilder):
       return tf.einsum(
           'BLHM,BMHD->BLHD', weights, v, name='dense_relu_dense_gated_output')
 
+    kv_split = p.qkv_split if p.attention_num_memory_heads is None else None
+
     return self._Graph(
         name, ['_q', '_k', '_v', 'bias'], ['outputs'],
         ('_q->q', self.MeshSplit('_q', p.qkv_split)),
-        ('_k->k', self.MeshSplit('_k', p.qkv_split)),
-        ('_v->v', self.MeshSplit('_v', p.qkv_split)),
+        ('_k->k', self.MeshSplit('_k', kv_split)),
+        ('_v->v', self.MeshSplit('_v', kv_split)),
         ('q,k->l', self._Fn('logits', fn=_LogitsFn)),
         ('l,bias->logits', self._Fn('bias', fn=_AddBias)),
         ('logits->w', self._Fn('weights', _Softmax)),
@@ -1866,6 +1926,72 @@ class DenseBuilder(MoEBuilder):
 
     return self._Fn(name, _Compute)
 
+  def _ComputeQKVH(self, name, hidden_dim_reshape_segments=4):
+    p = self.params
+    h_heads = hidden_dim_reshape_segments
+    kv_dim = p.attention_key_value_dim
+
+    def _Compute(x, wq, wk, wv, wi0, wi1):
+
+      def _GetW(w, h):
+        if p.attention_combine_dims:
+          combined_split = None if p.mhd_w_split is None else p.mhd_w_split[:-1]
+          w = self._MeshSplit(w, combined_split)
+          w = tf.reshape(w, [p.model_dim, h, kv_dim])
+        if p.attention_num_heads > 1 and h == 1:
+          w = tf.reshape(w, [p.model_dim, h, kv_dim])
+          w = self._MeshSplit(w, [1, -1, -1])
+          return self._ReshapeM(w, 0)
+        w = tf.reshape(w, [p.model_dim, h_heads, -1, kv_dim])
+        w = self._MeshSplit(w, p.mhd_w_split[:2] + [-1] + p.mhd_w_split[2:])
+        return self._ReshapeM(w, 0)
+
+      def _GetWi(w):
+        w = self._MeshSplit(
+            tf.reshape(w, [p.model_dim, h_heads, -1, kv_dim]),
+            p.mh_wi_split + [-1, -1])
+        return self._ReshapeM(w, 0)
+
+      wq = _GetW(wq, p.attention_num_heads)
+      wk = _GetW(wk, p.attention_num_memory_heads or p.attention_num_heads)
+      wv = _GetW(wv, p.attention_num_memory_heads or p.attention_num_heads)
+      wi0 = _GetWi(wi0)
+      wi1 = _GetWi(wi1)
+
+      wc = [wq, wk, wv, wi0, wi1]
+
+      if (p.attention_num_memory_heads and
+          p.attention_num_heads != p.attention_num_memory_heads):
+        # Combined tf.einsum is not possible, falling back to individual
+        # einsum ops.
+        k = self._EinsumWithModelDim('BLM,MHD->BLHD', x, wk)
+        v = self._EinsumWithModelDim('BLM,MHD->BLHD', x, wv)
+        wc = tf.concat([wq, wi0, wi1], -2)
+        splits = [wq.shape.as_list()[-2]] + [wi0.shape.as_list()[-2]] * 2
+        q, f1, f2 = tf.split(
+            self._EinsumWithModelDim('BLM,MSHD->BLSHD', x, wc), splits, -2)
+        q = self._MeshSplit(
+            tf.reshape(q,
+                       q.shape.as_list()[:2] + [-1, q.shape[-1]]), p.qkv_split)
+
+        # Only one head so there is nothing to shard the H in BLHD k,v tensors.
+        kv_split = p.qkv_split[:2] + [-1, p.qkv_split[-1]]
+        k = self._MeshSplit(k, kv_split)
+        v = self._MeshSplit(v, kv_split)
+        return q, k, v, f1, f2
+      wc = tf.concat([wq, wk, wv, wi0, wi1], -2)
+      splits = [wq.shape.as_list()[-2]] * 3 + [wi0.shape.as_list()[-2]] * 2
+      ret = tf.split(
+          self._EinsumWithModelDim('BLM,MSHD->BLSHD', x, wc), splits, -2)
+
+      def _MeshSplitQKV(x):
+        reshaped_x = tf.reshape(x, x.shape.as_list()[:2] + [-1, x.shape[-1]])
+        return self._MeshSplit(reshaped_x, p.qkv_split)
+
+      return [_MeshSplitQKV(x) for x in ret[:3]] + ret[3:]
+
+    return self._Fn(name, _Compute)
+
   def _ComputeAttenOutputs(self, o, wo):
     p = self.params
     hdm_split = self._attention_output_hdm_w_split
@@ -1877,6 +2003,29 @@ class DenseBuilder(MoEBuilder):
     return self._MeshSplit(
         self._EinsumWithModelDim('HDM,BLHD->BLM', wo, o),
         self._AdjustMSplit(p.blm_split, 2))
+
+  def _ComputeCombinedOutputs(self,
+                              o1,
+                              o2,
+                              wo1,
+                              wo2,
+                              hidden_dim_reshape_segments=4):
+    p = self.params
+    hdm_split = self._attention_output_hdm_w_split
+    h_heads = hidden_dim_reshape_segments
+
+    def _GetW(w):
+      w = tf.reshape(w, [h_heads, -1, p.attention_key_value_dim, p.model_dim])
+      w = self._MeshSplit(w, [hdm_split[0], -1] + hdm_split[1:])
+      return self._ReshapeM(w, 3)
+
+    wo1 = _GetW(wo1)
+    wo2 = _GetW(wo2)
+
+    o1 = tf.reshape(o1, o1.shape.as_list()[:2] + [h_heads, -1, o1.shape[-1]])
+    o = self._MeshSplit(tf.concat([o1, o2], -2), p.blh_split + [-1, -1])
+    wo = tf.concat([wo1, wo2], 1)
+    return self._EinsumWithModelDim('SHDM,BLSHD->BLM', wo, o) * (2.0**-0.5)
 
   def DenseReluDense(self, name, decoder=False):
     input_endpoints = ['inputs', 'segment_id', 'segment_pos']
@@ -2060,6 +2209,12 @@ class UniTransformer(base_model.BaseTask):
     p.Define('gated_ffn_activation', None, 'Transformer gated FFN activation.')
     p.Define('num_layers_in_block', 1,
              'Number of transformer layers in DecoderLayerStack.sub_layers.')
+    p.Define('parallel_ffn', False,
+             'Whether to make ffn and attention parallel.')
+    p.Define(
+        'hidden_dim_reshape_segments', 4,
+        'Size of S when reshaping hidden dimension H to Sh. Only used when'
+        ' parallel_ffn is true currently.')
     return p
 
   def __init__(self, params):
@@ -2070,7 +2225,9 @@ class UniTransformer(base_model.BaseTask):
 
     tgt_vocab_size = p.vocab_size
 
-    if p.gated_gelu or p.gated_ffn_activation == 'gelu':
+    if callable(p.gated_ffn_activation):
+      gated_ffn_activation = p.gated_ffn_activation
+    elif p.gated_gelu or p.gated_ffn_activation == 'gelu':
       gated_ffn_activation = lambda x: tf.nn.gelu(x, approximate=True)
     elif p.gated_ffn_activation == 'silu':
       gated_ffn_activation = tf.nn.silu
@@ -2091,15 +2248,27 @@ class UniTransformer(base_model.BaseTask):
     decoder_sub_layers = []
     for layer_idx in range(p.num_layers_in_block):
       str_i = '' if layer_idx == 0 else '_%d' % layer_idx
-      decoder_sub_layers += [
-          (b.DecSelfAttentionRelativeBias('dec_self_attention' +
-                                          str_i) if not p.positional_embedding
-           else b.DecSelfAttention('dec_self_attention' + str_i)),
-          (b.DenseReluDense('dense_relu_dense' + str_i, decoder=True)
-           if gated_ffn_activation is None else b.DenseReluDenseGated(
-               'dense_relu_dense' + str_i, gated_ffn_activation, decoder=True))
-      ]
-
+      if p.parallel_ffn:
+        assert not p.positional_embedding
+        assert gated_ffn_activation
+        decoder_sub_layers += [
+            b.ParallelDecSelfAttentionRelativeBiasFFN(
+                'parallel_self_attention_ffn' + str_i,
+                gated_ffn_activation,
+                hidden_dim_reshape_segments=p.hidden_dim_reshape_segments)
+        ]
+      else:
+        if p.positional_embedding:
+          atten_layer = b.DecSelfAttention('dec_self_attention' + str_i)
+        else:
+          atten_layer = b.DecSelfAttentionRelativeBias('dec_self_attention' +
+                                                       str_i)
+        if gated_ffn_activation is None:
+          ffw_layer = b.DenseReluDense('dense_relu_dense' + str_i, decoder=True)
+        else:
+          ffw_layer = b.DenseReluDenseGated(
+              'dense_relu_dense' + str_i, gated_ffn_activation, decoder=True)
+        decoder_sub_layers += [atten_layer, ffw_layer]
     dec = b.DecoderLayerStack('decoder', decoder_sub_layers, num_blocks)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 

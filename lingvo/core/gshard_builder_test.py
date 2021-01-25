@@ -294,6 +294,74 @@ class MoEBuilderTest(test_utils.TestCase):
       y_val, y2_val = sess.run([y, y2])
       self.assertAllEqual(y_val, y2_val)
 
+  def testParallelDecSelfAttentionRelativeBiasFFN(self):
+    model_dim = 4
+    num_heads = 2
+    d_kv = 2
+    d_ff = 8
+    builder = gshard_builder.DenseBuilder.Params().Set(
+        dtype=tf.float32,
+        relative_attention_type='bias',
+        model_dim=model_dim,
+        attention_num_heads=num_heads,
+        attention_combine_dims=True,
+        attention_num_memory_heads=1,
+        model_dim_reshape_segments=2,
+        ff_dim=d_ff,
+        attention_key_value_dim=d_kv).Instantiate()
+
+    def _GetInputs():
+      x = tf.constant([[[.1, .2, .3, .4], [.3, .4, .5, .6], [.5, .6, .1, .2]],
+                       [[.7, .8, .4, .5], [.9, .1, .2, .3], [.0, .9, .3, .7]]],
+                      dtype=tf.float32)
+      seg_id = tf.constant([[1, 1, 1], [1, 1, 1]], dtype=tf.int32)
+      pos_id = tf.constant([[0, 1, 2], [0, 1, 2]], dtype=tf.int32)
+      # Reshape with model_dim_reshape_segments = 2
+      reshaped_x = tf.reshape(x, [2, 3, 2, -1])
+      return reshaped_x, seg_id, pos_id
+
+    # Build a graph with separate attention and ffn layers.
+    # Naively compute the output by adding the outputs of the two directly.
+    g = tf.Graph()
+    with g.as_default():
+      tf.random.set_seed(None)
+      x, seg_id, pos_id = _GetInputs()
+      atten = builder.DecSelfAttentionRelativeBias('atten').Instantiate()
+      ffn = builder.DenseReluDenseGated('ffn', tf.nn.relu, True).Instantiate()
+      y_atten, _ = atten.FPropDefaultTheta(x, seg_id, pos_id, tf.constant(0),
+                                           tf.constant(0), tf.constant(0))
+      y_ffn, _ = ffn.FPropDefaultTheta(x, seg_id, pos_id, tf.constant(0),
+                                       tf.constant(0), tf.constant(0))
+      y_exp = (y_atten + y_ffn) * (2.0**-0.5)
+    tf.Session.reset(target='')
+    with tf.Session(graph=g) as sess:
+      sess.run(tf.global_variables_initializer())
+      y_exp = y_exp.eval(session=sess)
+      var_values = sess.run(tf.trainable_variables())
+
+    # Build a graph with dedeciated parallel layer and load the variable values.
+    # Expect output the same as the previous naive implementation.
+    g = tf.Graph()
+    with g.as_default():
+      x, seg_id, pos_id = _GetInputs()
+      parallel = builder.ParallelDecSelfAttentionRelativeBiasFFN(
+          'parallel', tf.nn.relu, hidden_dim_reshape_segments=2).Instantiate()
+      y_parallel, _ = parallel.FPropDefaultTheta(x, seg_id, pos_id,
+                                                 tf.constant(0), tf.constant(0),
+                                                 tf.constant(0))
+    tf.Session.reset(target='')
+    with tf.Session(graph=g) as sess:
+      tf_vars = [
+          parallel.vars.w_atten.wq, parallel.vars.w_atten.wk,
+          parallel.vars.w_atten.wv, parallel.vars.w_atten.wo,
+          parallel.vars.wrb.wrb, parallel.vars.w_fflayer.wi_0,
+          parallel.vars.w_fflayer.wi_1, parallel.vars.w_fflayer.wo
+      ]
+      for val, var in zip(var_values, tf_vars):
+        sess.run(tf.assign(var, val))
+      y_parallel = y_parallel.eval(session=sess)
+      self.assertAllClose(y_exp, y_parallel)
+
   def testEmbedding(self):
     builder = gshard_builder.DenseBuilder.Params().Set(
         model_dim=4, model_dim_reshape_segments=2).Instantiate()
@@ -375,6 +443,52 @@ class UniTransformerTest(test_utils.TestCase):
       sess.run(tf.global_variables_initializer())
       loss_eval = sess.run(loss)
       test_utils.CompareToGoldenSingleFloat(self, 5.635831, loss_eval)
+
+  def testUniTransformerParallelFProp(self):
+    length_dim = 4
+    graph = tf.Graph()
+    params = gshard_builder.UniTransformer.Params().Set(
+        gated_gelu=False,
+        gated_ffn_activation=tf.nn.relu,
+        positional_embedding=False,
+        dtype=tf.float32,
+        name='transformer',
+        parallel_ffn=True,
+        hidden_dim_reshape_segments=2,
+        builder=gshard_builder.DenseBuilder.Params().Set(
+            device_mesh_shape=[1, 1],
+            device_mesh=None,
+            relative_attention_num_buckets=32,
+            relative_attention_type='bias',
+            relative_attention_max_distance=128,
+            dtype=tf.float32,
+            num_devices=1,  # we call .Split num_devices on axis 0 (batch)
+            relative_attention_use_universal_1d_position=True,
+            model_dim=32,
+            attention_num_heads=8,
+            ff_dim=128,
+            attention_key_value_dim=8,
+            attention_combine_dims=True),
+        batch_size=32,
+        sequence_length=length_dim,
+        num_transformer_layers=2,
+        aux_loss_coef=0.0,
+        loss_denominator=None,
+        label_smoothing=0,
+        vocab_size=128,
+        max_length=length_dim)
+    with graph.as_default():
+      py_utils.GetOrCreateGlobalStepVar()
+      params.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      tf.random.set_seed(24332)
+      model = params.Instantiate()
+
+    with tf.Session(graph=graph) as sess:
+      input_batch = self._PreLoadInput()
+      loss = model.FPropDefaultTheta(input_batch)[0]['loss'][0]
+      sess.run(tf.global_variables_initializer())
+      loss_eval = sess.run(loss)
+      test_utils.CompareToGoldenSingleFloat(self, 5.84366, loss_eval)
 
 
 if __name__ == '__main__':
