@@ -99,9 +99,6 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       # fprop_dtype set accordingly.
       self.assertEqual(fprop_dtype, p.fprop_dtype)
-      if fprop_dtype == tf.bfloat16:
-        # Layer norm always uses f32.
-        self.assertEqual(tf.float32, p.ln_tpl.fprop_dtype)
 
       transformer_fflayer = layers_with_attention.TransformerFeedForwardLayer(p)
       h = transformer_fflayer.FPropDefaultTheta(inputs, paddings)

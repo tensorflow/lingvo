@@ -163,11 +163,12 @@ class LConvLayer(base_layer.BaseLayer):
   @classmethod
   def SetFPropDtype(cls, p, fprop_dtype):
     p.fprop_dtype = fprop_dtype
-    if not py_utils.use_tpu():
+    if fprop_dtype == tf.bfloat16 and not py_utils.use_tpu():
       # Depthwise conv supports bfloat16 only on TPUs.
       p.depthwise_conv_tpl.fprop_dtype = tf.float32
-    p.ln_tpl.fprop_dtype = tf.float32
-    p.conv_norm_layer_tpl.fprop_dtype = tf.float32
+      if issubclass(p.conv_norm_layer_tpl.cls, bn_layers.BatchNormLayer):
+        # Batch norm does not support bfloat16 on TPUs.
+        p.conv_norm_layer_tpl.fprop_dtype = tf.float32
     return p
 
   def __init__(self, params):
@@ -561,8 +562,6 @@ class ConformerLayer(base_layer.BaseLayer):
     for sub_p in (p.lconv_tpl, p.trans_atten_tpl, p.fflayer_start_tpl,
                   p.fflayer_end_tpl):
       sub_p.cls.SetFPropDtype(sub_p, fprop_dtype)
-    if fprop_dtype == tf.bfloat16:
-      p.final_ln_tpl.fprop_dtype = tf.float32
     return p
 
   @classmethod

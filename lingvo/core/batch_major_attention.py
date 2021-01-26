@@ -3025,8 +3025,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   @classmethod
   def SetFPropDtype(cls, p, fprop_dtype):
     p.fprop_dtype = fprop_dtype
-    if fprop_dtype == tf.bfloat16:
-      p.ln_tpl.fprop_dtype = tf.float32
     return p
 
   def _InitAttentionParams(self, atten_tpl):

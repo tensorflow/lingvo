@@ -2374,28 +2374,24 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       p.cls.SetFPropDtype(p, fprop_dtype)
       # fprop_dtype set accordingly.
       self.assertEqual(fprop_dtype, p.fprop_dtype)
-      if fprop_dtype == tf.bfloat16:
-        # Layer norm always uses f32.
-        self.assertEqual(tf.float32, p.tr_fflayer_tpl.ln_tpl.fprop_dtype)
-        self.assertEqual(tf.float32, p.tr_atten_tpl.ln_tpl.fprop_dtype)
 
       l = p.Instantiate()
       tf.global_variables_initializer().run()
 
       ctx_vec, _ = l.FProp(l.theta, query_vec, paddings, aux_vec, aux_paddings)
-      ctx_vec *= tf.cast(1 - paddings[:, :, tf.newaxis], ctx_vec.dtype)
 
       tgt_batch, tgt_len = py_utils.GetShape(paddings)
-      prefix_states = l.InitStates(l.theta, tgt_batch, tgt_len)
+      with tf.name_scope('init_states'):
+        prefix_states = l.InitStates(l.theta, tgt_batch, tgt_len)
       extend_step_outputs = []
       for i in range(tgt_len):
-        layer_output, _, prefix_states = l.ExtendStep(
-            l.theta, tf.expand_dims(query_vec[:, i, :], 1), aux_vec,
-            aux_paddings, prefix_states, i)
-        extend_step_outputs.append(
-            tf.squeeze(layer_output, 1) *
-            tf.cast(1 - paddings[:, i, tf.newaxis], layer_output.dtype))
-      extend_step_outputs = tf.stack(extend_step_outputs, axis=1)
+        with tf.name_scope(f'extend_step_{i}'):
+          layer_output, _, prefix_states = l.ExtendStep(
+              l.theta, tf.expand_dims(query_vec[:, i, :], 1), aux_vec,
+              aux_paddings, prefix_states, i)
+        extend_step_outputs.append(layer_output)
+      extend_step_outputs = tf.concat(extend_step_outputs, axis=1)
+
       ctx_sum, step_sum = sess.run(
           [tf.reduce_sum(ctx_vec),
            tf.reduce_sum(extend_step_outputs)])

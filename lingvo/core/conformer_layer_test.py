@@ -189,6 +189,9 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
   )
   def testFPropDtypes(self, fprop_dtype, input_dtype):
     p = self._GetParams()
+    # batch_norm does not support bfloat16 on CPU.
+    p.lconv_tpl.conv_norm_layer_tpl = (
+        bn_layers.GroupNormLayer.Params().Set(num_groups=2))
     p.cls.SetFPropDtype(p, fprop_dtype)
 
     l = p.Instantiate()

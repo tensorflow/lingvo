@@ -3810,15 +3810,19 @@ class LayerNorm(base_layer.BaseLayer):
         inner_dim = x_shape[-1]
         x_reshaped = tf.reshape(xs.x, [-1, inner_dim])
         mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
-        variance = tf.reduce_mean(
-            tf.square(x_reshaped - mean), axis=[1], keepdims=True)
-        if variance.dtype == tf.bfloat16:
-          # tf.rsqrt is not implemented for bfloat16, hence we always cast into
-          # tf.float32.
+        if x_reshaped.dtype == tf.bfloat16:
+          # tf.rsqrt and SquaredDifference are not implemented for bfloat16,
+          # hence we always cast into tf.float32.
+          variance = tf.reduce_mean(
+              tf.square(tf.cast(x_reshaped - mean, tf.float32)),
+              axis=[1],
+              keepdims=True)
           x_norm_den_inv = tf.cast(
               tf.math.rsqrt(tf.cast(variance + p.epsilon, tf.float32)),
               x_reshaped.dtype)
         else:
+          variance = tf.reduce_mean(
+              tf.square(x_reshaped - mean), axis=[1], keepdims=True)
           x_norm_den_inv = tf.cast(
               tf.math.rsqrt(variance + p.epsilon), x_reshaped.dtype)
         x_norm = (x_reshaped - mean) * x_norm_den_inv
