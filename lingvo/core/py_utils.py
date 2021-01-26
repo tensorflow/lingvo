@@ -5692,3 +5692,8 @@ def DivideNoNan(x, y):
   """Equivalent to tf.math.divide_no_nan but supports bfloat16."""
   safe_y = tf.where(tf.equal(y, 0.), tf.ones_like(y), y)
   return tf.where(tf.equal(y, 0.0), tf.zeros_like(x), x / safe_y)
+
+
+def SequencePaddings(seqlen, maxlen=None):
+  mask = tf.sequence_mask(seqlen, maxlen, dtype=tf.float32)
+  return 1 - mask
