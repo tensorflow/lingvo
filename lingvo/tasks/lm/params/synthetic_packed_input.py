@@ -259,18 +259,18 @@ class ShardedAdam(optimizer.Adam):
         name=p.name)
 
 
-# Expect ~ 51.4k tokens/sec
+# Expect ~ 53.8k tokens/sec
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr \
-# --model=lm.synthetic_packed_input.DenseLm12kWide45BAdam16x16 \
+# --model=lm.synthetic_packed_input.DenseLm12kWide41BAdam16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
 # --ps_replicas=32 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
-class DenseLm12kWide45BAdam16x16(DenseLm128B16x16):
-  """45B params LM model with 2D split and ADAM optimizer on v3-512."""
+class DenseLm12kWide41BAdam16x16(DenseLm128B16x16):
+  """41B params LM model with 2D split and ADAM optimizer on v3-512."""
 
-  # Each layer has 1.875B parameters.
-  SEQUENCE_LENGTH = 1024
+  # Each layer has 1.6875B parameters.
+  SEQUENCE_LENGTH = 2048
   NUM_DEVICES_PER_SPLIT = 512
   BATCH_DIM_PER_DEVICE = 0.5  # Total batch size 256
   DEVICE_MESH_SHAPE = [16, 32]
@@ -278,7 +278,7 @@ class DenseLm12kWide45BAdam16x16(DenseLm128B16x16):
   NUM_TRANSFORMER_LAYERS = 24
   HIDDEN_DIM = 48 * 1024
   MODEL_DIM = 12 * 1024
-  NUM_HEADS = 128
+  NUM_HEADS = 96
   ATTENTION_KEY_VALUE_DIM = 128
   GATED_GELU = False
   POSITIONAL_EMBEDDING = True
@@ -293,15 +293,15 @@ class DenseLm12kWide45BAdam16x16(DenseLm128B16x16):
     return p
 
 
-# Expect ~ 10.9k tokens/sec
+# Expect ~ 12.5k tokens/sec
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr \
-# --model=lm.synthetic_packed_input.DenseLm12kWide180BAdam16x16 \
+# --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
 # --ps_replicas=32 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
-class DenseLm12kWide180BAdam16x16(DenseLm12kWide45BAdam16x16):
-  """180B params LM model with 2D split and ADAM optimizer on v3-512."""
+class DenseLm12kWide162BAdam16x16(DenseLm12kWide41BAdam16x16):
+  """162B params LM model with 2D split and ADAM optimizer on v3-512."""
 
   BATCH_DIM_PER_DEVICE = 0.125  # Total batch size 64
   NUM_TRANSFORMER_LAYERS = 96
@@ -310,15 +310,16 @@ class DenseLm12kWide180BAdam16x16(DenseLm12kWide45BAdam16x16):
 # Expect ~ XXX tokens/sec
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr \
-# --model=lm.synthetic_packed_input.DenseLm12kWide180BAdam32x32 \
+# --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam32x32 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
 # --ps_replicas=128 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
-class DenseLm12kWide180BAdam32x32(DenseLm12kWide180BAdam16x16):
-  """180B params LM model with 2D split and ADAM optimizer on v3-2048."""
+class DenseLm12kWide162BAdam32x32(DenseLm12kWide162BAdam16x16):
+  """162B params LM model with 2D split and ADAM optimizer on v3-2048."""
 
   NUM_DEVICES_PER_SPLIT = 2048
   BATCH_DIM_PER_DEVICE = 0.125  # Total batch size 256
-  DEVICE_MESH_SHAPE = [32, 64]
+  # NUM_HEADS is 96, so we shard it 32 ways.
+  DEVICE_MESH_SHAPE = [64, 32]
   DEVICE_MESH = np.reshape(
-      np.arange(0, np.product(DEVICE_MESH_SHAPE)), DEVICE_MESH_SHAPE)
+      np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
