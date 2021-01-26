@@ -70,15 +70,18 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   DEVICE_MESH = None
   DEBUG = False
 
+  GATED_GELU = True
+  POSITIONAL_EMBEDDING = False
+
   def Task(self):
     # tokens per batch per replica (~64 cores)
     batch_size_per_tf_replica = int(self.BATCH_DIM_PER_DEVICE *
                                     self.NUM_DEVICES_PER_SPLIT)
 
     p = gshard_builder.UniTransformer.Params().Set(
-        gated_gelu=True,
+        gated_gelu=self.GATED_GELU,
         debug=self.DEBUG,
-        positional_embedding=False,
+        positional_embedding=self.POSITIONAL_EMBEDDING,
         dtype=tf.float32,
         fprop_dtype=tf.bfloat16,
         name='transformer',
@@ -219,6 +222,103 @@ class DenseLm128B32x32(DenseLm128B8x8):
   SEQUENCE_LENGTH = 1024
   NUM_DEVICES_PER_SPLIT = 2048
   BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 512
+  DEVICE_MESH_SHAPE = [32, 64]
+  DEVICE_MESH = np.reshape(
+      np.arange(0, np.product(DEVICE_MESH_SHAPE)), DEVICE_MESH_SHAPE)
+
+
+class ShardedAdamOptimizer(tf.train.AdamOptimizer):
+  """Adam optimizer that shards the slot variables."""
+
+  def _create_slots(self, var_list):
+    super()._create_slots(var_list)
+
+    for var in var_list:
+      try:
+        sharding = gshard_utils.GetVarSharding(var)
+      except ValueError:
+        continue
+      if sharding.is_replicated:
+        continue
+      m = self.get_slot(var, 'm')
+      v = self.get_slot(var, 'v')
+      sharding.ApplyToVariable(m)
+      sharding.ApplyToVariable(v)
+
+
+class ShardedAdam(optimizer.Adam):
+  """Adam optimizer wrapper that shards the slot variables."""
+
+  def GetOptimizer(self, lr):
+    p = self.params
+    return ShardedAdamOptimizer(
+        learning_rate=lr,
+        beta1=p.beta1,
+        beta2=p.beta2,
+        epsilon=p.epsilon,
+        name=p.name)
+
+
+# Expect ~ 51.4k tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr \
+# --model=lm.synthetic_packed_input.DenseLm12kWide45BAdam16x16 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
+# --ps_replicas=32 --job=executor_tpu
+@model_registry.RegisterSingleTaskModel
+class DenseLm12kWide45BAdam16x16(DenseLm128B16x16):
+  """45B params LM model with 2D split and ADAM optimizer on v3-512."""
+
+  # Each layer has 1.875B parameters.
+  SEQUENCE_LENGTH = 1024
+  NUM_DEVICES_PER_SPLIT = 512
+  BATCH_DIM_PER_DEVICE = 0.5  # Total batch size 256
+  DEVICE_MESH_SHAPE = [16, 32]
+  DEVICE_MESH = gshard_utils.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [16, 16, 2])
+  NUM_TRANSFORMER_LAYERS = 24
+  HIDDEN_DIM = 48 * 1024
+  MODEL_DIM = 12 * 1024
+  NUM_HEADS = 128
+  ATTENTION_KEY_VALUE_DIM = 128
+  GATED_GELU = False
+  POSITIONAL_EMBEDDING = True
+
+  def Task(self):
+    p = super().Task()
+    p.train.optimizer = ShardedAdam.Params().Set(
+        beta1=0.9,
+        beta2=0.999,
+        epsilon=1e-6,
+    )
+    return p
+
+
+# Expect ~ 10.9k tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr \
+# --model=lm.synthetic_packed_input.DenseLm12kWide180BAdam16x16 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
+# --ps_replicas=32 --job=executor_tpu
+@model_registry.RegisterSingleTaskModel
+class DenseLm12kWide180BAdam16x16(DenseLm12kWide45BAdam16x16):
+  """180B params LM model with 2D split and ADAM optimizer on v3-512."""
+
+  BATCH_DIM_PER_DEVICE = 0.125  # Total batch size 64
+  NUM_TRANSFORMER_LAYERS = 96
+
+
+# Expect ~ XXX tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr \
+# --model=lm.synthetic_packed_input.DenseLm12kWide180BAdam32x32 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
+# --ps_replicas=128 --job=executor_tpu
+@model_registry.RegisterSingleTaskModel
+class DenseLm12kWide180BAdam32x32(DenseLm12kWide180BAdam16x16):
+  """180B params LM model with 2D split and ADAM optimizer on v3-2048."""
+
+  NUM_DEVICES_PER_SPLIT = 2048
+  BATCH_DIM_PER_DEVICE = 0.125  # Total batch size 256
   DEVICE_MESH_SHAPE = [32, 64]
   DEVICE_MESH = np.reshape(
       np.arange(0, np.product(DEVICE_MESH_SHAPE)), DEVICE_MESH_SHAPE)
