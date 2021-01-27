@@ -51,10 +51,13 @@ class Trainer(base_runner.BaseRunner):
     super().__init__(*args, **kwargs)
     self._job_name = 'trainer'
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
+      self._CreateTF2SummaryWriter(self._train_dir)
+      with self._cluster, tf.device(
+          self._cluster.GetPlacer()), self._TF2SummaryContext():
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
+      self._CreateTF2SummaryOps()
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
@@ -122,6 +125,7 @@ class Trainer(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
+      self._InitializeTF2SummaryWriter(sess)
       for task in self._model.tasks:
         task.input.Initialize(sess)
       global_step = self._WaitUntilInit(sess, self._start_up_delay_steps)
@@ -169,7 +173,7 @@ class Trainer(base_runner.BaseRunner):
         task_global_step = sess.run(task.global_step)
         task.ProcessFPropResults(sess, task_global_step, eval_metrics,
                                  per_example_tensors)
-
+        self._RunTF2SummaryOps(sess)
         global_step = sess.run(self._model.global_step)
         step_rate, example_rate, total_examples = (
             self._step_rate_tracker.ComputeStepRate(
@@ -252,7 +256,9 @@ class Decoder(base_runner.BaseRunner):
         self.params.reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
+      self._CreateTF2SummaryWriter(self._decoder_dir)
+      with self._cluster, tf.device(
+          self._cluster.GetPlacer()), self._TF2SummaryContext():
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._task = self._model.GetTask(self._model_task_name)
@@ -268,6 +274,7 @@ class Decoder(base_runner.BaseRunner):
         self._summary_op = tf.summary.merge_all()
         self.checkpointer = self._CreateCheckpointer(self._train_dir,
                                                      self._model)
+      self._CreateTF2SummaryOps()
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for decoder models.
@@ -294,6 +301,7 @@ class Decoder(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
+      self._InitializeTF2SummaryWriter(sess)
       self._task.input.Initialize(sess)
 
       if self._decode_path:
@@ -363,6 +371,7 @@ class Decoder(base_runner.BaseRunner):
           dec_out, summary = sess.run([self._dec_output, self._summary_op],
                                       options=run_options)
           self._summary_writer.add_summary(summary, global_step)
+        self._RunTF2SummaryOps(sess)
         post_process_start = time.time()
         tf.logging.info('Done fetching (%f seconds)' %
                         (post_process_start - fetch_start))

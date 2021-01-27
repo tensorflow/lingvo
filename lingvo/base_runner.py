@@ -388,6 +388,24 @@ class BaseRunner:
     """Creates and returns a tf summary writer."""
     return tf.summary.FileWriter(logdir)
 
+  def _CreateTF2SummaryWriter(self, logdir):
+    """Creates a tf2 summary writer."""
+    self._tf2_summary_writer = tf.compat.v2.summary.create_file_writer(logdir)
+
+  def _TF2SummaryContext(self):
+    return self._tf2_summary_writer.as_default()
+
+  def _CreateTF2SummaryOps(self):
+    self._tf2_summary_op = tf.compat.v1.summary.all_v2_summary_ops()
+    self._tf2_summary_flush = self._tf2_summary_writer.flush()
+
+  def _InitializeTF2SummaryWriter(self, sess):
+    sess.run(self._tf2_summary_writer.init())
+
+  def _RunTF2SummaryOps(self, sess):
+    sess.run(self._tf2_summary_op)
+    sess.run(self._tf2_summary_flush)
+
   def _WriteSummaries(self,
                       summary_writer,
                       job_name,

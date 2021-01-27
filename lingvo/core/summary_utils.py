@@ -42,6 +42,27 @@ def image(*args, **kwargs):  # pylint: disable=invalid-name
     tf.summary.image(*args, **kwargs)
 
 
+def scalar_v2(*args, **kwargs):  # pylint: disable=invalid-name
+  if _ShouldAddSummary():
+    if len(args) <= 2 and 'step' not in kwargs:
+      kwargs['step'] = py_utils.GetGlobalStep()
+    tf.compat.v2.summary.scalar(*args, **kwargs)
+
+
+def histogram_v2(*args, **kwargs):  # pylint: disable=invalid-name
+  if _ShouldAddSummary():
+    if len(args) <= 2 and 'step' not in kwargs:
+      kwargs['step'] = py_utils.GetGlobalStep()
+    tf.compat.v2.summary.histogram(*args, **kwargs)
+
+
+def image_v2(*args, **kwargs):  # pylint: disable=invalid-name
+  if _ShouldAddSummary():
+    if len(args) <= 2 and 'step' not in kwargs:
+      kwargs['step'] = py_utils.GetGlobalStep()
+    tf.compat.v2.summary.image(*args, **kwargs)
+
+
 def SequenceLength(padding):
   """Computes the length of a sequence based on binary padding.
 

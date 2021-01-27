@@ -416,7 +416,9 @@ class TrainerTpu(base_runner.BaseRunner):
     _WaitUntilInitTpu()
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
+      self._CreateTF2SummaryWriter(self._train_dir)
+      with self._cluster, tf.device(
+          self._cluster.GetPlacer()), self._TF2SummaryContext():
         with cluster_factory.SetImmediatelyInstantiateVariables(False):
           self._model = self.params.Instantiate()
         self._task = self._model.GetTask()
@@ -426,6 +428,7 @@ class TrainerTpu(base_runner.BaseRunner):
         # Needed due to the AddExtraTheta() reference to global_step when
         # instantiating the InputGenerator.
         _ = py_utils.GetOrCreateGlobalStepVar()
+        self._CreateTF2SummaryOps()
 
         def TpuTrainStep(*args):
           """Train a shard of a batch on a single TPU core.
@@ -667,6 +670,7 @@ class TrainerTpu(base_runner.BaseRunner):
           tf.tpu.initialize_system(embedding_config=config_proto, job=None))
       sess.run(self._initialize_tables)
       sess.run(self._initialize_local_vars)
+      self._InitializeTF2SummaryWriter(sess)
 
       if FLAGS.run_locally == 'tpu':
         sess.run(self._initialize_global_vars)
@@ -745,6 +749,7 @@ class TrainerTpu(base_runner.BaseRunner):
             self._step_rate_tracker.ComputeStepRate(
                 global_step,
                 eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop))
+        self._RunTF2SummaryOps(sess)
         self._SummarizeValue(global_step, 'global_step/sec', step_rate)
         self._SummarizeValue(global_step, 'examples/sec', example_rate)
         self._SummarizeValue(global_step, 'total_samples', total_examples)
@@ -802,11 +807,14 @@ class Evaler(base_runner.BaseRunner):
         self.params.reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
+      self._CreateTF2SummaryWriter(self._eval_dir)
+      with self._cluster, tf.device(
+          self._cluster.GetPlacer()), self._TF2SummaryContext():
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropGraph()
         self._task = self._model.GetTask(self._model_task_name)
+      self._CreateTF2SummaryOps()
       self._summary_op = tf.summary.merge_all()
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
@@ -836,6 +844,7 @@ class Evaler(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
+      self._InitializeTF2SummaryWriter(sess)
       self._task.input.Initialize(sess)
 
       if self._eval_path:
@@ -958,6 +967,7 @@ class Evaler(base_runner.BaseRunner):
     if 'num_words' in metrics_dict:
       metrics_dict['num_words'].total_weight = 1.0
 
+    self._RunTF2SummaryOps(sess)
     summaries = {k: v.Summary(k) for k, v in metrics_dict.items()}
     summaries['total_samples'] = metrics.CreateScalarSummary(
         'total_samples', num_samples_metric.total_value)
