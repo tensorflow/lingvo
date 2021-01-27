@@ -344,6 +344,8 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Extra logit for attention softmax.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_kernel_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Optional 1D convolutional kernel after layer norm.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
@@ -1302,9 +1304,13 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_RmsNormNoScale</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Overriding with bias-less layer norm.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">if</span> <span class="n">scale</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNNoScale</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_kernel_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNNoScale</span><span class="p">(</span><span class="s1">&#39;ln_no_scale&#39;</span><span class="p">),</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_kernel_size</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._LNInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LNInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_LNInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Internal implementation of _LN with optional reshape of the weight.&quot;&quot;&quot;</span>
