@@ -192,6 +192,8 @@ class MoEBuilder(builder.Base):
 
     p.Define('attention_extra_logit', None,
              'Extra logit for attention softmax.')
+    p.Define('ln_kernel_size', None,
+             'Optional 1D convolutional kernel after layer norm.')
     return p
 
   @property
@@ -1150,9 +1152,13 @@ class MoEBuilder(builder.Base):
 
     return self._Fn(name, _RmsNormNoScale)
 
-  def _LN(self, name, scale=True):
+  def _LN(self, name):
     """Overriding with bias-less layer norm."""
-    return self._LNInternal(name) if scale else self._LNNoScale(name)
+    p = self.params
+    if p.ln_kernel_size is None:
+      return self._LNInternal(name)
+    return self._Seq(name, self._LNNoScale('ln_no_scale'),
+                     self.DepthwiseConvAutoregressive('conv', p.ln_kernel_size))
 
   def _LNInternal(self, name, ln_weight_reshape=None):
     """Internal implementation of _LN with optional reshape of the weight."""
