@@ -3686,6 +3686,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;scale_sqrt_depth&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set True, activations are scaled&#39;</span>
         <span class="s1">&#39; with sqrt(embedding_dim) in EmbLookup.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb_with_matmul&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;use one-hot vector to perform matmul.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3714,9 +3715,16 @@
         <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
             <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
     <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
-    <span class="c1"># TODO(yonghui): Get rid of this extra copy (tf.transpose).</span>
-    <span class="n">emb_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
-    <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">emb_vars</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_with_matmul</span><span class="p">:</span>
+      <span class="c1"># [b, t, vocab_size]</span>
+      <span class="n">one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">w</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;kv,...v-&gt;...k&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># TODO(yonghui): Get rid of this extra copy (tf.transpose).</span>
+      <span class="n">emb_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">emb_vars</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
       <span class="n">embs</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
     <span class="n">embs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
