@@ -1936,7 +1936,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       # Post projection.
       # [B, Q, D]
-      output = self.post.FProp(self.theta.post, output)
+      output = self.post.FProp(theta.post, output)
 
       state1 = py_utils.NestedMap(
           key=next_key, value=next_value, masks=new_masks, tail=next_tail)
@@ -2015,7 +2015,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       # Post projection.
       # [B,Q,D]
-      output = self.post.FProp(self.theta.post, output)
+      output = self.post.FProp(theta.post, output)
 
       state1 = py_utils.NestedMap(
           key=key[:, -(p.left_context - 1):, :, :],
@@ -3340,7 +3340,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       unnormalized_query_vec = query_vec
 
       if p.ln_tpl:
-        query_vec = self.layer_norm.FProp(self.theta.layer_norm, query_vec)
+        query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
         query_vec = self._CastToFPropDtype(query_vec)
 
       output, paddings, atten_state1 = self.atten.StreamStep(

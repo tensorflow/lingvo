@@ -646,7 +646,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
       # [b, seqlen, 1, filter_shape[-1]]
       outputs = tf.nn.depthwise_conv2d(
           inputs,
-          self._GetWeight(self.theta),
+          self._GetWeight(theta),
           strides=(1, 1, 1, 1),
           dilations=(1, 1),
           data_format='NHWC',
