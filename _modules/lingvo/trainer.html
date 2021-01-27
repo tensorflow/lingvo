@@ -568,7 +568,9 @@
     <span class="n">_WaitUntilInitTpu</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
-      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TF2SummaryContext</span><span class="p">():</span>
         <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
@@ -578,6 +580,7 @@
         <span class="c1"># Needed due to the AddExtraTheta() reference to global_step when</span>
         <span class="c1"># instantiating the InputGenerator.</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTF2SummaryOps</span><span class="p">()</span>
 
         <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
           <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
@@ -819,6 +822,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="n">config_proto</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_InitializeTF2SummaryWriter</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span><span class="p">)</span>
@@ -897,6 +901,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span><span class="o">.</span><span class="n">ComputeStepRate</span><span class="p">(</span>
                 <span class="n">global_step</span><span class="p">,</span>
                 <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_RunTF2SummaryOps</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;global_step/sec&#39;</span><span class="p">,</span> <span class="n">step_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;total_samples&#39;</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">)</span>
@@ -954,11 +959,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">reporting_job</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
-      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">)</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TF2SummaryContext</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTF2SummaryOps</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
@@ -988,6 +996,7 @@
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_InitializeTF2SummaryWriter</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_path</span><span class="p">:</span>
@@ -1110,6 +1119,7 @@
     <span class="k">if</span> <span class="s1">&#39;num_words&#39;</span> <span class="ow">in</span> <span class="n">metrics_dict</span><span class="p">:</span>
       <span class="n">metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_words&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">total_weight</span> <span class="o">=</span> <span class="mf">1.0</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunTF2SummaryOps</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">metrics_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="n">summaries</span><span class="p">[</span><span class="s1">&#39;total_samples&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span>
         <span class="s1">&#39;total_samples&#39;</span><span class="p">,</span> <span class="n">num_samples_metric</span><span class="o">.</span><span class="n">total_value</span><span class="p">)</span>
