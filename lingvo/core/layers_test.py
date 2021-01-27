@@ -5602,5 +5602,29 @@ class IdentityLayerTest(test_utils.TestCase):
       self.assertAllEqual(a.eval(), a_copy.eval())
 
 
+class SingleShardSharedEmbeddingSoftmaxLayerTest(test_utils.TestCase):
+
+  def testSingleShardSharedEmbeddingSoftmaxLayer(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      params = layers.SingleShardSharedEmbeddingSoftmax.Params()
+      params.name = 'emb'
+      params.dtype = tf.float32
+      params.vocab_size = 128
+      params.num_classes = 128
+      params.embedding_dim = 8
+      params.input_dim = 8
+      params.emb_with_matmul = True
+      params.params_init = py_utils.WeightInit.Gaussian(0.01)
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      emb_layer = params.Instantiate()
+      ids = tf.constant([[89], [100]])
+      embs = emb_layer.EmbLookupDefaultTheta(ids)
+      embs_sum = tf.reduce_sum(embs)
+      self.evaluate(tf.global_variables_initializer())
+      test_utils.CompareToGoldenSingleFloat(self, -0.031068, embs_sum.eval())
+
+
 if __name__ == '__main__':
   tf.test.main()

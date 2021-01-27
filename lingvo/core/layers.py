@@ -3534,6 +3534,7 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
     p.Define(
         'scale_sqrt_depth', False, 'If set True, activations are scaled'
         ' with sqrt(embedding_dim) in EmbLookup.')
+    p.Define('emb_with_matmul', False, 'use one-hot vector to perform matmul.')
     return p
 
   def __init__(self, params):
@@ -3562,9 +3563,16 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
         py_utils.assert_between(
             ids, 0, p.vocab_size, name='vocab_id_validation')
     ], ids)
-    # TODO(yonghui): Get rid of this extra copy (tf.transpose).
-    emb_vars = tf.transpose(theta.linear.w)
-    embs = tf.nn.embedding_lookup(emb_vars, tf.reshape(ids, [-1]))
+
+    if p.emb_with_matmul:
+      # [b, t, vocab_size]
+      one_hot = tf.one_hot(ids, p.vocab_size, dtype=theta.linear.w.dtype)
+      embs = tf.einsum('kv,...v->...k', theta.linear.w, one_hot)
+    else:
+      # TODO(yonghui): Get rid of this extra copy (tf.transpose).
+      emb_vars = tf.transpose(theta.linear.w)
+      embs = tf.nn.embedding_lookup(emb_vars, tf.reshape(ids, [-1]))
+
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
     embs = py_utils.AddVN(p, embs)
