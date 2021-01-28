@@ -173,9 +173,15 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   # additional components are fine. In particular, the 'misc' field is a list of
   # TensorArrays corresponding to the 'misc_states' in the DecoderStepState
   # across all steps.
-  SequenceOutTensorArrays = collections.namedtuple(
-      'SequenceOutTensorArrays',
-      ['rnn_outs', 'step_outs', 'atten_probs', 'logits', 'fusion', 'misc'])
+  SequenceOutTensorArrays = collections.namedtuple('SequenceOutTensorArrays', [
+      'rnn_outs',
+      'step_outs',
+      'atten_probs',
+      'logits',
+      'fusion',
+      'misc',
+      'confidence_logits',
+  ])
   # pylint: enable=invalid-name
 
   @classmethod
@@ -395,10 +401,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       self.CreateChild('smoother', p.label_smoothing)
 
     if p.confidence is not None:
-      AsrDecoderBase.SequenceOutTensorArrays = collections.namedtuple(
-          'SequenceOutTensorArrays',
-          AsrDecoderBase.SequenceOutTensorArrays._fields +
-          ('confidence_logits',))
       p.confidence.name = 'confidence'
       # Input to the confidence estimation module is:
       # pre-softmax feature, token embedding
@@ -856,27 +858,18 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             dtype=decoder_step_state_zero_misc_flat[i].dtype)
         for i in range(len(decoder_step_state_zero_misc_flat))
     ]
-    if p.confidence is None:
-      return AsrDecoder.SequenceOutTensorArrays(
-          rnn_outs=rnn_outs,
-          step_outs=step_outs,
-          atten_probs=atten_probs,
-          logits=logits,
-          fusion=fusion_array,
-          misc=misc)
-    else:
-      confidence_logits = _NewTensorArray(
-          name='confidence_logits',
-          max_seq_length=max_seq_length,
-          dtype=py_utils.FPropDtype(p))
-      return AsrDecoder.SequenceOutTensorArrays(
-          rnn_outs=rnn_outs,
-          step_outs=step_outs,
-          atten_probs=atten_probs,
-          logits=logits,
-          fusion=fusion_array,
-          misc=misc,
-          confidence_logits=confidence_logits)
+    confidence_logits = _NewTensorArray(
+        name='confidence_logits',
+        max_seq_length=max_seq_length,
+        dtype=py_utils.FPropDtype(p))
+    return AsrDecoder.SequenceOutTensorArrays(
+        rnn_outs=rnn_outs,
+        step_outs=step_outs,
+        atten_probs=atten_probs,
+        logits=logits,
+        fusion=fusion_array,
+        misc=misc,
+        confidence_logits=confidence_logits)
 
   def _GetNewAttenProbs(self, seq_out_tas, time, decoder_step_state):
     """Update atten probs for a timestep and return the updated tensor array."""
@@ -908,22 +901,19 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     if self.params.confidence is not None:
       new_confidence_logits_ta = seq_out_tas.confidence_logits.write(
           time, decoder_step_state.confidence_logits)
-      return AsrDecoder.SequenceOutTensorArrays(
-          rnn_outs=new_rnn_outs,
-          step_outs=new_step_outs_ta,
-          atten_probs=new_atten_probs_ta,
-          logits=new_logits_ta,
-          fusion=new_seq_outs_fusion_states,
-          confidence_logits=new_confidence_logits_ta,
-          misc=new_seq_outs_misc_states)
     else:
-      return AsrDecoder.SequenceOutTensorArrays(
-          rnn_outs=new_rnn_outs,
-          step_outs=new_step_outs_ta,
-          atten_probs=new_atten_probs_ta,
-          logits=new_logits_ta,
-          fusion=new_seq_outs_fusion_states,
-          misc=new_seq_outs_misc_states)
+      # Fill the confidence field with softmax logits as a placeholder.
+      # Note that this will not be used as it will not pass to `predictions`.
+      new_confidence_logits_ta = seq_out_tas.confidence_logits.write(
+          time, decoder_step_state.logits)
+    return AsrDecoder.SequenceOutTensorArrays(
+        rnn_outs=new_rnn_outs,
+        step_outs=new_step_outs_ta,
+        atten_probs=new_atten_probs_ta,
+        logits=new_logits_ta,
+        fusion=new_seq_outs_fusion_states,
+        confidence_logits=new_confidence_logits_ta,
+        misc=new_seq_outs_misc_states)
 
   def _GetAttenProbsFromSequenceOutTensorArrays(self, atten_probs):
     return tf.transpose(atten_probs.stack(), [1, 0, 2])
