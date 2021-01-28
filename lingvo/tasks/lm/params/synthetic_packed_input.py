@@ -249,14 +249,26 @@ class ShardedAdamOptimizer(tf.train.AdamOptimizer):
 class ShardedAdam(optimizer.Adam):
   """Adam optimizer wrapper that shards the slot variables."""
 
+  @classmethod
+  def Params(cls):
+    params = super().Params()
+    params.Define('num_micro_batches', 1, 'Number of accumulated batches.')
+    return params
+
   def GetOptimizer(self, lr):
     p = self.params
-    return ShardedAdamOptimizer(
+    opt = ShardedAdamOptimizer(
         learning_rate=lr,
         beta1=p.beta1,
         beta2=p.beta2,
         epsilon=p.epsilon,
         name=p.name)
+    if p.num_micro_batches > 1:
+      tf.logging.info('Applying gradient aggregation.')
+      opt = optimizer.GradientAggregationOptimizer(
+          opt, p.num_micro_batches, apply_crs_to_grad=True)
+      self._cached_opt = opt
+    return opt
 
 
 # Expect ~ 53.8k tokens/sec
@@ -282,6 +294,7 @@ class DenseLm12kWide41BAdam16x16(DenseLm128B16x16):
   ATTENTION_KEY_VALUE_DIM = 128
   GATED_GELU = False
   POSITIONAL_EMBEDDING = True
+  NUM_MICRO_BATCHES = 1
 
   def Task(self):
     p = super().Task()
@@ -289,8 +302,24 @@ class DenseLm12kWide41BAdam16x16(DenseLm128B16x16):
         beta1=0.9,
         beta2=0.999,
         epsilon=1e-6,
-    )
+        num_micro_batches=self.NUM_MICRO_BATCHES)
     return p
+
+
+# Expect ~ 17.4k tokens/sec
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr \
+# --model=lm.synthetic_packed_input.DenseLm12kWide10BAdam8x8 \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \
+# --ps_replicas=8 --job=executor_tpu
+@model_registry.RegisterSingleTaskModel
+class DenseLm12kWide41BAdam8x8(DenseLm12kWide41BAdam16x16):
+  # IF OOM, try 0.25 BATCH_DIM_PER_DEVICE and 8 NUM_MICRO_BATCHES
+  BATCH_DIM_PER_DEVICE = 0.5  # Total micro-batch size 64
+  NUM_MICRO_BATCHES = 4  # Total batch size 256
+  NUM_DEVICES_PER_SPLIT = 128
+  DEVICE_MESH_SHAPE = [8, 16]
+  DEVICE_MESH = gshard_utils.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [8, 8, 2])
 
 
 # Expect ~ 12.5k tokens/sec
@@ -305,6 +334,12 @@ class DenseLm12kWide162BAdam16x16(DenseLm12kWide41BAdam16x16):
 
   BATCH_DIM_PER_DEVICE = 0.125  # Total batch size 64
   NUM_TRANSFORMER_LAYERS = 96
+
+
+@model_registry.RegisterSingleTaskModel
+class DenseLm12kWide162BAdamBS25616x16(DenseLm12kWide162BAdam16x16):
+  BATCH_DIM_PER_DEVICE = 0.125  # Total micro batch size 64
+  NUM_MICRO_BATCHES = 4  # Total batch size 256
 
 
 # Expect ~ XXX tokens/sec
