@@ -344,14 +344,72 @@ List of retrieve ops</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._SequenceEmbLookup">
+<code class="sig-name descname">_SequenceEmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dense_ids</span><span class="p">:</span> <span class="n">tensorflow.python.framework.ops.Tensor</span></em>, <em class="sig-param"><span class="n">partition_strategy</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable._SequenceEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._SequenceEmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sequence embedding lookup.</p>
+<p>Note that we do not support padding ids in sequence embeddings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dense_ids</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.</p></li>
+<li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor of dimension [batch,
+max_sequence_length, embedding_dim]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._CombinerEmbLookup">
+<code class="sig-name descname">_CombinerEmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sparse_ids</span><span class="p">:</span> <span class="n">tensorflow.python.framework.sparse_tensor.SparseTensor</span></em>, <em class="sig-param"><span class="n">partition_strategy</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable._CombinerEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._CombinerEmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combiner embedding lookup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sparse_ids</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int32
+SparseTensor.</p></li>
+<li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor of dimension [batch, 1,
+embedding_dim]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup">
-<code class="sig-name descname">CpuEmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span></em>, <em class="sig-param"><span class="n">partition_strategy</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup" title="Permalink to this definition">¶</a></dt>
-<dd><p>CPU evaluation embedding lookup.</p>
+<code class="sig-name descname">CpuEmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span><span class="p">:</span> <span class="n">Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">partition_strategy</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU evaluation embedding lookup for dense tensors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
--1 is used as a padding id.</p></li>
+For sequence embeddings, -1 is used as a padding id. Non-sequence
+embeddings do not support padded ids.</p></li>
+<li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor.
+For non-sequence embeddings: [batch, 1, embedding_dim]
+For sequence embeddings: [batch, max_sequence_length, embedding_dim]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookupSparse">
+<code class="sig-name descname">CpuEmbLookupSparse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span><span class="p">:</span> <span class="n">Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.sparse_tensor.SparseTensor<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">partition_strategy</span><span class="p">:</span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookupSparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookupSparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU evaluation embedding lookup for SparseTensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int32 SparseTensor.</p></li>
 <li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
 </ul>
 </dd>
@@ -405,20 +463,45 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup">
+<code class="sig-name descname">_TpuEmbLookup</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer._TpuEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>TPU Embedding lookup.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup">
-<code class="sig-name descname">EmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
-<dd><p>Looks up embedding vectors for each entry in ids_map.</p>
+<code class="sig-name descname">EmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span><span class="p">:</span> <span class="n">Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up embedding vectors for each entry in dense Tensor ids_map.</p>
 <p>Since the TPUEmbedding is monolothic, and consulted once per
-FProp/BPRop, we must centralize the lookup. Thus, for multiple
+FProp/BProp, we must centralize the lookup. Thus, for multiple
 features, we contain them into a single-lookup rather than allowing
 the caller to call Lookup multiple times.</p>
-<p>Currently, there’s also an implied combination step which combines
-the sequence into a single set of activations by sum, mean or
-sqrtn.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
--1 is used as a padding id.</p>
+For sequence embeddings, -1 is used as a padding id. Non-sequence
+embeddings do not support padded ids.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Activations dict of string -&gt;
+For non-sequence embeddings:  [batch, 1, embedding_dim],
+For sequence embeddings: [batch, max_sequence_length, embedding_dim]
+float32 Tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookupSparse">
+<code class="sig-name descname">EmbLookupSparse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids_map</span><span class="p">:</span> <span class="n">Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.sparse_tensor.SparseTensor<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)">str</a><span class="p">, </span>tensorflow.python.framework.ops.Tensor<span class="p">]</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.EmbLookupSparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookupSparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up embedding vectors for each entry in SparseTensor ids_map.</p>
+<p>Since the TPUEmbedding is monolothic, and consulted once per
+FProp/BProp, we must centralize the lookup. Thus, for multiple
+features, we contain them into a single-lookup rather than allowing
+the caller to call Lookup multiple times.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int32 SparseTensor.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Activations dict of string -&gt;
