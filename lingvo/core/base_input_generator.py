@@ -144,6 +144,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'decoder_samples_per_summary', None, 'If not None, overrides '
         'task_p.eval.decoder_samples_per_summary directly. Allowed to be 0, '
         'which means to use the entire dataset.')
+    p.Define(
+        'filter_sparse_tensors', False,
+        'If true, filter out SparseTensors in input_batch before enqueuing '
+        'onto TPU.')
     cls.DefineInfeedParams(p)
 
     p.Define('remote', hyperparams.Params(),
@@ -269,6 +273,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
                                   'once.')
     self._tpu_queues = []
     self._per_host_batches = []
+    self._per_host_emb_batches = []
     self._per_host_passthrough_batches = []
     p = self.params
     cluster = self.cluster
@@ -332,6 +337,27 @@ class BaseInputGenerator(base_layer.BaseLayer):
             # compatible with each other.
             assert py_utils.IsCompatible(b, batch[0])
         tf.logging.info('CPU passthrough keys: %s', cpu_passthrough_keys)
+
+        if p.filter_sparse_tensors:
+          # Make a copy of this host's input batch, then filter out any
+          # SparseTensor features. This way, SparseTensor features are not fed
+          # into the TPU InfeedQueue (and only to TPUEmbedding).
+          # TODO(jeffreyzhao): Hack, come up with better solution.
+          # Ideally we would like users to override
+          # _CreateTpuEmbeddingEnqueueOpsForHost() to modify the input batch
+          # and remove fields they don't want to enqueue onto TPU.
+          # However, the TPUEmbedding singleton and TPU embedding enqueue ops
+          # are currently constructed after CreateTpuEnqueueOps() is called.
+          emb_batch = [py_utils.NestedMap() for _ in range(len(batch))]
+          new_batch = [py_utils.NestedMap() for _ in range(len(batch))]
+          for i, b in enumerate(batch):
+            for k, v in b.items():
+              if isinstance(v, tf.sparse.SparseTensor):
+                emb_batch[i][k] = v
+              else:
+                new_batch[i][k] = v
+          self._per_host_emb_batches.append(emb_batch)
+          batch = new_batch
 
         self._batch_nm_types = batch[0]
         tf.logging.info('host_device: %s, batch: %r', host_device, batch)
@@ -464,7 +490,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
     cluster = self.cluster
     num_tpu_hosts = cluster.num_tpu_hosts
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
-    assert len(self._per_host_batches) == num_infeed_hosts
+    if p.filter_sparse_tensors:
+      assert len(self._per_host_emb_batches) == num_infeed_hosts
+    else:
+      assert len(self._per_host_batches) == num_infeed_hosts
 
     if num_tpu_hosts > 1 and tpu_embedding is not None:
       if not p.use_per_host_infeed:
@@ -475,7 +504,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
     enqueue_ops = []
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
-      batch = self._per_host_batches[task_id]
+      if p.filter_sparse_tensors:
+        batch = self._per_host_emb_batches[task_id]
+      else:
+        batch = self._per_host_batches[task_id]
       assert len(batch) == 1, "Tpu Embedding doesn't support sharded inputs."
       batch = batch[0]
       with tf.device(host_device):
