@@ -5291,11 +5291,12 @@
 <span class="sd">      A tensor containing the adapted activations with the same shape as inputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">tasks</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">clip_task_ids</span><span class="p">:</span>
       <span class="n">tasks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="c1"># [batch, num_tasks].</span>
-    <span class="n">tasks_onehot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">tasks_onehot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="c1"># Einsum axis names:</span>
     <span class="c1"># b - batch</span>
