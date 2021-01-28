@@ -471,6 +471,12 @@ input tensors.</p>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.optimizer.html#lingvo.core.optimizer.Adam" title="lingvo.core.optimizer.Adam"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Adam</span></code></a></p>
 <p>Adam optimizer wrapper that shards the slot variables.</p>
 <dl class="py method">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.ShardedAdam.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/synthetic_packed_input.html#ShardedAdam.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.ShardedAdam.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.tasks.lm.params.synthetic_packed_input.ShardedAdam.GetOptimizer">
 <code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/synthetic_packed_input.html#ShardedAdam.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.ShardedAdam.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
@@ -543,11 +549,47 @@ input tensors.</p>
 <code class="sig-name descname">POSITIONAL_EMBEDDING</code><em class="property"> = True</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16.POSITIONAL_EMBEDDING" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16.NUM_MICRO_BATCHES">
+<code class="sig-name descname">NUM_MICRO_BATCHES</code><em class="property"> = 1</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16.NUM_MICRO_BATCHES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16.Task">
 <code class="sig-name descname">Task</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/synthetic_packed_input.html#DenseLm12kWide41BAdam16x16.Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16.Task" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns task params.</p>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.lm.params.synthetic_packed_input.</code><code class="sig-name descname">DenseLm12kWide41BAdam8x8</code><a class="reference internal" href="_modules/lingvo/tasks/lm/params/synthetic_packed_input.html#DenseLm12kWide41BAdam8x8"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16" title="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16</span></code></a></p>
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.BATCH_DIM_PER_DEVICE">
+<code class="sig-name descname">BATCH_DIM_PER_DEVICE</code><em class="property"> = 0.5</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.BATCH_DIM_PER_DEVICE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.NUM_MICRO_BATCHES">
+<code class="sig-name descname">NUM_MICRO_BATCHES</code><em class="property"> = 4</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.NUM_MICRO_BATCHES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.NUM_DEVICES_PER_SPLIT">
+<code class="sig-name descname">NUM_DEVICES_PER_SPLIT</code><em class="property"> = 128</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.NUM_DEVICES_PER_SPLIT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.DEVICE_MESH_SHAPE">
+<code class="sig-name descname">DEVICE_MESH_SHAPE</code><em class="property"> = [8, 16]</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.DEVICE_MESH_SHAPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.DEVICE_MESH">
+<code class="sig-name descname">DEVICE_MESH</code><em class="property"> = array([[  0,   2,   4,   6,   8,  10,  12,  14,  15,  13,  11,   9,   7,           5,   3,   1],        [ 32,  34,  36,  38,  40,  42,  44,  46,  47,  45,  43,  41,  39,          37,  35,  33],        [ 64,  66,  68,  70,  72,  74,  76,  78,  79,  77,  75,  73,  71,          69,  67,  65],        [ 96,  98, 100, 102, 104, 106, 108, 110, 111, 109, 107, 105, 103,         101,  99,  97],        [112, 114, 116, 118, 120, 122, 124, 126, 127, 125, 123, 121, 119,         117, 115, 113],        [ 80,  82,  84,  86,  88,  90,  92,  94,  95,  93,  91,  89,  87,          85,  83,  81],        [ 48,  50,  52,  54,  56,  58,  60,  62,  63,  61,  59,  57,  55,          53,  51,  49],        [ 16,  18,  20,  22,  24,  26,  28,  30,  31,  29,  27,  25,  23,          21,  19,  17]])</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8.DEVICE_MESH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -564,6 +606,22 @@ input tensors.</p>
 <dl class="py attribute">
 <dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdam16x16.NUM_TRANSFORMER_LAYERS">
 <code class="sig-name descname">NUM_TRANSFORMER_LAYERS</code><em class="property"> = 96</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdam16x16.NUM_TRANSFORMER_LAYERS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdamBS25616x16">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.lm.params.synthetic_packed_input.</code><code class="sig-name descname">DenseLm12kWide162BAdamBS25616x16</code><a class="reference internal" href="_modules/lingvo/tasks/lm/params/synthetic_packed_input.html#DenseLm12kWide162BAdamBS25616x16"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdamBS25616x16" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdam16x16" title="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdam16x16"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdam16x16</span></code></a></p>
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdamBS25616x16.BATCH_DIM_PER_DEVICE">
+<code class="sig-name descname">BATCH_DIM_PER_DEVICE</code><em class="property"> = 0.125</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdamBS25616x16.BATCH_DIM_PER_DEVICE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdamBS25616x16.NUM_MICRO_BATCHES">
+<code class="sig-name descname">NUM_MICRO_BATCHES</code><em class="property"> = 4</em><a class="headerlink" href="#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdamBS25616x16.NUM_MICRO_BATCHES" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
