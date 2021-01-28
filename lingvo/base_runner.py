@@ -15,6 +15,7 @@
 # ==============================================================================
 """Base class for all jobs."""
 
+import contextlib
 import os
 import time
 import traceback
@@ -24,6 +25,12 @@ import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
+
+
+tf.flags.DEFINE_bool('disable_tf2_summary', False,
+                     'If True, disables TF2 summary writing.')
+
+FLAGS = tf.flags.FLAGS
 
 
 class BaseRunner:
@@ -390,19 +397,29 @@ class BaseRunner:
 
   def _CreateTF2SummaryWriter(self, logdir):
     """Creates a tf2 summary writer."""
+    if FLAGS.disable_tf2_summary:
+      return
     self._tf2_summary_writer = tf.compat.v2.summary.create_file_writer(logdir)
 
   def _TF2SummaryContext(self):
+    if FLAGS.disable_tf2_summary:
+      return contextlib.ExitStack()
     return self._tf2_summary_writer.as_default()
 
   def _CreateTF2SummaryOps(self):
+    if FLAGS.disable_tf2_summary:
+      return
     self._tf2_summary_op = tf.compat.v1.summary.all_v2_summary_ops()
     self._tf2_summary_flush = self._tf2_summary_writer.flush()
 
   def _InitializeTF2SummaryWriter(self, sess):
+    if FLAGS.disable_tf2_summary:
+      return
     sess.run(self._tf2_summary_writer.init())
 
   def _RunTF2SummaryOps(self, sess):
+    if FLAGS.disable_tf2_summary:
+      return
     sess.run(self._tf2_summary_op)
     sess.run(self._tf2_summary_flush)
 
