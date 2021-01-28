@@ -183,14 +183,19 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'target_seq_length_ratio', 1.0,
         'Ratio of the average target sequence length over the average '
         'source sequence length.')
-    p.Define('length_normalization', 0.0,
-             'Beam search length normalization ratio.')
+    p.Define(
+        'length_normalization', 0.0,
+        'Beam search length normalization factor, typically in [0, 1]. '
+        'This is the exponent on (len+5)/5 used to normalize '
+        'global score. The larger this value is, the more likely '
+        'longer sequences are produced.')
     p.Define('coverage_penalty', 0.0, 'Beam search coverage penalty.')
     p.Define(
         'valid_eos_max_logit_delta', 5.0,
         'During beam search, allow </s> to terminate a hyp only if its '
         'logit is no more than than this value away from the logit of the '
-        'best candidate.')
+        'best candidate. The larger this value is, the easier hyps can '
+        'terminate, and the more likely shorter sequences are produced.')
     p.Define(
         'beam_size', 3.0,
         'The maximum difference between best hyp and the worst in a beam.'
