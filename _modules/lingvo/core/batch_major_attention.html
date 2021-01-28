@@ -4755,7 +4755,9 @@
           <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">],</span>
           <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
       <span class="c1"># Divide by non-padding ratios to eliminate the effect of padded values.</span>
-      <span class="n">pooled_tensor</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reciprocal_no_nan</span><span class="p">(</span><span class="n">non_padding_ratio</span><span class="p">)</span>
+      <span class="n">non_padding_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">non_padding_ratio</span><span class="p">,</span>
+                                          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">pooled_tensor</span><span class="p">))</span>
+      <span class="n">pooled_tensor</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DivideNoNan</span><span class="p">(</span><span class="n">pooled_tensor</span><span class="p">,</span> <span class="n">non_padding_ratio</span><span class="p">)</span>
 
     <span class="n">pooled_paddings</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">paddings</span><span class="p">[:,</span> <span class="p">::</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span> <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
