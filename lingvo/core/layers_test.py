@@ -5452,7 +5452,8 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
                           rtol=1e-05,
                           atol=1e-05)
 
-  def testEinsumLayer(self):
+  @parameterized.parameters((None, 3.675607), (tf.bfloat16, 3.671875))
+  def testEinsumLayer(self, fprop_dtype, expected_sum):
     with self.session(use_gpu=True):
       np.random.seed(1234567)
       # Inputs are of shape [batch, 1, input_dim] (single time step)
@@ -5467,23 +5468,18 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
           input_dim=4,
           bottleneck_dim=2,
           num_tasks=3,
+          fprop_dtype=fprop_dtype,
           random_seed=505837249)
       adapter = p.Instantiate()
       output = adapter.FProp(adapter.theta, inputs, tasks)
       self.evaluate(tf.global_variables_initializer())
-      actual = self.evaluate(output)
+      actual, actual_sum = self.evaluate((output, tf.reduce_sum(output)))
       tf.logging.info('testSingleStepFProp actual=%r' % actual)
-      expected = [
-          [[6.3492334e-01, 2.6718906e-01, -3.9131656e-01, 1.6911125e-01]],
-          [[0.0000000e+00, 6.9999999e-01, -1.0000000e+00, 2.0000000e+00]],
-          [[6.3492334e-01, 2.6718906e-01, -3.9131656e-01, 1.6911125e-01]],
-          [[5.0079054e-01, 3.0323744e-01, -1.9019605e-01, 1.9604811e-03]]
-      ]
       self.assertEqual(actual.shape, (4, 1, 4))
       # Batch elements 0 and 2 are equal because they had the same input
       # and the same task ID.
       self.assertAllClose(actual[0][0], actual[2][0], rtol=1e-05, atol=1e-05)
-      self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_sum, actual_sum, rtol=1e-05, atol=1e-05)
 
 
 class CCTGatingNetworkTest(test_utils.TestCase):

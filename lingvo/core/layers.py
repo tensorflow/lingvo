@@ -5139,11 +5139,12 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
       A tensor containing the adapted activations with the same shape as inputs.
     """
     p = self.params
+    inputs = self._CastToFPropDtype(inputs)
     assert tasks.shape.ndims == 1
     if p.clip_task_ids:
       tasks = tf.clip_by_value(tasks, 0, p.num_tasks - 1)
     # [batch, num_tasks].
-    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1)
+    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
 
     # Einsum axis names:
     # b - batch
