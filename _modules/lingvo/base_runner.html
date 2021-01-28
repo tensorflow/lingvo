@@ -167,6 +167,7 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Base class for all jobs.&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
@@ -176,6 +177,12 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">early_stop</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;disable_tf2_summary&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;If True, disables TF2 summary writing.&#39;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
 <div class="viewcode-block" id="BaseRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner">[docs]</a><span class="k">class</span> <span class="nc">BaseRunner</span><span class="p">:</span>
@@ -542,19 +549,29 @@
 
 <div class="viewcode-block" id="BaseRunner._CreateTF2SummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._CreateTF2SummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logdir</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a tf2 summary writer.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
+      <span class="k">return</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">create_file_writer</span><span class="p">(</span><span class="n">logdir</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseRunner._TF2SummaryContext"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._TF2SummaryContext">[docs]</a>  <span class="k">def</span> <span class="nf">_TF2SummaryContext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseRunner._CreateTF2SummaryOps"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._CreateTF2SummaryOps">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTF2SummaryOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
+      <span class="k">return</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">all_v2_summary_ops</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_flush</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseRunner._InitializeTF2SummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._InitializeTF2SummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_InitializeTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
+      <span class="k">return</span>
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span><span class="o">.</span><span class="n">init</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="BaseRunner._RunTF2SummaryOps"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunTF2SummaryOps">[docs]</a>  <span class="k">def</span> <span class="nf">_RunTF2SummaryOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
+      <span class="k">return</span>
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_op</span><span class="p">)</span>
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_flush</span><span class="p">)</span></div>
 
