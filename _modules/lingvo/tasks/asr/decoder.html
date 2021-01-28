@@ -325,9 +325,15 @@
   <span class="c1"># additional components are fine. In particular, the &#39;misc&#39; field is a list of</span>
   <span class="c1"># TensorArrays corresponding to the &#39;misc_states&#39; in the DecoderStepState</span>
   <span class="c1"># across all steps.</span>
-  <span class="n">SequenceOutTensorArrays</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
-      <span class="s1">&#39;SequenceOutTensorArrays&#39;</span><span class="p">,</span>
-      <span class="p">[</span><span class="s1">&#39;rnn_outs&#39;</span><span class="p">,</span> <span class="s1">&#39;step_outs&#39;</span><span class="p">,</span> <span class="s1">&#39;atten_probs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="s1">&#39;fusion&#39;</span><span class="p">,</span> <span class="s1">&#39;misc&#39;</span><span class="p">])</span>
+  <span class="n">SequenceOutTensorArrays</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;SequenceOutTensorArrays&#39;</span><span class="p">,</span> <span class="p">[</span>
+      <span class="s1">&#39;rnn_outs&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;step_outs&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;atten_probs&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;logits&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;fusion&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;misc&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;confidence_logits&#39;</span><span class="p">,</span>
+  <span class="p">])</span>
   <span class="c1"># pylint: enable=invalid-name</span>
 
 <div class="viewcode-block" id="AsrDecoderBase.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -547,10 +553,6 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;smoother&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">AsrDecoderBase</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
-          <span class="s1">&#39;SequenceOutTensorArrays&#39;</span><span class="p">,</span>
-          <span class="n">AsrDecoderBase</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span><span class="o">.</span><span class="n">_fields</span> <span class="o">+</span>
-          <span class="p">(</span><span class="s1">&#39;confidence_logits&#39;</span><span class="p">,))</span>
       <span class="n">p</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;confidence&#39;</span>
       <span class="c1"># Input to the confidence estimation module is:</span>
       <span class="c1"># pre-softmax feature, token embedding</span>
@@ -1008,27 +1010,18 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">decoder_step_state_zero_misc_flat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">decoder_step_state_zero_misc_flat</span><span class="p">))</span>
     <span class="p">]</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">AsrDecoder</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span><span class="p">(</span>
-          <span class="n">rnn_outs</span><span class="o">=</span><span class="n">rnn_outs</span><span class="p">,</span>
-          <span class="n">step_outs</span><span class="o">=</span><span class="n">step_outs</span><span class="p">,</span>
-          <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">,</span>
-          <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
-          <span class="n">fusion</span><span class="o">=</span><span class="n">fusion_array</span><span class="p">,</span>
-          <span class="n">misc</span><span class="o">=</span><span class="n">misc</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">confidence_logits</span> <span class="o">=</span> <span class="n">_NewTensorArray</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;confidence_logits&#39;</span><span class="p">,</span>
-          <span class="n">max_seq_length</span><span class="o">=</span><span class="n">max_seq_length</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-      <span class="k">return</span> <span class="n">AsrDecoder</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span><span class="p">(</span>
-          <span class="n">rnn_outs</span><span class="o">=</span><span class="n">rnn_outs</span><span class="p">,</span>
-          <span class="n">step_outs</span><span class="o">=</span><span class="n">step_outs</span><span class="p">,</span>
-          <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">,</span>
-          <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
-          <span class="n">fusion</span><span class="o">=</span><span class="n">fusion_array</span><span class="p">,</span>
-          <span class="n">misc</span><span class="o">=</span><span class="n">misc</span><span class="p">,</span>
-          <span class="n">confidence_logits</span><span class="o">=</span><span class="n">confidence_logits</span><span class="p">)</span></div>
+    <span class="n">confidence_logits</span> <span class="o">=</span> <span class="n">_NewTensorArray</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;confidence_logits&#39;</span><span class="p">,</span>
+        <span class="n">max_seq_length</span><span class="o">=</span><span class="n">max_seq_length</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">AsrDecoder</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span><span class="p">(</span>
+        <span class="n">rnn_outs</span><span class="o">=</span><span class="n">rnn_outs</span><span class="p">,</span>
+        <span class="n">step_outs</span><span class="o">=</span><span class="n">step_outs</span><span class="p">,</span>
+        <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">,</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
+        <span class="n">fusion</span><span class="o">=</span><span class="n">fusion_array</span><span class="p">,</span>
+        <span class="n">misc</span><span class="o">=</span><span class="n">misc</span><span class="p">,</span>
+        <span class="n">confidence_logits</span><span class="o">=</span><span class="n">confidence_logits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase._GetNewAttenProbs"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._GetNewAttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNewAttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq_out_tas</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update atten probs for a timestep and return the updated tensor array.&quot;&quot;&quot;</span>
@@ -1060,22 +1053,19 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">new_confidence_logits_ta</span> <span class="o">=</span> <span class="n">seq_out_tas</span><span class="o">.</span><span class="n">confidence_logits</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
           <span class="n">time</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">confidence_logits</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">AsrDecoder</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span><span class="p">(</span>
-          <span class="n">rnn_outs</span><span class="o">=</span><span class="n">new_rnn_outs</span><span class="p">,</span>
-          <span class="n">step_outs</span><span class="o">=</span><span class="n">new_step_outs_ta</span><span class="p">,</span>
-          <span class="n">atten_probs</span><span class="o">=</span><span class="n">new_atten_probs_ta</span><span class="p">,</span>
-          <span class="n">logits</span><span class="o">=</span><span class="n">new_logits_ta</span><span class="p">,</span>
-          <span class="n">fusion</span><span class="o">=</span><span class="n">new_seq_outs_fusion_states</span><span class="p">,</span>
-          <span class="n">confidence_logits</span><span class="o">=</span><span class="n">new_confidence_logits_ta</span><span class="p">,</span>
-          <span class="n">misc</span><span class="o">=</span><span class="n">new_seq_outs_misc_states</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">AsrDecoder</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span><span class="p">(</span>
-          <span class="n">rnn_outs</span><span class="o">=</span><span class="n">new_rnn_outs</span><span class="p">,</span>
-          <span class="n">step_outs</span><span class="o">=</span><span class="n">new_step_outs_ta</span><span class="p">,</span>
-          <span class="n">atten_probs</span><span class="o">=</span><span class="n">new_atten_probs_ta</span><span class="p">,</span>
-          <span class="n">logits</span><span class="o">=</span><span class="n">new_logits_ta</span><span class="p">,</span>
-          <span class="n">fusion</span><span class="o">=</span><span class="n">new_seq_outs_fusion_states</span><span class="p">,</span>
-          <span class="n">misc</span><span class="o">=</span><span class="n">new_seq_outs_misc_states</span><span class="p">)</span></div>
+      <span class="c1"># Fill the confidence field with softmax logits as a placeholder.</span>
+      <span class="c1"># Note that this will not be used as it will not pass to `predictions`.</span>
+      <span class="n">new_confidence_logits_ta</span> <span class="o">=</span> <span class="n">seq_out_tas</span><span class="o">.</span><span class="n">confidence_logits</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+          <span class="n">time</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">logits</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">AsrDecoder</span><span class="o">.</span><span class="n">SequenceOutTensorArrays</span><span class="p">(</span>
+        <span class="n">rnn_outs</span><span class="o">=</span><span class="n">new_rnn_outs</span><span class="p">,</span>
+        <span class="n">step_outs</span><span class="o">=</span><span class="n">new_step_outs_ta</span><span class="p">,</span>
+        <span class="n">atten_probs</span><span class="o">=</span><span class="n">new_atten_probs_ta</span><span class="p">,</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">new_logits_ta</span><span class="p">,</span>
+        <span class="n">fusion</span><span class="o">=</span><span class="n">new_seq_outs_fusion_states</span><span class="p">,</span>
+        <span class="n">confidence_logits</span><span class="o">=</span><span class="n">new_confidence_logits_ta</span><span class="p">,</span>
+        <span class="n">misc</span><span class="o">=</span><span class="n">new_seq_outs_misc_states</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase._GetAttenProbsFromSequenceOutTensorArrays"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._GetAttenProbsFromSequenceOutTensorArrays">[docs]</a>  <span class="k">def</span> <span class="nf">_GetAttenProbsFromSequenceOutTensorArrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">atten_probs</span><span class="o">.</span><span class="n">stack</span><span class="p">(),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span></div>
