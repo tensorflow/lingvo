@@ -335,14 +335,19 @@
         <span class="s1">&#39;target_seq_length_ratio&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="s1">&#39;Ratio of the average target sequence length over the average &#39;</span>
         <span class="s1">&#39;source sequence length.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;length_normalization&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
-             <span class="s1">&#39;Beam search length normalization ratio.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;length_normalization&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Beam search length normalization factor, typically in [0, 1]. &#39;</span>
+        <span class="s1">&#39;This is the exponent on (len+5)/5 used to normalize &#39;</span>
+        <span class="s1">&#39;global score. The larger this value is, the more likely &#39;</span>
+        <span class="s1">&#39;longer sequences are produced.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;coverage_penalty&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Beam search coverage penalty.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;valid_eos_max_logit_delta&#39;</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span>
         <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp only if its &#39;</span>
         <span class="s1">&#39;logit is no more than than this value away from the logit of the &#39;</span>
-        <span class="s1">&#39;best candidate.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;best candidate. The larger this value is, the easier hyps can &#39;</span>
+        <span class="s1">&#39;terminate, and the more likely shorter sequences are produced.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;beam_size&#39;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span>
         <span class="s1">&#39;The maximum difference between best hyp and the worst in a beam.&#39;</span>
