@@ -259,11 +259,11 @@ outputs a 0/1 padding mask instead.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – weights defined in this layer.</p></li>
-<li><p><strong>inputs</strong> – 4D tensor with shape […, p.dim]</p></li>
+<li><p><strong>inputs</strong> – A tensor with shape […, p.dim].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>4D tensor with shape […, p.dim]</p>
+<dd class="field-even"><p>A tensor with shape […, p.dim].</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>outpus</p>
@@ -338,13 +338,13 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
-<li><p><strong>inputs</strong> – A tensor of shape [batch_size, time_steps, num_heads,
-dim_per_head] or [batch_size, time_steps, hidden_size].</p></li>
+<li><p><strong>inputs</strong> – A tensor of shape […, num_heads, dim_per_head] or […,
+hidden_size].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The projected tensor with shape [[batch_size, time_steps, hidden_size] or
-[batch_size, time_steps, num_heads, dim_per_head].</p>
+<dd class="field-even"><p>The projected tensor with shape […, hidden_size] or
+[…, num_heads, dim_per_head].</p>
 </dd>
 </dl>
 </dd></dl>

@@ -175,6 +175,7 @@
 
 <span class="kn">import</span> <span class="nn">bisect</span>
 <span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention_util</span>
@@ -289,15 +290,17 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: weights defined in this layer.</span>
-<span class="sd">      inputs: 4D tensor with shape [..., p.dim]</span>
+<span class="sd">      inputs: A tensor with shape [..., p.dim].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      outpus: 4D tensor with shape [..., p.dim]</span>
+<span class="sd">      outpus: A tensor with shape [..., p.dim].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">dim</span> <span class="o">=</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+      <span class="n">expected_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">dim</span><span class="p">]],</span>
+                                 <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
 
       <span class="c1"># 1.0/tf.nn.softplus(0.0) = 1.442695041. Hard code this number so that we</span>
       <span class="c1"># can avoid unnecessary XLA op fusion mess on TPU.</span>
@@ -335,8 +338,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;is_output_projection&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether it is out projection or not. If False, we use &#39;</span>
-        <span class="s1">&#39;&quot;BTD,DNH-&gt;BTNH&quot; for query,key,value projection. Otherwise we use &#39;</span>
-        <span class="s1">&#39;&quot;BTNH,DNH-&gt;BTD&quot; for output projection.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;&quot;...D,DNH-&gt;...NH&quot; for query,key,value projection. Otherwise we use &#39;</span>
+        <span class="s1">&#39;&quot;...NH,DNH-&gt;...D&quot; for output projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;make_output_proj_no_op&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True no output projection is &#39;</span>
         <span class="s1">&#39;applied. This should be set with is_output_projection True and will &#39;</span>
@@ -399,27 +402,42 @@
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
-<span class="sd">      inputs: A tensor of shape [batch_size, time_steps, num_heads,</span>
-<span class="sd">        dim_per_head] or [batch_size, time_steps, hidden_size].</span>
+<span class="sd">      inputs: A tensor of shape [..., num_heads, dim_per_head] or [...,</span>
+<span class="sd">        hidden_size].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The projected tensor with shape [[batch_size, time_steps, hidden_size] or</span>
-<span class="sd">      [batch_size, time_steps, num_heads, dim_per_head].</span>
+<span class="sd">      The projected tensor with shape [..., hidden_size] or</span>
+<span class="sd">      [..., num_heads, dim_per_head].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Because tf.einsum is not fully optimized unless all the dimensions are</span>
+    <span class="c1"># fully specified, we have to avoid using &#39;...&#39; for batch dimensions in the</span>
+    <span class="c1"># equation in tf.einsum for optimized performance. This is only feasible</span>
+    <span class="c1"># when the rank of the tensor is known.</span>
+    <span class="n">eqn_sym</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_uppercase</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="s1">&#39;DHN&#39;</span><span class="p">))</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">rank</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">make_output_proj_no_op</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">inputs</span>
+
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span><span class="p">:</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
-                     <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">)])</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,DNH-&gt;BTD&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">expected_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">]],</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
+        <span class="n">batch_eqn</span> <span class="o">=</span> <span class="n">eqn_sym</span><span class="p">[:(</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)]</span> <span class="k">if</span> <span class="n">rank</span> <span class="k">else</span> <span class="s1">&#39;...&#39;</span>
+        <span class="n">eqn</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">NH,DNH-&gt;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">D&#39;</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)])</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTD,DNH-&gt;BTNH&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">expected_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
+        <span class="n">batch_eqn</span> <span class="o">=</span> <span class="n">eqn_sym</span><span class="p">[:(</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">if</span> <span class="n">rank</span> <span class="k">else</span> <span class="s1">&#39;...&#39;</span>
+        <span class="n">eqn</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">D,DNH-&gt;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">NH&#39;</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">eqn</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
         <span class="n">ret</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
       <span class="k">return</span> <span class="n">ret</span></div></div>
