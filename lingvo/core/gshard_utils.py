@@ -131,6 +131,28 @@ def GetNonPod2dMesh(device_mesh_shape, physical_mesh_shape):
   return device_mesh
 
 
+def ReshapeDim(x, dim, dim_reshape_segments=None):
+  """Reshapes tensor x according to dim_reshape_segments.
+
+  Args:
+    x: A input Tensor of shape [..., x.shape[dim], ...].
+    dim: The dim that needs to be reshaped.
+    dim_reshape_segments: The leading dim size of the reshaped dims.
+
+  Returns:
+    A Tensor of shape [..., dim_reshape_segments,
+    x.shape[dim] // dim_reshape_segments, ...].
+  """
+  if dim_reshape_segments is None:
+    return x
+  assert x.shape[dim] % dim_reshape_segments == 0
+  new_shape = list(x.shape[0:dim])
+  new_shape.append(dim_reshape_segments)
+  new_shape.append(x.shape[dim] // dim_reshape_segments)
+  new_shape.extend(d for d in x.shape[dim + 1:])
+  return tf.reshape(x, new_shape)
+
+
 class TensorShardingSpec:
   """Represents a sharding annotation for GShard/XLA."""
 

@@ -273,6 +273,47 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
       return ret
 
 
+# TODO(shibow/wangtao) remove this after b/174094694 is done.
+class ReshapedMultiHeadedProjectionLayer(MultiHeadedProjectionLayer):
+  """MultiHeadedProjectionLayer with model dim D reshaped as Md."""
+
+  def FProp(self, theta, inputs):
+    """Computes the multi headed projection for inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: A tensor of shape [batch_size, time_steps, num_heads,
+        dim_per_head] or [batch_size, time_steps, dim_reshape_segments,
+        hidden_size // dim_reshape_segments].
+
+    Returns:
+      The projected tensor with shape [batch_size, time_steps,
+      dim_reshape_segments, hidden_size // dim_reshape_segments] or
+      [batch_size, time_steps, num_heads, dim_per_head].
+    """
+    p = self.params
+    assert p.device_mesh is not None
+    assert p.device_mesh.ndim >= 2
+    with tf.name_scope(p.name):
+      inputs = self._CastToFPropDtype(inputs)
+      if p.make_output_proj_no_op:
+        return inputs
+      theta.w = gshard_utils.ReshapeDim(theta.w, 0, p.device_mesh.shape[1])
+      if p.is_output_projection:
+        inputs = py_utils.HasShape(
+            inputs, [-1, -1, p.num_heads,
+                     symbolic.ToStatic(p.dim_per_head)])
+        ret = tf.einsum('BTNH,MdNH->BTMd', inputs, theta.w)
+      else:
+        ret = tf.einsum('BTMd,MdNH->BTNH', inputs, theta.w)
+      if p.use_bias:
+        if p.is_output_projection:
+          theta.b = gshard_utils.ReshapeDim(theta.b, 0, p.device_mesh.shape[1])
+        ret += theta.b
+      return ret
+
+
 class MultiHeadedAttention(base_layer.BaseLayer):
   """Dot-product attention with multiple attention heads.
 
@@ -3438,18 +3479,46 @@ class TransformerLayer(base_layer.BaseLayer):
     return p
 
   @classmethod
-  def SetCanonicalShardingParams(cls, params):
-    """Set up canonical SPMD sharding params."""
+  def SetCanonicalShardingParams(cls, params, reshape_dim=False):
+    """Set up canonical SPMD sharding params.
+
+    The topology is required to written as 2D. For 1D sharding, the topology is
+    expected to be written as [1, num_partitions]. The split_dims_mappings
+    specify how weights and activations are sharded in the corresponding layers.
+    fflayer has two projection layers(df/blf and fd/bld), so the
+    split_dims_mapping has higher rank to represent both projection layers one
+    after another.
+    For 1D sharding, better performance can be obtained by sharding activations
+    on batch dim, so bld is set to [1, -1, -1] and blnh to None (will be auto
+    propagated).
+    For 2D sharding, typical sharding is [0, -1, 1, -1] for blnh and [0, -1, 1]
+    for bld. If ReshapeDim trick is applied to model dim to remove the data
+    formatting overheads, the bld sharding annotation needs to be adpated as
+    [0, -1, 1, -1].
+
+    Args:
+      params: params of TransformerLayer.
+      reshape_dim: A bool, whether to reshape model dim.
+    """
+    # Weights
     params.tr_atten_tpl.atten_tpl.weight_split_dims_mapping = [0, 1, -1]
-    params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = None
-    params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.bld = [
-        1, -1, -1
-    ]
     params.tr_fflayer_tpl.fflayer_tpl.weight_split_dims_mapping_list = [[0, 1],
                                                                         [1, 0]]
-    params.tr_fflayer_tpl.fflayer_tpl.activation_split_dims_mapping_list = [[
-        0, -1, 1
-    ], [1, -1, -1]]
+    # Activations
+    params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = None
+    bld_split = [1, -1, -1]
+    blf_split = [0, -1, 1]
+    sharding_2d = (
+        params.device_mesh.shape[0] != 1 and params.device_mesh.shape[1] != 1)
+    if sharding_2d:
+      params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = [
+          0, -1, 1, -1
+      ]
+      bld_split = ([0, -1, 1, -1] if reshape_dim else [0, -1, 1])
+    params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.bld = bld_split
+    params.tr_fflayer_tpl.fflayer_tpl.activation_split_dims_mapping_list = [
+        blf_split, bld_split
+    ]
 
   @classmethod
   def SetFPropDtype(cls, p, fprop_dtype):
@@ -3458,6 +3527,31 @@ class TransformerLayer(base_layer.BaseLayer):
       if sub_p is not None:
         sub_p.cls.SetFPropDtype(sub_p, fprop_dtype)
     return p
+
+  @classmethod
+  def SetReshapedLayers(cls, params):
+
+    def _CopyParams(old_params, new_params):
+      old_params_dict = dict(old_params.IterParams())
+      del old_params_dict['cls']
+      new_params.Set(**old_params_dict)
+
+    old_tr_fflayer_p = params.tr_fflayer_tpl
+    old_tr_fflayer_ln_p = params.tr_fflayer_tpl.ln_tpl
+    old_tr_atten_ln_p = params.tr_atten_tpl.ln_tpl
+    old_tr_atten_atten_proj_p = params.tr_atten_tpl.atten_tpl.proj_tpl
+
+    params.tr_fflayer_tpl = (
+        layers_with_attention.ReshapedTransformerFeedForwardLayer.Params())
+    _CopyParams(old_tr_fflayer_p, params.tr_fflayer_tpl)
+    params.tr_fflayer_tpl.ln_tpl = layers.ReshapedLayerNorm.Params()
+    _CopyParams(old_tr_fflayer_ln_p, params.tr_fflayer_tpl.ln_tpl)
+    params.tr_atten_tpl.ln_tpl = layers.ReshapedLayerNorm.Params()
+    _CopyParams(old_tr_atten_ln_p, params.tr_atten_tpl.ln_tpl)
+    params.tr_atten_tpl.atten_tpl.proj_tpl = (
+        ReshapedMultiHeadedProjectionLayer.Params())
+    _CopyParams(old_tr_atten_atten_proj_p,
+                params.tr_atten_tpl.atten_tpl.proj_tpl)
 
   @classmethod
   def CommonParams(cls,
@@ -4384,7 +4478,11 @@ class PaddingLayer(base_layer.BaseLayer):
     Returns:
       Tensor with paddings applied.
     """
-    return py_utils.ApplyPadding(tf.expand_dims(paddings, -1), inputs)
+    paddings = tf.expand_dims(paddings, -1)
+    if inputs.shape.ndims is not None and paddings.shape.ndims is not None:
+      for _ in range(py_utils.GetRank(inputs) - py_utils.GetRank(paddings)):
+        paddings = tf.expand_dims(paddings, -1)
+    return py_utils.ApplyPadding(paddings, inputs)
 
   @classmethod
   def FPropMeta(cls, p, inputs, paddings):

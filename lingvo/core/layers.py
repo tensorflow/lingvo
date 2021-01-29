@@ -3853,6 +3853,48 @@ class LayerNorm(base_layer.BaseLayer):
         flops=inputs.num_elements() * 10, out_shapes=(inputs,))
 
 
+# TODO(shibow/wangtao) remove this after b/174094694 is done.
+class ReshapedLayerNorm(LayerNorm):
+  """Customized LayerNorm with model dim D reshaped as Md."""
+
+  def FProp(self, theta, inputs):
+    """Applies normalization over the last two dimensions.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: A tensor of shape [..., dim_reshape_segments, hidden_dim //
+        dim_reshape_segments].
+
+    Returns:
+      tensor of the same shape with inputs.
+    """
+    p = self.params
+    with tf.name_scope(p.name):
+      inputs = self._CastToFPropDtype(inputs)
+
+      cur_scale, cur_bias = self._GetScaleAndBias(theta)
+
+      if p.direct_scale:
+        scale = cur_scale
+      else:
+        scale = 1.0 + cur_scale
+
+      axes = list(range(len(inputs.shape) - 2, len(inputs.shape)))
+      counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
+          inputs, axes=axes, keepdims=True)
+      mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
+                                               None)
+      scale = tf.reshape(scale, tf.shape(inputs)[-2:])
+      cur_bias = tf.reshape(cur_bias, tf.shape(inputs)[-2:])
+      # Adding a cast here. Sometimes, inputs/mean/variance/p.epsilon are in
+      # float32 while scale and cur_bias are in bf16.
+      inputs_norm = tf.cast(
+          (inputs - mean) * tf.math.rsqrt(variance + p.epsilon),
+          dtype=scale.dtype)
+      return inputs_norm * scale + cur_bias
+
+
 class CategoricalLayerNorm(LayerNorm):
   """Categorical layer normalization.
 

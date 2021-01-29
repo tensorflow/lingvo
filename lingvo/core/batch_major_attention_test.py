@@ -2423,6 +2423,39 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ] * multiplier
       self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=1))
 
+  def testReshapedTransformerLayerFPropNoCrossAttention(self):
+    with self.session(use_gpu=True) as sess:
+      query_vec, _, _, _ = self._TransformerAttentionLayerInputs()
+      paddings = tf.zeros([2, 5])
+      # default setup
+      p = attention.TransformerLayer.Params()
+      p.name = 'transformer_layer'
+      p.has_aux_atten = False
+      p.input_dim = 4
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_heads = 2
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(l.theta, query_vec, paddings)
+      # reshaped setup
+      reshaped_p = p.Copy()
+      attention.TransformerLayer.SetReshapedLayers(reshaped_p)
+      reshaped_p.device_mesh = np.reshape(np.arange(4), [2, 2])
+      attention.TransformerLayer.SetCanonicalShardingParams(
+          reshaped_p, reshape_dim=True)
+      reshaped_p.name = 'reshaped_transformer_layer'
+      reshaped_l = reshaped_p.Instantiate()
+      # Use l.theta as it is compatible with reshaped_l.
+      reshaped_ctx_vec, _ = reshaped_l.FProp(
+          l.theta, tf.reshape(query_vec, [2, 5, 2, 2]), paddings)
+
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx_vec)
+      actual_ctx = np.reshape(actual_ctx, (2, 5, 4))
+      reshaped_ctx = sess.run(reshaped_ctx_vec)
+      reshaped_ctx = np.reshape(reshaped_ctx, (2, 5, 4))
+      self.assertAllClose(actual_ctx, reshaped_ctx)
+
   @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
   def testMultiSourceTransformerLayerFPropWithCrossAttention(self, multiplier):
     with self.session(use_gpu=True) as sess:

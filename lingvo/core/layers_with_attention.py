@@ -15,8 +15,10 @@
 """Lingvo layers that depend on attention layers but are not recurrent."""
 
 import lingvo.compat as tf
+from lingvo.core import activations
 from lingvo.core import attention
 from lingvo.core import base_layer
+from lingvo.core import gshard_utils
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
@@ -580,6 +582,80 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
           theta.residual_dropout,
           self.fflayer.FProp(theta.fflayer, inputs_normalized,
                              tf.expand_dims(paddings, -1)))
+      if self.params.add_skip_connection:
+        h = inputs + h * self.params.residual_weight
+      if not self.params.pre_layer_norm:
+        h = self.layer_norm.FProp(theta.layer_norm, h)
+      return h
+
+
+# TODO(shibow/wangtao) remove this after b/174094694 is done.
+class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
+  """TransformerFeedForward with model dim D reshaped as Md."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.ln_tpl = layers.ReshapedLayerNorm.Params()
+    return p
+
+  def FProp(self, theta, inputs, paddings):
+    """Feed-forward, residual and layer-norm.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: [time, batch, dim_reshape_segments, dim // dim_reshape_segments].
+      paddings: [time, batch].
+
+    Returns:
+      tensor of the same shape with inputs.
+    """
+    p = self.params
+    with tf.name_scope(p.name):
+      inputs = self._CastToFPropDtype(inputs)
+      if self.params.pre_layer_norm:
+        inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      else:
+        inputs_normalized = inputs
+      if hasattr(self, 'res_proj_layer'):
+        inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
+
+      theta.fflayer.fc[0].w = gshard_utils.ReshapeDim(theta.fflayer.fc[0].w, 0,
+                                                      p.device_mesh.shape[1])
+      theta.fflayer.fc[1].w = gshard_utils.ReshapeDim(theta.fflayer.fc[1].w, 1,
+                                                      p.device_mesh.shape[1])
+      if theta.fflayer.fc[1].b is not None:
+        theta.fflayer.fc[1].b = gshard_utils.ReshapeDim(theta.fflayer.fc[1].b,
+                                                        0,
+                                                        p.device_mesh.shape[1])
+
+      linear_paddings0 = tf.expand_dims(paddings, -1)
+      linear_paddings1 = tf.expand_dims(linear_paddings0, -1)
+
+      linear_out0 = tf.einsum('BLMd,MdH->BLH', inputs_normalized,
+                              theta.fflayer.fc[0].w)
+      if theta.fflayer.fc[0].b is not None:
+        linear_out0 += theta.fflayer.fc[0].b
+      linear_out0 = gshard_utils.MeshSplit(
+          linear_out0, p.device_mesh,
+          p.fflayer_tpl.activation_split_dims_mapping_list[0])
+      linear_out0 = activations.GetFn(p.activation)(linear_out0)
+      linear_out0 = py_utils.ApplyPadding(linear_paddings0, linear_out0)
+      linear_out0 = self.fflayer.dropout[0].FProp(theta.fflayer.dropout[0],
+                                                  linear_out0)
+      linear_out1 = tf.einsum('BLH,HMd->BLMd', linear_out0,
+                              theta.fflayer.fc[1].w)
+      if theta.fflayer.fc[1].b is not None:
+        linear_out1 += theta.fflayer.fc[1].b
+      linear_out1 = gshard_utils.MeshSplit(
+          linear_out1, p.device_mesh,
+          p.fflayer_tpl.activation_split_dims_mapping_list[1])
+      linear_out1 = py_utils.ApplyPadding(linear_paddings1, linear_out1)
+      linear_out1 = self.fflayer.dropout[1].FProp(theta.fflayer.dropout[1],
+                                                  linear_out1)
+
+      h = self.residual_dropout.FProp(theta.residual_dropout, linear_out1)
       if self.params.add_skip_connection:
         h = inputs + h * self.params.residual_weight
       if not self.params.pre_layer_norm:
