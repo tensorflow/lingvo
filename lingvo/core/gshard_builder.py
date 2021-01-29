@@ -1526,6 +1526,14 @@ class DenseBuilder(MoEBuilder):
     p.attention_combine_dims = False
     return p
 
+  @property
+  def _model_dim_reshape_segments(self):
+    if self.params.model_dim_reshape_segments is None:
+      return None
+    elif isinstance(self.params.model_dim_reshape_segments, list):
+      return self.params.model_dim_reshape_segments
+    return [self.params.model_dim_reshape_segments]
+
   def _AdjustMSplit(self, split, m_dim):
     """Adjusts split annotation according to model_dim_reshape_segments."""
     if split is None:
@@ -1533,16 +1541,26 @@ class DenseBuilder(MoEBuilder):
     if self.params.model_dim_reshape_segments is None:
       return split
     new_split = list(split)
-    new_split.insert(m_dim + 1, -1)
+    for _ in self._model_dim_reshape_segments:
+      new_split.insert(m_dim + 1, -1)
     return new_split
+
+  def _ReshapedModelDims(self):
+    """Returns the dimensions that M is reshaped into."""
+    if self.params.model_dim_reshape_segments is None:
+      return [self.params.model_dim]
+    remaining_dim = self.params.model_dim
+    for d in self._model_dim_reshape_segments:
+      assert remaining_dim % d == 0
+      remaining_dim = remaining_dim // d
+    return self._model_dim_reshape_segments + [remaining_dim]
 
   def _ReshapeM(self, x, m_dim):
     """Reshapes tensor x according to model_dim_reshape_segments."""
     new_shape = x.shape
-    if self.params.model_dim_reshape_segments is not None:
+    if self._model_dim_reshape_segments is not None:
       new_shape = list(x.shape[0:m_dim])
-      new_shape.append(self.params.model_dim_reshape_segments)
-      new_shape.append(x.shape[m_dim] // self.params.model_dim_reshape_segments)
+      new_shape += self._ReshapedModelDims()
       new_shape.extend(d for d in x.shape[m_dim + 1:])
     return tf.reshape(x, new_shape)
 
@@ -1563,13 +1581,15 @@ class DenseBuilder(MoEBuilder):
     Returns:
       tf.einsum(maybe_modified_equation, x, y)
     """
-    if self.params.model_dim_reshape_segments is None:
+    if self._model_dim_reshape_segments is None:
       return tf.einsum(equation, x, y)
+    assert len(self._model_dim_reshape_segments) <= 2
+    insert_chars = 'N' if len(self._model_dim_reshape_segments) == 1 else 'NO'
     new_equation = ''
     for c in equation:
-      assert c != 'N'
+      assert c not in insert_chars
       if c == 'M':
-        new_equation += 'N'
+        new_equation += insert_chars
       new_equation += c
     return tf.einsum(new_equation, x, y)
 
@@ -1578,13 +1598,10 @@ class DenseBuilder(MoEBuilder):
 
   def _LN(self, name):
     """Overriding _LN to consider model_dim_reshape_segments."""
-    if self.params.model_dim_reshape_segments is None:
+    if self._model_dim_reshape_segments is None:
       return super()._LN(name)
 
-    ln_weight_reshape = [
-        self.params.model_dim_reshape_segments,
-        self.params.model_dim // self.params.model_dim_reshape_segments
-    ]
+    ln_weight_reshape = self._ReshapedModelDims()
     return self._LNInternal(name, ln_weight_reshape)
 
   @property
@@ -1934,35 +1951,23 @@ class DenseBuilder(MoEBuilder):
 
   def _ComputeQKVH(self, name, hidden_dim_reshape_segments=4):
     p = self.params
-    h_heads = hidden_dim_reshape_segments
-    kv_dim = p.attention_key_value_dim
 
     def _Compute(x, wq, wk, wv, wi0, wi1):
 
-      def _GetW(w, h):
-        if p.attention_combine_dims:
-          combined_split = None if p.mhd_w_split is None else p.mhd_w_split[:-1]
-          w = self._MeshSplit(w, combined_split)
-          w = tf.reshape(w, [p.model_dim, h, kv_dim])
+      def _GetW(w, h=0):
         if p.attention_num_heads > 1 and h == 1:
-          w = tf.reshape(w, [p.model_dim, h, kv_dim])
-          w = self._MeshSplit(w, [1, -1, -1])
-          return self._ReshapeM(w, 0)
-        w = tf.reshape(w, [p.model_dim, h_heads, -1, kv_dim])
-        w = self._MeshSplit(w, p.mhd_w_split[:2] + [-1] + p.mhd_w_split[2:])
-        return self._ReshapeM(w, 0)
-
-      def _GetWi(w):
-        w = self._MeshSplit(
-            tf.reshape(w, [p.model_dim, h_heads, -1, kv_dim]),
-            p.mh_wi_split + [-1, -1])
-        return self._ReshapeM(w, 0)
+          return tf.reshape(w, self._ReshapedModelDims() + [h, -1])
+        else:
+          return tf.reshape(
+              w,
+              self._ReshapedModelDims() +
+              [hidden_dim_reshape_segments, -1, p.attention_key_value_dim])
 
       wq = _GetW(wq, p.attention_num_heads)
       wk = _GetW(wk, p.attention_num_memory_heads or p.attention_num_heads)
       wv = _GetW(wv, p.attention_num_memory_heads or p.attention_num_heads)
-      wi0 = _GetWi(wi0)
-      wi1 = _GetWi(wi1)
+      wi0 = _GetW(wi0)
+      wi1 = _GetW(wi1)
 
       wc = [wq, wk, wv, wi0, wi1]
 
@@ -1974,8 +1979,10 @@ class DenseBuilder(MoEBuilder):
         v = self._EinsumWithModelDim('BLM,MHD->BLHD', x, wv)
         wc = tf.concat([wq, wi0, wi1], -2)
         splits = [wq.shape.as_list()[-2]] + [wi0.shape.as_list()[-2]] * 2
-        q, f1, f2 = tf.split(
-            self._EinsumWithModelDim('BLM,MSHD->BLSHD', x, wc), splits, -2)
+        r = self._MeshSplit(
+            self._EinsumWithModelDim('BLM,MSHD->BLSHD', x, wc),
+            p.blh_split + [-1, -1])
+        q, f1, f2 = tf.split(r, splits, -2)
         q = self._MeshSplit(
             tf.reshape(q,
                        q.shape.as_list()[:2] + [-1, q.shape[-1]]), p.qkv_split)
@@ -1991,8 +1998,7 @@ class DenseBuilder(MoEBuilder):
           self._EinsumWithModelDim('BLM,MSHD->BLSHD', x, wc), splits, -2)
 
       def _MeshSplitQKV(x):
-        reshaped_x = tf.reshape(x, x.shape.as_list()[:2] + [-1, x.shape[-1]])
-        return self._MeshSplit(reshaped_x, p.qkv_split)
+        return tf.reshape(x, x.shape.as_list()[:2] + [-1, x.shape[-1]])
 
       return [_MeshSplitQKV(x) for x in ret[:3]] + ret[3:]
 
@@ -2017,18 +2023,14 @@ class DenseBuilder(MoEBuilder):
                               wo2,
                               hidden_dim_reshape_segments=4):
     p = self.params
-    hdm_split = self._attention_output_hdm_w_split
-    h_heads = hidden_dim_reshape_segments
+    split_h_shape = [hidden_dim_reshape_segments, -1, p.attention_key_value_dim]
 
-    def _GetW(w):
-      w = tf.reshape(w, [h_heads, -1, p.attention_key_value_dim, p.model_dim])
-      w = self._MeshSplit(w, [hdm_split[0], -1] + hdm_split[1:])
-      return self._ReshapeM(w, 3)
+    wo1, wo2 = [
+        tf.reshape(w, split_h_shape + self._ReshapedModelDims())
+        for w in [wo1, wo2]
+    ]
 
-    wo1 = _GetW(wo1)
-    wo2 = _GetW(wo2)
-
-    o1 = tf.reshape(o1, o1.shape.as_list()[:2] + [h_heads, -1, o1.shape[-1]])
+    o1 = tf.reshape(o1, o1.shape.as_list()[:2] + split_h_shape)
     o = self._MeshSplit(tf.concat([o1, o2], -2), p.blh_split + [-1, -1])
     wo = tf.concat([wo1, wo2], 1)
     return self._EinsumWithModelDim('SHDM,BLSHD->BLM', wo, o) * (2.0**-0.5)
