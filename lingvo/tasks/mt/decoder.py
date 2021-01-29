@@ -178,7 +178,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
             num_samples, per_sequence_loss.dtype)
       else:
         final_loss = tf.reduce_mean(per_sequence_loss)
-      loss_weight = py_utils.GetShape(per_sequence_loss)[0]
+      loss_weight = tf.cast(
+          py_utils.GetShape(per_sequence_loss)[0], per_sequence_loss.dtype)
 
     metrics = {
         'loss': (final_loss, loss_weight),
