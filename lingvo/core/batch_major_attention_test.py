@@ -119,6 +119,55 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     expected_prob_out = np.reshape(expected_prob_out, (6, 6, 6))
     self.assertAllClose(expected_prob_out, prob_out)
 
+  @parameterized.named_parameters(('Two', 2), ('Three', 3))
+  def testMultiHeadedProjectionLayerInputMode(self, batch_dims):
+    with self.session(use_gpu=True) as sess:
+      batch_sizes = list(np.arange(3, 3 + batch_dims))
+
+      num_heads, dim_per_head = 4, 2
+      model_dims = num_heads * dim_per_head
+
+      input_tf = tf.random.normal(
+          shape=batch_sizes + [model_dims], dtype=tf.float32)
+      proj_p = attention.MultiHeadedProjectionLayer.Params().Set(
+          input_dim=model_dims,
+          num_heads=num_heads,
+          dim_per_head=dim_per_head,
+          is_output_projection=False,
+          name='proj')
+
+      proj = proj_p.Instantiate()
+      tf.global_variables_initializer().run()
+      result = proj.FPropDefaultTheta(input_tf)
+      result_np = sess.run(result)
+      self.assertEqual(result_np.shape,
+                       tuple(batch_sizes + [num_heads, dim_per_head]))
+
+  @parameterized.named_parameters(('Two', 2), ('Three', 3))
+  def testMultiHeadedProjectionLayerOutputMode(self, batch_dims):
+    with self.session(use_gpu=True) as sess:
+      batch_sizes = list(np.arange(3, 3 + batch_dims))
+
+      num_heads, dim_per_head = 4, 2
+      model_dims = num_heads * dim_per_head
+
+      input_tf = tf.random.normal(
+          shape=batch_sizes + [num_heads, dim_per_head], dtype=tf.float32)
+
+      proj_p = attention.MultiHeadedProjectionLayer.Params().Set(
+          input_dim=model_dims,
+          num_heads=num_heads,
+          dim_per_head=dim_per_head,
+          is_output_projection=True,
+          name='proj')
+
+      proj = proj_p.Instantiate()
+      tf.global_variables_initializer().run()
+      result = proj.FPropDefaultTheta(input_tf)
+      result_np = sess.run(result)
+
+      self.assertEqual(result_np.shape, tuple(batch_sizes + [model_dims]))
+
   def testMultiHeadedAttentionDotProduct(self):
     # input_batch:6, seq_len:6. Test n = 2 case.
     with self.session(use_gpu=True) as sess:

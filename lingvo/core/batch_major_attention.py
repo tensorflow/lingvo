@@ -23,6 +23,7 @@
 
 import bisect
 import math
+import string
 from absl import logging
 from lingvo import compat as tf
 from lingvo.core import attention_util
@@ -137,15 +138,17 @@ class PerDimScaleLayer(base_layer.BaseLayer):
 
     Args:
       theta: weights defined in this layer.
-      inputs: 4D tensor with shape [..., p.dim]
+      inputs: A tensor with shape [..., p.dim].
 
     Returns:
-      outpus: 4D tensor with shape [..., p.dim]
+      outpus: A tensor with shape [..., p.dim].
     """
     p = self.params
     with tf.name_scope(p.name):
       dim = symbolic.ToStatic(p.dim)
-      inputs = py_utils.HasShape(inputs, [-1, -1, -1, dim])
+      expected_shape = tf.concat([py_utils.GetShape(inputs)[:-1], [dim]],
+                                 axis=0)
+      inputs = py_utils.HasShape(inputs, expected_shape)
 
       # 1.0/tf.nn.softplus(0.0) = 1.442695041. Hard code this number so that we
       # can avoid unnecessary XLA op fusion mess on TPU.
@@ -183,8 +186,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     p.Define(
         'is_output_projection', False,
         'Whether it is out projection or not. If False, we use '
-        '"BTD,DNH->BTNH" for query,key,value projection. Otherwise we use '
-        '"BTNH,DNH->BTD" for output projection.')
+        '"...D,DNH->...NH" for query,key,value projection. Otherwise we use '
+        '"...NH,DNH->...D" for output projection.')
     p.Define(
         'make_output_proj_no_op', False, 'If True no output projection is '
         'applied. This should be set with is_output_projection True and will '
@@ -247,27 +250,42 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      inputs: A tensor of shape [batch_size, time_steps, num_heads,
-        dim_per_head] or [batch_size, time_steps, hidden_size].
+      inputs: A tensor of shape [..., num_heads, dim_per_head] or [...,
+        hidden_size].
 
     Returns:
-      The projected tensor with shape [[batch_size, time_steps, hidden_size] or
-      [batch_size, time_steps, num_heads, dim_per_head].
+      The projected tensor with shape [..., hidden_size] or
+      [..., num_heads, dim_per_head].
     """
+
+    # Because tf.einsum is not fully optimized unless all the dimensions are
+    # fully specified, we have to avoid using '...' for batch dimensions in the
+    # equation in tf.einsum for optimized performance. This is only feasible
+    # when the rank of the tensor is known.
+    eqn_sym = ''.join(set(string.ascii_uppercase) - set('DHN'))
+    shape = py_utils.GetShape(inputs)
+    rank = None if isinstance(shape, tf.Tensor) else len(shape)
+
     p = self.params
     with tf.name_scope(p.name):
       inputs = self._CastToFPropDtype(inputs)
       if p.make_output_proj_no_op:
         return inputs
+
       if p.is_output_projection:
-        inputs = py_utils.HasShape(
-            inputs, [-1, -1, p.num_heads,
-                     symbolic.ToStatic(p.dim_per_head)])
-        ret = tf.einsum('BTNH,DNH->BTD', inputs, theta.w)
+        expected_shape = tf.concat(
+            [py_utils.GetShape(inputs)[:-2], [p.num_heads, p.dim_per_head]],
+            axis=0)
+        inputs = py_utils.HasShape(inputs, expected_shape)
+        batch_eqn = eqn_sym[:(rank - 2)] if rank else '...'
+        eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
       else:
-        inputs = py_utils.HasShape(
-            inputs, [-1, -1, symbolic.ToStatic(p.input_dim)])
-        ret = tf.einsum('BTD,DNH->BTNH', inputs, theta.w)
+        expected_shape = tf.concat(
+            [py_utils.GetShape(inputs)[:-1], [p.input_dim]], axis=0)
+        inputs = py_utils.HasShape(inputs, expected_shape)
+        batch_eqn = eqn_sym[:(rank - 1)] if rank else '...'
+        eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
+      ret = tf.einsum(eqn, inputs, theta.w)
       if p.use_bias:
         ret += theta.b
       return ret
