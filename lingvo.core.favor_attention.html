@@ -254,6 +254,31 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.favor_attention.cossim_kernel_transformation">
+<code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">cossim_kernel_transformation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">is_query</span></em>, <em class="sig-param"><span class="n">projection_matrix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">numerical_stabilizer</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">randomized</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#cossim_kernel_transformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.cossim_kernel_transformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes features for the softmax kernel with FAVOR+ cossim mechanism.</p>
+<p>Computes random features for the softmax kernel using FAVOR+ mechanism from
+<a class="reference external" href="https://arxiv.org/pdf/2009.14794.pdf">https://arxiv.org/pdf/2009.14794.pdf</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – input data tensor of the shape [B, L, H, D], where: B - batch
+dimension, L - attention dimensions, H - heads, D - features.</p></li>
+<li><p><strong>is_query</strong> – indicates whether input data is a query oor key tensor.</p></li>
+<li><p><strong>projection_matrix</strong> – random Gaussian matrix of shape [M, D], where M stands
+for the number of random features and each D x D sub-block has pairwise
+orthogonal rows.</p></li>
+<li><p><strong>numerical_stabilizer</strong> – small positive constant for numerical stability.</p></li>
+<li><p><strong>randomized</strong> – whether randomized version of the cos similarity is used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Corresponding kernel feature map.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.favor_attention.noncausal_numerator">
 <code class="sig-prename descclassname">lingvo.core.favor_attention.</code><code class="sig-name descname">noncausal_numerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">qs</span></em>, <em class="sig-param"><span class="n">ks</span></em>, <em class="sig-param"><span class="n">vs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#noncausal_numerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.favor_attention.noncausal_numerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes not-normalized FAVOR noncausal attention AV.</p>

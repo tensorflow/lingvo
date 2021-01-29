@@ -200,6 +200,8 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The matrix of random projections of the shape [nb_random_projections, dim].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">nb_random_projections</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">None</span>
   <span class="n">nb_full_blocks</span> <span class="o">=</span> <span class="n">nb_random_projections</span> <span class="o">//</span> <span class="n">dim</span>
   <span class="n">block_list</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="n">current_seed</span> <span class="o">=</span> <span class="n">seed</span>
@@ -306,6 +308,53 @@
         <span class="n">numerical_stabilizer</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">data_dash</span></div>
+
+
+<div class="viewcode-block" id="cossim_kernel_transformation"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.cossim_kernel_transformation">[docs]</a><span class="k">def</span> <span class="nf">cossim_kernel_transformation</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
+                                 <span class="n">is_query</span><span class="p">,</span>
+                                 <span class="n">projection_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">numerical_stabilizer</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                 <span class="n">randomized</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes features for the softmax kernel with FAVOR+ cossim mechanism.</span>
+
+<span class="sd">  Computes random features for the softmax kernel using FAVOR+ mechanism from</span>
+<span class="sd">  https://arxiv.org/pdf/2009.14794.pdf.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    data: input data tensor of the shape [B, L, H, D], where: B - batch</span>
+<span class="sd">      dimension, L - attention dimensions, H - heads, D - features.</span>
+<span class="sd">    is_query: indicates whether input data is a query oor key tensor.</span>
+<span class="sd">    projection_matrix: random Gaussian matrix of shape [M, D], where M stands</span>
+<span class="sd">      for the number of random features and each D x D sub-block has pairwise</span>
+<span class="sd">      orthogonal rows.</span>
+<span class="sd">    numerical_stabilizer: small positive constant for numerical stability.</span>
+<span class="sd">    randomized: whether randomized version of the cos similarity is used.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Corresponding kernel feature map.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">is_query</span><span class="p">:</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">randomized</span><span class="p">:</span>
+      <span class="n">projection_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">projection_matrix</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">ratio</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">projection_matrix</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;blhd,md-&gt;blhm&quot;</span><span class="p">,</span> <span class="n">r</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+                    <span class="n">projection_matrix</span><span class="p">)</span> <span class="o">+</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">numerical_stabilizer</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">r</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">randomized</span><span class="p">:</span>
+      <span class="n">projection_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">projection_matrix</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">ratio</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">projection_matrix</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;blhd,md-&gt;blhm&quot;</span><span class="p">,</span>
+                               <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+                               <span class="n">projection_matrix</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="noncausal_numerator"><a class="viewcode-back" href="../../../lingvo.core.favor_attention.html#lingvo.core.favor_attention.noncausal_numerator">[docs]</a><span class="k">def</span> <span class="nf">noncausal_numerator</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">ks</span><span class="p">,</span> <span class="n">vs</span><span class="p">):</span>
