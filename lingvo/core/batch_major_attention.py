@@ -1025,6 +1025,18 @@ class MultiHeadedFavorAttention(MultiHeadedAttention):
           p.num_random_features, query.shape[-1], None if p.redraw else 0)
       encoded = favor.favor_attention(query, key, value, kernel_transformation,
                                       False, projection_matrix)
+    elif p.attention_type == 'cossim':
+      projection_matrix = favor.create_projection_matrix(
+          p.num_random_features, query.shape[-1], None if p.redraw else 0)
+      key_prime = favor.cossim_kernel_transformation(key, False,
+                                                     projection_matrix, 0.0,
+                                                     p.num_random_features)
+      query_prime = favor.cossim_kernel_transformation(query, True,
+                                                       projection_matrix, 0.0,
+                                                       p.num_random_features)
+      attention_scores = tf.einsum('BXHD,BYHD->BXYH', query_prime, key_prime)
+      attention_scores = tf.nn.softmax(attention_scores, axis=2)
+      encoded = tf.einsum('BXYH,BYHD->BXHD', attention_scores, value)
     else:
       logging.info(
           'FAVOR attention type: %s is not supported,returning query tensor.',

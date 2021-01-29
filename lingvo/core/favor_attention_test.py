@@ -58,6 +58,46 @@ class FAVORTest(test_utils.TestCase, parameterized.TestCase):
           np.abs((groundtruth_output - favor_output) / groundtruth_output))
       self.assertLess(error, max_error)
 
+  def test_cossim_noncausal_attention_block_output(self):
+    batch_size = 1
+    length = 2
+    num_heads = 1
+    dim = 8
+    num_random_features = 1000
+    query = tf.random.normal([batch_size, length, num_heads, dim])
+    key = tf.random.normal([batch_size, length, num_heads, dim])
+    value = tf.random.normal([batch_size, length, num_heads, dim])
+    projection_matrix = favor.create_projection_matrix(num_random_features, dim)
+    query = tf.cast(query, tf.float64)
+    key = tf.cast(key, tf.float64)
+    value = tf.cast(value, tf.float64)
+
+    key_prime = favor.cossim_kernel_transformation(key, False,
+                                                   projection_matrix, 0.0,
+                                                   num_random_features)
+    query_prime = favor.cossim_kernel_transformation(query, True,
+                                                     projection_matrix, 0.0,
+                                                     num_random_features)
+    attention_scores = tf.einsum("BXHD,BYHD->BXYH", query_prime, key_prime)
+    attention_scores = tf.nn.softmax(attention_scores, axis=2)
+    attention_block_output = tf.einsum("BXYH,BYHD->BXHD", attention_scores,
+                                       value)
+
+    query = tf.math.l2_normalize(query, axis=[-1])
+    key = tf.math.l2_normalize(key, axis=[-1])
+    query = tf.multiply(query, math.sqrt(float(dim)))
+    attention_scores = tf.einsum("BXHD,BYHD->BXYH", query, key)
+    attention_scores = tf.nn.softmax(attention_scores, axis=2)
+    exact_attention_block_output = tf.einsum("BXYH,BYHD->BXHD",
+                                             attention_scores, value)
+    max_error = 0.5
+    with self.session(use_gpu=False) as sess:
+      favor_output, groundtruth_output = sess.run(
+          [exact_attention_block_output, attention_block_output])
+      error = np.max(
+          np.abs((groundtruth_output - favor_output) / groundtruth_output))
+      self.assertLess(error, max_error)
+
 
 if __name__ == "__main__":
   tf.test.main()

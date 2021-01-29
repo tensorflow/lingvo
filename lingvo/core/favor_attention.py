@@ -48,6 +48,8 @@ def create_projection_matrix(nb_random_projections, dim, seed=0, scaling=0):
   Returns:
     The matrix of random projections of the shape [nb_random_projections, dim].
   """
+  if nb_random_projections == 0:
+    return None
   nb_full_blocks = nb_random_projections // dim
   block_list = []
   current_seed = seed
@@ -154,6 +156,53 @@ def softmax_kernel_transformation(data,
         numerical_stabilizer)
 
   return data_dash
+
+
+def cossim_kernel_transformation(data,
+                                 is_query,
+                                 projection_matrix=None,
+                                 numerical_stabilizer=0.0,
+                                 randomized=False):
+  """Computes features for the softmax kernel with FAVOR+ cossim mechanism.
+
+  Computes random features for the softmax kernel using FAVOR+ mechanism from
+  https://arxiv.org/pdf/2009.14794.pdf.
+
+  Args:
+    data: input data tensor of the shape [B, L, H, D], where: B - batch
+      dimension, L - attention dimensions, H - heads, D - features.
+    is_query: indicates whether input data is a query oor key tensor.
+    projection_matrix: random Gaussian matrix of shape [M, D], where M stands
+      for the number of random features and each D x D sub-block has pairwise
+      orthogonal rows.
+    numerical_stabilizer: small positive constant for numerical stability.
+    randomized: whether randomized version of the cos similarity is used.
+
+  Returns:
+    Corresponding kernel feature map.
+  """
+  if is_query:
+    r = tf.math.sqrt(tf.dtypes.cast(data.shape[-1], data.dtype))
+    if randomized:
+      projection_matrix = tf.cast(projection_matrix, data.dtype)
+      ratio = 1.0 / tf.math.sqrt(
+          tf.cast(tf.shape(projection_matrix)[0], data.dtype))
+      return ratio * (
+          tf.einsum("blhd,md->blhm", r * tf.math.l2_normalize(data, axis=[-1]),
+                    projection_matrix) +
+          tf.cast(numerical_stabilizer, data.dtype))
+    else:
+      return r * tf.math.l2_normalize(data, axis=[-1])
+  else:
+    if randomized:
+      projection_matrix = tf.cast(projection_matrix, data.dtype)
+      ratio = 1.0 / tf.math.sqrt(
+          tf.cast(tf.shape(projection_matrix)[0], data.dtype))
+      return ratio * tf.einsum("blhd,md->blhm",
+                               tf.math.l2_normalize(data, axis=[-1]),
+                               projection_matrix)
+    else:
+      return tf.math.l2_normalize(data, axis=[-1])
 
 
 def noncausal_numerator(qs, ks, vs):
