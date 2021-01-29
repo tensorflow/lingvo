@@ -403,6 +403,38 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">ReshapedTransformerFeedForwardLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#ReshapedTransformerFeedForwardLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer" title="lingvo.core.layers_with_attention.TransformerFeedForwardLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.TransformerFeedForwardLayer</span></code></a></p>
+<p>TransformerFeedForward with model dim D reshaped as Md.</p>
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#ReshapedTransformerFeedForwardLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#ReshapedTransformerFeedForwardLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Feed-forward, residual and layer-norm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – [time, batch, dim_reshape_segments, dim // dim_reshape_segments].</p></li>
+<li><p><strong>paddings</strong> – [time, batch].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tensor of the same shape with inputs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>

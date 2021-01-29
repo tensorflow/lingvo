@@ -352,6 +352,35 @@ dim_per_head] or [batch_size, time_steps, hidden_size].</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.batch_major_attention.ReshapedMultiHeadedProjectionLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">ReshapedMultiHeadedProjectionLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#ReshapedMultiHeadedProjectionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.ReshapedMultiHeadedProjectionLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer" title="lingvo.core.batch_major_attention.MultiHeadedProjectionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.MultiHeadedProjectionLayer</span></code></a></p>
+<p>MultiHeadedProjectionLayer with model dim D reshaped as Md.</p>
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.ReshapedMultiHeadedProjectionLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#ReshapedMultiHeadedProjectionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.ReshapedMultiHeadedProjectionLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the multi headed projection for inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – A tensor of shape [batch_size, time_steps, num_heads,
+dim_per_head] or [batch_size, time_steps, dim_reshape_segments,
+hidden_size // dim_reshape_segments].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The projected tensor with shape [batch_size, time_steps,
+dim_reshape_segments, hidden_size // dim_reshape_segments] or
+[batch_size, time_steps, num_heads, dim_per_head].</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttention">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">MultiHeadedAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
@@ -1929,13 +1958,39 @@ to encoder outputs and other sources.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams">
-<em class="property">classmethod </em><code class="sig-name descname">SetCanonicalShardingParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.SetCanonicalShardingParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">SetCanonicalShardingParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">reshape_dim</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.SetCanonicalShardingParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set up canonical SPMD sharding params.</p>
+<p>The topology is required to written as 2D. For 1D sharding, the topology is
+expected to be written as [1, num_partitions]. The split_dims_mappings
+specify how weights and activations are sharded in the corresponding layers.
+fflayer has two projection layers(df/blf and fd/bld), so the
+split_dims_mapping has higher rank to represent both projection layers one
+after another.
+For 1D sharding, better performance can be obtained by sharding activations
+on batch dim, so bld is set to [1, -1, -1] and blnh to None (will be auto
+propagated).
+For 2D sharding, typical sharding is [0, -1, 1, -1] for blnh and [0, -1, 1]
+for bld. If ReshapeDim trick is applied to model dim to remove the data
+formatting overheads, the bld sharding annotation needs to be adpated as
+[0, -1, 1, -1].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – params of TransformerLayer.</p></li>
+<li><p><strong>reshape_dim</strong> – A bool, whether to reshape model dim.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.TransformerLayer.SetFPropDtype">
 <em class="property">classmethod </em><code class="sig-name descname">SetFPropDtype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">fprop_dtype</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.SetFPropDtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.SetFPropDtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.TransformerLayer.SetReshapedLayers">
+<em class="property">classmethod </em><code class="sig-name descname">SetReshapedLayers</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.SetReshapedLayers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.SetReshapedLayers" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">

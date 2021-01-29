@@ -425,6 +425,47 @@
       <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
+<span class="c1"># TODO(shibow/wangtao) remove this after b/174094694 is done.</span>
+<div class="viewcode-block" id="ReshapedMultiHeadedProjectionLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ReshapedMultiHeadedProjectionLayer">[docs]</a><span class="k">class</span> <span class="nc">ReshapedMultiHeadedProjectionLayer</span><span class="p">(</span><span class="n">MultiHeadedProjectionLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;MultiHeadedProjectionLayer with model dim D reshaped as Md.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ReshapedMultiHeadedProjectionLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ReshapedMultiHeadedProjectionLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the multi headed projection for inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: A tensor of shape [batch_size, time_steps, num_heads,</span>
+<span class="sd">        dim_per_head] or [batch_size, time_steps, dim_reshape_segments,</span>
+<span class="sd">        hidden_size // dim_reshape_segments].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The projected tensor with shape [batch_size, time_steps,</span>
+<span class="sd">      dim_reshape_segments, hidden_size // dim_reshape_segments] or</span>
+<span class="sd">      [batch_size, time_steps, num_heads, dim_per_head].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">make_output_proj_no_op</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">ReshapeDim</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+                     <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">)])</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,MdNH-&gt;BTMd&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTMd,MdNH-&gt;BTNH&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span><span class="p">:</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">ReshapeDim</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ret</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
+      <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
 <div class="viewcode-block" id="MultiHeadedAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedAttention</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Dot-product attention with multiple attention heads.</span>
 
@@ -3590,18 +3631,46 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TransformerLayer.SetCanonicalShardingParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">SetCanonicalShardingParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Set up canonical SPMD sharding params.&quot;&quot;&quot;</span>
+  <span class="k">def</span> <span class="nf">SetCanonicalShardingParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">reshape_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set up canonical SPMD sharding params.</span>
+
+<span class="sd">    The topology is required to written as 2D. For 1D sharding, the topology is</span>
+<span class="sd">    expected to be written as [1, num_partitions]. The split_dims_mappings</span>
+<span class="sd">    specify how weights and activations are sharded in the corresponding layers.</span>
+<span class="sd">    fflayer has two projection layers(df/blf and fd/bld), so the</span>
+<span class="sd">    split_dims_mapping has higher rank to represent both projection layers one</span>
+<span class="sd">    after another.</span>
+<span class="sd">    For 1D sharding, better performance can be obtained by sharding activations</span>
+<span class="sd">    on batch dim, so bld is set to [1, -1, -1] and blnh to None (will be auto</span>
+<span class="sd">    propagated).</span>
+<span class="sd">    For 2D sharding, typical sharding is [0, -1, 1, -1] for blnh and [0, -1, 1]</span>
+<span class="sd">    for bld. If ReshapeDim trick is applied to model dim to remove the data</span>
+<span class="sd">    formatting overheads, the bld sharding annotation needs to be adpated as</span>
+<span class="sd">    [0, -1, 1, -1].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      params: params of TransformerLayer.</span>
+<span class="sd">      reshape_dim: A bool, whether to reshape model dim.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Weights</span>
     <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="p">]</span>
     <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
                                                                         <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[[</span>
-        <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
-    <span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span></div>
+    <span class="c1"># Activations</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">bld_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">blf_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">sharding_2d</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">params</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sharding_2d</span><span class="p">:</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+      <span class="p">]</span>
+      <span class="n">bld_split</span> <span class="o">=</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">reshape_dim</span> <span class="k">else</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="n">bld_split</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">activation_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">blf_split</span><span class="p">,</span> <span class="n">bld_split</span>
+    <span class="p">]</span></div>
 
 <div class="viewcode-block" id="TransformerLayer.SetFPropDtype"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.SetFPropDtype">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">SetFPropDtype</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
@@ -3610,6 +3679,31 @@
       <span class="k">if</span> <span class="n">sub_p</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">sub_p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetFPropDtype</span><span class="p">(</span><span class="n">sub_p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TransformerLayer.SetReshapedLayers"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.SetReshapedLayers">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetReshapedLayers</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_CopyParams</span><span class="p">(</span><span class="n">old_params</span><span class="p">,</span> <span class="n">new_params</span><span class="p">):</span>
+      <span class="n">old_params_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">old_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
+      <span class="k">del</span> <span class="n">old_params_dict</span><span class="p">[</span><span class="s1">&#39;cls&#39;</span><span class="p">]</span>
+      <span class="n">new_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="n">old_params_dict</span><span class="p">)</span>
+
+    <span class="n">old_tr_fflayer_p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span>
+    <span class="n">old_tr_fflayer_ln_p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">ln_tpl</span>
+    <span class="n">old_tr_atten_ln_p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">ln_tpl</span>
+    <span class="n">old_tr_atten_atten_proj_p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">proj_tpl</span>
+
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">ReshapedTransformerFeedForwardLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">_CopyParams</span><span class="p">(</span><span class="n">old_tr_fflayer_p</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">ln_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">ReshapedLayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">_CopyParams</span><span class="p">(</span><span class="n">old_tr_fflayer_ln_p</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">ln_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">ReshapedLayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">_CopyParams</span><span class="p">(</span><span class="n">old_tr_atten_ln_p</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">proj_tpl</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">ReshapedMultiHeadedProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">_CopyParams</span><span class="p">(</span><span class="n">old_tr_atten_atten_proj_p</span><span class="p">,</span>
+                <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">proj_tpl</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TransformerLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
@@ -4536,7 +4630,11 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Tensor with paddings applied.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">inputs</span><span class="p">)</span></div>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">paddings</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">-</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">paddings</span><span class="p">)):</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PaddingLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PaddingLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>

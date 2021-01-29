@@ -223,6 +223,25 @@ changes needed in that logic if we add separate sharding op.”</p>
 <dd><p>Returns a 2D device mesh on slices smaller than a pod.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.gshard_utils.ReshapeDim">
+<code class="sig-prename descclassname">lingvo.core.gshard_utils.</code><code class="sig-name descname">ReshapeDim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">dim</span></em>, <em class="sig-param"><span class="n">dim_reshape_segments</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#ReshapeDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_utils.ReshapeDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reshapes tensor x according to dim_reshape_segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A input Tensor of shape […, x.shape[dim], …].</p></li>
+<li><p><strong>dim</strong> – The dim that needs to be reshaped.</p></li>
+<li><p><strong>dim_reshape_segments</strong> – The leading dim size of the reshaped dims.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape […, dim_reshape_segments,
+x.shape[dim] // dim_reshape_segments, …].</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt id="lingvo.core.gshard_utils.TensorShardingSpec">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_utils.</code><code class="sig-name descname">TensorShardingSpec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">split_dims_mapping</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)">int</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device_mesh</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.19)">numpy.ndarray</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">uneven_padding</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>List<span class="p">[</span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)">int</a><span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec" title="Permalink to this definition">¶</a></dt>

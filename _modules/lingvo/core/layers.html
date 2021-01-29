@@ -4005,6 +4005,48 @@
         <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
 
 
+<span class="c1"># TODO(shibow/wangtao) remove this after b/174094694 is done.</span>
+<div class="viewcode-block" id="ReshapedLayerNorm"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ReshapedLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">ReshapedLayerNorm</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Customized LayerNorm with model dim D reshaped as Md.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ReshapedLayerNorm.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ReshapedLayerNorm.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies normalization over the last two dimensions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: A tensor of shape [..., dim_reshape_segments, hidden_dim //</span>
+<span class="sd">        dim_reshape_segments].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      tensor of the same shape with inputs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+      <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetScaleAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direct_scale</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">cur_scale</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">cur_scale</span>
+
+      <span class="n">axes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+      <span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sufficient_statistics</span><span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">normalize_moments</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span>
+                                               <span class="kc">None</span><span class="p">)</span>
+      <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+      <span class="n">cur_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">cur_bias</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+      <span class="c1"># Adding a cast here. Sometimes, inputs/mean/variance/p.epsilon are in</span>
+      <span class="c1"># float32 while scale and cur_bias are in bf16.</span>
+      <span class="n">inputs_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">scale</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">cur_bias</span></div></div>
+
+
 <div class="viewcode-block" id="CategoricalLayerNorm"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">CategoricalLayerNorm</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Categorical layer normalization.</span>
 

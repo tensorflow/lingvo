@@ -2147,6 +2147,32 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers.ReshapedLayerNorm">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">ReshapedLayerNorm</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ReshapedLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ReshapedLayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.LayerNorm" title="lingvo.core.layers.LayerNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.LayerNorm</span></code></a></p>
+<p>Customized LayerNorm with model dim D reshaped as Md.</p>
+<dl class="py method">
+<dt id="lingvo.core.layers.ReshapedLayerNorm.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ReshapedLayerNorm.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ReshapedLayerNorm.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies normalization over the last two dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – A tensor of shape […, dim_reshape_segments, hidden_dim //
+dim_reshape_segments].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tensor of the same shape with inputs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers.CategoricalLayerNorm">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">CategoricalLayerNorm</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#CategoricalLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.CategoricalLayerNorm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.LayerNorm" title="lingvo.core.layers.LayerNorm"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.LayerNorm</span></code></a></p>
