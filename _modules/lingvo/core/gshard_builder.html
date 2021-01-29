@@ -344,8 +344,6 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Extra logit for attention softmax.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_kernel_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;Optional 1D convolutional kernel after layer norm.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
@@ -564,8 +562,12 @@
                            <span class="s1">&#39;output_loss&#39;</span><span class="p">,</span>
                        <span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.DecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ln_kernel_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="p">[</span>
@@ -581,7 +583,7 @@
             <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
         <span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">ln_layer</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;zero_loss&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;zero_loss&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;x,segment_id,segment_pos,&#39;</span> <span class="o">+</span>
@@ -592,7 +594,7 @@
         <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
     <span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack.&quot;&quot;&quot;</span>
     <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;inputs-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
@@ -618,7 +620,7 @@
                    <span class="s1">&#39;encoder_output,encoder_segment_id_split,&#39;</span>
                    <span class="s1">&#39;encoder_segment_pos_split-&gt;&#39;</span>
                    <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-                   <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">)),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="p">)),</span>
                   <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                    <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -1306,11 +1308,11 @@
 
 <div class="viewcode-block" id="MoEBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Overriding with bias-less layer norm.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_kernel_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._LNConv"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LNConv">[docs]</a>  <span class="k">def</span> <span class="nf">_LNConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNNoScale</span><span class="p">(</span><span class="s1">&#39;ln_no_scale&#39;</span><span class="p">),</span>
-                     <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_kernel_size</span><span class="p">))</span></div>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._LNInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LNInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_LNInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Internal implementation of _LN with optional reshape of the weight.&quot;&quot;&quot;</span>
@@ -2276,7 +2278,7 @@
     <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">RepeatLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">repeat</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="RecurrentDenseBuilder._RepeatableDecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder._RepeatableDecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">_RepeatableDecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">):</span>
+<div class="viewcode-block" id="RecurrentDenseBuilder._RepeatableDecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder._RepeatableDecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">_RepeatableDecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span>
         <span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
         <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;input_loss&#39;</span>
@@ -2285,15 +2287,16 @@
         <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;output_loss&#39;</span>
     <span class="p">],</span> <span class="p">(</span><span class="s1">&#39;inputs,segment_id,segment_pos,encoder_output,encoder_segment_id,&#39;</span>
         <span class="s1">&#39;encoder_segment_pos-&gt;outputs,aux_loss&#39;</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="o">=</span><span class="n">ln_kernel_size</span><span class="p">)),</span>
                         <span class="p">(</span><span class="s1">&#39;input_loss,aux_loss-&gt;output_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;_add&#39;</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">block</span></div>
 
-<div class="viewcode-block" id="RecurrentDenseBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="RecurrentDenseBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack.&quot;&quot;&quot;</span>
 
     <span class="n">recurrent_cells</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_RepeatableDecoderLayer</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_rep&#39;</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_RepeatableDecoderLayer</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_rep&#39;</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">ln_kernel_size</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span>
     <span class="p">]</span>
     <span class="n">recurrent_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;blocks_body&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">recurrent_cells</span><span class="p">)</span>
     <span class="n">repeated_blocks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Repeat</span><span class="p">(</span>
@@ -2375,6 +2378,8 @@
         <span class="s1">&#39;hidden_dim_reshape_segments&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span>
         <span class="s1">&#39;Size of S when reshaping hidden dimension H to Sh. Only used when&#39;</span>
         <span class="s1">&#39; parallel_ffn is true currently.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_kernel_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Optional 1D convolutional kernel after layer norm.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2429,7 +2434,11 @@
           <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDenseGated</span><span class="p">(</span>
               <span class="s1">&#39;dense_relu_dense&#39;</span> <span class="o">+</span> <span class="n">str_i</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">decoder_sub_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
-    <span class="n">dec</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="n">decoder_sub_layers</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">)</span>
+    <span class="n">dec</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span>
+        <span class="s1">&#39;decoder&#39;</span><span class="p">,</span>
+        <span class="n">decoder_sub_layers</span><span class="p">,</span>
+        <span class="n">num_blocks</span><span class="p">,</span>
+        <span class="n">ln_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ln_kernel_size</span><span class="p">)</span>
     <span class="n">dec</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="n">emb_w_split</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;w_split&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)</span>
