@@ -192,8 +192,6 @@ class MoEBuilder(builder.Base):
 
     p.Define('attention_extra_logit', None,
              'Extra logit for attention softmax.')
-    p.Define('ln_kernel_size', None,
-             'Optional 1D convolutional kernel after layer norm.')
     return p
 
   @property
@@ -412,8 +410,12 @@ class MoEBuilder(builder.Base):
                            'output_loss',
                        ], *stack)
 
-  def DecoderLayer(self, name, layer, decoder=False):
+  def DecoderLayer(self, name, layer, ln_kernel_size=None):
     fprop_dtype = py_utils.FPropDtype(self.params)
+    if ln_kernel_size is not None:
+      ln_layer = self._LNConv('ln', ln_kernel_size)
+    else:
+      ln_layer = self._LN('ln')
     return self._Graph(
         name,
         [
@@ -429,7 +431,7 @@ class MoEBuilder(builder.Base):
             'aux_loss',
         ],
         ('inputs,segment_id->input_masked', self.Mask()),
-        ('input_masked->x', self._LN('ln')),
+        ('input_masked->x', ln_layer),
         ('->zero_loss',
          self._Fn('zero_loss', lambda: tf.constant(0.0, fprop_dtype))),
         ('x,segment_id,segment_pos,' +
@@ -440,7 +442,7 @@ class MoEBuilder(builder.Base):
         ('input_masked,y_dropout->outputs', self._Add('add')),
     )
 
-  def DecoderLayerStack(self, name, sub_layers, num=1):
+  def DecoderLayerStack(self, name, sub_layers, num=1, ln_kernel_size=None):
     """Clean DecoderLayerStack."""
     stack = [
         ('inputs->inputs_split', self.Split('inputs_split')),
@@ -466,7 +468,7 @@ class MoEBuilder(builder.Base):
                    'encoder_output,encoder_segment_id_split,'
                    'encoder_segment_pos_split->'
                    'x_%03d,aux_loss_%03d' % (i, i + 1, i),
-                   self.DecoderLayer('layer_%03d' % i, l)),
+                   self.DecoderLayer('layer_%03d' % i, l, ln_kernel_size)),
                   ('loss_%03d,aux_loss_%03d->loss_%03d' % (i, i, i + 1),
                    self._Add('loss_%03d' % (i + 1)))]
         i += 1
@@ -1154,11 +1156,11 @@ class MoEBuilder(builder.Base):
 
   def _LN(self, name):
     """Overriding with bias-less layer norm."""
-    p = self.params
-    if p.ln_kernel_size is None:
-      return self._LNInternal(name)
+    return self._LNInternal(name)
+
+  def _LNConv(self, name, ln_kernel_size):
     return self._Seq(name, self._LNNoScale('ln_no_scale'),
-                     self.DepthwiseConvAutoregressive('conv', p.ln_kernel_size))
+                     self.DepthwiseConvAutoregressive('conv', ln_kernel_size))
 
   def _LNInternal(self, name, ln_weight_reshape=None):
     """Internal implementation of _LN with optional reshape of the weight."""
@@ -2124,7 +2126,7 @@ class RecurrentDenseBuilder(DenseBuilder):
     return builder_layers.RepeatLayer.Params().Set(
         name=name, body=body, repeat=repeat)
 
-  def _RepeatableDecoderLayer(self, name, layer):
+  def _RepeatableDecoderLayer(self, name, layer, ln_kernel_size=None):
     block = self._Graph(name, [
         'inputs', 'segment_id', 'segment_pos', 'encoder_output',
         'encoder_segment_id', 'encoder_segment_pos', 'input_loss'
@@ -2133,15 +2135,16 @@ class RecurrentDenseBuilder(DenseBuilder):
         'encoder_segment_id', 'encoder_segment_pos', 'output_loss'
     ], ('inputs,segment_id,segment_pos,encoder_output,encoder_segment_id,'
         'encoder_segment_pos->outputs,aux_loss',
-        self.DecoderLayer('layer', layer)),
+        self.DecoderLayer('layer', layer, ln_kernel_size=ln_kernel_size)),
                         ('input_loss,aux_loss->output_loss', self._Add('_add')))
     return block
 
-  def DecoderLayerStack(self, name, sub_layers, num=1):
+  def DecoderLayerStack(self, name, sub_layers, num=1, ln_kernel_size=None):
     """Clean DecoderLayerStack."""
 
     recurrent_cells = [
-        self._RepeatableDecoderLayer(l.name + '_rep', l) for l in sub_layers
+        self._RepeatableDecoderLayer(l.name + '_rep', l, ln_kernel_size)
+        for l in sub_layers
     ]
     recurrent_body = self._Seq('blocks_body', *recurrent_cells)
     repeated_blocks = self._Repeat(
@@ -2223,6 +2226,8 @@ class UniTransformer(base_model.BaseTask):
         'hidden_dim_reshape_segments', 4,
         'Size of S when reshaping hidden dimension H to Sh. Only used when'
         ' parallel_ffn is true currently.')
+    p.Define('ln_kernel_size', None,
+             'Optional 1D convolutional kernel after layer norm.')
     return p
 
   def __init__(self, params):
@@ -2277,7 +2282,11 @@ class UniTransformer(base_model.BaseTask):
           ffw_layer = b.DenseReluDenseGated(
               'dense_relu_dense' + str_i, gated_ffn_activation, decoder=True)
         decoder_sub_layers += [atten_layer, ffw_layer]
-    dec = b.DecoderLayerStack('decoder', decoder_sub_layers, num_blocks)
+    dec = b.DecoderLayerStack(
+        'decoder',
+        decoder_sub_layers,
+        num_blocks,
+        ln_kernel_size=p.ln_kernel_size)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
     emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
