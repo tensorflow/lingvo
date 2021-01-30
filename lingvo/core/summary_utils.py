@@ -342,20 +342,23 @@ class StepRateTracker:
   """A class that tracks step/example rate."""
 
   def __init__(self):
+    self._first_step = -1
     self._time_steps = []  # History of (timestamp, global_step, total_examples)
 
   def ComputeStepRate(self, current_steps, total_examples):
     """Computes the overall step rate."""
     if self._time_steps:
       total_examples += self._time_steps[-1][-1]
+    else:
+      self._first_step = current_steps
     self._time_steps.append((time.time(), current_steps, total_examples))
     # Keeps a relative long history to compute a smooth steps/second.
     # Removes duplicate stats for step = 0 to get rid of the warm-up period.
     # Scale up the amount of history used. The first few steps are generally
     # much slower and can skew the statistic significantly otherwise.
-    if self._time_steps[-1][1] < 1000:
+    if current_steps - self._first_step < 1000:
       history = 100
-    elif self._time_steps[-1][1] < 10000:
+    elif current_steps - self._first_step < 10000:
       history = 1000
     else:
       history = 10000
