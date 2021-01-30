@@ -1242,7 +1242,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
                     <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)))</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.DepthwiseConvAutoregressive"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DepthwiseConvAutoregressive"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Depthwise convolution for autoregressive models.</span>
 
 <span class="sd">    Same implementation as mesh_tensorflow/</span>
@@ -1259,6 +1259,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">      name: Name of the layer.</span>
 <span class="sd">      kernel_size: an integer.</span>
+<span class="sd">      model_dims: Overridden model dimensions.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A layer params that computes DepthwiseConvAutoregressive.</span>
@@ -1266,10 +1267,11 @@
 
     <span class="k">def</span> <span class="nf">_GetScaleVar</span><span class="p">(</span><span class="n">shift_distance</span><span class="p">):</span>
       <span class="n">init_const</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="n">shift_distance</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">kernel_size</span>
+      <span class="n">var_shape</span> <span class="o">=</span> <span class="n">model_dims</span> <span class="ow">or</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span>
       <span class="n">scale_var_weight_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">init_const</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">var_shape</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shift_distance</span><span class="p">,</span>
           <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale_var_weight_params</span><span class="p">)])</span>
@@ -1746,6 +1748,10 @@
         <span class="n">new_equation</span> <span class="o">+=</span> <span class="n">insert_chars</span>
       <span class="n">new_equation</span> <span class="o">+=</span> <span class="n">c</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">new_equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder.DepthwiseConvAutoregressive"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">model_dims</span> <span class="o">=</span> <span class="n">model_dims</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.EinsumWithModelDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.EinsumWithModelDim">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumWithModelDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">equation</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EinsumWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span></div>
