@@ -1090,7 +1090,7 @@ class MoEBuilder(builder.Base):
     return self._Fn(name,
                     lambda: tf.constant(0.0, py_utils.FPropDtype(self.params)))
 
-  def DepthwiseConvAutoregressive(self, name, kernel_size):
+  def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
     r"""Depthwise convolution for autoregressive models.
 
     Same implementation as mesh_tensorflow/
@@ -1107,6 +1107,7 @@ class MoEBuilder(builder.Base):
     Args:
       name: Name of the layer.
       kernel_size: an integer.
+      model_dims: Overridden model dimensions.
 
     Returns:
       A layer params that computes DepthwiseConvAutoregressive.
@@ -1114,10 +1115,11 @@ class MoEBuilder(builder.Base):
 
     def _GetScaleVar(shift_distance):
       init_const = 0.5 if shift_distance == 0 else 0.5 / kernel_size
+      var_shape = model_dims or [self.params.model_dim]
       scale_var_weight_params = py_utils.WeightParams(
           init=py_utils.WeightInit.Constant(init_const),
           dtype=self.params.dtype,
-          shape=[self.params.model_dim])
+          shape=var_shape)
       return self._Var(
           name='w_%d' % shift_distance,
           weights=[('scale', scale_var_weight_params)])
@@ -1594,6 +1596,10 @@ class DenseBuilder(MoEBuilder):
         new_equation += insert_chars
       new_equation += c
     return tf.einsum(new_equation, x, y)
+
+  def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
+    model_dims = model_dims or self._ReshapedModelDims()
+    return super().DepthwiseConvAutoregressive(name, kernel_size, model_dims)
 
   def EinsumWithModelDim(self, name, equation):
     return self._Fn(name, lambda x, y: self._EinsumWithModelDim(equation, x, y))
