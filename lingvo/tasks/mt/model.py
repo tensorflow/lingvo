@@ -56,16 +56,6 @@ class MTBaseModel(base_model.BaseTask):
       self.CreateChild('enc', p.encoder)
     self.CreateChild('dec', p.decoder)
 
-  def _CreateChildrenVariables(self):
-    p = self.params
-    with tf.variable_scope(p.name):
-      with self._EncoderDevice():
-        if p.encoder:
-          self.enc.InstantiateVariables()
-      with self._DecoderDevice():
-        self.dec.InstantiateVariables()
-    super()._CreateChildrenVariables()
-
   def ComputePredictions(self, theta, batch):
     p = self.params
 
