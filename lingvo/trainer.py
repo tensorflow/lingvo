@@ -918,6 +918,9 @@ class Evaler(base_runner.BaseRunner):
       self.checkpointer.RestoreFromPath(sess, path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
+    # Save any additional information to disk before evaluation.
+    self._task.Export(path)
+
     # Check after how many steps checkpoint got saved.
     # And decide whether to run an evaluation.
     if global_step < self._task.params.eval.start_eval_after:

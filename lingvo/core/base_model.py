@@ -880,6 +880,17 @@ class BaseTask(base_layer.BaseLayer):
       mask_update_op = pruning_obj.conditional_mask_update_op()
     return mask_update_op
 
+  def Export(self, train_dir):
+    """Called by an eval job before evaluation.
+
+    Can be used to write additional information to disk.
+
+    Args:
+      train_dir: Directory in which any additional files should be saved. This
+        is also the same directory where checkpoints will be written.
+    """
+    pass
+
 
 class BaseModel(base_layer.BaseLayer):
   """The abstract model class. All models are sub-class of this class."""
@@ -1023,16 +1034,16 @@ class BaseModel(base_layer.BaseLayer):
     pass
 
   def Export(self, train_dir):
-    """Called by the checkpointer when a checkpoint is written.
+    """Called by an eval job after evaluation.
 
-    This is entirely optional and is intended for models that have additional
-    information to save.
+    Can be used to write additional information to CNS.
 
     Args:
       train_dir: Directory in which any additional files should be saved. This
         is also the same directory where checkpoints will be written.
     """
-    pass
+    for task in self.tasks:
+      task.Export(train_dir)
 
 
 class SingleTaskBase(BaseModel):

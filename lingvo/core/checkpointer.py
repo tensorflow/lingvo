@@ -156,9 +156,6 @@ class Checkpointer:
     tf.logging.info('Save checkpoint')
     path = self._saver.save(sess, self._save_path, gsteps)
     tf.logging.info('Save checkpoint done: %s', path)
-    if self._model:
-      self._model.Export(self._train_dir)
-      tf.logging.info('Model export done: %s', self._train_dir)
 
   def _RestoreFromLatestCheckpoint(self, sess):
     assert not self._save_only
