@@ -16,12 +16,10 @@
 
 from absl.testing import parameterized
 import lingvo.compat as tf
-from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import rnn_cell
 from lingvo.core import test_utils
-from lingvo.core.steps import embedding_steps
 import numpy as np
 
 _INIT_RANDOM_SEED = 429891685
@@ -1499,79 +1497,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
                     np.array_repr(init_state_value['c']))
     self.assertAllClose(init_state_value['m'], m_expected)
     self.assertAllClose(init_state_value['c'], c_expected)
-
-  def testEmbeddingAugmentedLNLSTMCellSimple(self):
-    tf.reset_default_graph()
-
-    num_act_nodes = 2
-    emb_dim = 3
-    batch_size = 1
-    vocab_size = 10
-
-    # setup cell
-    emb_tpl = layers.EmbeddingLayer.Params().Set(
-        embedding_dim=emb_dim,
-        vocab_size=vocab_size,
-        max_num_shards=1,
-    )
-    embstep_tpl = embedding_steps.StatefulEmbeddingStep.Params().Set(
-        num_prev_tokens=0,
-        include_current_token=1,
-        emb=emb_tpl,
-    )
-    p = rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple.Params().Set(
-        emb=embstep_tpl,
-        inject_emb_method='concat',
-        num_input_nodes=num_act_nodes + emb_dim,
-        num_output_nodes=num_act_nodes,
-        name='lstm',
-        params_init=py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED),
-        random_seed=_RANDOM_SEED,
-    )
-    p.vn.global_vn = False
-    p.vn.per_step_vn = False
-    np.random.seed(_NUMPY_RANDOM_SEED)
-    lstm = p.Instantiate()
-
-    # setup inputs
-    inputs = py_utils.NestedMap(
-        act=[
-            tf.constant(
-                np.random.uniform(size=(batch_size, num_act_nodes)), tf.float32)
-        ],
-        padding=tf.zeros([batch_size, 1]),
-        ids=tf.constant(
-            np.random.randint(vocab_size, size=(batch_size,)), tf.int32),
-    )
-    # inputs must be padded to make room for embedding.
-    inputs.act[0] = tf.pad(inputs.act[0], [[0, 0], [0, emb_dim]])
-    state0 = py_utils.NestedMap(
-        c=tf.constant(
-            np.random.uniform(size=(batch_size, lstm.hidden_size)), tf.float32),
-        m=tf.constant(
-            np.random.uniform(size=(batch_size, lstm.output_size)), tf.float32),
-        prev_ids=tf.ones([batch_size, 0], tf.int32),
-    )
-    state1, _ = lstm.FPropDefaultTheta(state0, inputs)
-
-    # setup loss and grads
-    loss = -tf.math.log(
-        tf.sigmoid(
-            tf.reduce_sum(tf.square(state1.m)) +
-            tf.reduce_sum(state1.m * state1.c * state1.c)))
-    grads = tf.gradients(loss, lstm.vars.Flatten())
-    grads = py_utils.Pack(lstm.vars, grads)
-
-    # sess run
-    with self.session(use_gpu=False):
-      self.evaluate(tf.global_variables_initializer())
-      state1_v, _, _, _, grads_v = self.evaluate(
-          [state1, state0, inputs, lstm.emb.theta, grads])
-
-    self.assertAllClose(state1_v.m, np.array([[-0.13381833, 0.48910475]]))
-    self.assertAllClose(
-        grads_v.emb.emb.wm[0][0],
-        np.array([[-2.8302744e-05, 1.2613055e-05, 1.1538845e-05]]))
 
 
 if __name__ == '__main__':
