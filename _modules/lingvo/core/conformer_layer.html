@@ -679,7 +679,13 @@
                    <span class="n">layer_order</span><span class="o">=</span><span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">,</span>
                    <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
                    <span class="n">conv_norm_layer_tpl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">fprop_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                   <span class="n">fprop_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">use_moe_in_fflayer_start</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">use_moe_in_fflayer_end</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">moe_num_partitions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">moe_num_experts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">moe_num_groups</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">moe_per_capacity_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">atten_num_heads</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">fflayer_hidden_dim</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">atten_local_context</span><span class="p">):</span>
@@ -706,6 +712,12 @@
       <span class="n">p</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="o">.</span><span class="n">conv_norm_layer_tpl</span> <span class="o">=</span> <span class="n">conv_norm_layer_tpl</span>
     <span class="k">if</span> <span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetFPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_moe_in_fflayer_start</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetMoEFFLayerStartParams</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">moe_num_partitions</span><span class="p">,</span> <span class="n">moe_num_experts</span><span class="p">,</span>
+                                     <span class="n">moe_num_groups</span><span class="p">,</span> <span class="n">moe_per_capacity_dim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_moe_in_fflayer_end</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetMoEFFLayerEndParams</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">moe_num_partitions</span><span class="p">,</span> <span class="n">moe_num_experts</span><span class="p">,</span>
+                                   <span class="n">moe_num_groups</span><span class="p">,</span> <span class="n">moe_per_capacity_dim</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="ConformerLayer.SetFPropDtype"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.SetFPropDtype">[docs]</a>  <span class="nd">@classmethod</span>
