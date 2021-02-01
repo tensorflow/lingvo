@@ -24,6 +24,33 @@ from lingvo.core import tshape
 import numpy as np
 
 
+class FCLayerTestNestedMapFPropInput(lingvo_layers.FCLayer):
+  """lingvo_layers.FCLayer with nested map as input signature in FProp.
+
+  This is for testing compliance of RepeatLayer with NestedMap inputs in FProp.
+  """
+
+  def FProp(self, theta, in_nmap):
+    """Overriding FProp input signature for FCLayer.
+
+    Args:
+     theta: NestedMap containing weights of layer.
+     in_nmap: NestedMap containing at least the following:
+      - features: The inputs tensor. Shaped [..., input_dim].
+      - paddings: The paddings tensor. Shaped [..., 1], where all but the last
+        dimension match.
+
+    Returns:
+     out_nmap: NestedMap containing the following:
+      - features: Output after applying projection (see super() for details).
+      - paddings: Output (unused) paddings.
+    """
+    out_nmap = in_nmap.copy()
+    outputs = super().FProp(theta, in_nmap.features, in_nmap.paddings)
+    out_nmap.features = outputs
+    return out_nmap
+
+
 class BuilderLayerTest(test_utils.TestCase):
 
   def testFirstNLayerFProp(self):
@@ -467,6 +494,64 @@ class BuilderLayerTest(test_utils.TestCase):
     for i in range(repeat):
       np_val = np.maximum(0, np.dot(np_val, w.body.w[i]) + w.body.b[i])
     self.assertAllClose(np_val, y_val)
+
+  def testRepeatLayerNestedMapFPropInputSignature(self):
+    """Tests RepeatLayer having body layer with NestedMap in FProp signature."""
+    repeat = 100
+    input_dim, output_dim = 2, 2
+    # Reference RepeatLayer.
+    ref_p = layers.RepeatLayer.Params().Set(
+        name='ref_recurrent',
+        repeat=repeat,
+        body=lingvo_layers.FCLayer.Params().Set(
+            input_dim=input_dim, output_dim=output_dim))
+    # RepeatLayer with NestedMap in `body` FProp input signature.
+    new_p = layers.RepeatLayer.Params().Set(
+        name='nested_map_recurrent',
+        repeat=repeat,
+        body=FCLayerTestNestedMapFPropInput.Params().Set(
+            input_dim=input_dim, output_dim=output_dim))
+    # Verify FProp output equality for both layers.
+    ref_layer = ref_p.Instantiate()
+    new_layer = new_p.Instantiate()
+    assign_op = [
+        tf.assign(dst, src)
+        for (src,
+             dst) in zip(ref_layer.vars.Flatten(), new_layer.vars.Flatten())
+    ]
+    with self.session() as sess:
+      tf.random.set_seed(24332)
+      sess.run(tf.global_variables_initializer())
+      sess.run(assign_op)
+      inputs = tf.random.normal(shape=[2, 2])
+      paddings = tf.zeros((2, 1))
+      ref_outputs = ref_layer.FPropDefaultTheta(inputs)
+      new_out_nmap = new_layer.FPropDefaultTheta(
+          py_utils.NestedMap(features=inputs, paddings=paddings))
+      ref_out_vals = sess.run(ref_outputs)
+      new_out_vals = sess.run(new_out_nmap.features)
+      self.assertAllClose(ref_out_vals, new_out_vals)
+
+  def testRepeatLayerNestedMapFPropInputRaisesErrorWithNoneInput(self):
+    """Tests RepeatLayer raise ValueError with None values in input map."""
+    repeat = 100
+    # RpeatLayer with NestedMap in FProp input signature.
+    p = layers.RepeatLayer.Params().Set(
+        name='nested_map_recurrent',
+        repeat=repeat,
+        body=FCLayerTestNestedMapFPropInput.Params().Set(
+            input_dim=2, output_dim=2))
+    layer = p.Instantiate()
+    with self.session() as sess:
+      tf.random.set_seed(24332)
+      sess.run(tf.global_variables_initializer())
+      inputs = tf.random.normal(shape=[2, 2])
+      # Set paddings to None.
+      paddings = None
+      with self.assertRaisesRegex(
+          ValueError, 'Each value in the input NestedMap must be a tensor.'):
+        layer.FPropDefaultTheta(
+            py_utils.NestedMap(features=inputs, paddings=paddings))
 
   def testParallelRepeatLayerLayer(self):
     repeat = 100

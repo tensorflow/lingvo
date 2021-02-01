@@ -206,13 +206,67 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       print([g.shape for g in grad_vals])
 
   @parameterized.named_parameters(
+      ('Start', True, False),
+      ('End', False, True),
+      ('StartAndEnd', True, True),
+      ('None', False, False),
+  )
+  def testMoEFFLayerClassMethodInitParity(self, use_fflayer_start_moe,
+                                          use_fflayer_end_moe):
+    """Tests Conformer-MoE initializations via classmethods and explicitly."""
+
+    num_experts, num_groups, num_devices, per_expert_capacity_dim = 2, 2, 2, 2
+    # Create params setting MoEBuilder params explicitly.
+    ref_p = self._GetParams()
+    if use_fflayer_start_moe:
+      # Set MoEBuilder params explicitly.
+      ref_p.fflayer_start_tpl = gshard_builder.MoEBuilder.Params().Set(
+          e_dim=num_experts,
+          c_dim=per_expert_capacity_dim,
+          num_devices=num_devices,
+          num_groups=num_groups)
+    if use_fflayer_end_moe:
+      ref_p.fflayer_end_tpl = gshard_builder.MoEBuilder.Params().Set(
+          e_dim=num_experts,
+          c_dim=per_expert_capacity_dim,
+          num_devices=num_devices,
+          num_groups=num_groups)
+
+    # Params setting MoEBuilder params via classmethod.
+    moe_p = self._GetParams()
+    if use_fflayer_start_moe:
+      # Set MoEBuilder params via classmethod.
+      moe_p.cls.SetMoEFFLayerStartParams(moe_p, num_devices, num_groups,
+                                         num_experts, per_expert_capacity_dim)
+    if use_fflayer_end_moe:
+      moe_p.cls.SetMoEFFLayerEndParams(moe_p, num_devices, num_groups,
+                                       num_experts, per_expert_capacity_dim)
+    # Verify layer params are equal in both cases.
+    with self.subTest('testParamsParity'):
+      self.assertEqual(ref_p, moe_p)
+
+    # Test both initializations and verify moe sublayer.
+    with self.subTest('testInit'):
+      ref_p.name = 'ref_moe_conformer_layer'
+      ref_layer = ref_p.Instantiate()
+      moe_p.name = 'classmethod_moe_conformer_layer'
+      moe_layer = moe_p.Instantiate()
+      for layer in (ref_layer, moe_layer):
+        if use_fflayer_start_moe:
+          self.assertNotIn('fflayer_start', layer.children)
+          self.assertIn('fflayer_start_moe', layer.children)
+        if use_fflayer_end_moe:
+          self.assertNotIn('fflayer_end', layer.children)
+          self.assertIn('fflayer_end_moe', layer.children)
+
+  @parameterized.named_parameters(
       ('Start', True, False, 0.593693),
       ('End', False, True, 0.4582923),
       ('StartAndEnd', True, True, 1.0213419),
       ('None', False, False, 0.0),
   )
-  def testMoEFFLayer(self, use_fflayer_start_moe, use_fflayer_end_moe,
-                     expected_aux_loss):
+  def testMoEFFLayerFProp(self, use_fflayer_start_moe, use_fflayer_end_moe,
+                          expected_aux_loss):
     p = self._GetParams()
     if use_fflayer_start_moe:
       p.fflayer_start_tpl = gshard_builder.MoEBuilder.Params().Set(
@@ -221,12 +275,6 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       p.fflayer_end_tpl = gshard_builder.MoEBuilder.Params().Set(
           e_dim=2, c_dim=2, num_devices=2)
     l = p.Instantiate()
-    if use_fflayer_start_moe:
-      self.assertNotIn('fflayer_start', l.children)
-      self.assertIn('fflayer_start_moe', l.children)
-    if use_fflayer_end_moe:
-      self.assertNotIn('fflayer_end', l.children)
-      self.assertIn('fflayer_end_moe', l.children)
     inputs, paddings = self._GetInputs()
     inputs = tf.convert_to_tensor(inputs)
     paddings = tf.convert_to_tensor(paddings)

@@ -132,6 +132,11 @@ class RepeatLayer(base_layer.BaseLayer):
       # Maintains a mapping from arg_idx to tensor. states cannot contains
       # None tensors.
       for idx in range(len(args)):
+        if isinstance(arg_list[idx], py_utils.NestedMap):
+          # Make sure each value in the NestedMap is a tensor.
+          if not all(isinstance(t, tf.Tensor) for t in arg_list[idx].Flatten()):
+            raise ValueError(
+                'Each value in the input NestedMap must be a tensor.')
         if arg_list[idx] is not None:
           state['_s{}'.format(idx)] = arg_list[idx]
       return state
@@ -142,14 +147,18 @@ class RepeatLayer(base_layer.BaseLayer):
       for idx in range(len(args)):
         attr = '_s{}'.format(idx)
         arg_list.append(state[attr] if attr in state else None)
-        if arg_list[-1] is not None:
-          arg_list[-1].set_shape(args[idx].shape)
+        if isinstance(arg_list[-1], py_utils.NestedMap):
+          assert isinstance(args[idx], py_utils.NestedMap)
+          py_utils.SetShapes(arg_list[-1], args[idx])
+        elif isinstance(arg_list[-1], tf.Tensor):
+          if arg_list[-1] is not None:
+            arg_list[-1].set_shape(args[idx].shape)
       return arg_list
 
     def _CellFn(unused_theta, state0, theta_i):
       """Recurrent cell function wrapper of body.FProp."""
       # Retrieves fprop arguments from state and sets shapes.
-      frop_inputs = _StateToArgs(state0)
+      fprop_inputs = _StateToArgs(state0)
 
       # Sets shapes for theta_i as well.
       for dst, src in zip(theta_i.Flatten(), theta_stack.Flatten()):
@@ -157,12 +166,12 @@ class RepeatLayer(base_layer.BaseLayer):
           dst.set_shape(tf.TensorShape(src.shape.as_list()[1:]))
 
       # Runs the actual body.FProp
-      frop_outputs = self.body.FProp(theta_i, *frop_inputs)
-      frop_outputs = _ToTuple(frop_outputs)
-      assert len(frop_outputs) == len(frop_inputs)
+      fprop_outputs = self.body.FProp(theta_i, *fprop_inputs)
+      fprop_outputs = _ToTuple(fprop_outputs)
+      assert len(fprop_outputs) == len(fprop_inputs)
 
       # Passes fprop outputs to the next layer through state.
-      state1 = _ArgsToState(frop_outputs)
+      state1 = _ArgsToState(fprop_outputs)
       return state1, py_utils.NestedMap()
 
     with tf.name_scope(p.name):

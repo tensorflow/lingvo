@@ -527,7 +527,13 @@ class ConformerLayer(base_layer.BaseLayer):
                    layer_order='mhsa_before_conv',
                    dropout_prob=0.,
                    conv_norm_layer_tpl=None,
-                   fprop_dtype=None):
+                   fprop_dtype=None,
+                   use_moe_in_fflayer_start=False,
+                   use_moe_in_fflayer_end=False,
+                   moe_num_partitions=None,
+                   moe_num_experts=None,
+                   moe_num_groups=None,
+                   moe_per_capacity_dim=None):
     assert all([input_dim, atten_num_heads, kernel_size, fflayer_hidden_dim])
 
     if _AttenCtxIsSet(atten_local_context):
@@ -554,6 +560,12 @@ class ConformerLayer(base_layer.BaseLayer):
       p.lconv_tpl.conv_norm_layer_tpl = conv_norm_layer_tpl
     if fprop_dtype is not None:
       p.cls.SetFPropDtype(p, fprop_dtype)
+    if use_moe_in_fflayer_start:
+      p.cls.SetMoEFFLayerStartParams(p, moe_num_partitions, moe_num_experts,
+                                     moe_num_groups, moe_per_capacity_dim)
+    if use_moe_in_fflayer_end:
+      p.cls.SetMoEFFLayerEndParams(p, moe_num_partitions, moe_num_experts,
+                                   moe_num_groups, moe_per_capacity_dim)
     return p
 
   @classmethod
