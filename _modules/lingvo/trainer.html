@@ -1070,6 +1070,9 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+    <span class="c1"># Save any additional information to disk before evaluation.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
     <span class="c1"># Check after how many steps checkpoint got saved.</span>
     <span class="c1"># And decide whether to run an evaluation.</span>
     <span class="k">if</span> <span class="n">global_step</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">start_eval_after</span><span class="p">:</span>

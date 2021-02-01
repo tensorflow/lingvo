@@ -1030,7 +1030,18 @@
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
         <span class="n">pruning_obj</span><span class="o">.</span><span class="n">add_pruning_summaries</span><span class="p">()</span>
       <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">pruning_obj</span><span class="o">.</span><span class="n">conditional_mask_update_op</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">mask_update_op</span></div></div>
+    <span class="k">return</span> <span class="n">mask_update_op</span></div>
+
+<div class="viewcode-block" id="BaseTask.Export"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Export">[docs]</a>  <span class="k">def</span> <span class="nf">Export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Called by an eval job before evaluation.</span>
+
+<span class="sd">    Can be used to write additional information to disk.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      train_dir: Directory in which any additional files should be saved. This</span>
+<span class="sd">        is also the same directory where checkpoints will be written.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div></div>
 
 
 <div class="viewcode-block" id="BaseModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel">[docs]</a><span class="k">class</span> <span class="nc">BaseModel</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -1175,16 +1186,16 @@
     <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="BaseModel.Export"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.Export">[docs]</a>  <span class="k">def</span> <span class="nf">Export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dir</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Called by the checkpointer when a checkpoint is written.</span>
+    <span class="sd">&quot;&quot;&quot;Called by an eval job after evaluation.</span>
 
-<span class="sd">    This is entirely optional and is intended for models that have additional</span>
-<span class="sd">    information to save.</span>
+<span class="sd">    Can be used to write additional information to CNS.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      train_dir: Directory in which any additional files should be saved. This</span>
 <span class="sd">        is also the same directory where checkpoints will be written.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">pass</span></div></div>
+    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+      <span class="n">task</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">train_dir</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="SingleTaskBase"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
