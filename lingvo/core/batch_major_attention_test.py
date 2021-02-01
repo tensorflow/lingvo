@@ -3165,6 +3165,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'begin_intact': 1,
           'trunc_seq': True,
       })
+
   def testFunnelTransformerStack(self, strides, begin_intact=0, trunc_seq=True):
     with self.session(use_gpu=False) as sess:
       bs = 2
@@ -3404,6 +3405,41 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
                       actual_upsample_out.shape)
       self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
       self.assertAllEqual([bs, sl, d], actual_upsample_out.shape)
+
+  def testFunnelEncoderLayerWithPerLayerFfns(self):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      num_ffns_list = [2, 1, 3]
+      strides = [1, 2, 2]
+      tf.random.set_seed(12345)
+      atten_builder_params = attention.Builder.Params().Set(
+          model_dim=d,
+          num_heads=2,
+          ff_hidden_dim=5,
+          funnel_pool_tpl=attention.FunnelPoolingLayer.Params().Set())
+      atten_builder = atten_builder_params.Instantiate()
+      layers = []
+
+      for layer_i, stride in enumerate(strides):
+        layers.append(
+            atten_builder.FunnelEncoderLayer(
+                name='atten_{}'.format(layer_i),
+                stride=stride,
+                num_ffns=num_ffns_list[layer_i]))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      out = tf.reduce_sum(l_out.vec)
+      tf.global_variables_initializer().run()
+      actual_out = sess.run(out)
+      self.assertAllClose(actual_out, 79.52954)
 
   @parameterized.named_parameters(
       {
