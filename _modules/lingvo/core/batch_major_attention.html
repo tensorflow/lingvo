@@ -4407,6 +4407,9 @@
             <span class="n">time_step</span><span class="p">,</span> <span class="n">use_short_seq_opt</span><span class="p">)</span>
         <span class="n">updated_states</span><span class="o">.</span><span class="n">x_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">updated_layer_states</span><span class="p">)</span>
         <span class="n">decoder_input</span> <span class="o">=</span> <span class="n">decoder_output</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">:</span>
+        <span class="n">decoder_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">decoder_output</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">decoder_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
 
 
