@@ -334,7 +334,7 @@ class BaseRunner:
       global_enqueue_steps = None
 
       tf.logging.info('params.train.max_steps: %d, enqueue_max_steps: %d',
-                           p.train.max_steps, p.train.enqueue_max_steps)
+                      p.train.max_steps, p.train.enqueue_max_steps)
       while True:
         if self._dequeue_thread_complete:
           tf.logging.info(

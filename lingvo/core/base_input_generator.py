@@ -728,7 +728,11 @@ def FilePatternToDataSource(p):
     raise ValueError('Cannot parse p.file_pattern into a datasource.')
 
   if cluster_factory.Current().tf_data_service_address:
-    ds = datasource.TFDataServiceSource.Params().Set(sub=ds)
+    bucket_upper_bound = None
+    if 'bucket_upper_bound' in p:
+      bucket_upper_bound = p.bucket_upper_bound
+    ds = datasource.TFDataServiceSource.Params().Set(
+        sub=ds, bucket_upper_bound=bucket_upper_bound)
     ds = datasource.TFDatasetPrefetch.Params().Set(sub=ds)
 
   p = p.Copy()
@@ -1241,8 +1245,6 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
         sub=ds, fn='TakeEvalSamples')
     ds = datasource.CustomTFDatasetTransform.Params().Set(
         sub=ds, fn='ProcessDataset')
-    if self.cluster.tf_data_service_address:
-      ds = datasource.TFDataServiceSource.Params().Set(sub=ds)
     ds = datasource.TFDatasetBatchBySequenceLength.Params().Set(
         sub=ds,
         seqlen_fn='GetSequenceLength',
@@ -1251,6 +1253,9 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
         bucket_upper_bound=params.bucket_upper_bound,
         bucket_batch_limit=params.bucket_batch_limit,
         require_sequential_order=params.require_sequential_order)
+    if self.cluster.tf_data_service_address:
+      ds = datasource.TFDataServiceSource.Params().Set(
+          sub=ds, bucket_upper_bound=params.bucket_upper_bound)
     ds = datasource.TFDatasetPrefetch.Params().Set(
         sub=ds, buffer_size=params.prefetch_buffer_size)
 
