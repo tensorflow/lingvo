@@ -177,10 +177,13 @@
 <span class="sd">requirements are met.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">batch_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
 
@@ -194,6 +197,7 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">SetVariableFree</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="DataSource.SetInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.SetInputGenerator">[docs]</a>  <span class="k">def</span> <span class="nf">SetInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_generator</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initialize this datasource.</span>
@@ -353,7 +357,8 @@
         <span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="c1"># TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to</span>
     <span class="c1"># use source_selected from input_batch.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">data_source</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">data_source</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">shape</span> <span class="o">!=</span> <span class="p">[]</span> <span class="k">else</span> <span class="mi">1</span>  <span class="c1"># pylint: disable=g-explicit-bool-comparison</span>
     <span class="k">return</span> <span class="n">data_source</span></div>
 
 <div class="viewcode-block" id="CrossBatchMixingDataSource.GetMeta"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CrossBatchMixingDataSource.GetMeta">[docs]</a>  <span class="k">def</span> <span class="nf">GetMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -468,6 +473,303 @@
           <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">))</span>
     <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="n">prefixed</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TFDatasetSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base DataSource class based on tf.data.Dataset.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="o">=</span> <span class="p">{}</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">num_hosts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span> <span class="ow">and</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">):</span>
+      <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">1</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">host_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">cluster</span><span class="o">.</span><span class="n">GetInfeedContext</span><span class="p">()</span><span class="o">.</span><span class="n">infeed_host_index</span>
+    <span class="k">return</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="TFDatasetSource.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override to return a tf.data.Dataset containing a NestedMap.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TFDatasetSource._InitIterator"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource._InitIterator">[docs]</a>  <span class="k">def</span> <span class="nf">_InitIterator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+      <span class="c1"># Hide global_step tensor from being captured by dataset function.</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDataset</span><span class="p">()</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">options</span><span class="p">()</span><span class="o">.</span><span class="n">experimental_deterministic</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span>
+
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">it</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">it</span></div>
+
+<div class="viewcode-block" id="TFDatasetSource.Initialize"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TFDatasetSource.Reset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">it</span><span class="o">.</span><span class="n">initializer</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span></div>
+
+<div class="viewcode-block" id="TFDatasetSource.GetNext"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.GetNext">[docs]</a>  <span class="k">def</span> <span class="nf">GetNext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the next element from the dataset.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_InitIterator</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">())</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="TFDatasetAdaptor"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetAdaptor">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetAdaptor</span><span class="p">(</span><span class="n">TFDatasetSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts a DataSource into a TFDatasetSource.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFDatasetAdaptor.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetAdaptor.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A DataSource to adapt.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TFDatasetAdaptor.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetAdaptor.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensors</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">GetNext</span><span class="p">())</span></div></div>
+
+
+<div class="viewcode-block" id="TFDatasetTransform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetTransform">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetTransform</span><span class="p">(</span><span class="n">TFDatasetSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Transforms the output of a child TFDatasetSource.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFDatasetTransform.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetTransform.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A DatasetSource to adapt. &#39;</span>
+        <span class="s1">&#39;If it is not a TFDatasetSource, TFDatasetAdaptor will be used.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sub</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">TFDatasetSource</span><span class="p">):</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="n">TFDatasetAdaptor</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TFDatasetTransform.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetTransform.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">GetDataset</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="TFDatasetTransform.Transform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetTransform.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a transformed tf.data.Dataset.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="CustomTFDatasetTransform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CustomTFDatasetTransform">[docs]</a><span class="k">class</span> <span class="nc">CustomTFDatasetTransform</span><span class="p">(</span><span class="n">TFDatasetTransform</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Transforms using a custom method of the input generator.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CustomTFDatasetTransform.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CustomTFDatasetTransform.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fn&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;The method name to call. &#39;</span>
+        <span class="s1">&#39;It must accept and return a tf.data.Dataset.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="CustomTFDatasetTransform.Transform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CustomTFDatasetTransform.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a transformed tf.data.Dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fn</span><span class="p">)(</span><span class="n">dataset</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TFDatasetFnInput"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetFnInput">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetFnInput</span><span class="p">(</span><span class="n">TFDatasetSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Loads a TFDataset using a function.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFDatasetFnInput.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetFnInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;load_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;LoadDataset&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;An input_generator method name to call to load data. It must accept &#39;</span>
+        <span class="s1">&#39;p.args and return a tf.data.Dataset.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Arguments to pass to load_fn. If a list, it will be expanded.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shuffle_buffer_size&#39;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span>
+             <span class="s1">&#39;Number of records buffered for random shuffling.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether elements need to be produced in sequential order. &#39;</span>
+        <span class="s1">&#39;Disables randomization.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TFDatasetFnInput.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetFnInput.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">load_fn</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">fn</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">require_sequential_order</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">require_sequential_order</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shuffle_buffer_size</span><span class="p">)</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">dataset</span></div></div>
+
+
+<div class="viewcode-block" id="TFDatasetBatchBySequenceLength"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetBatchBySequenceLength">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetBatchBySequenceLength</span><span class="p">(</span><span class="n">TFDatasetTransform</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Batches examples without a leading batch dimension by length buckets.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFDatasetBatchBySequenceLength.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetBatchBySequenceLength.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;seqlen_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;GetSequenceLength&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Name of input_generator function that takes an example and returns &#39;</span>
+        <span class="s1">&#39;its sequence length.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;input_shape_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;_InputShape&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Name of input_generator function that takes a tensor name and returns &#39;</span>
+        <span class="s1">&#39;its shape.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;input_padding_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;_InputPaddingValue&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Name of input_generator function that takes a tensor name and &#39;</span>
+        <span class="s1">&#39;tensorspec and returns the value to pad with.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Bucketing scheme. Required to be&#39;</span>
+             <span class="s1">&#39;a sorted list of integers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Desired per-split batch size per bucket. &#39;</span>
+        <span class="s1">&#39;Must be the same length as bucket_upper_bound.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether elements need to be produced in sequential order. &#39;</span>
+        <span class="s1">&#39;Disables randomization.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TFDatasetBatchBySequenceLength.Transform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetBatchBySequenceLength.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Batches a dataset containing NestedMaps of tensors.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">require_sequential_order</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
+    <span class="n">seqlen_fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">seqlen_fn</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">SetBucketKeys</span><span class="p">(</span><span class="n">example</span><span class="p">):</span>
+      <span class="n">example</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">seqlen_fn</span><span class="p">(</span><span class="n">example</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">example</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="n">SetBucketKeys</span><span class="p">,</span>
+        <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
+        <span class="n">deterministic</span><span class="o">=</span><span class="n">require_sequential_order</span><span class="p">)</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">dataset_structure</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="o">.</span><span class="n">FromNestedDict</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+
+    <span class="n">input_shape_fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_shape_fn</span><span class="p">)</span>
+    <span class="n">padded_shapes</span> <span class="o">=</span> <span class="n">dataset_structure</span><span class="o">.</span><span class="n">TransformWithKey</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">input_shape_fn</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span>
+    <span class="n">input_padding_fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_padding_fn</span><span class="p">)</span>
+    <span class="n">padding_values</span> <span class="o">=</span> <span class="n">dataset_structure</span><span class="o">.</span><span class="n">TransformWithKey</span><span class="p">(</span><span class="n">input_padding_fn</span><span class="p">)</span>
+
+    <span class="n">dataset_structure</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;dataset_structure:&#39;</span><span class="p">)</span>
+    <span class="n">padded_shapes</span><span class="o">.</span><span class="n">VLog</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;padded_shapes:&#39;</span><span class="p">)</span>
+
+    <span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">batch_utils</span><span class="o">.</span><span class="n">scale_split_to_infeed</span><span class="p">(</span>
+            <span class="n">b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span>
+    <span class="p">]</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">bucket_by_sequence_length</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">bucket_keys</span><span class="p">,</span>
+            <span class="c1"># Upper-bound for bucket_by_sequence_length is exclusive, so add 1</span>
+            <span class="c1"># TODO(jeffreyzhao): There is a off-by-one bug with the upper bound</span>
+            <span class="c1"># boundary check, so add 2 instead. Remove when fixed.</span>
+            <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">],</span>
+            <span class="n">bucket_batch_limit</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">padded_shapes</span><span class="o">=</span><span class="n">padded_shapes</span><span class="p">,</span>
+            <span class="n">padding_values</span><span class="o">=</span><span class="n">padding_values</span><span class="p">,</span>
+            <span class="n">pad_to_bucket_boundary</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">drop_remainder</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()))</span>
+
+    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">bucket_batch_limit</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bucket_batch_limit</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TPU requires constant batch sizes.&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">bucket_batch_limit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="k">def</span> <span class="nf">SetShape</span><span class="p">(</span><span class="n">element</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+          <span class="n">t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">((</span><span class="n">b</span><span class="p">,)</span> <span class="o">+</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="n">element</span>
+
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+          <span class="n">SetShape</span><span class="p">,</span>
+          <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
+          <span class="n">deterministic</span><span class="o">=</span><span class="n">require_sequential_order</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dataset</span></div></div>
+
+
+<div class="viewcode-block" id="TFDatasetPrefetch"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetPrefetch">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetPrefetch</span><span class="p">(</span><span class="n">TFDatasetTransform</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TFDatasetPrefetch.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetPrefetch.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;buffer_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Prefetch buffer size.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TFDatasetPrefetch.Transform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetPrefetch.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">prefetch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">buffer_size</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TFDatasetMixer"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetMixer">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetMixer</span><span class="p">(</span><span class="n">TFDatasetSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Mixes multiple TFDatasetSource with provided weights.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFDatasetMixer.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetMixer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of TFDatasetSource to mix.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of weights for each datasource.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TFDatasetMixer.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetMixer.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">datasets</span> <span class="o">=</span> <span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">GetDataset</span><span class="p">()</span> <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">SetSourceId</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
+      <span class="n">element</span><span class="o">.</span><span class="n">source_id</span> <span class="o">=</span> <span class="n">i</span>
+      <span class="k">return</span> <span class="n">element</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)):</span>
+      <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+          <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">SetSourceId</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+          <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">sample_from_datasets</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+                                                     <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

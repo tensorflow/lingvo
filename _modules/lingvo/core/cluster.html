@@ -167,6 +167,8 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Specification of a training cluster.&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">heapq</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -174,6 +176,28 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">nested_map</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">thread_local_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="c1"># Helper class to record the current infeed host we are working on.</span>
+<span class="n">InfeedContext</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;InfeedContext&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;infeed_host_index&#39;</span><span class="p">,</span> <span class="s1">&#39;num_infeed_hosts&#39;</span><span class="p">])</span>
+
+<span class="n">_INFEED_CONTEXT_STACK</span> <span class="o">=</span> <span class="n">thread_local_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="InfeedContextScope"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.InfeedContextScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">InfeedContextScope</span><span class="p">(</span><span class="n">infeed_host_index</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="p">):</span>
+  <span class="n">_INFEED_CONTEXT_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+      <span class="n">InfeedContext</span><span class="p">(</span><span class="n">infeed_host_index</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="p">))</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_INFEED_CONTEXT_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GetInfeedContext"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.GetInfeedContext">[docs]</a><span class="k">def</span> <span class="nf">GetInfeedContext</span><span class="p">():</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">_INFEED_CONTEXT_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_INFEED_CONTEXT_STACK</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span>
+          <span class="n">InfeedContext</span><span class="p">(</span><span class="n">infeed_host_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.MakeDeviceString">[docs]</a><span class="k">def</span> <span class="nf">MakeDeviceString</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">):</span>
