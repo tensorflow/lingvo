@@ -165,7 +165,6 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
-<span class="c1"># pylint: disable=line-too-long</span>
 <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Trainer.</span>
 
 <span class="sd">To run locally:</span>
@@ -179,7 +178,6 @@
 
 <span class="sd">To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="c1"># pylint: enable=line-too-long</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
@@ -281,6 +279,9 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;decoder_job&#39;</span><span class="p">,</span> <span class="s1">&#39;/job:decoder&#39;</span><span class="p">,</span> <span class="s1">&#39;Job name&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;decoder_replicas&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of replicas.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;decoder_gpus&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of gpus to use per replica.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;tf_data_service_address&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;The address of the tf.data service.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
     <span class="s1">&#39;inference_graph_random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -1367,6 +1368,8 @@
     <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span>
+
+    <span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_data_service_address</span>
 
     <span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">add_summary</span></div>
 

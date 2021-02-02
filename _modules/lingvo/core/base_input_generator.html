@@ -189,6 +189,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">batch_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
@@ -878,6 +879,10 @@
   <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot parse p.file_pattern into a datasource.&#39;</span><span class="p">)</span>
 
+  <span class="k">if</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">:</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDataServiceSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetPrefetch</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">)</span>
+
   <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
   <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">ds</span>
   <span class="c1"># TODO(b/139345706) remove file_pattern parameter</span>
@@ -1388,6 +1393,8 @@
         <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;TakeEvalSamples&#39;</span><span class="p">)</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CustomTFDatasetTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;ProcessDataset&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">:</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDataServiceSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">)</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetBatchBySequenceLength</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
         <span class="n">seqlen_fn</span><span class="o">=</span><span class="s1">&#39;GetSequenceLength&#39;</span><span class="p">,</span>
@@ -1665,8 +1672,12 @@
     <span class="c1"># - InstantiableParams.cls</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Parameter list of the pipeline.&#39;</span><span class="p">)</span>
     <span class="n">inspect_utils</span><span class="o">.</span><span class="n">DefineParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">actual_ignore_args</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetFnInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetFnInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">load_fn</span><span class="o">=</span><span class="s1">&#39;GetDataset&#39;</span><span class="p">,</span> <span class="n">require_sequential_order</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">:</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDataServiceSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">)</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetPrefetch</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">ds</span>
     <span class="k">return</span> <span class="n">p</span>
 
   <span class="k">def</span> <span class="nf">_GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

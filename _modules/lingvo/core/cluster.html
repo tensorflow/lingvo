@@ -280,6 +280,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_JobSpec</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;The decoder job.&#39;</span><span class="p">)</span>
 
     <span class="c1"># A few &#39;global&#39; knobs.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tf_data_service_address&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;The address of the tf.data service.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;add_summary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to add summaries. If None, &#39;</span>
         <span class="s1">&#39;decides based on the job type.&#39;</span><span class="p">)</span>
@@ -628,6 +630,10 @@
     <span class="k">elif</span> <span class="n">strategy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">_LeastLoadedPlacer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">DeviceFunction</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported placement policy: &#39;</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tf_data_service_address</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tf_data_service_address</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">add_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
