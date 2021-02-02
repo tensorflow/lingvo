@@ -37,6 +37,7 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import batch_utils
 from lingvo.core import cluster
+from lingvo.core import cluster_factory
 from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import input_generator_helper as ig_helper
@@ -726,6 +727,10 @@ def FilePatternToDataSource(p):
   else:
     raise ValueError('Cannot parse p.file_pattern into a datasource.')
 
+  if cluster_factory.Current().tf_data_service_address:
+    ds = datasource.TFDataServiceSource.Params().Set(sub=ds)
+    ds = datasource.TFDatasetPrefetch.Params().Set(sub=ds)
+
   p = p.Copy()
   p.file_datasource = ds
   # TODO(b/139345706) remove file_pattern parameter
@@ -1236,6 +1241,8 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
         sub=ds, fn='TakeEvalSamples')
     ds = datasource.CustomTFDatasetTransform.Params().Set(
         sub=ds, fn='ProcessDataset')
+    if self.cluster.tf_data_service_address:
+      ds = datasource.TFDataServiceSource.Params().Set(sub=ds)
     ds = datasource.TFDatasetBatchBySequenceLength.Params().Set(
         sub=ds,
         seqlen_fn='GetSequenceLength',
@@ -1513,8 +1520,12 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
     # - InstantiableParams.cls
     p.Define('args', hyperparams.Params(), 'Parameter list of the pipeline.')
     inspect_utils.DefineParams(func, p.args, actual_ignore_args)
-    p.file_datasource = datasource.TFDatasetFnInput.Params().Set(
+    ds = datasource.TFDatasetFnInput.Params().Set(
         load_fn='GetDataset', require_sequential_order=True)
+    if cluster_factory.Current().tf_data_service_address:
+      ds = datasource.TFDataServiceSource.Params().Set(sub=ds)
+      ds = datasource.TFDatasetPrefetch.Params().Set(sub=ds)
+    p.file_datasource = ds
     return p
 
   def _GetDataset(self):

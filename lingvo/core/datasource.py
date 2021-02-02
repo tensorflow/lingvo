@@ -618,3 +618,14 @@ class TFDatasetMixer(TFDatasetSource):
 
     return tf.data.experimental.sample_from_datasets(datasets, p.weights,
                                                      p.random_seed or None)
+
+
+class TFDataServiceSource(TFDatasetTransform):
+  """Obtains input using remote tf.data service."""
+
+  def Transform(self, dataset):
+    return dataset.apply(
+        tf.data.experimental.service.distribute(
+            job_name='shared_job',
+            processing_mode='parallel_epochs',
+            service=self.cluster.tf_data_service_address))

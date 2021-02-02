@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# pylint: disable=line-too-long
 r"""Trainer.
 
 To run locally:
@@ -27,7 +26,6 @@ To run locally:
 
 To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.
 """
-# pylint: enable=line-too-long
 import os
 import re
 import sys
@@ -129,6 +127,9 @@ tf.flags.DEFINE_integer('evaler_gpus', 0, 'Number of gpus to use per replica.')
 tf.flags.DEFINE_string('decoder_job', '/job:decoder', 'Job name')
 tf.flags.DEFINE_integer('decoder_replicas', 0, 'Number of replicas.')
 tf.flags.DEFINE_integer('decoder_gpus', 0, 'Number of gpus to use per replica.')
+
+tf.flags.DEFINE_string('tf_data_service_address', '',
+                       'The address of the tf.data service.')
 
 tf.flags.DEFINE_integer(
     'inference_graph_random_seed', None,
@@ -1215,6 +1216,8 @@ class RunnerManager:
     cluster.decoder.name = FLAGS.decoder_job
     cluster.decoder.replicas = FLAGS.decoder_replicas
     cluster.decoder.gpus_per_replica = FLAGS.decoder_gpus
+
+    cluster.tf_data_service_address = FLAGS.tf_data_service_address
 
     cluster.add_summary = FLAGS.add_summary
 

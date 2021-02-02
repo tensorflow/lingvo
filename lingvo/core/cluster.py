@@ -128,6 +128,8 @@ class _Cluster:
     p.Define('decoder', cls._JobSpec(0), 'The decoder job.')
 
     # A few 'global' knobs.
+    p.Define('tf_data_service_address', '',
+             'The address of the tf.data service.')
     p.Define(
         'add_summary', None, 'Whether to add summaries. If None, '
         'decides based on the job type.')
@@ -476,6 +478,10 @@ class _Cluster:
     elif strategy is None:
       return _LeastLoadedPlacer(self).DeviceFunction
     raise ValueError('Unsupported placement policy: ', strategy)
+
+  @property
+  def tf_data_service_address(self):
+    return self.params.tf_data_service_address
 
   @property
   def add_summary(self):

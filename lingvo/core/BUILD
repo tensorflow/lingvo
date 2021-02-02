@@ -258,6 +258,7 @@ py_library(
         ":base_layer",
         ":batch_utils",
         ":cluster",
+        ":cluster_factory",
         ":datasource",
         ":hyperparams",
         ":input_generator_helper",
@@ -266,7 +267,6 @@ py_library(
         ":tokenizers",
         "//lingvo:compat",
         "//lingvo/core/ops",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -600,7 +600,6 @@ py_library(
         ":base_layer",
         ":batch_utils",
         ":py_utils",
-        ":test_utils",
         "//lingvo:compat",
     ],
 )
