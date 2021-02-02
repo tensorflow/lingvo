@@ -15,6 +15,8 @@
 # ==============================================================================
 """Specification of a training cluster."""
 
+import collections
+import contextlib
 import heapq
 import re
 import lingvo.compat as tf
@@ -22,6 +24,28 @@ from lingvo.core import hyperparams
 from lingvo.core import nested_map
 from lingvo.core import thread_local_utils
 import numpy as np
+
+
+# Helper class to record the current infeed host we are working on.
+InfeedContext = collections.namedtuple(
+    'InfeedContext', ['infeed_host_index', 'num_infeed_hosts'])
+
+_INFEED_CONTEXT_STACK = thread_local_utils.ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def InfeedContextScope(infeed_host_index, num_infeed_hosts):
+  _INFEED_CONTEXT_STACK.stack.append(
+      InfeedContext(infeed_host_index, num_infeed_hosts))
+  try:
+    yield
+  finally:
+    _INFEED_CONTEXT_STACK.stack.pop()
+
+
+def GetInfeedContext():
+  return (_INFEED_CONTEXT_STACK.stack[-1] if _INFEED_CONTEXT_STACK.stack else
+          InfeedContext(infeed_host_index=0, num_infeed_hosts=1))
 
 
 def MakeDeviceString(job_name, task_id, device_name, device_id):

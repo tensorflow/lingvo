@@ -31,13 +31,12 @@ There are three types of batch sizes:
 TODO(rpang): Deal with on packed_inputs.
 """
 
-import collections as py_collections
-import contextlib
 import inspect
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import batch_utils
+from lingvo.core import cluster
 from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import input_generator_helper as ig_helper
@@ -53,26 +52,6 @@ from tensorflow.python.tpu import tpu_feed
 # pylint: enable=g-direct-tensorflow-import
 
 DEFAULT_TOKENIZER_KEY = 'default'
-
-# Helper class to record the current infeed host we are working on.
-InfeedContext = py_collections.namedtuple(
-    'InfeedContext', ['infeed_host_index', 'num_infeed_hosts'])
-_INFEED_CONTEXT = py_utils.ThreadLocalStack()
-
-
-@contextlib.contextmanager
-def InfeedContextScope(infeed_host_index, num_infeed_hosts):
-  _INFEED_CONTEXT.stack.append(
-      InfeedContext(infeed_host_index, num_infeed_hosts))
-  try:
-    yield
-  finally:
-    _INFEED_CONTEXT.stack.pop()
-
-
-def GetInfeedContext():
-  return _INFEED_CONTEXT.stack[-1] if _INFEED_CONTEXT.stack else InfeedContext(
-      infeed_host_index=0, num_infeed_hosts=1)
 
 
 class BaseInputGenerator(base_layer.BaseLayer):
@@ -138,7 +117,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
              'If True, the input generator must implement Reset().')
     # For an input generator to support samples_per_summary == 0 to indicate
     # using the entire dataset, it must (1) be resettable, and (2) throws
-    # tf.errors.OutOfRangeError when reading a batch beyong an epoch.
+    # tf.errors.OutOfRangeError when reading a batch beyond an epoch.
     p.Define(
         'eval_samples_per_summary', None, 'If not None, overrides '
         'task_p.eval.samples_per_summary directly. Allowed to be 0, which '
@@ -250,10 +229,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
     override _InputBatch and maybe _PreprocessInputBatch.
     """
     self._in_get_processed_input_batch = True
-    batch = self._PreprocessInputBatch(self._InputBatch())
-    # TODO(b/139345706): Use self.datasource.GetNext().
-    # if 'datasource' in self.children:
-    #   batch = self.datasource.GetNext()
+    # TODO(b/139345706): Use self.datasource.GetNext() for all datasource.
+    if ('datasource' in self.children and
+        isinstance(self.datasource, datasource.TFDatasetSource)):
+      batch = self.datasource.GetNext()
+    else:
+      batch = self._PreprocessInputBatch(self._InputBatch())
     self._in_get_processed_input_batch = False
 
     if py_utils.GetUnitTestSession():
@@ -264,12 +245,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
   def tpu_number_of_shards(self):
     """Number of shards to split the input batch into."""
     p = self.params
-    cluster = self.cluster
-    num_tpu_hosts = cluster.num_tpu_hosts
+    num_tpu_hosts = self.cluster.num_tpu_hosts
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
-    shards = (cluster.total_worker_devices // num_infeed_hosts)
+    shards = (self.cluster.total_worker_devices // num_infeed_hosts)
     if p.use_partitioned_infeed_queue or not p.use_per_core_infeed:
-      shards = shards // cluster.num_devices_per_split
+      shards = shards // self.cluster.num_devices_per_split
     return shards
 
   def CreateTpuEnqueueOps(self, job_name=None):
@@ -286,27 +266,28 @@ class BaseInputGenerator(base_layer.BaseLayer):
     self._per_host_emb_batches = []
     self._per_host_passthrough_batches = []
     p = self.params
-    cluster = self.cluster
-    num_tpu_hosts = cluster.num_tpu_hosts
-    num_cores_per_host = cluster.total_worker_devices // num_tpu_hosts
+    num_tpu_hosts = self.cluster.num_tpu_hosts
+    num_cores_per_host = self.cluster.total_worker_devices // num_tpu_hosts
     tf.logging.info(
         'CreateTpuEnqueueOps num_splits_per_client={} '
         'num_devices_per_split={} num_tpu_hosts={} use_per_host_infeed={}'
-        .format(cluster.num_splits_per_client, cluster.num_devices_per_split,
-                num_tpu_hosts, p.use_per_host_infeed))
+        .format(self.cluster.num_splits_per_client,
+                self.cluster.num_devices_per_split, num_tpu_hosts,
+                p.use_per_host_infeed))
 
     assert num_tpu_hosts > 0, ('num_tpu_hosts: %d' % num_tpu_hosts)
     if p.use_per_core_infeed:
       if (not p.use_per_host_infeed) or p.use_partitioned_infeed_queue:
         raise ValueError('use_per_core_infeed need to have use_per_host_infeed '
                          'but not use_partitioned_infeed_queue.')
-    if (cluster.num_devices_per_split > num_cores_per_host and
+    if (self.cluster.num_devices_per_split > num_cores_per_host and
         (p.use_per_host_infeed and not p.use_per_core_infeed)):
       tf.logging.fatal('Doesn\'t support per host infeed mode when '
                        'num_devices_per_split({}) > num_cores_per_host({}).'
                        'Each host must be able to accommodate >= 1 split when '
                        'using per_host_infeed.'.format(
-                           cluster.num_devices_per_split, num_cores_per_host))
+                           self.cluster.num_devices_per_split,
+                           num_cores_per_host))
 
     shards = self.tpu_number_of_shards
     tf.logging.info('shards {}'.format(shards))
@@ -323,7 +304,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           f'does not match available devices {host_devices}.')
     for task_id in range(num_infeed_hosts):
       host_device = host_devices[task_id]
-      with tf.device(host_device), InfeedContextScope(
+      with tf.device(host_device), cluster.InfeedContextScope(
           infeed_host_index=task_id, num_infeed_hosts=num_infeed_hosts):
         batch = self.GetPreprocessedInputBatch()
         if not isinstance(batch, (list, tuple)):
@@ -497,8 +478,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     if not tpu_embedding:
       return
 
-    cluster = self.cluster
-    num_tpu_hosts = cluster.num_tpu_hosts
+    num_tpu_hosts = self.cluster.num_tpu_hosts
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
     if p.filter_sparse_tensors:
       assert len(self._per_host_emb_batches) == num_infeed_hosts
@@ -584,8 +564,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
   def CreateCpuPassthroughEnqueueOps(self):
     """Creates enqueue ops to pass through CPU inputs to the output."""
     p = self.params
-    cluster = self.cluster
-    num_tpu_hosts = cluster.num_tpu_hosts
+    num_tpu_hosts = self.cluster.num_tpu_hosts
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
 
     cpu_passthrough_keys = self.GetCpuPassthroughKeys()
@@ -633,8 +612,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       return None
 
     p = self.params
-    cluster = self.cluster
-    num_tpu_hosts = cluster.num_tpu_hosts
+    num_tpu_hosts = self.cluster.num_tpu_hosts
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
     tensor_list = None
     for task_id in range(num_infeed_hosts):
@@ -691,31 +669,29 @@ class BaseInputGenerator(base_layer.BaseLayer):
       ret += [split]
     return ret
 
-  def Reset(self, tf_session):
+  def Reset(self, sess):
     """Reset the input-generator.
 
     Override so that the input_generator reproduces examples as if from a fresh
     instantiation.
 
     Args:
-      tf_session: A tensorflow session.
+      sess: A tensorflow session.
     """
     raise NotImplementedError()
 
 
 def FilePatternToDataSource(p):
   """Helper to turn p.file_pattern (deprecated) into p.file_datasource."""
-  p = p.Copy()
   if isinstance(p.file_pattern, str):
-    p.file_datasource = datasource.SimpleDataSource.Params().Set(
-        file_pattern=p.file_pattern)
+    ds = datasource.SimpleDataSource.Params().Set(file_pattern=p.file_pattern)
   elif isinstance(p.file_pattern, (list, tuple)):
     if all([isinstance(x, str) for x in p.file_pattern]):
       # While this violates the documentation and intended use, there are
       # subclasses that have used a tuple of strings, rather than a list of
       # string, weight tuples.  Rather than treating lists and tuples
       # differently, support both here until p.file_pattern is removed.
-      p.file_datasource = datasource.SimpleDataSource.Params().Set(
+      ds = datasource.SimpleDataSource.Params().Set(
           file_pattern=list(p.file_pattern))
     elif p.use_within_batch_mixing:
       if max(list(map(len, p.file_pattern))) >= 3:
@@ -726,7 +702,7 @@ def FilePatternToDataSource(p):
 
       file_patterns, weights = (list(x) for x in zip(*p.file_pattern))
 
-      p.file_datasource = datasource.SimpleDataSource.Params().Set(
+      ds = datasource.SimpleDataSource.Params().Set(
           file_pattern=file_patterns, weights=weights)
     else:
       # Otherwise fall back to MixByWeight-based approach.
@@ -743,12 +719,15 @@ def FilePatternToDataSource(p):
         weights.append(weight)
         bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
         bprop_variable_filters.append(bprop_variable_filter)
-      p.file_datasource = datasource.CrossBatchMixingDataSource.Params().Set(
+      ds = datasource.CrossBatchMixingDataSource.Params().Set(
           sub=datasources,
           weights=weights,
           bprop_variable_filters=bprop_variable_filters)
   else:
     raise ValueError('Cannot parse p.file_pattern into a datasource.')
+
+  p = p.Copy()
+  p.file_datasource = ds
   # TODO(b/139345706) remove file_pattern parameter
   # p.file_pattern = ''
   return p
@@ -842,7 +821,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     args = super().CommonInputOpArgs()
     num_input_replicas = 1
     input_replica_id = 0
-    infeed_context = GetInfeedContext()
+    infeed_context = cluster.GetInfeedContext()
     if infeed_context:
       num_input_replicas = infeed_context.num_infeed_hosts
       input_replica_id = infeed_context.infeed_host_index
@@ -980,7 +959,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     p.Define(
         'bucket_batch_limit', [8],
         'Desired per-split batch size per bucket. Scaled in '
-        'infeed_bucket_batch_size to the infeed size.'
+        'infeed_bucket_batch_limit to the infeed size.'
         'Must be the same length as bucket_upper_bound.')
     p.Define(
         'bucket_adjust_every_n', 0, 'If non-zero, optimize the values of '
@@ -1025,14 +1004,13 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
   def infeed_bucket_batch_limit(self):
     """Returns the bucket batch limit for one infeed host."""
     p = self.params
-    cluster = self.cluster
     infeed_bucket_batch_limit = [
         batch_utils.scale_split_to_infeed(b, p.use_per_host_infeed)
         for b in p.bucket_batch_limit
     ]
     tf.logging.info(
         'infeed_bucket_batch_limit={} num_splits_per_client={} bucket_batch_limit={}'
-        .format(infeed_bucket_batch_limit, cluster.num_splits_per_client,
+        .format(infeed_bucket_batch_limit, self.cluster.num_splits_per_client,
                 p.bucket_batch_limit))
     return infeed_bucket_batch_limit
 
@@ -1201,163 +1179,124 @@ class BaseTinyDatasetInput(BaseInputGenerator):
 
 
 class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
-  """tf.data input pipeline for sequences."""
+  """tf.data input pipeline for sequences.
+
+  Inherits params from BaseSequenceInputGenerator so this can be a drop-in
+  replacement for existing input generators inheriting from
+  BaseSequenceInputGenerator. However, many params may be ignored / unused.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('prefetch_buffer_size', 1, 'Local prefetch buffer size.')
+    p.resettable = True
+    return p
 
   def __init__(self, params):
     """Constructor."""
-    if params.file_datasource:
-      raise ValueError(
-          'TFDataSequenceInputGenerator does not support p.file_datasource.')
-    file_pattern = params.file_pattern
-    super().__init__(params)
-    self.params.file_pattern = file_pattern
-    self._iterator = {}
-
-  @property
-  def host_id(self):
-    p = self.params
-    if p.use_per_host_infeed:
-      return GetInfeedContext().infeed_host_index
-    return 0
-
-  def _InitIterator(self):
-    # We can't create self._iterator in __init__() as _GetDataset(), etc.
-    # might require members that are set in subclasses.
-    if self.host_id in self._iterator:
-      raise ValueError(f'InitIterator has been called for host {self.host_id}.')
-    with py_utils.GlobalStepContext(None):
-      # Hide global_step tensor from being captured by dataset function.
-      dataset = self._GetDatasetInternal()
-    dataset = self._BatchDataset(dataset)
-    dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-    if tf.executing_eagerly():
-      it = iter(dataset)
-    else:
-      it = tf.data.make_initializable_iterator(dataset)
-    self._iterator[self.host_id] = it
-
-  def Initialize(self, sess):
-    if self.host_id not in self._iterator:
-      self._InitIterator()
-    if not tf.executing_eagerly():
-      sess.run([it.initializer for it in self._iterator.values()])
-    super().Initialize(sess)
-
-  def _InputBatch(self):
-    """Returns a NestedMap containing an input batch."""
-    if self.host_id not in self._iterator:
-      self._InitIterator()
-    batch = self._iterator[self.host_id].get_next()
-
-    # Set tensor shapes.
-    if py_utils.use_tpu():
-      # TPU requires every batch has the same size.
-      b = max(self.infeed_bucket_batch_limit)
-      assert b == min(self.infeed_bucket_batch_limit)
-    else:
-      b = None
-    for name, t in batch.FlattenItems():
-      t.set_shape((b,) + self._InputShape(name))
-
-    return batch
-
-  def _GetDatasetInternal(self):
-    return self.GetDataset()
-
-  def GetDataset(self):
-    """Loads a dataset.
-
-    Subclasses should either override this function or both of _LoadDataset()
-    and _ProcessDataset().
-
-    Returns:
-      A NestedMap containing tensors without a leading batch dimension.
-    """
-    p = self.params
-    require_sequential_order = p.require_sequential_order or self.do_eval
-
-    if isinstance(p.file_pattern, str):
-      file_patterns = p.file_pattern.split(',')
-      weights = None
-    else:
-      if not p.use_within_batch_mixing:
-        raise ValueError(
-            'Only p.use_within_batch_mixing is supported with multiple '
-            'file_patterns.')
-
-      if all([isinstance(x, str) for x in p.file_pattern]):
-        file_patterns = p.file_pattern
+    params = params.Copy()
+    if not params.file_datasource:
+      # Convert p.file_pattern into p.file_datasource.
+      if isinstance(params.file_pattern, str):
+        file_patterns = params.file_pattern.split(',')
         weights = None
-      elif all([isinstance(x, tuple) for x in p.file_pattern]):
-        file_patterns, weights = zip(*p.file_pattern)
       else:
-        raise ValueError(
-            f'p.file_pattern must be all strings or all tuples, but got: '
-            f'{p.file_pattern}.')
+        if all([isinstance(x, str) for x in params.file_pattern]):
+          file_patterns = params.file_pattern
+          weights = None
+        elif all([isinstance(x, tuple) for x in params.file_pattern]):
+          file_patterns, weights = zip(*params.file_pattern)
+        else:
+          raise ValueError(
+              f'p.file_pattern must be all strings or all tuples, but got: '
+              f'{params.file_pattern}.')
+      for fp in file_patterns:
+        if ',' in fp:
+          raise ValueError(f'p.file_pattern should not contain comma: {fp}')
 
-    def LoadDatasetFromSingleGlob(file_pattern_glob, source_id):
-      dataset = tf.data.Dataset.list_files(
-          file_pattern_glob,
-          shuffle=not require_sequential_order,
-          seed=p.file_random_seed)
-      num_files = len(tf.io.gfile.glob(file_pattern_glob))
-      dataset = dataset.interleave(
-          self._LoadDataset,
-          cycle_length=(1 if require_sequential_order else min(
-              num_files, p.file_parallelism)),
-          num_parallel_calls=tf.data.experimental.AUTOTUNE,
-          deterministic=require_sequential_order)
-
-      if not require_sequential_order:
-        dataset = dataset.shuffle(p.file_buffer_size)
-      if not self.do_eval:
-        dataset = dataset.repeat()
-
-      def MakeExample(*values):
-        return py_utils.NestedMap(
-            data=values[0] if len(values) == 1 else values, source_id=source_id)
-
-      dataset = dataset.map(MakeExample, **self._map_args)
-      return dataset
-
-    datasets = []
-    for i, file_pattern in enumerate(file_patterns):
-      file_pattern = self._PreprocessFilePattern(file_pattern)
-      file_pattern = py_utils.ShardedFilePatternToGlob(file_pattern)
-      datasets.append(LoadDatasetFromSingleGlob(file_pattern, i))
-    if len(file_patterns) > 1:
-      tf.logging.info(f'Mixing files {file_patterns} with weights {weights}.')
-      dataset = tf.data.experimental.sample_from_datasets(
-          datasets, weights, p.random_seed or None)
+      ds = []
+      for i, fp in enumerate(file_patterns):
+        ds.append(datasource.TFDatasetFnInput.Params().Set(
+            load_fn='LoadDataset',
+            args=fp,
+            shuffle_buffer_size=params.file_buffer_size,
+            require_sequential_order=params.require_sequential_order))
+      if len(ds) > 1:
+        if not params.use_within_batch_mixing:
+          raise ValueError(
+              'Only p.use_within_batch_mixing is supported with multiple '
+              'file_patterns.')
+        ds = [datasource.TFDatasetMixer.Params().Set(sub=ds, weights=weights)]
+      ds = ds[0]
     else:
-      dataset = datasets[0]
+      ds = params.file_datasource
 
-    dataset = self._ProcessDataset(dataset)
+    ds = datasource.CustomTFDatasetTransform.Params().Set(
+        sub=ds, fn='TakeEvalSamples')
+    ds = datasource.CustomTFDatasetTransform.Params().Set(
+        sub=ds, fn='ProcessDataset')
+    ds = datasource.TFDatasetBatchBySequenceLength.Params().Set(
+        sub=ds,
+        seqlen_fn='GetSequenceLength',
+        input_shape_fn='_InputShape',
+        input_padding_fn='_InputPaddingValue',
+        bucket_upper_bound=params.bucket_upper_bound,
+        bucket_batch_limit=params.bucket_batch_limit,
+        require_sequential_order=params.require_sequential_order)
+    ds = datasource.TFDatasetPrefetch.Params().Set(
+        sub=ds, buffer_size=params.prefetch_buffer_size)
 
-    if self.do_eval:
-      dataset = dataset.take(p.num_samples)
+    params.file_datasource = ds
+    params.file_pattern = ''
 
-    return dataset
+    super().__init__(params)
 
-  def _PreprocessFilePattern(self, file_pattern):
-    """Override this method to modify a file pattern before globbing."""
-    return file_pattern
+  def Reset(self, sess):
+    self.datasource.Reset(sess)
 
-  def _LoadDataset(self, filename):
-    """Loads a dataset from a filename."""
-    raise NotImplementedError()
+  def GetPreprocessedInputBatch(self):
+    return self.datasource.GetNext()
 
-  def _ProcessDataset(self, dataset):
-    """Processes a dataset returned by _LoadDataset.
+  def LoadDataset(self, filename):
+    """Load a dataset from file.
 
     Args:
-      dataset: A dataset containing NestedMaps with scalar 'data' containing the
-        value returned by _LoadDataset and scalar 'source_id' containing the
-        source id.
+      filename: the file to load.
+
+    Returns:
+      A tf.data.Dataset() whose elements represent a single training sample
+      without a leading batch dim.
+    """
+    raise NotImplementedError()
+
+  def TakeEvalSamples(self, dataset):
+    p = self.params
+    if self.do_eval and p.num_samples > 0:
+      dataset = dataset.take(p.num_samples)
+    return dataset
+
+  def ProcessDataset(self, dataset):
+    """Processes a dataset returned by LoadDataset.
+
+    Args:
+      dataset: A dataset returned by LoadDataset.
 
     Returns:
       A processed dataset containing NestedMaps of Tensors without a leading
       batch dimension.
+    """
+    raise NotImplementedError()
+
+  def GetSequenceLength(self, example):
+    """Returns sequence length for the example NestedMap from the dataset.
+
+    Args:
+      example: A NestedMap containing an input example. Tensors in the example
+        do not have a leading batch dimension.
+
+    Returns:
+      An integer sequence length for the example.
     """
     raise NotImplementedError()
 
@@ -1369,7 +1308,7 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
     Args:
       key: The NestedMap key to return shape for.
     """
-    if key == 'source_id':
+    if key in ('source_id', 'bucket_keys'):
       return ()
 
     raise ValueError('Unexpected key %s' % key)
@@ -1381,53 +1320,13 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
     else:
       return tf.zeros([], dtype=tensorspec.dtype)
 
-  def _GetBucketId(self, example):
-    """Returns scalar bucket id for the example NestedMap from the dataset."""
-    raise NotImplementedError()
-
-  def _BatchDataset(self, dataset):
-    """Batches a dataset containing NestedMaps of tensors."""
-    p = self.params
-
-    def SetBucketKeys(example):
-      example.bucket_keys = self._GetBucketId(example)
-      return example
-
-    dataset = dataset.map(SetBucketKeys, **self._map_args)
-
-    dataset_structure = py_utils.NestedMap.FromNestedDict(
-        tf.data.experimental.get_structure(dataset))
-
-    padded_shapes = dataset_structure.TransformWithKey(
-        lambda k, _: tf.TensorShape(self._InputShape(k)))
-    padding_values = dataset_structure.TransformWithKey(self._InputPaddingValue)
-
-    dataset_structure.VLog(0, 'dataset_structure:')
-    padded_shapes.VLog(0, 'padded_shapes:')
-
-    dataset = dataset.apply(
-        tf.data.experimental.bucket_by_sequence_length(
-            self._GetBucketId,
-            # Upper-bound for bucket_by_sequence_length is exclusive, so add 1
-            # TODO(jeffreyzhao): There is a off-by-one bug with the upper bound
-            # boundary check, so add 2 instead. Remove when fixed.
-            [x + 2 for x in p.bucket_upper_bound],
-            self.infeed_bucket_batch_limit + [1],
-            padded_shapes=padded_shapes,
-            padding_values=padding_values,
-            pad_to_bucket_boundary=True,
-            drop_remainder=py_utils.use_tpu()))
-
-    return dataset
-
   @property
   def _map_args(self):
     """Default args for tf.data.DataSet.map()."""
     p = self.params
     require_sequential_order = p.require_sequential_order or self.do_eval
     return dict(
-        num_parallel_calls=1
-        if require_sequential_order else p.num_batcher_threads,
+        num_parallel_calls=tf.data.experimental.AUTOTUNE,
         deterministic=require_sequential_order)
 
 
@@ -1614,34 +1513,25 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
     # - InstantiableParams.cls
     p.Define('args', hyperparams.Params(), 'Parameter list of the pipeline.')
     inspect_utils.DefineParams(func, p.args, actual_ignore_args)
+    p.file_datasource = datasource.TFDatasetFnInput.Params().Set(
+        load_fn='GetDataset', require_sequential_order=True)
     return p
 
-  def _Init(self, params):
-    """Initializes the InputGenerator."""
-    super(generated_cls, self).__init__(params)
+  def _GetDataset(self):
     p = self.params
-
-    # We have to make the one-shot iterator only once as _InputBatch will be
-    # called repeatedly in TFv2.
     overrides = {k: p.Get(v) for k, v in map_args.items()}
     dataset = inspect_utils.CallWithParams(func, p.args, **overrides)
     assert isinstance(dataset, (tf.tf1.data.Dataset, tf.tf2.data.Dataset)), (
         'DefineTFDataInput must take a callable which returns a '
         '`tf.data.Dataset`. The given callable `%s` returned `%s`' %
         (func, dataset))
-    self.iterator = tf.tf1.data.make_initializable_iterator(dataset)
-    self.dataset = dataset
+    return dataset
 
-  def _Initialize(self, sess):
-    sess.run(self.iterator.initializer)
-    super(generated_cls, self).Initialize(sess)
-
-  def _InputBatch(self):
+  def _GetPreprocessedInputBatch(self):
     """Generates data tensors by invoking the pipeline."""
-
     # TFv1: Returns Tensors which will be determined by Session.run().
     # TFv2: Returns Tensors with actual values.
-    data = self.iterator.get_next()
+    data = self.datasource.GetNext()
 
     # Converts dict to NestedMap to maintain consistency with existing
     # functionalities in base_input_generator.
@@ -1656,9 +1546,8 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
 
   # Overrides member methods.
   generated_cls.Params = _Params
-  generated_cls.__init__ = _Init
-  generated_cls.Initialize = _Initialize
-  generated_cls._InputBatch = _InputBatch  # pylint: disable=protected-access
+  generated_cls.GetDataset = _GetDataset
+  generated_cls.GetPreprocessedInputBatch = _GetPreprocessedInputBatch
 
   # Sets __module__ to the caller's module name for pickling and restoring from
   # Params to work.

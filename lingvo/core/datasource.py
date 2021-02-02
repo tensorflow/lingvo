@@ -25,10 +25,13 @@ the InputGenerator instance, and it is up to the user to ensure such
 requirements are met.
 """
 
+import functools
 import os
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import batch_utils
+from lingvo.core import cluster
 from lingvo.core import py_utils
 
 
@@ -42,6 +45,7 @@ class DataSource(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     self.SetVariableFree()
+    self._input_generator = None
 
   def SetInputGenerator(self, input_generator):
     """Initialize this datasource.
@@ -201,7 +205,8 @@ class CrossBatchMixingDataSource(DataSource):
         inputs, p.weights, seed=p.random_seed)
     # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
     # use source_selected from input_batch.
-    self._batch_size = py_utils.GetShape(py_utils.Flatten(data_source)[0])[0]
+    shape = py_utils.GetShape(py_utils.Flatten(data_source)[0])
+    self._batch_size = shape[0] if shape != [] else 1  # pylint: disable=g-explicit-bool-comparison
     return data_source
 
   def GetMeta(self):
@@ -316,3 +321,300 @@ class PrefixedDataSource(SimpleDataSource):
           for pattern in patterns))
     params.file_pattern = prefixed
     super().__init__(params)
+
+
+class TFDatasetSource(DataSource):
+  """Base DataSource class based on tf.data.Dataset."""
+
+  def __init__(self, params):
+    super().__init__(params)
+    self._dataset = {}
+    self._iterator = {}
+
+  @property
+  def num_hosts(self):
+    if (self._input_generator and
+        self._input_generator.params.use_per_host_infeed):
+      return max(self.cluster.num_tpu_hosts, 1)
+    return 1
+
+  @property
+  def host_id(self):
+    if self.num_hosts > 1:
+      return cluster.GetInfeedContext().infeed_host_index
+    return 0
+
+  def GetDataset(self):
+    """Override to return a tf.data.Dataset containing a NestedMap."""
+    raise NotImplementedError()
+
+  def _InitIterator(self):
+    if self.host_id in self._dataset:
+      return
+
+    with py_utils.GlobalStepContext(None):
+      # Hide global_step tensor from being captured by dataset function.
+      ds = self.GetDataset()
+    ds.options().experimental_deterministic = False
+    self._dataset[self.host_id] = ds
+
+    if tf.executing_eagerly():
+      it = iter(ds)
+    else:
+      it = tf.data.make_initializable_iterator(ds)
+    self._iterator[self.host_id] = it
+
+  def Initialize(self, sess):
+    self.Reset(sess)
+    super().Initialize(sess)
+
+  def Reset(self, sess):
+    if self._dataset:
+      if tf.executing_eagerly():
+        self._iterator = {key: iter(ds) for key, ds in self._dataset.items()}
+      else:
+        sess.run([it.initializer for it in self._iterator.values()])
+
+  def GetNext(self):
+    """Returns the next element from the dataset."""
+    self._InitIterator()
+    if py_utils.GetUnitTestSession():
+      self.Initialize(py_utils.GetUnitTestSession())
+    return self._iterator[self.host_id].get_next()
+
+
+class TFDatasetAdaptor(TFDatasetSource):
+  """Converts a DataSource into a TFDatasetSource."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('sub', None, 'A DataSource to adapt.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.CreateChild('sub', self.params.sub)
+
+  def GetDataset(self):
+    return tf.data.Dataset.from_tensors(0).repeat().map(
+        lambda _: self.sub.GetNext())
+
+
+class TFDatasetTransform(TFDatasetSource):
+  """Transforms the output of a child TFDatasetSource."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'sub', None, 'A DatasetSource to adapt. '
+        'If it is not a TFDatasetSource, TFDatasetAdaptor will be used.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    ds = self.params.sub
+    if not issubclass(ds.cls, TFDatasetSource):
+      ds = TFDatasetAdaptor.Params().Set(sub=ds)
+    self.CreateChild('sub', ds)
+
+  def GetDataset(self):
+    return self.Transform(self.sub.GetDataset())
+
+  def Transform(self, dataset):
+    """Returns a transformed tf.data.Dataset."""
+    raise NotImplementedError()
+
+
+class CustomTFDatasetTransform(TFDatasetTransform):
+  """Transforms using a custom method of the input generator."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'fn', '', 'The method name to call. '
+        'It must accept and return a tf.data.Dataset.')
+    return p
+
+  def Transform(self, dataset):
+    """Returns a transformed tf.data.Dataset."""
+    return getattr(self._input_generator, self.params.fn)(dataset)
+
+
+class TFDatasetFnInput(TFDatasetSource):
+  """Loads a TFDataset using a function."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'load_fn', 'LoadDataset',
+        'An input_generator method name to call to load data. It must accept '
+        'p.args and return a tf.data.Dataset.')
+    p.Define('args', None,
+             'Arguments to pass to load_fn. If a list, it will be expanded.')
+    p.Define('shuffle_buffer_size', 10000,
+             'Number of records buffered for random shuffling.')
+    p.Define(
+        'require_sequential_order', False,
+        'Whether elements need to be produced in sequential order. '
+        'Disables randomization.')
+    return p
+
+  def GetDataset(self):
+    p = self.params
+    fn = getattr(self._input_generator, p.load_fn)
+    if p.args is None:
+      dataset = fn()
+    elif isinstance(p.args, list):
+      dataset = fn(*p.args)
+    else:
+      dataset = fn(p.args)
+
+    require_sequential_order = p.require_sequential_order or self.do_eval
+    if not require_sequential_order:
+      dataset = dataset.shuffle(p.shuffle_buffer_size)
+      dataset = dataset.repeat()
+    return dataset
+
+
+class TFDatasetBatchBySequenceLength(TFDatasetTransform):
+  """Batches examples without a leading batch dimension by length buckets."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'seqlen_fn', 'GetSequenceLength',
+        'Name of input_generator function that takes an example and returns '
+        'its sequence length.')
+    p.Define(
+        'input_shape_fn', '_InputShape',
+        'Name of input_generator function that takes a tensor name and returns '
+        'its shape.')
+    p.Define(
+        'input_padding_fn', '_InputPaddingValue',
+        'Name of input_generator function that takes a tensor name and '
+        'tensorspec and returns the value to pad with.')
+    p.Define('bucket_upper_bound', [], 'Bucketing scheme. Required to be'
+             'a sorted list of integers.')
+    p.Define(
+        'bucket_batch_limit', [], 'Desired per-split batch size per bucket. '
+        'Must be the same length as bucket_upper_bound.')
+    p.Define(
+        'require_sequential_order', False,
+        'Whether elements need to be produced in sequential order. '
+        'Disables randomization.')
+    return p
+
+  def Transform(self, dataset):
+    """Batches a dataset containing NestedMaps of tensors."""
+    p = self.params
+
+    require_sequential_order = p.require_sequential_order or self.do_eval
+    seqlen_fn = getattr(self._input_generator, p.seqlen_fn)
+
+    def SetBucketKeys(example):
+      example.bucket_keys = seqlen_fn(example)
+      return example
+
+    dataset = dataset.map(
+        SetBucketKeys,
+        num_parallel_calls=tf.data.experimental.AUTOTUNE,
+        deterministic=require_sequential_order)
+
+    dataset = dataset.filter(
+        lambda x: x.bucket_keys <= p.bucket_upper_bound[-1])
+
+    dataset_structure = py_utils.NestedMap.FromNestedDict(
+        tf.data.experimental.get_structure(dataset))
+
+    input_shape_fn = getattr(self._input_generator, p.input_shape_fn)
+    padded_shapes = dataset_structure.TransformWithKey(
+        lambda k, _: tf.TensorShape(input_shape_fn(k)))
+    input_padding_fn = getattr(self._input_generator, p.input_padding_fn)
+    padding_values = dataset_structure.TransformWithKey(input_padding_fn)
+
+    dataset_structure.VLog(0, 'dataset_structure:')
+    padded_shapes.VLog(0, 'padded_shapes:')
+
+    bucket_batch_limit = [
+        batch_utils.scale_split_to_infeed(
+            b, self._input_generator.params.use_per_host_infeed)
+        for b in p.bucket_batch_limit
+    ]
+    dataset = dataset.apply(
+        tf.data.experimental.bucket_by_sequence_length(
+            lambda x: x.bucket_keys,
+            # Upper-bound for bucket_by_sequence_length is exclusive, so add 1
+            # TODO(jeffreyzhao): There is a off-by-one bug with the upper bound
+            # boundary check, so add 2 instead. Remove when fixed.
+            [x + 2 for x in p.bucket_upper_bound],
+            bucket_batch_limit + [1],
+            padded_shapes=padded_shapes,
+            padding_values=padding_values,
+            pad_to_bucket_boundary=True,
+            drop_remainder=py_utils.use_tpu()))
+
+    if min(bucket_batch_limit) != max(bucket_batch_limit):
+      if py_utils.use_tpu():
+        raise ValueError('TPU requires constant batch sizes.')
+    else:
+      b = bucket_batch_limit[0]
+
+      def SetShape(element):
+        for t in element.Flatten():
+          t.set_shape((b,) + t.shape[1:])
+        return element
+
+      dataset = dataset.map(
+          SetShape,
+          num_parallel_calls=tf.data.experimental.AUTOTUNE,
+          deterministic=require_sequential_order)
+
+    return dataset
+
+
+class TFDatasetPrefetch(TFDatasetTransform):
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('buffer_size', 1, 'Prefetch buffer size.')
+    return p
+
+  def Transform(self, dataset):
+    return dataset.prefetch(self.params.buffer_size)
+
+
+class TFDatasetMixer(TFDatasetSource):
+  """Mixes multiple TFDatasetSource with provided weights."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('sub', None, 'A list of TFDatasetSource to mix.')
+    p.Define('weights', None, 'A list of weights for each datasource.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.CreateChildren('sub', self.params.sub)
+
+  def GetDataset(self):
+    p = self.params
+    datasets = [sub.GetDataset() for sub in self.sub]
+
+    def SetSourceId(i, element):
+      element.source_id = i
+      return element
+
+    for i in range(len(datasets)):
+      datasets[i] = datasets[i].map(
+          functools.partial(SetSourceId, i),
+          num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    return tf.data.experimental.sample_from_datasets(datasets, p.weights,
+                                                     p.random_seed or None)

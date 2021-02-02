@@ -257,6 +257,7 @@ py_library(
     deps = [
         ":base_layer",
         ":batch_utils",
+        ":cluster",
         ":datasource",
         ":hyperparams",
         ":input_generator_helper",
@@ -597,7 +598,9 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":batch_utils",
         ":py_utils",
+        ":test_utils",
         "//lingvo:compat",
     ],
 )

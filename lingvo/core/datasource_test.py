@@ -15,15 +15,18 @@
 # ==============================================================================
 """Tests for lingvo.core.datasource."""
 
-import lingvo.compat as tf
+import glob
+import os
+import random
 
+import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import datasource
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
 
-class TestInputGenerator(base_input_generator.BaseInputGenerator):
+class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
 
   def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
     """Read and return input batch from a string file_pattern.
@@ -40,7 +43,47 @@ class TestInputGenerator(base_input_generator.BaseInputGenerator):
       with input_source_weights and other parameters to generate a batch.
     """
     del input_source_weights  # Unused.
-    return tf.constant([file_pattern])
+    return py_utils.NestedMap(data=tf.constant(file_pattern))
+
+  def LoadDataset(self, file_pattern):
+    file_pattern_glob = py_utils.ShardedFilePatternToGlob(file_pattern)
+    dataset = tf.data.Dataset.list_files(file_pattern_glob, shuffle=False)
+
+    def MakeExample(data):
+      return py_utils.NestedMap(data=data, source_id=tf.constant(0))
+
+    return dataset.map(MakeExample, deterministic=True)
+
+  def _InputShape(self, name):
+    if name in ('data', 'len'):
+      return ()
+    return super()._InputShape(name)
+
+  def LoadFilePattern(self, dataset):
+
+    def Load(file_pattern):
+      patterns = file_pattern.split(b',')
+      files = []
+      for pattern in patterns:
+        files.extend(glob.glob(pattern))
+      return random.choice(files)
+
+    def MapFn(example):
+      example.data = tf.numpy_function(Load, inp=[example.data], Tout=tf.string)
+      return example
+
+    return dataset.map(MapFn, deterministic=True)
+
+  def GetSequenceLength(self, example):
+    return tf.strings.length(example.data)
+
+  def SequenceLengthTransform(self, dataset):
+
+    def AddSequenceLength(example):
+      example.len = self.GetSequenceLength(example)
+      return example
+
+    return dataset.map(AddSequenceLength, deterministic=True)
 
 
 class DatasourceTest(test_utils.TestCase):
@@ -53,11 +96,11 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
-    self.assertAllEqual(ret.data, [[b'path_to_file']])
+    self.assertEqual(ret.data, b'path_to_file')
 
   def testSimpleDataSourceSucceedsWithFileType(self):
     ds_params = datasource.SimpleDataSource.Params().Set(
@@ -67,9 +110,9 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
-    self.assertAllEqual(ret.data, [[b'tfrecord:pattern1,tfrecord:pattern2']])
+    self.assertEqual(ret.data, b'tfrecord:pattern1,tfrecord:pattern2')
 
   def testSimpleDataSourceSucceedsWithListInput(self):
     files = ['file1', 'file2']
@@ -79,9 +122,9 @@ class DatasourceTest(test_utils.TestCase):
     with tf.Session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
-    self.assertAllEqual(ret.data, [[b'file1,file2']])
+    self.assertEqual(ret.data, b'file1,file2')
 
   def testSimpleDataSourceSucceedsWithListFilesAndWeights(self):
     files = ['path_to_file1', 'path_to_file2']
@@ -94,11 +137,11 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
-    self.assertAllEqual(ret.data, [[b'path_to_file1,path_to_file2']])
+    self.assertEqual(ret.data, b'path_to_file1,path_to_file2')
     self.assertCountEqual(ret.bprop_variable_filters, [''] * len(files))
 
   def testSimpleDataSourceFailsWithListTuplesFiles(self):
@@ -124,14 +167,14 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
     self.assertCountEqual(
         sorted(ret.keys()),
         ['bprop_variable_filters', 'data', 'selected_bprop', 'source_selected'])
     # CrossBatchMixing operates on the python side of the tf op so a single
     # element will be returned by TestInputGenerator.Params().Instantiate()
-    self.assertAllEqual(ret.data, [[b'path_to_file']])
+    self.assertEqual(ret.data, b'path_to_file')
     self.assertCountEqual(ret.bprop_variable_filters, [''] * len(files))
     self.assertAllEqual(ret.selected_bprop.shape, [2])
     self.assertAllEqual(ret.source_selected.shape, [1, 2])
@@ -150,11 +193,11 @@ class DatasourceTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
-    self.assertAllEqual(ret.data, [[b'file1']])
+    self.assertEqual(ret.data, b'file1')
     self.assertCountEqual(ret.bprop_variable_filters, [''])
 
   def testCurriculumDataSourceTransitionsCorrectlyWithSimpleDataSource(self):
@@ -177,11 +220,11 @@ class DatasourceTest(test_utils.TestCase):
 
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
-    self.assertAllEqual(ret.data, [[b'file2']])
+    self.assertEqual(ret.data, b'file2')
     self.assertCountEqual(ret.bprop_variable_filters, [''])
 
   def testCurriculumDataSourceTransitionsCorrectlyWithMixingDataSource(self):
@@ -206,11 +249,11 @@ class DatasourceTest(test_utils.TestCase):
 
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
-    self.assertAllEqual(ret.data, [[b'file3,file4']])
+    self.assertEqual(ret.data, b'file3,file4')
     self.assertCountEqual(ret.bprop_variable_filters, [''])
 
   def testCurriculumDataSourceFailsWithBadBoundaries(self):
@@ -234,9 +277,9 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
-    self.assertAllEqual(ret.data, [[b'/dir/filename-*.tfrecord']])
+    self.assertEqual(ret.data, b'/dir/filename-*.tfrecord')
 
   def testPrefixDataSourceSucceedsWithMultiplePatterns(self):
     ds_params = datasource.PrefixedDataSource.Params().Set(
@@ -248,10 +291,10 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
-    self.assertAllEqual(
-        ret.data, [[b'/dir/filename-*.tfrecord,/dir/other/file/pattern/*']])
+    self.assertEqual(ret.data,
+                     b'/dir/filename-*.tfrecord,/dir/other/file/pattern/*')
 
   def testPrefixDataSourceSucceedsWithGcsBucket(self):
     ds_params = datasource.PrefixedDataSource.Params().Set(
@@ -263,9 +306,9 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
-    self.assertAllEqual(ret.data, [[b'gs://bucket/dir/filename-*.tfrecord']])
+    self.assertEqual(ret.data, b'gs://bucket/dir/filename-*.tfrecord')
 
   def testPrefixDataSourceSucceedsWithFileType(self):
     ds_params = datasource.PrefixedDataSource.Params().Set(
@@ -278,9 +321,212 @@ class DatasourceTest(test_utils.TestCase):
     with self.session():
       batch = ds.GetNext()
       ret = ds.GetMeta()
-      ret.data = self.evaluate([batch])
+      ret.data = self.evaluate(batch.data)
 
-    self.assertAllEqual(ret.data, [[b'tfrecord:dir/filename-*.tfrecord']])
+    self.assertEqual(ret.data, b'tfrecord:dir/filename-*.tfrecord')
+
+
+class TFDatasetSourceTest(test_utils.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    files = sorted([
+        'file_1', 'file_2', 'file_3', 'longfile_1', 'longfile_2', 'longerfile_1'
+    ])
+    self.tmpdir = self.create_test_files(self.id(), files)
+    self.files = [os.path.join(self.tmpdir, file).encode() for file in files]
+
+  def create_test_files(self, test_name, files):
+    tmpdir = os.path.join(self.get_temp_dir(), test_name)
+    os.mkdir(tmpdir)
+    for file in files:
+      os.mknod(os.path.join(tmpdir, file))
+    return tmpdir
+
+  def testTFDatasetFnInput(self):
+    ds_params = datasource.TFDatasetFnInput.Params().Set(
+        load_fn='LoadDataset', args=os.path.join(self.tmpdir, '*file_*'))
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+    files = []
+    with self.session():
+      batch = ds.GetNext()
+      for _ in range(len(self.files) * 5):
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        self.assertEqual(0, source_id)
+        self.assertIn(file, self.files)
+        files.append(file)
+    self.assertEqual(set(files), set(self.files))
+    # Should not be produced in deterministic order.
+    self.assertNotAllEqual(self.files * 5, files)
+
+  def testTFDatasetFnInput_RequireSequentialOrder(self):
+    ds_params = datasource.TFDatasetFnInput.Params().Set(
+        load_fn='LoadDataset',
+        args=os.path.join(self.tmpdir, '*file_*'),
+        require_sequential_order=True)
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+    with self.session() as sess:
+      batch = ds.GetNext()
+      for expected_file in self.files:
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        self.assertEqual(0, source_id)
+        self.assertEqual(expected_file, file)
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        self.evaluate(batch)
+      ds.Reset(sess)
+      for expected_file in self.files:
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        self.assertEqual(0, source_id)
+        self.assertEqual(expected_file, file)
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        self.evaluate(batch)
+
+  def testCustomTFDatasetTransform(self):
+    ds_params = datasource.TFDatasetFnInput.Params().Set(
+        load_fn='LoadDataset',
+        args=os.path.join(self.tmpdir, '*file_*'),
+        require_sequential_order=True)
+    ds_params = datasource.CustomTFDatasetTransform.Params().Set(
+        sub=ds_params, fn='SequenceLengthTransform')
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+    with self.session():
+      batch = ds.GetNext()
+      for expected_file in self.files:
+        file, length = self.evaluate([batch.data, batch.len])
+        self.assertEqual(expected_file, file)
+        self.assertEqual(len(expected_file), length)
+
+  def testTFDatasetAdaptor(self):
+    ds_params = datasource.SimpleDataSource.Params().Set(
+        file_pattern=os.path.join(self.tmpdir, '*file_*'))
+    ds_params = datasource.CustomTFDatasetTransform.Params().Set(
+        sub=ds_params, fn='LoadFilePattern')
+    ds_params = datasource.CustomTFDatasetTransform.Params().Set(
+        sub=ds_params, fn='SequenceLengthTransform')
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+    seen = set()
+    with self.session():
+      batch = ds.GetNext()
+      for _ in range(30):
+        file, length = self.evaluate([batch.data, batch.len])
+        self.assertEqual(len(file), length)
+        seen.add(file)
+    self.assertEqual(seen, set(self.files))
+
+  def testTFDatasetBatchBySequenceLength(self):
+    ds_params = datasource.TFDatasetFnInput.Params().Set(
+        load_fn='LoadDataset', args=os.path.join(self.tmpdir, '*file_*'))
+    ds_params = datasource.TFDatasetBatchBySequenceLength.Params().Set(
+        sub=ds_params,
+        seqlen_fn='GetSequenceLength',
+        input_shape_fn='_InputShape',
+        input_padding_fn='_InputPaddingValue',
+        bucket_upper_bound=[
+            len(os.path.join(self.tmpdir, 'file_1')),
+            len(os.path.join(self.tmpdir, 'longfile_1'))
+        ],
+        bucket_batch_limit=[8, 8])
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+    with self.session():
+      batch = ds.GetNext()
+      seen = set()
+      for _ in range(20):
+        files = self.evaluate(batch.data)
+        self.assertEqual(len(files), 8)
+        seen.update(files)
+        basenames = [os.path.basename(file) for file in files]
+        # Batch contains different files of the same length.
+        self.assertGreater(len(set(basenames)), 1)
+        # But everything in the batch is the same length.
+        self.assertLen(set([len(basename) for basename in basenames]), 1)
+      # Longer than bucket_upper_bound[-1] is filtered out.
+      longerfile = os.path.join(self.tmpdir, 'longerfile_1').encode()
+      self.assertEqual(set(seen), set(self.files) - set([longerfile]))
+
+  def testTFDatasetMixer(self):
+    ds1 = datasource.SimpleDataSource.Params().Set(
+        file_pattern=os.path.join(self.tmpdir, '*file_*'))
+    ds1 = datasource.CustomTFDatasetTransform.Params().Set(
+        sub=ds1, fn='LoadFilePattern')
+
+    ds2 = datasource.TFDatasetFnInput.Params().Set(
+        load_fn='LoadDataset',
+        args=os.path.join(self.tmpdir, '*file_*'),
+        require_sequential_order=True)
+
+    with self.subTest(name='DS1Only'), self.session(graph=tf.Graph()):
+      ds_params = datasource.TFDatasetMixer.Params().Set(
+          sub=[ds1, ds2], weights=[1.0, 0.0])
+      ds = ds_params.Instantiate()
+      ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+      batch = ds.GetNext()
+      seen = set()
+      for _ in range(30):
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        self.assertEqual(0, source_id)
+        seen.add(file)
+      self.assertEqual(seen, set(self.files))
+
+    with self.subTest(name='DS2Only'), self.session(graph=tf.Graph()) as sess:
+      ds_params = datasource.TFDatasetMixer.Params().Set(
+          sub=[ds1, ds2], weights=[0.0, 1.0])
+      ds = ds_params.Instantiate()
+      ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+      batch = ds.GetNext()
+      seen = set()
+      for _ in self.files:
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        self.assertEqual(1, source_id)
+        seen.add(file)
+      self.assertEqual(seen, set(self.files))
+      ds.Reset(sess)
+      seen = set()
+      for _ in self.files:
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        self.assertEqual(1, source_id)
+        seen.add(file)
+      self.assertEqual(seen, set(self.files))
+      # Cannot run another self.evaluate(batch) here, as ds2 is exhausted but
+      # ds1 has 0 prob so the op just hangs.
+
+    with self.subTest(name='Mixed'), self.session(graph=tf.Graph()) as sess:
+      ds_params = datasource.TFDatasetMixer.Params().Set(
+          sub=[ds1, ds2], weights=[0.5, 0.5])
+      ds = ds_params.Instantiate()
+      ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+      batch = ds.GetNext()
+      seen = [set(), set()]
+      while seen[0] != set(self.files) or seen[1] != set(self.files):
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        seen[source_id].add(file)
+      # Now ds2 is exhausted.
+      for _ in range(100):
+        source_id = self.evaluate(batch.source_id)
+        self.assertEqual(0, source_id)
+      ds.Reset(sess)
+      while True:
+        file, source_id = self.evaluate([batch.data, batch.source_id])
+        if source_id == 1:
+          # ds2 should have been reset.
+          break
+
+    with self.subTest(name='MixedDS2'), self.session(graph=tf.Graph()):
+      ds_params = datasource.TFDatasetMixer.Params().Set(
+          sub=[ds2, ds2], weights=[0.5, 0.5])
+      ds = ds_params.Instantiate()
+      ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+      batch = ds.GetNext()
+      files = []
+      for _ in range(len(self.files) * 2):
+        files.append(self.evaluate(batch.data))
+      self.assertAllEqual(sorted(files), sorted(self.files * 2))
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        self.evaluate(batch)
 
 
 if __name__ == '__main__':
