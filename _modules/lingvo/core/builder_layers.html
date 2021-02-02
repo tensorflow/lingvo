@@ -971,6 +971,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_endpoints&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Names of the output tensors.&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): Define a NamedTuple for this pair.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of (signature, layer params) pairs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;sub_layers&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of layer params that GraphLayer &#39;</span>
+        <span class="s1">&#39;should instantiate. If this is defined, sub is a list of &#39;</span>
+        <span class="s1">&#39;(signature, index) pairs, where index refers to one of the &#39;</span>
+        <span class="s1">&#39;layers in sub_layers. This allows sub to reference layers &#39;</span>
+        <span class="s1">&#39;more than once.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -979,15 +985,35 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_endpoints</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># If sub_layers exists, we instantiate layers from that param, otherwise</span>
+    <span class="c1"># we get them from sub. reference_name helps us figure out what the layers</span>
+    <span class="c1"># are called in the later loop.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sub_layers</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sub</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub_layers</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+          <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sub_layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+          <span class="n">sub</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+      <span class="n">reference_name</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">sub</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sub_layers</span><span class="p">[</span><span class="n">sub</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">signature</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">GraphSignature</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+          <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+          <span class="n">sub</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+      <span class="n">reference_name</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">sub</span><span class="p">:</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
+
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">):</span>
       <span class="k">assert</span> <span class="n">signature</span>
       <span class="n">sig</span> <span class="o">=</span> <span class="n">GraphSignature</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
       <span class="k">assert</span> <span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">signature</span><span class="p">)</span>
-      <span class="n">name</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
-        <span class="n">sub</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="n">reference_name</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
 
 <div class="viewcode-block" id="GraphLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.GraphLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
