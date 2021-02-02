@@ -222,7 +222,8 @@ class _ModelRegistryHelper:
     model_params_cls = cls.GetClass(class_key)
     model_params = model_params_cls()
     cfg = model_params.Model()
-    cfg.input = model_params.GetDatasetParams(dataset_name)
+    if dataset_name:
+      cfg.input = model_params.GetDatasetParams(dataset_name)
 
     cls.MaybeUpdateParamsFromFlags(cfg)
     return cfg

@@ -1117,7 +1117,8 @@ class SingleTaskModel(SingleTaskBase):
       assert not p.task.input
       p.task.input = p.input
     else:
-      assert p.task.input
+      if not p.task.input:
+        tf.logging.warning('Model input generator is not defined')
       p.input = p.task.input
     p.train.ema_decay = p.task.train.ema_decay
     p.train.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
