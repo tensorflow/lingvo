@@ -427,6 +427,40 @@ class BuilderLayerTest(test_utils.TestCase):
       print(y_val)
       self.assertEqual(py_utils.NestedMap(c=2.0, d=4.0, e=6.0, f=-2.0), y_val)
 
+  def testGraphLayerReusedLayers(self):
+    g = tf.Graph()
+    with g.as_default(), self.SetEval(True):
+      tf.random.set_seed(24332)
+
+      p = layers.GraphLayer.Params().Set(
+          name='graph',
+          input_endpoints=['x'],
+          output_endpoints=['y'],
+          sub=[
+              # These three lines are the same as testGraphLayer.
+              ('x.a->y.c', 0),
+              ('x.b->y.d', 1),
+              ('y.c,y.d->y.e,y.f', 2),
+              # But here, we run layer 0 again to generate y.g.
+              ('y.f->y.g', 0),
+          ],
+          sub_layers=[
+              layers.FnLayer.Params().Set(fn=lambda x: 2 * x),
+              layers.FnLayer.Params().Set(name='bar', fn=lambda x: x + 2),
+              layers.FnLayer.Params().Set(
+                  name='baz', fn=lambda x, y: (x + y, x - y)),
+          ])
+      l = p.Instantiate()
+      x = py_utils.NestedMap(a=tf.constant(1.0), b=tf.constant(2.0))
+      y = l.FProp(l.theta, x)
+
+    with self.session(graph=g):
+      self.evaluate(tf.global_variables_initializer())
+      y_val = self.evaluate(y)
+      print(y_val)
+      self.assertEqual(
+          py_utils.NestedMap(c=2.0, d=4.0, e=6.0, f=-2.0, g=-4.0), y_val)
+
   def testSoftCondLayer(self):
     num_experts = 100
     with self.session(use_gpu=False, graph=tf.Graph()):

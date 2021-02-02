@@ -819,6 +819,12 @@ class GraphLayer(base_layer.BaseLayer):
     p.Define('output_endpoints', [], 'Names of the output tensors.')
     # TODO(yonghui): Define a NamedTuple for this pair.
     p.Define('sub', [], 'A list of (signature, layer params) pairs.')
+    p.Define(
+        'sub_layers', None, 'A list of layer params that GraphLayer '
+        'should instantiate. If this is defined, sub is a list of '
+        '(signature, index) pairs, where index refers to one of the '
+        'layers in sub_layers. This allows sub to reference layers '
+        'more than once.')
     return p
 
   def __init__(self, params):
@@ -827,15 +833,35 @@ class GraphLayer(base_layer.BaseLayer):
     assert p.name
     assert p.input_endpoints
     self._seq = []
+
+    # If sub_layers exists, we instantiate layers from that param, otherwise
+    # we get them from sub. reference_name helps us figure out what the layers
+    # are called in the later loop.
+    if self.params.sub_layers:
+      for i, sub in enumerate(p.sub_layers):
+        name = sub.name
+        if not name:
+          name = 'sub_layer_%d' % i
+          sub.name = name
+        self.CreateChild(name, sub)
+      reference_name = lambda sub: self.params.sub_layers[sub].name
+    else:
+      for i, (signature, sub) in enumerate(p.sub):
+        assert signature
+        sig = GraphSignature(signature)
+        assert sig.outputs, '{}'.format(signature)
+        name = sub.name
+        if not name:
+          name = '%s_%02d' % (sig.outputs[0], i)
+          sub.name = name
+        self.CreateChild(name, sub)
+      reference_name = lambda sub: sub.name
+
     for i, (signature, sub) in enumerate(p.sub):
       assert signature
       sig = GraphSignature(signature)
       assert sig.outputs, '{}'.format(signature)
-      name = sub.name
-      if not name:
-        name = '%s_%02d' % (sig.outputs[0], i)
-        sub.name = name
-      self.CreateChild(name, sub)
+      name = reference_name(sub)
       self._seq.append((name, sig, self.children[name]))
 
   def FProp(self, theta, *args):
