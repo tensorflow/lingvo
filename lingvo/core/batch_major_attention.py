@@ -4255,6 +4255,9 @@ class StackedTransformerLayers(base_layer.BaseLayer):
             time_step, use_short_seq_opt)
         updated_states.x_layers.append(updated_layer_states)
         decoder_input = decoder_output
+
+      if p.final_layer_norm:
+        decoder_output = self.final_ln.FProp(theta.final_ln, decoder_output)
     return decoder_output, updated_states
 
 
