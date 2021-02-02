@@ -509,7 +509,6 @@
       <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDataset</span><span class="p">()</span>
     <span class="n">ds</span><span class="o">.</span><span class="n">options</span><span class="p">()</span><span class="o">.</span><span class="n">experimental_deterministic</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span>
-
     <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
       <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -773,14 +772,52 @@
 
 
 <div class="viewcode-block" id="TFDataServiceSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource">[docs]</a><span class="k">class</span> <span class="nc">TFDataServiceSource</span><span class="p">(</span><span class="n">TFDatasetTransform</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Obtains input using remote tf.data service.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Obtains input using remote tf.data service, potentially in batches.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFDataServiceSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Bucketing scheme. Required to be&#39;</span>
+             <span class="s1">&#39;a sorted list of integers.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TFDataServiceSource.Transform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">distribute</span><span class="p">(</span>
-            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;shared_job&#39;</span><span class="p">,</span>
-            <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
-            <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">))</span></div></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="c1"># Batch is bucketed by sequence length. split into num_hosts batches</span>
+      <span class="c1"># and pull from the service in round-robin style.</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Bucket-synchronized input from the tf.data service &#39;</span>
+                         <span class="s1">&#39;requires tpu_infeed_parallelism == 1.&#39;</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">KeyFunc</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">bucket_keys</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">idx</span><span class="p">]</span>
+
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">group_by_window</span><span class="p">(</span>
+              <span class="n">key_func</span><span class="o">=</span><span class="n">KeyFunc</span><span class="p">,</span>
+              <span class="n">reduce_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensors</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+              <span class="n">window_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">))</span>
+
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">distribute</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">GetProcessUUID</span><span class="p">(),</span>
+              <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
+              <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span>
+              <span class="n">consumer_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">,</span>
+              <span class="n">num_consumers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">distribute</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">GetProcessUUID</span><span class="p">(),</span>
+              <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
+              <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">dataset</span></div></div>
 </pre></div>
 
            </div>
