@@ -220,7 +220,7 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A tuple of (outputs, bucket_keys):</span>
 
-<span class="sd">    - outputs: a NestedMap or a list of tensors, similar to `processor`&#39;s</span>
+<span class="sd">    - outputs: a NestedMap or a tuple of tensors, similar to `processor`&#39;s</span>
 <span class="sd">      return,  except every tensor will have an additional dimension 0 that</span>
 <span class="sd">      represents the batch dimension.</span>
 <span class="sd">    - bucket_keys: a tf.int32 vector.</span>
@@ -279,6 +279,8 @@
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input flat_outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_outputs</span><span class="p">)</span>
   <span class="c1"># Pack flat_outputs to outputs.</span>
   <span class="n">outputs</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_outputs</span><span class="p">)</span><span class="o">.</span><span class="n">out_values</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>  <span class="c1"># b/124336469</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;x_ops.generic_input outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">bucket_keys</span></div>
 

@@ -165,7 +165,17 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
-<span class="sd">&quot;&quot;&quot;DataSources describe how files should be used to provide data.&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;DataSources describe how data should be produced.</span>
+
+<span class="sd">There are two broad types of DataSources:</span>
+<span class="sd">1) A source that reads some type of resource to produce tensors;</span>
+<span class="sd">2) A metasource/transformation that modifies the output of other datasources.</span>
+
+<span class="sd">The InputGenerator instance is passed in to each DataSource. A DataSource</span>
+<span class="sd">subclass may attempt to call specific methods or access specific attributes on</span>
+<span class="sd">the InputGenerator instance, and it is up to the user to ensure such</span>
+<span class="sd">requirements are met.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 
@@ -175,7 +185,7 @@
 
 
 <div class="viewcode-block" id="DataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource">[docs]</a><span class="k">class</span> <span class="nc">DataSource</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A base class for file based Data Sources.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;A base class for data sources.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="DataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -185,29 +195,35 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">SetVariableFree</span><span class="p">()</span>
 
-<div class="viewcode-block" id="DataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Builds a data source.</span>
-
-<span class="sd">    Subclasses implement this.</span>
+<div class="viewcode-block" id="DataSource.SetInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.SetInputGenerator">[docs]</a>  <span class="k">def</span> <span class="nf">SetInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_generator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize this datasource.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      data_source_from_file_pattern_fn: a function that takes file_pattern and</span>
-<span class="sd">        input_source_weights as arguments and returns an input batch from a</span>
-<span class="sd">        string file_pattern.</span>
+<span class="sd">      input_generator: A reference to the external input_generator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span> <span class="o">=</span> <span class="n">input_generator</span>
+
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">DataSource</span><span class="p">):</span>
+        <span class="n">child</span><span class="o">.</span><span class="n">SetInputGenerator</span><span class="p">(</span><span class="n">input_generator</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataSource.Initialize"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">DataSource</span><span class="p">):</span>
+        <span class="n">child</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataSource.GetNext"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.GetNext">[docs]</a>  <span class="k">def</span> <span class="nf">GetNext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override this method to return the next element from the datasource.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing</span>
-
-<span class="sd">      - data: (Required) a tuple of tf.Tensor or `.NestedMap` of tf.Tensor same</span>
-<span class="sd">          as ``BaseInputGeneratorFromFiles._DataSourceFromFilePattern(</span>
-<span class="sd">          file_pattern, input_source_weights=None)``</span>
-<span class="sd">      - source_selected: (Optional) a tensor of size</span>
-<span class="sd">          [batch_size, number of datasources]</span>
-<span class="sd">      - selected_bprop: (Optional) a tensor of size [number of data sources]</span>
-<span class="sd">      - bprop_variable_filters: (Optional) containing a list of bprop_variable</span>
-<span class="sd">          filters for each source.</span>
+<span class="sd">      A `.NestedMap` containing the next element from the datasource. Depending</span>
+<span class="sd">      on the datasource this may be a single tensor or a batch of tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DataSource.GetMeta"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.GetMeta">[docs]</a>  <span class="k">def</span> <span class="nf">GetMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets metadata for the batch.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="SimpleDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.SimpleDataSource">[docs]</a><span class="k">class</span> <span class="nc">SimpleDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
@@ -237,25 +253,10 @@
         <span class="s1">&#39;expected to have the same length as weights.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="SimpleDataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.SimpleDataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read and return input batch from p.sub weighted by p.weights.</span>
-
-<span class="sd">    Examples in the batch will be mixed together from different sources</span>
-<span class="sd">    proportional to the weights.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      data_source_from_file_pattern_fn: a function that takes file_pattern and</span>
-<span class="sd">        input_source_weights as arguments and returns an input batch from a</span>
-<span class="sd">        string file_pattern.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing: data: a tuple of tf.Tensor or `.NestedMap` of</span>
-<span class="sd">      tf.Tensor</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If unknown token type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
@@ -282,21 +283,38 @@
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;List file_pattern </span><span class="si">%s</span><span class="s1"> should not contain commas.&#39;</span> <span class="o">%</span>
                            <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
 
+<div class="viewcode-block" id="SimpleDataSource.GetNext"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.SimpleDataSource.GetNext">[docs]</a>  <span class="k">def</span> <span class="nf">GetNext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return input batch from p.file_patterns list weighted by p.weights.</span>
+
+<span class="sd">    Examples in the batch will be mixed together from different file_pattern</span>
+<span class="sd">    source proportionally to the weights.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An input batch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">:</span>
       <span class="n">file_patterns</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span> <span class="n">file_patterns</span><span class="p">)]</span>
 
-    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
       <span class="c1"># Within-batch mixing.</span>
-      <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span>
-          <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+          <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span>
+          <span class="n">input_source_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Default.</span>
-      <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">))</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+          <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">))</span>
 
+    <span class="k">return</span> <span class="n">batch</span></div>
+
+<div class="viewcode-block" id="SimpleDataSource.GetMeta"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.SimpleDataSource.GetMeta">[docs]</a>  <span class="k">def</span> <span class="nf">GetMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span><span class="p">:</span>
-      <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
@@ -318,30 +336,6 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
-
-<div class="viewcode-block" id="CrossBatchMixingDataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CrossBatchMixingDataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
-
-<span class="sd">    `p.file_patterns` is a list of file patterns, `p.weights` contains</span>
-<span class="sd">    weights for each file pattern.  If provided `p.bprop_variable_filters`</span>
-<span class="sd">    includes a bprop_variable_filter for each file pattern.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      data_source_from_file_pattern_fn: a function that takes file_pattern as an</span>
-<span class="sd">        argument and returns an input batch.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing:</span>
-<span class="sd">        data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor</span>
-<span class="sd">        source_selected: a tensor of size [batch_size, number of data sources]</span>
-<span class="sd">        selected_bprop: a tensor of size [number of data sources]</span>
-<span class="sd">        bprop_variable_filters: containing a list of bprop_variable filters for</span>
-<span class="sd">        each source</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If unknown token type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">):</span>
@@ -349,31 +343,30 @@
                        <span class="s1">&#39;Found </span><span class="si">%d</span><span class="s1"> sub, and </span><span class="si">%d</span><span class="s1"> weights&#39;</span> <span class="o">%</span>
                        <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)))</span>
 
-    <span class="k">def</span> <span class="nf">GetDatasourceFn</span><span class="p">(</span><span class="n">sub</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
 
-      <span class="k">def</span> <span class="nf">DatasourceFn</span><span class="p">():</span>
-        <span class="n">datasource</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="n">data_source_from_file_pattern_fn</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">datasource</span><span class="o">.</span><span class="n">data</span>
+<div class="viewcode-block" id="CrossBatchMixingDataSource.GetNext"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CrossBatchMixingDataSource.GetNext">[docs]</a>  <span class="k">def</span> <span class="nf">GetNext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">GetNext</span> <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="p">]</span>
 
-      <span class="k">return</span> <span class="n">DatasourceFn</span>
-
-    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">GetDatasourceFn</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span><span class="p">:</span>
-      <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span>
-
-    <span class="n">data_source</span><span class="p">,</span> <span class="n">selected_bprop</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MixByWeight</span><span class="p">(</span>
+    <span class="n">data_source</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_bprop</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MixByWeight</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="c1"># TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to</span>
     <span class="c1"># use source_selected from input_batch.</span>
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">data_source</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">data_source</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">data_source</span></div>
+
+<div class="viewcode-block" id="CrossBatchMixingDataSource.GetMeta"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CrossBatchMixingDataSource.GetMeta">[docs]</a>  <span class="k">def</span> <span class="nf">GetMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="n">bprop_variable_filters</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">selected_bprop</span> <span class="o">=</span> <span class="n">selected_bprop</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">selected_bprop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_bprop</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">source_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">selected_bprop</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_selected_bprop</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
@@ -409,23 +402,6 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
-
-<div class="viewcode-block" id="CurriculumDataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CurriculumDataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read and return input batch.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      data_source_from_file_pattern_fn: a function to read and return input</span>
-<span class="sd">        batch from a string file_pattern</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing:</span>
-<span class="sd">        data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: inconsistent sizes between boundaries and sub, specification</span>
-<span class="sd">      of unsupported datasources, or out of order boundaries.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
@@ -445,28 +421,25 @@
                          <span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> &gt; </span><span class="si">%d</span><span class="s1"> at position </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span>
                          <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">idx</span><span class="p">))</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CurriculumDataSource.GetNext"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CurriculumDataSource.GetNext">[docs]</a>  <span class="k">def</span> <span class="nf">GetNext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">GetDatasourceFn</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
-
-      <span class="k">def</span> <span class="nf">DatasourceFn</span><span class="p">():</span>
-        <span class="n">datasource</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span>
-            <span class="n">data_source_from_file_pattern_fn</span><span class="p">)</span>
-        <span class="n">datasource</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;bprop_variable_filters&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">datasource</span>
-
-      <span class="k">return</span> <span class="n">DatasourceFn</span>
 
     <span class="n">cases</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">)):</span>
       <span class="n">cases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
           <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
-                   <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
-                               <span class="n">dtype</span><span class="o">=</span><span class="n">global_step</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span> <span class="n">GetDatasourceFn</span><span class="p">(</span><span class="n">idx</span><span class="p">)))</span>
+                   <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">global_step</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">GetNext</span><span class="p">))</span>
 
-    <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">case</span><span class="p">(</span><span class="n">cases</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">GetDatasourceFn</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-    <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="ow">or</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">ret</span></div></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">case</span><span class="p">(</span><span class="n">cases</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">GetNext</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CurriculumDataSource.GetMeta"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CurriculumDataSource.GetMeta">[docs]</a>  <span class="k">def</span> <span class="nf">GetMeta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">bprop_variable_filters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="ow">or</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">])</span></div></div>
 
 
 <div class="viewcode-block" id="PrefixedDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSource">[docs]</a><span class="k">class</span> <span class="nc">PrefixedDataSource</span><span class="p">(</span><span class="n">SimpleDataSource</span><span class="p">):</span>
