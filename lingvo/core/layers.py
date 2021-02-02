@@ -1455,11 +1455,13 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     """Returns output dimension of the FeedForwardNet."""
     return self.params.hidden_layer_dims[-1]
 
-  def FProp(self, theta, inputs, paddings=None):
+  def FPropAllLayers(self, theta, inputs, paddings=None):
+    """FProp, returns all layers including the input and output layers."""
     p = self.params
     num_layers = len(self.fc)
-
     in_dim, layer_in = p.input_dim, inputs
+    all_layers = [layer_in]
+
     for i in range(num_layers):
       layer_in = py_utils.with_dependencies([
           py_utils.assert_shape_match([tf.shape(layer_in)[-1]],
@@ -1468,9 +1470,13 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
       out_dim = p.hidden_layer_dims[i]
       layer_out = self.fc[i].FProp(theta.fc[i], layer_in, paddings)
       layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
+      all_layers.append(layer_out)
       layer_in = layer_out
       in_dim = out_dim
-    return layer_in
+    return all_layers
+
+  def FProp(self, theta, inputs, paddings=None):
+    return self.FPropAllLayers(theta, inputs, paddings)[-1]
 
   @classmethod
   def FPropMeta(cls, p, inputs, paddings=None):

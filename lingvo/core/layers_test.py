@@ -4000,9 +4000,10 @@ class FeedForwardNetTest(test_utils.TestCase):
       p2_l = p2.Instantiate()
 
       a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
-      out1 = feedforward_net.FPropDefaultTheta(a)
+      out1 = feedforward_net.FPropAllLayers(feedforward_net.theta, a)
 
-      out2 = p2_l.FPropDefaultTheta(p1_l.FPropDefaultTheta(a))
+      out2 = [a, p1_l.FPropDefaultTheta(a)]
+      out2.append(p2_l.FPropDefaultTheta(out2[-1]))
 
       self.evaluate(tf.global_variables_initializer())
       out1_v, out2_v = self.evaluate([out1, out2])
