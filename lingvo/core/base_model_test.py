@@ -211,7 +211,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     """Override BaseSequenceInputGenerator."""
     return 1
 
-  def _InputBatch(self):
+  def GetPreprocessedInputBatch(self):
     return 0
 
 

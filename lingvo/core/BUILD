@@ -609,6 +609,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":base_input_generator",
         ":datasource",
         ":py_utils",
         ":test_utils",

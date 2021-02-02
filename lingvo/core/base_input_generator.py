@@ -123,6 +123,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     p = super().Params()
     p.name = 'input'
     p.Define(
+        'file_datasource', None,
+        'The DataSource that produces input batches for this input generator.')
+    p.Define(
         'batch_size', 0, 'Batch size for a device split. This will be '
         'scaled to match the accelarator hardware topology.')
     p.Define(
@@ -152,8 +155,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     p.Define('remote', hyperparams.Params(),
              'Params to configure remote input policy.')
-    pp = p.remote
-    pp.Define(
+    p.remote.Define(
         'max_inflights_per_target', 32, 'The maximum number of '
         'concurrent inflight remote input fetches per remote target.')
 
@@ -178,6 +180,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     # Set to true in GetPreprocessedInputBatch() (and thus _InputBatch())
     self._in_get_processed_input_batch = False
+
+    if self.params.file_datasource:
+      self.CreateChild('datasource', self.params.file_datasource)
+      self.datasource.SetInputGenerator(self)
 
   def CommonInputOpArgs(self):
     """Common input params."""
@@ -208,7 +214,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
   def Initialize(self, sess):
     """Initialize using a session."""
-    pass
+    if 'datasource' in self.children:
+      self.datasource.Initialize(sess)
 
   def _InputBatch(self):
     """The current input batch, not preprocessed.
@@ -243,12 +250,15 @@ class BaseInputGenerator(base_layer.BaseLayer):
     override _InputBatch and maybe _PreprocessInputBatch.
     """
     self._in_get_processed_input_batch = True
-    res = self._PreprocessInputBatch(self._InputBatch())
+    batch = self._PreprocessInputBatch(self._InputBatch())
+    # TODO(b/139345706): Use self.datasource.GetNext().
+    # if 'datasource' in self.children:
+    #   batch = self.datasource.GetNext()
     self._in_get_processed_input_batch = False
 
     if py_utils.GetUnitTestSession():
       self.Initialize(py_utils.GetUnitTestSession())
-    return res
+    return batch
 
   @property
   def tpu_number_of_shards(self):
@@ -695,15 +705,17 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
 def FilePatternToDataSource(p):
   """Helper to turn p.file_pattern (deprecated) into p.file_datasource."""
+  p = p.Copy()
   if isinstance(p.file_pattern, str):
-    return datasource.SimpleDataSource.Params().Set(file_pattern=p.file_pattern)
+    p.file_datasource = datasource.SimpleDataSource.Params().Set(
+        file_pattern=p.file_pattern)
   elif isinstance(p.file_pattern, (list, tuple)):
     if all([isinstance(x, str) for x in p.file_pattern]):
       # While this violates the documentation and intended use, there are
       # subclasses that have used a tuple of strings, rather than a list of
       # string, weight tuples.  Rather than treating lists and tuples
       # differently, support both here until p.file_pattern is removed.
-      return datasource.SimpleDataSource.Params().Set(
+      p.file_datasource = datasource.SimpleDataSource.Params().Set(
           file_pattern=list(p.file_pattern))
     elif p.use_within_batch_mixing:
       if max(list(map(len, p.file_pattern))) >= 3:
@@ -714,7 +726,7 @@ def FilePatternToDataSource(p):
 
       file_patterns, weights = (list(x) for x in zip(*p.file_pattern))
 
-      return datasource.SimpleDataSource.Params().Set(
+      p.file_datasource = datasource.SimpleDataSource.Params().Set(
           file_pattern=file_patterns, weights=weights)
     else:
       # Otherwise fall back to MixByWeight-based approach.
@@ -731,12 +743,15 @@ def FilePatternToDataSource(p):
         weights.append(weight)
         bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
         bprop_variable_filters.append(bprop_variable_filter)
-      return datasource.CrossBatchMixingDataSource.Params().Set(
+      p.file_datasource = datasource.CrossBatchMixingDataSource.Params().Set(
           sub=datasources,
           weights=weights,
           bprop_variable_filters=bprop_variable_filters)
   else:
     raise ValueError('Cannot parse p.file_pattern into a datasource.')
+  # TODO(b/139345706) remove file_pattern parameter
+  # p.file_pattern = ''
+  return p
 
 
 class BaseInputGeneratorFromFiles(BaseInputGenerator):
@@ -761,9 +776,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'with use_within_batch_mixing, where probablistic samples are from the '
         'inputs proportional to their weights. Typically, values are binary '
         'protocol buffers containing train/eval samples. Keys are not used.')
-    p.Define(
-        'file_datasource', None, 'A DataSource describing the file sources '
-        'including any weights and bprop_variable_filters required.')
     p.Define('file_random_seed', 301,
              'Random seed for shuffling the input data.')
     p.Define(
@@ -810,19 +822,18 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     return p
 
   def __init__(self, params):
-    super().__init__(params)
-    p = self.params
-    if p.use_per_host_infeed and p.file_random_seed != 0:
+    if params.use_per_host_infeed and params.file_random_seed != 0:
       raise ValueError('file_random_seed needs to be 0 when '
                        'use_per_host_infeed == True.')
 
-    assert not (p.file_pattern and p.file_datasource
-               ), 'Only one of file_pattern and data_source can be specified'
+    assert not (
+        params.file_pattern and params.file_datasource
+    ), 'Only one of file_pattern and file_datasource can be specified'
 
     # TODO(b/139345706) remove support for file_pattern
-    if not p.file_datasource:
-      p.file_datasource = FilePatternToDataSource(p)
-    self.CreateChild('datasource', p.file_datasource)
+    if not params.file_datasource:
+      params = FilePatternToDataSource(params)
+    super().__init__(params)
 
   def CommonInputOpArgs(self):
     """Common input params."""
@@ -923,7 +934,9 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
           'Building data source %s with params %s and '
           'file_pattern %s', self.datasource, self.datasource.params,
           p.file_pattern)
-      ret = self.datasource.BuildDataSource(self._DataSourceFromFilePattern)
+      batch = self.datasource.GetNext()
+      ret = self.datasource.GetMeta()
+      ret.data = batch
     if 'selected_bprop' in ret:
       self._bprop_onehot = ret.selected_bprop
     if 'bprop_variable_filters' in ret:
@@ -1195,7 +1208,9 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
     if params.file_datasource:
       raise ValueError(
           'TFDataSequenceInputGenerator does not support p.file_datasource.')
+    file_pattern = params.file_pattern
     super().__init__(params)
+    self.params.file_pattern = file_pattern
     self._iterator = {}
 
   @property

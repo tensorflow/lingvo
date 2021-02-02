@@ -13,7 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""DataSources describe how files should be used to provide data."""
+"""DataSources describe how data should be produced.
+
+There are two broad types of DataSources:
+1) A source that reads some type of resource to produce tensors;
+2) A metasource/transformation that modifies the output of other datasources.
+
+The InputGenerator instance is passed in to each DataSource. A DataSource
+subclass may attempt to call specific methods or access specific attributes on
+the InputGenerator instance, and it is up to the user to ensure such
+requirements are met.
+"""
 
 import os
 
@@ -23,7 +33,7 @@ from lingvo.core import py_utils
 
 
 class DataSource(base_layer.BaseLayer):
-  """A base class for file based Data Sources."""
+  """A base class for data sources."""
 
   @classmethod
   def Params(cls):
@@ -33,29 +43,35 @@ class DataSource(base_layer.BaseLayer):
     super().__init__(params)
     self.SetVariableFree()
 
-  def BuildDataSource(self, data_source_from_file_pattern_fn):
-    """Builds a data source.
-
-    Subclasses implement this.
+  def SetInputGenerator(self, input_generator):
+    """Initialize this datasource.
 
     Args:
-      data_source_from_file_pattern_fn: a function that takes file_pattern and
-        input_source_weights as arguments and returns an input batch from a
-        string file_pattern.
+      input_generator: A reference to the external input_generator.
+    """
+    self._input_generator = input_generator
+
+    for child in self._children_list:
+      if isinstance(child, DataSource):
+        child.SetInputGenerator(input_generator)
+
+  def Initialize(self, sess):
+    for child in self._children_list:
+      if isinstance(child, DataSource):
+        child.Initialize(sess)
+
+  def GetNext(self):
+    """Override this method to return the next element from the datasource.
 
     Returns:
-      A NestedMap containing
-
-      - data: (Required) a tuple of tf.Tensor or `.NestedMap` of tf.Tensor same
-          as ``BaseInputGeneratorFromFiles._DataSourceFromFilePattern(
-          file_pattern, input_source_weights=None)``
-      - source_selected: (Optional) a tensor of size
-          [batch_size, number of datasources]
-      - selected_bprop: (Optional) a tensor of size [number of data sources]
-      - bprop_variable_filters: (Optional) containing a list of bprop_variable
-          filters for each source.
+      A `.NestedMap` containing the next element from the datasource. Depending
+      on the datasource this may be a single tensor or a batch of tensors.
     """
     raise NotImplementedError()
+
+  def GetMeta(self):
+    """Gets metadata for the batch."""
+    return py_utils.NestedMap()
 
 
 class SimpleDataSource(DataSource):
@@ -85,25 +101,10 @@ class SimpleDataSource(DataSource):
         'expected to have the same length as weights.')
     return p
 
-  def BuildDataSource(self, data_source_from_file_pattern_fn):
-    """Read and return input batch from p.sub weighted by p.weights.
-
-    Examples in the batch will be mixed together from different sources
-    proportional to the weights.
-
-    Args:
-      data_source_from_file_pattern_fn: a function that takes file_pattern and
-        input_source_weights as arguments and returns an input batch from a
-        string file_pattern.
-
-    Returns:
-      A NestedMap containing: data: a tuple of tf.Tensor or `.NestedMap` of
-      tf.Tensor
-
-    Raises:
-      ValueError: If unknown token type.
-    """
+  def __init__(self, params):
+    super().__init__(params)
     p = self.params
+
     if p.weights:
       if not isinstance(p.file_pattern, list):
         raise ValueError('Expected a list, got %s' % p.file_pattern)
@@ -130,21 +131,38 @@ class SimpleDataSource(DataSource):
           raise ValueError('List file_pattern %s should not contain commas.' %
                            p.file_pattern)
 
+  def GetNext(self):
+    """Return input batch from p.file_patterns list weighted by p.weights.
+
+    Examples in the batch will be mixed together from different file_pattern
+    source proportionally to the weights.
+
+    Returns:
+      An input batch.
+    """
+    p = self.params
     file_patterns = p.file_pattern
     if p.file_type:
       file_patterns = [f'{t}:{p}' for t, p in zip(p.file_type, file_patterns)]
 
-    ret = py_utils.NestedMap()
     if p.weights:
       # Within-batch mixing.
-      ret.data = data_source_from_file_pattern_fn(
-          ','.join(file_patterns), input_source_weights=p.weights)
+      batch = self._input_generator._DataSourceFromFilePattern(  # pylint: disable=protected-access
+          ','.join(file_patterns),
+          input_source_weights=p.weights)
     else:
       # Default.
-      ret.data = data_source_from_file_pattern_fn(','.join(file_patterns))
+      batch = self._input_generator._DataSourceFromFilePattern(  # pylint: disable=protected-access
+          ','.join(file_patterns))
 
+    return batch
+
+  def GetMeta(self):
+    p = self.params
+
+    ret = py_utils.NestedMap()
     if not p.bprop_variable_filters:
-      ret.bprop_variable_filters = [''] * len(file_patterns)
+      ret.bprop_variable_filters = [''] * len(p.file_pattern)
     else:
       ret.bprop_variable_filters = p.bprop_variable_filters
     return ret
@@ -166,30 +184,6 @@ class CrossBatchMixingDataSource(DataSource):
 
   def __init__(self, params):
     super().__init__(params)
-    self.CreateChildren('sub', self.params.sub)
-
-  def BuildDataSource(self, data_source_from_file_pattern_fn):
-    """Read and return input batch from a p.file_pattern list.
-
-    `p.file_patterns` is a list of file patterns, `p.weights` contains
-    weights for each file pattern.  If provided `p.bprop_variable_filters`
-    includes a bprop_variable_filter for each file pattern.
-
-    Args:
-      data_source_from_file_pattern_fn: a function that takes file_pattern as an
-        argument and returns an input batch.
-
-    Returns:
-      A NestedMap containing:
-        data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor
-        source_selected: a tensor of size [batch_size, number of data sources]
-        selected_bprop: a tensor of size [number of data sources]
-        bprop_variable_filters: containing a list of bprop_variable filters for
-        each source
-
-    Raises:
-      ValueError: If unknown token type.
-    """
     p = self.params
 
     if len(p.weights) != len(p.sub):
@@ -197,31 +191,30 @@ class CrossBatchMixingDataSource(DataSource):
                        'Found %d sub, and %d weights' %
                        (len(p.sub), len(p.weights)))
 
-    def GetDatasourceFn(sub):
+    self.CreateChildren('sub', p.sub)
 
-      def DatasourceFn():
-        datasource = sub.BuildDataSource(data_source_from_file_pattern_fn)
-        return datasource.data
+  def GetNext(self):
+    p = self.params
+    inputs = [sub.GetNext for sub in self.sub]
 
-      return DatasourceFn
-
-    inputs = [GetDatasourceFn(sub) for sub in self.sub]
-    if not p.bprop_variable_filters:
-      bprop_variable_filters = [''] * len(inputs)
-    else:
-      bprop_variable_filters = p.bprop_variable_filters
-
-    data_source, selected_bprop = py_utils.MixByWeight(
+    data_source, self._selected_bprop = py_utils.MixByWeight(
         inputs, p.weights, seed=p.random_seed)
     # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
     # use source_selected from input_batch.
-    batch_size = py_utils.GetShape(py_utils.Flatten(data_source)[0])[0]
+    self._batch_size = py_utils.GetShape(py_utils.Flatten(data_source)[0])[0]
+    return data_source
+
+  def GetMeta(self):
+    p = self.params
     ret = py_utils.NestedMap()
-    ret.data = data_source
-    ret.bprop_variable_filters = bprop_variable_filters
-    ret.selected_bprop = selected_bprop
+
+    if not p.bprop_variable_filters:
+      ret.bprop_variable_filters = [''] * len(p.sub)
+    else:
+      ret.bprop_variable_filters = p.bprop_variable_filters
+    ret.selected_bprop = self._selected_bprop
     ret.source_selected = tf.tile(
-        tf.expand_dims(selected_bprop, 0), [batch_size, 1])
+        tf.expand_dims(self._selected_bprop, 0), [self._batch_size, 1])
     return ret
 
 
@@ -257,23 +250,6 @@ class CurriculumDataSource(DataSource):
 
   def __init__(self, params):
     super().__init__(params)
-    self.CreateChildren('sub', self.params.sub)
-
-  def BuildDataSource(self, data_source_from_file_pattern_fn):
-    """Read and return input batch.
-
-    Args:
-      data_source_from_file_pattern_fn: a function to read and return input
-        batch from a string file_pattern
-
-    Returns:
-      A NestedMap containing:
-        data: a tuple of tf.Tensor or `.NestedMap` of tf.Tensor
-
-    Raises:
-      ValueError: inconsistent sizes between boundaries and sub, specification
-      of unsupported datasources, or out of order boundaries.
-    """
     p = self.params
 
     if len(p.sub) != len(p.boundaries) + 1:
@@ -293,28 +269,25 @@ class CurriculumDataSource(DataSource):
                          'found %d > %d at position %d' %
                          (p.boundaries[idx], p.boundaries[idx + 1], idx))
 
+    self.CreateChildren('sub', p.sub)
+
+  def GetNext(self):
+    p = self.params
+
     global_step = py_utils.GetGlobalStep()
-
-    def GetDatasourceFn(idx):
-
-      def DatasourceFn():
-        datasource = self.sub[idx].BuildDataSource(
-            data_source_from_file_pattern_fn)
-        datasource.pop('bprop_variable_filters', None)
-        return datasource
-
-      return DatasourceFn
 
     cases = []
     for idx in range(len(p.boundaries)):
       cases.append(
           (tf.less(global_step,
-                   tf.constant(p.boundaries[idx],
-                               dtype=global_step.dtype)), GetDatasourceFn(idx)))
+                   tf.constant(p.boundaries[idx], dtype=global_step.dtype)),
+           self.sub[idx].GetNext))
 
-    ret = tf.case(cases, default=GetDatasourceFn(-1))
-    ret.bprop_variable_filters = p.bprop_variable_filters or ['']
-    return ret
+    return tf.case(cases, default=self.sub[-1].GetNext)
+
+  def GetMeta(self):
+    return py_utils.NestedMap(
+        bprop_variable_filters=self.params.bprop_variable_filters or [''])
 
 
 class PrefixedDataSource(SimpleDataSource):

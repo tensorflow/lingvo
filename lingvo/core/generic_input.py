@@ -68,7 +68,7 @@ def GenericInput(processor, **kwargs):
   Returns:
     A tuple of (outputs, bucket_keys):
 
-    - outputs: a NestedMap or a list of tensors, similar to `processor`'s
+    - outputs: a NestedMap or a tuple of tensors, similar to `processor`'s
       return,  except every tensor will have an additional dimension 0 that
       represents the batch dimension.
     - bucket_keys: a tf.int32 vector.
@@ -127,6 +127,8 @@ def GenericInput(processor, **kwargs):
   tf.logging.debug('x_ops.generic_input flat_outputs=%s', flat_outputs)
   # Pack flat_outputs to outputs.
   outputs = output_tmpl.Pack(flat_outputs).out_values
+  if isinstance(outputs, list):
+    outputs = tuple(outputs)  # b/124336469
   tf.logging.debug('x_ops.generic_input outputs=%s', outputs)
   return outputs, bucket_keys
 
