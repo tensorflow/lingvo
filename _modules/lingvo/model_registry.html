@@ -374,7 +374,8 @@
     <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
     <span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="p">()</span>
     <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dataset_name</span><span class="p">:</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
 
     <span class="bp">cls</span><span class="o">.</span><span class="n">MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
