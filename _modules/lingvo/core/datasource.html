@@ -186,6 +186,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
+<span class="kn">import</span> <span class="nn">tensorflow_datasets</span> <span class="k">as</span> <span class="nn">tfds</span>
+
 
 <div class="viewcode-block" id="DataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource">[docs]</a><span class="k">class</span> <span class="nc">DataSource</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A base class for data sources.&quot;&quot;&quot;</span>
@@ -625,6 +627,52 @@
       <span class="n">dataset</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
 
     <span class="n">require_sequential_order</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">require_sequential_order</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shuffle_buffer_size</span><span class="p">)</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">dataset</span></div></div>
+
+
+<div class="viewcode-block" id="TFDSInput"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDSInput">[docs]</a><span class="k">class</span> <span class="nc">TFDSInput</span><span class="p">(</span><span class="n">TFDatasetSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Load tfds datasets.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFDSInput.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDSInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dataset&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The tfds dataset to load.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;split&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The split to load. See https://www.tensorflow.org/datasets/splits.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;load_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;LoadTFDSDataset&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;An input_generator method name to call to load data. It must accept &#39;</span>
+        <span class="s1">&#39;(info, features_dict) and return a NestedMap.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shuffle_buffer_size&#39;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span>
+             <span class="s1">&#39;Number of records buffered for random shuffling.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether elements need to be produced in sequential order. &#39;</span>
+        <span class="s1">&#39;Disables randomization.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TFDSInput.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDSInput.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A dataset and split must be specified.&#39;</span><span class="p">)</span>
+
+    <span class="n">require_sequential_order</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
+    <span class="n">dataset</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">tfds</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">split</span><span class="p">,</span>
+        <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># download dataset locally.</span>
+        <span class="n">shuffle_files</span><span class="o">=</span><span class="ow">not</span> <span class="n">require_sequential_order</span><span class="p">,</span>
+        <span class="n">with_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">load_fn</span><span class="p">),</span> <span class="n">info</span><span class="p">),</span>
+        <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
+        <span class="n">deterministic</span><span class="o">=</span><span class="n">require_sequential_order</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">require_sequential_order</span><span class="p">:</span>
       <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shuffle_buffer_size</span><span class="p">)</span>
       <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>

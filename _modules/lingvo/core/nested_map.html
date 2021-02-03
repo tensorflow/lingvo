@@ -174,7 +174,7 @@
 <span class="n">_SQUARE_BRACKET_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]&#39;</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">NestedMap</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap">[docs]</a><span class="k">class</span> <span class="nc">NestedMap</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A simple helper to maintain a dict.</span>
 
 <span class="sd">  It is a sub-class of dict with the following extensions/restrictions:</span>
@@ -232,18 +232,18 @@
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">; available attributes: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                            <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
 
-  <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># Don&#39;t delegate w/ super: dict.copy() -&gt; dict.</span>
-    <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+<div class="viewcode-block" id="NestedMap.copy"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.copy">[docs]</a>  <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># Don&#39;t delegate w/ super: dict.copy() -&gt; dict.</span>
+    <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
   <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_memo</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Deep-copies the structure but not the leaf objects.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
 
-  <span class="k">def</span> <span class="nf">DeepCopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.DeepCopy"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.DeepCopy">[docs]</a>  <span class="k">def</span> <span class="nf">DeepCopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Deep-copies the structure but not the leaf objects.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span></div>
 
-  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="NestedMap.FromNestedDict"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.FromNestedDict">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">FromNestedDict</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Converts every dict in nested structure &#39;x&#39; to a NestedMap.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
@@ -254,24 +254,24 @@
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)(</span><span class="n">NestedMap</span><span class="o">.</span><span class="n">FromNestedDict</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span>
+      <span class="k">return</span> <span class="n">x</span></div>
 
-  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="NestedMap.CheckKey"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.CheckKey">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Asserts that key is valid NestedMap key.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">)):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid NestedMap key </span><span class="se">\&#39;</span><span class="si">{}</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid NestedMap key </span><span class="se">\&#39;</span><span class="si">{}</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span></div>
 
-  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="NestedMap.SquareBracketIndex"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.SquareBracketIndex">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">SquareBracketIndex</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extracts the name and the index from the indexed key (e.g., k[0]).&quot;&quot;&quot;</span>
     <span class="n">m</span> <span class="o">=</span> <span class="n">_SQUARE_BRACKET_PATTERN</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span></div>
 
-  <span class="k">def</span> <span class="nf">GetItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.GetItem"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.GetItem">[docs]</a>  <span class="k">def</span> <span class="nf">GetItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the value for the nested `key`.</span>
 
 <span class="sd">    Note that indexing lists is not supported, names with underscores will be</span>
@@ -297,9 +297,9 @@
       <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
       <span class="k">if</span> <span class="n">idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">current</span>
+    <span class="k">return</span> <span class="n">current</span></div>
 
-  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Get"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.Get">[docs]</a>  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the value for nested `key`, returns `default` if key does not exist.</span>
 
 <span class="sd">    Note that indexing lists is not supported, names with underscores will be</span>
@@ -316,9 +316,9 @@
     <span class="k">try</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">default</span>
+      <span class="k">return</span> <span class="n">default</span></div>
 
-  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Set"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Sets the value for a nested key.</span>
 
 <span class="sd">    There is limited support for indexing lists when square bracket indexing is</span>
@@ -372,9 +372,9 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)):</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error while setting key </span><span class="si">{}</span><span class="s1">. Sub key &quot;</span><span class="si">{}</span><span class="s1">&quot; is of type&#39;</span>
                            <span class="s1">&#39; </span><span class="si">{}</span><span class="s1"> but must be a dict or NestedMap.&#39;</span>
-                           <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">current</span><span class="p">)))</span>
+                           <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">current</span><span class="p">)))</span></div>
 
-  <span class="k">def</span> <span class="nf">_RecursiveMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap._RecursiveMap"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap._RecursiveMap">[docs]</a>  <span class="k">def</span> <span class="nf">_RecursiveMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Traverse recursively into lists, dicts, and NestedMaps applying `fn`.</span>
 
 <span class="sd">    Args:</span>
@@ -427,40 +427,40 @@
     <span class="n">res</span> <span class="o">=</span> <span class="n">Recurse</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DELETE</span><span class="p">:</span>
       <span class="k">return</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">flatten</span> <span class="k">else</span> <span class="n">NestedMap</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">res</span>
+    <span class="k">return</span> <span class="n">res</span></div>
 
-  <span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Flatten"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.Flatten">[docs]</a>  <span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a list containing the flattened values in the `.NestedMap`.</span>
 
 <span class="sd">    Unlike py_utils.Flatten(), this will only descend into lists, dicts, and</span>
 <span class="sd">    NestedMaps and not tuples, or namedtuples.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">FlattenItems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.FlattenItems"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.FlattenItems">[docs]</a>  <span class="k">def</span> <span class="nf">FlattenItems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Flatten the `.NestedMap` and returns &lt;key, value&gt; pairs in a list.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A list of &lt;key, value&gt; pairs, where keys for nested entries will be</span>
 <span class="sd">      represented in the form of `foo.bar[10].baz`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Pack"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.Pack">[docs]</a>  <span class="k">def</span> <span class="nf">Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this with each value replaced by a value in lst.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">())</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span>
     <span class="n">v_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">unused_k</span><span class="p">,</span> <span class="n">unused_v</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span><span class="n">v_iter</span><span class="p">))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">unused_k</span><span class="p">,</span> <span class="n">unused_v</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span><span class="n">v_iter</span><span class="p">))</span></div>
 
-  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Transform"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this `.NestedMap` with fn applied on each value.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">fn</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">fn</span><span class="p">(</span><span class="n">v</span><span class="p">))</span></div>
 
-  <span class="k">def</span> <span class="nf">TransformWithKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.TransformWithKey"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.TransformWithKey">[docs]</a>  <span class="k">def</span> <span class="nf">TransformWithKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this `.NestedMap` with fn applied on each key/value.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">IsCompatible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.IsCompatible"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.IsCompatible">[docs]</a>  <span class="k">def</span> <span class="nf">IsCompatible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns true if self and other are compatible.</span>
 
 <span class="sd">    If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())` produces y</span>
@@ -471,13 +471,13 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">other_items</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
-    <span class="k">return</span> <span class="n">items</span> <span class="o">==</span> <span class="n">other_items</span>
+    <span class="k">return</span> <span class="n">items</span> <span class="o">==</span> <span class="n">other_items</span></div>
 
-  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Filter"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.Filter">[docs]</a>  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy with entries where fn(entry) is True.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">fn</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">fn</span><span class="p">(</span><span class="n">v</span><span class="p">))</span></div>
 
-  <span class="k">def</span> <span class="nf">FilterKeyVal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.FilterKeyVal"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.FilterKeyVal">[docs]</a>  <span class="k">def</span> <span class="nf">FilterKeyVal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this `.NestedMap` filtered by fn.</span>
 
 <span class="sd">    If fn(key, entry) is True, the entry is copied into the returned NestedMap.</span>
@@ -489,31 +489,31 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A `.NestedMap` contains copied entries from this `&#39;.NestedMap`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span> <span class="k">if</span> <span class="n">fn</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DELETE</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span> <span class="k">if</span> <span class="n">fn</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DELETE</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_ToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap._ToStrings"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap._ToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">_ToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns debug strings in a list for this `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="n">kv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
     <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">kv</span><span class="p">])</span> <span class="k">if</span> <span class="n">kv</span> <span class="k">else</span> <span class="mi">0</span>
-    <span class="k">return</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">))</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kv</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">k</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">))</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kv</span><span class="p">])</span></div>
 
-  <span class="k">def</span> <span class="nf">DebugString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.DebugString"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.DebugString">[docs]</a>  <span class="k">def</span> <span class="nf">DebugString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a debug string for this `.NestedMap`.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ToStrings</span><span class="p">())</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ToStrings</span><span class="p">())</span></div>
 
-  <span class="k">def</span> <span class="nf">VLog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.VLog"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.VLog">[docs]</a>  <span class="k">def</span> <span class="nf">VLog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Logs the debug string at the level.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">level</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;nmap: &#39;</span>
     <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ToStrings</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span></div>
 
   <span class="k">def</span> <span class="fm">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;dir() that includes flattened keys in returned output.&quot;&quot;&quot;</span>
     <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecursiveMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">k</span><span class="p">,</span> <span class="n">flatten</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">keys</span> <span class="o">+</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__dir__</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">keys</span> <span class="o">+</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__dir__</span><span class="p">()</span></div>
 </pre></div>
 
            </div>
