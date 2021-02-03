@@ -403,6 +403,83 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers_with_attention.AuxLossContext">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">AuxLossContext</code><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#AuxLossContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.AuxLossContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Non-reentrant context that holds a list of aux-losses.</p>
+<dl class="py attribute">
+<dt id="lingvo.core.layers_with_attention.AuxLossContext._global_stack">
+<code class="sig-name descname">_global_stack</code><em class="property"> = []</em><a class="headerlink" href="#lingvo.core.layers_with_attention.AuxLossContext._global_stack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.AuxLossContext.current">
+<em class="property">classmethod </em><code class="sig-name descname">current</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#AuxLossContext.current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.AuxLossContext.current" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns current context or None.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.AuxLossContext.add_loss">
+<code class="sig-name descname">add_loss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#AuxLossContext.add_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.AuxLossContext.add_loss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.AuxLossContext.aux_losses">
+<em class="property">property </em><code class="sig-name descname">aux_losses</code><a class="headerlink" href="#lingvo.core.layers_with_attention.AuxLossContext.aux_losses" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.layers_with_attention.TransformerShardedMoeLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerShardedMoeLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerShardedMoeLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerShardedMoeLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A sharded MOE layer.</p>
+<p>This is a drop-in replacement of the transformer feedforward layer. It is a
+composite of the following sub-layers.</p>
+<p>ln_inputs = ln(inputs)
+moe_output = moe(ln_inputs)
+drop_output = dropout(moe_output)
+output = inputs + drop_output</p>
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerShardedMoeLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerShardedMoeLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerShardedMoeLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerShardedMoeLayer.SetFPropDtype">
+<em class="property">classmethod </em><code class="sig-name descname">SetFPropDtype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">fprop_dtype</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerShardedMoeLayer.SetFPropDtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerShardedMoeLayer.SetFPropDtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerShardedMoeLayer.output_dim">
+<em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerShardedMoeLayer.output_dim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns output dimension of the transformer layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerShardedMoeLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerShardedMoeLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerShardedMoeLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Layer-norm, route, feed-forward, combine, residual.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – [batch, time, dim].</p></li>
+<li><p><strong>paddings</strong> – [batch, time]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tensor of the same shape with inputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">ReshapedTransformerFeedForwardLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#ReshapedTransformerFeedForwardLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.ReshapedTransformerFeedForwardLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer" title="lingvo.core.layers_with_attention.TransformerFeedForwardLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.TransformerFeedForwardLayer</span></code></a></p>
