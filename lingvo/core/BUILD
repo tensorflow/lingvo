@@ -1862,6 +1862,9 @@ py_library(
     deps = [
         ":attention",
         ":base_layer",
+        ":gshard_layers",
+        ":gshard_utils",
+        ":hyperparams",
         ":layers",
         ":py_utils",
         ":symbolic",

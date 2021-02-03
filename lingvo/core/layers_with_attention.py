@@ -18,7 +18,9 @@ import lingvo.compat as tf
 from lingvo.core import activations
 from lingvo.core import attention
 from lingvo.core import base_layer
+from lingvo.core import gshard_layers
 from lingvo.core import gshard_utils
+from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
@@ -589,6 +591,293 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       return h
 
 
+# TODO(yonghui): Move this to the right place.
+class AuxLossContext:
+  """Non-reentrant context that holds a list of aux-losses."""
+
+  _global_stack = []
+
+  @classmethod
+  def current(cls):
+    """Returns current context or None."""
+    if cls._global_stack:
+      return cls._global_stack[-1]
+    else:
+      return None
+
+  def __init__(self):
+    self.aux_loss_tensors = []
+
+  def add_loss(self, loss):
+    self.aux_loss_tensors.append(loss)
+
+  @property
+  def aux_losses(self):
+    return self.aux_loss_tensors
+
+  def __enter__(self):
+    assert not self._global_stack, 'no re-entry'
+    self._global_stack.append(self)
+    return self
+
+  def __exit__(self, *args):
+    self._global_stack.pop()
+
+
+class TransformerShardedMoeLayer(base_layer.BaseLayer):
+  """A sharded MOE layer.
+
+  This is a drop-in replacement of the transformer feedforward layer. It is a
+  composite of the following sub-layers.
+
+  ln_inputs = ln(inputs)
+  moe_output = moe(ln_inputs)
+  drop_output = dropout(moe_output)
+  output = inputs + drop_output
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('input_dim', 0, 'Dimension of the layer input.')
+    p.Define('output_dim', 0, 'Dimension of the layer output.')
+    p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
+    # NOTE(yonghui): layer-norm as used in gshard doesn't have bias and assume
+    # the mean is 0.0. See gshard_builder._LN for more details.
+    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define('activation', 'RELU', 'Non-linearity.')
+    p.Define(
+        'dropout_tpl', layers.DropoutLayer.Params(),
+        'Dropout params template. keep_prob will be reset to '
+        '(1.0 - residual_dropout_prob).')
+    p.Define(
+        'residual_dropout_prob', 0.0,
+        'Probability at which we apply dropout to the residual layers, '
+        'such that, residual(x, y) = (x + dropout(y)).')
+    p.Define(
+        'relu_dropout_prob', 0.0,
+        'Probability at which we apply dropout to the hidden layer '
+        'of feed-forward network.')
+    p.Define('num_experts', 0, 'Total number of experts in this layer.')
+    p.Define(
+        'num_groups', 0,
+        'Total number of groups for dispatching. num_groups typically'
+        ' should be the same as num devices.')
+    p.Define(
+        'expert_capacity_factor', 1.5,
+        'Expert capacity factor. This should be set to a value greater'
+        ' than or equal to 1.0. This is the ratio between max allowed'
+        ' examples per expert over the average number of examples per '
+        ' expert assuming routing is completely uniform.')
+
+    # SPMD partition related params.
+    # M - model_dim, for both inputs and outputs.
+    # E - experts dim
+    # G - groups dim
+    # C - experts capacity dim
+    # H - hidden dim
+    # S - sequence dim
+    p.weight_split_dims_mapping = hyperparams.Params()
+    wp = p.weight_split_dims_mapping
+    wp.Define(
+        'me', None, 'Sharding for the gating network weight, of shape'
+        ' [input_dim, num_experts].')
+    wp.Define(
+        'emh', None, 'Sharding of the first projection matrix that maps from '
+        ' input to hidden dim, of shape'
+        ' [num_experts, input_dim, hidden_dim].')
+    wp.Define(
+        'ehm', None, 'Sharding of the second projection matrix that maps from '
+        ' hidden to output dim, of shape'
+        ' [num_experts, hidden_dim, output_dim].')
+
+    p.activation_split_dims_mapping = hyperparams.Params()
+    ap = p.activation_split_dims_mapping
+    ap.Define('gsm', None, 'Sharding of the gsm tensors.')
+    ap.Define('gs', None, 'Sharding of the gs tensors.')
+    ap.Define('gsec', None, 'Sharding of the gsec tensors.')
+    ap.Define('egcm', None, 'Sharding of the egcm tensors.')
+    ap.Define('egch', None, 'Sharding of the egch tensors.')
+    ap.Define('gecm', None, 'Sharding of the gecm tensors.')
+    return p
+
+  @classmethod
+  def SetFPropDtype(cls, p, fprop_dtype):
+    p.fprop_dtype = fprop_dtype
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_dim
+    assert p.hidden_dim
+    assert p.output_dim
+    assert p.expert_capacity_factor >= 1.0
+    assert p.num_experts > 0
+    assert p.num_groups > 0
+
+    # First create the gating network.
+    wp = p.weight_split_dims_mapping
+    stddev = (1. / p.input_dim)**0.5
+    gate_scale = stddev * 3.**0.5
+    gate_pc = py_utils.WeightParams(
+        shape=[p.input_dim, p.num_experts],
+        init=py_utils.WeightInit.Uniform(gate_scale),
+        dtype=p.dtype,
+        device_mesh=p.device_mesh,
+        tensor_split_dims_mapping=wp.me)
+    self.CreateVariable('gate', gate_pc)
+
+    # Next create the expert network.
+    # Params initialization follows gshard_builder.py
+    emh_shape = [p.num_experts, p.input_dim, p.hidden_dim]
+    stddev = (1. / p.input_dim)**0.5
+    wi_init_scale = stddev * 3.**0.5
+    wi_pc = py_utils.WeightParams(
+        shape=emh_shape,
+        init=py_utils.WeightInit.Uniform(wi_init_scale),
+        dtype=p.dtype,
+        device_mesh=p.device_mesh,
+        tensor_split_dims_mapping=wp.emh)
+    self.CreateVariable('wi', wi_pc)
+
+    # EHM Tensor (output transformation after RELU)
+    ehm_shape = [p.num_experts, p.hidden_dim, p.output_dim]
+    stddev = (1. / p.hidden_dim)**0.5
+    wo_init_scale = stddev * 3.**0.5
+    wo_pc = py_utils.WeightParams(
+        shape=ehm_shape,
+        init=py_utils.WeightInit.Uniform(wo_init_scale),
+        dtype=p.dtype,
+        device_mesh=p.device_mesh,
+        tensor_split_dims_mapping=wp.ehm)
+    self.CreateVariable('wo', wo_pc)
+
+    # TODO(yonghui): Possibly also add bias variables.
+
+    # Initialize feed-forward layer norm
+    params = p.ln_tpl.Copy()
+    params.name = 'layer_norm'
+    params.input_dim = p.input_dim
+    self.CreateChild('layer_norm', params)
+
+    dropout_tpl = p.dropout_tpl.Copy()
+    dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
+    self.CreateChild('residual_dropout', dropout_tpl)
+
+    dropout_tpl = p.dropout_tpl.Copy()
+    dropout_tpl.keep_prob = (1.0 - p.relu_dropout_prob)
+    self.CreateChild('relu_dropout', dropout_tpl)
+
+  @property
+  def output_dim(self):
+    """Returns output dimension of the transformer layer."""
+    return self.output_dim
+
+  def FProp(self, theta, inputs, paddings):
+    """Layer-norm, route, feed-forward, combine, residual.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: [batch, time, dim].
+      paddings: [batch, time]
+
+    Returns:
+      tensor of the same shape with inputs
+    """
+    p = self.params
+    ap = p.activation_split_dims_mapping
+
+    with tf.name_scope(p.name):
+      inputs = self._CastToFPropDtype(inputs)
+      inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      inputs_normalized = py_utils.HasRank(inputs_normalized, 3)
+      assert inputs_normalized.shape.is_fully_defined()
+      bs, s_len, m_dim = py_utils.GetShape(inputs_normalized)
+      paddings = py_utils.HasShape(paddings, [bs, s_len])
+      num_groups = p.num_groups
+      assert num_groups
+      assert (bs * s_len) % num_groups == 0
+      g_len = (bs * s_len) // num_groups
+      reshaped_inputs = tf.reshape(inputs_normalized,
+                                   [num_groups, g_len, m_dim])
+      reshaped_paddings = tf.reshape(paddings, [num_groups, g_len])
+
+      def _split(t_in, sharding):
+        return gshard_utils.MeshSplit(t_in, p.device_mesh, sharding)
+
+      # Sharding annotation.
+      reshaped_inputs = _split(reshaped_inputs, ap.gsm)
+      reshaped_paddings = _split(reshaped_paddings, ap.gs)
+
+      # Here and below, we assume num devices equals num groups.
+      # TODO(yonghui): Expose some of the options below through params.
+      # NOTE(yonghui): The following code might break during beam search decode
+      # due to much smaller group size.
+      gating_output = gshard_layers.Top2Gating(
+          theta.gate,
+          inputs=reshaped_inputs,
+          paddings=reshaped_paddings,
+          num_devices=p.num_groups,
+          experts_dim=p.num_experts,
+          expert_capacity_dim=0,  # automatically decided.
+          local_dispatch=True,
+          fprop_dtype=py_utils.FPropDtype(p),
+          use_xla_sharding=False,
+          second_expert_policy='all',
+          second_expert_threshold=0.0,
+          # legacy_mtf_behavior=True doesn't normalize gates when one expert is
+          # being dropped. This is more appropriate for routing decisions like
+          # 'random'.
+          legacy_mtf_behavior=True,
+          # x 2.0 because we choose top-2 experts per example.
+          capacity_factor=2.0 * p.expert_capacity_factor)
+
+      # of shape [g, s, e, c]
+      combine_tensor = _split(gating_output.combine_tensor, ap.gsec)
+      # of shape [g, s, e, c]
+      dispatch_tensor = _split(gating_output.dispatch_tensor, ap.gsec)
+      # a scalar.
+      aux_loss = gating_output.aux_loss
+
+      expert_inputs = _split(
+          tf.einsum('gsec,gsm->egcm', dispatch_tensor, reshaped_inputs),
+          ap.egcm)
+      hidden = _split(
+          tf.einsum('egcm,emh->egch', expert_inputs, theta.wi), ap.egch)
+      # Activation function.
+      hidden = activations.GetFn(p.activation)(hidden)
+      # Dropout.
+      hidden = self.relu_dropout.FProp(theta.relu_dropout, hidden)
+      # Output
+      expert_output = _split(
+          tf.einsum('egch,ehm->egcm', hidden, theta.wo), ap.egcm)
+      # Now transpose and reshard.
+      transposed_expert_output = _split(
+          tf.einsum('egcm->gecm', expert_output), ap.gecm)
+      combined_output = _split(
+          tf.einsum('gecm,gsec->gsm', transposed_expert_output, combine_tensor),
+          ap.gsm)
+
+      combined_output = tf.reshape(combined_output, [bs, s_len, p.output_dim])
+      # Apply padding.
+      combined_output *= (1.0 - tf.expand_dims(paddings, -1))
+      # Residual dropout.
+      after_residual = self.residual_dropout.FProp(theta.residual_dropout,
+                                                   combined_output)
+      out = inputs + after_residual
+
+      # Add loss to a global collection. We don't return the loss to the caller
+      # to avoid the change of the api here.
+      aux_loss_ctx = AuxLossContext.current()
+      if aux_loss_ctx is not None:
+        aux_loss_ctx.add_loss(aux_loss)
+
+      return out
+
+
 # TODO(shibow/wangtao) remove this after b/174094694 is done.
 class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
   """TransformerFeedForward with model dim D reshaped as Md."""
@@ -1090,8 +1379,8 @@ class EvolvedTransformerDecoderBranchedConvsLayer(base_layer.BaseLayer):
     left_branch = self.dropout.FProp(theta.dropout, left_branch)
 
     right_branch = self.separable_conv_7x1_layer.FProp(
-        theta.separable_conv_7x1_layer, tf.expand_dims(
-            inputs_normalized, axis=2), paddings)[0]
+        theta.separable_conv_7x1_layer,
+        tf.expand_dims(inputs_normalized, axis=2), paddings)[0]
     right_branch = self.dropout.FProp(theta.dropout, right_branch)
     right_branch = tf.pad(
         right_branch,
@@ -1192,8 +1481,9 @@ class EvolvedTransformerEncoderLayer(EvolvedTransformerBaseLayer):
 
     hidden_state = tf.transpose(hidden_state, [1, 0, 2])
     source_paddings = tf.transpose(source_paddings, [1, 0])
-    hidden_state = self.branched_convs_layer.FProp(
-        theta.branched_convs_layer, hidden_state, source_paddings)
+    hidden_state = self.branched_convs_layer.FProp(theta.branched_convs_layer,
+                                                   hidden_state,
+                                                   source_paddings)
     hidden_state = tf.transpose(hidden_state, [1, 0, 2])
     source_paddings = tf.transpose(source_paddings, [1, 0])
 
@@ -1298,9 +1588,11 @@ class EvolvedTransformerDecoderLayer(EvolvedTransformerBaseLayer):
 
     if p.has_aux_atten:
       with tf.name_scope('attend_to_encoder'):
-        right_branch, _ = self.attend_to_encoder.FProp(
-            theta.attend_to_encoder, source_vecs, aux_paddings, aux_vecs,
-            source_segment_id, aux_segment_id)
+        right_branch, _ = self.attend_to_encoder.FProp(theta.attend_to_encoder,
+                                                       source_vecs,
+                                                       aux_paddings, aux_vecs,
+                                                       source_segment_id,
+                                                       aux_segment_id)
 
       hidden_state = left_branch + right_branch + source_vecs
     else:
@@ -1370,8 +1662,9 @@ class EvolvedTransformerDecoderLayer(EvolvedTransformerBaseLayer):
 
     # Next the source attention layer.
     if p.has_aux_atten:
-      hidden_state += self.attend_to_encoder.FProp(
-          theta.attend_to_encoder, inputs, aux_paddings, aux_vecs)[0]
+      hidden_state += self.attend_to_encoder.FProp(theta.attend_to_encoder,
+                                                   inputs, aux_paddings,
+                                                   aux_vecs)[0]
 
     branched_convs_input = prefix_states.branched_convs_input
     branched_convs_input = tf.concat([branched_convs_input, hidden_state],
