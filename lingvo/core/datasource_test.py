@@ -529,5 +529,34 @@ class TFDatasetSourceTest(test_utils.TestCase):
         self.evaluate(batch)
 
 
+class TFDSMnistInputGenerator(base_input_generator.BaseInputGenerator):
+
+  def LoadTFDSDataset(self, info, features_dict):
+    example = py_utils.NestedMap.FromNestedDict(features_dict)
+    example.num_classes = info.features['label'].num_classes
+    return example
+
+
+class TFDSInputTest(test_utils.TestCase):
+
+  def testTFDSInput(self):
+    ds_params = datasource.TFDSInput.Params().Set(
+        dataset='mnist',
+        split='train[:10]',
+        load_fn='LoadTFDSDataset',
+        require_sequential_order=True)
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TFDSMnistInputGenerator.Params().Instantiate())
+    with self.session():
+      batch = ds.GetNext()
+      for _ in range(10):
+        res = self.evaluate(batch)
+        self.assertAllEqual((28, 28, 1), res.image.shape)
+        self.assertLess(res.label, 10)
+        self.assertEqual(res.num_classes, 10)
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        self.evaluate(batch)
+
+
 if __name__ == '__main__':
   tf.test.main()

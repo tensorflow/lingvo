@@ -32,7 +32,7 @@ RUN for python in python3.6 python3.7 python3.8; do \
         numpy>=1.16.0 \
         sympy \
         twine && \
-      $python -m pip install tensorflow-gpu \
+      $python -m pip install tensorflow-gpu tensorflow-datasets \
       ; \
     done
 

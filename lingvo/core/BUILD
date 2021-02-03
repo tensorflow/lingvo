@@ -599,8 +599,10 @@ py_library(
     deps = [
         ":base_layer",
         ":batch_utils",
+        ":cluster",
         ":py_utils",
         "//lingvo:compat",
+        # Implicit tensorflow_datasets dependency.
     ],
 )
 

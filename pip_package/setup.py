@@ -41,6 +41,7 @@ REQUIRED_PACKAGES = [
     'protobuf>=3.8,<4',
     'sklearn',
     'sympy',
+    'tensorflow-datasets'
     'tensorflow-gpu==' + tf.__version__,
     'waymo-open-dataset-tf-2-3-0',
 ]

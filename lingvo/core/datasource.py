@@ -34,6 +34,8 @@ from lingvo.core import batch_utils
 from lingvo.core import cluster
 from lingvo.core import py_utils
 
+import tensorflow_datasets as tfds
+
 
 class DataSource(base_layer.BaseLayer):
   """A base class for data sources."""
@@ -473,6 +475,52 @@ class TFDatasetFnInput(TFDatasetSource):
       dataset = fn(p.args)
 
     require_sequential_order = p.require_sequential_order or self.do_eval
+    if not require_sequential_order:
+      dataset = dataset.shuffle(p.shuffle_buffer_size)
+      dataset = dataset.repeat()
+    return dataset
+
+
+class TFDSInput(TFDatasetSource):
+  """Load tfds datasets."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('dataset', None, 'The tfds dataset to load.')
+    p.Define(
+        'split', None,
+        'The split to load. See https://www.tensorflow.org/datasets/splits.')
+    p.Define(
+        'load_fn', 'LoadTFDSDataset',
+        'An input_generator method name to call to load data. It must accept '
+        '(info, features_dict) and return a NestedMap.')
+    p.Define('shuffle_buffer_size', 10000,
+             'Number of records buffered for random shuffling.')
+    p.Define(
+        'require_sequential_order', False,
+        'Whether elements need to be produced in sequential order. '
+        'Disables randomization.')
+    return p
+
+  def GetDataset(self):
+    p = self.params
+    if not p.dataset or not p.split:
+      raise ValueError('A dataset and split must be specified.')
+
+    require_sequential_order = p.require_sequential_order or self.do_eval
+    dataset, info = tfds.load(
+        p.dataset,
+        split=p.split,
+        download=True,  # download dataset locally.
+        shuffle_files=not require_sequential_order,
+        with_info=True)
+
+    dataset = dataset.map(
+        functools.partial(getattr(self._input_generator, p.load_fn), info),
+        num_parallel_calls=tf.data.experimental.AUTOTUNE,
+        deterministic=require_sequential_order)
+
     if not require_sequential_order:
       dataset = dataset.shuffle(p.shuffle_buffer_size)
       dataset = dataset.repeat()
