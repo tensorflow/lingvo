@@ -147,6 +147,8 @@ class MoEBuilder(builder.Base):
         'attention_combine_dims', False, 'Attention optimization. '
         'The heads and key/value dimensions are combined in the variables '
         'and the computation.')
+    p.Define('attention_combine_qkv', True, 'Attention optimization. '
+             'Combine qkv matmul.')
 
     p.Define('ff_dim', None, 'DenseReluDense hidden dim.')
 
@@ -1303,8 +1305,9 @@ class MoEBuilder(builder.Base):
       wv = _GetW(wv, p.attention_num_memory_heads or p.attention_num_heads)
       wc = [wq, wk, wv]
 
-      if (p.attention_num_memory_heads and
-          p.attention_num_heads != p.attention_num_memory_heads):
+      if ((p.attention_num_memory_heads and
+           p.attention_num_heads != p.attention_num_memory_heads) or
+          not p.attention_combine_qkv):
         # Combined tf.einsum is not possible, falling back to individual
         # einsum ops.
         return [tf.einsum('BLM,MHD->BLHD', x, w) for w in wc]
@@ -1953,8 +1956,9 @@ class DenseBuilder(MoEBuilder):
       wv = _GetW(wv, p.attention_num_memory_heads or p.attention_num_heads)
       wc = [wq, wk, wv]
 
-      if (p.attention_num_memory_heads and
-          p.attention_num_heads != p.attention_num_memory_heads):
+      if ((p.attention_num_memory_heads and
+           p.attention_num_heads != p.attention_num_memory_heads) or
+          not p.attention_combine_qkv):
         # Combined tf.einsum is not possible, falling back to individual
         # einsum ops.
         return [self._EinsumWithModelDim('BLM,MHD->BLHD', x, w) for w in wc]
