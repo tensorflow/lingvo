@@ -524,17 +524,11 @@
             <span class="n">program_schedule</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
           <span class="k">return</span>
 
-        <span class="c1"># global_step local variable above is a result of sess.run, not a</span>
-        <span class="c1"># tf variable, so when we do save_only_checkpointer.Save(...) here</span>
-        <span class="c1"># py_utils.GetGlobalStep() is ahead of it by</span>
-        <span class="c1">#   (train_executions_per_eval * train_steps_per_loop)</span>
-        <span class="c1"># steps ahead already, due to program_schedule.Run(sess).</span>
-        <span class="c1">#</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
           <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
         <span class="c1"># If a task is explicitly selected, only run the programs associated</span>
         <span class="c1"># with that task.</span>
