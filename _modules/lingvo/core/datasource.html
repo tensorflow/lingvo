@@ -248,7 +248,7 @@
         <span class="s1">&#39;If a list is provided elements may not contain commas.&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param</span>
     <span class="c1"># and clean up existing usages.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_type&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;A string or list of file types, eg. `tfrecord`.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_type&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;A string file types, eg. `tfrecord`.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;A list of weights for each file pattern for within-batch mixing. If &#39;</span>
@@ -277,8 +277,6 @@
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
       <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -299,19 +297,19 @@
 <span class="sd">      An input batch.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
+    <span class="n">file_patterns</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">:</span>
-      <span class="n">file_patterns</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span> <span class="n">file_patterns</span><span class="p">)]</span>
+      <span class="n">file_patterns</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">file_patterns</span><span class="si">}</span><span class="s1">&#39;</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
       <span class="c1"># Within-batch mixing.</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
-          <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span>
+          <span class="n">file_patterns</span><span class="p">,</span>
           <span class="n">input_source_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Default.</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
-          <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">))</span>
+          <span class="n">file_patterns</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">batch</span></div>
 
@@ -465,8 +463,6 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
       <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">file_type</span><span class="p">:</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">file_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">params</span><span class="o">.</span><span class="n">file_type</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="n">prefixed</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
       <span class="n">patterns</span> <span class="o">=</span> <span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
