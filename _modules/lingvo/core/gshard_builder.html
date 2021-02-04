@@ -299,6 +299,8 @@
         <span class="s1">&#39;attention_combine_dims&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Attention optimization. &#39;</span>
         <span class="s1">&#39;The heads and key/value dimensions are combined in the variables &#39;</span>
         <span class="s1">&#39;and the computation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_combine_qkv&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Attention optimization. &#39;</span>
+             <span class="s1">&#39;Combine qkv matmul.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;DenseReluDense hidden dim.&#39;</span><span class="p">)</span>
 
@@ -1455,8 +1457,9 @@
       <span class="n">wv</span> <span class="o">=</span> <span class="n">_GetW</span><span class="p">(</span><span class="n">wv</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">)</span>
       <span class="n">wc</span> <span class="o">=</span> <span class="p">[</span><span class="n">wq</span><span class="p">,</span> <span class="n">wk</span><span class="p">,</span> <span class="n">wv</span><span class="p">]</span>
 
-      <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">and</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span><span class="p">):</span>
+      <span class="k">if</span> <span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">and</span>
+           <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span><span class="p">)</span> <span class="ow">or</span>
+          <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_qkv</span><span class="p">):</span>
         <span class="c1"># Combined tf.einsum is not possible, falling back to individual</span>
         <span class="c1"># einsum ops.</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLM,MHD-&gt;BLHD&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wc</span><span class="p">]</span>
@@ -2105,8 +2108,9 @@
       <span class="n">wv</span> <span class="o">=</span> <span class="n">_GetW</span><span class="p">(</span><span class="n">wv</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">)</span>
       <span class="n">wc</span> <span class="o">=</span> <span class="p">[</span><span class="n">wq</span><span class="p">,</span> <span class="n">wk</span><span class="p">,</span> <span class="n">wv</span><span class="p">]</span>
 
-      <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">and</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span><span class="p">):</span>
+      <span class="k">if</span> <span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">and</span>
+           <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span><span class="p">)</span> <span class="ow">or</span>
+          <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_qkv</span><span class="p">):</span>
         <span class="c1"># Combined tf.einsum is not possible, falling back to individual</span>
         <span class="c1"># einsum ops.</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;BLM,MHD-&gt;BLHD&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wc</span><span class="p">]</span>
