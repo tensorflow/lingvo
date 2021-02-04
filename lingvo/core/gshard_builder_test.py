@@ -455,7 +455,7 @@ class UniTransformerTest(test_utils.TestCase):
         name='transformer',
         parallel_ffn=True,
         hidden_dim_reshape_segments=2,
-        ln_kernel_size=2,
+        conv_kernel_size=2,
         builder=gshard_builder.DenseBuilder.Params().Set(
             device_mesh_shape=[1, 1],
             device_mesh=None,
@@ -490,7 +490,7 @@ class UniTransformerTest(test_utils.TestCase):
       loss = model.FPropDefaultTheta(input_batch)[0]['loss'][0]
       sess.run(tf.global_variables_initializer())
       loss_eval = sess.run(loss)
-      test_utils.CompareToGoldenSingleFloat(self, 5.984817, loss_eval)
+      test_utils.CompareToGoldenSingleFloat(self, 5.968699, loss_eval)
 
 
 if __name__ == '__main__':
