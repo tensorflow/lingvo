@@ -2359,7 +2359,8 @@ class UniTransformer(base_model.BaseTask):
 
   def _ComputeNonPadding(self, input_batch):
     if 'paddings' in input_batch.tgt:
-      return 1.0 - input_batch.tgt.paddings
+      return tf.cast(1.0 - input_batch.tgt.paddings,
+                     py_utils.FPropDtype(self.params))
 
     non_padding = tf.cast(
         tf.not_equal(input_batch.tgt.segment_ids, 0),
@@ -2455,9 +2456,11 @@ class UniTransformer(base_model.BaseTask):
           tf.reduce_sum(non_padding))
       avg_loss += p.aux_loss_coef * aux_loss
 
-      non_padding_nor_eos = tf.where(
-          tf.equal(input_batch.tgt.labels, 1),
-          tf.zeros_like(non_padding, dtype=non_padding.dtype), non_padding)
+      num_items_in_batch = tf.reduce_sum(
+          tf.reduce_max(input_batch.tgt.segment_ids, axis=1))
+      num_nonpadding = tf.reduce_sum(
+          _ToInt32(tf.not_equal(input_batch.tgt.segment_ids, 0)))
+      batch_capacity = tf.size(input_batch.tgt.labels)
 
       whole_tgt_correct = tf.cast(
           tf.equal(
@@ -2471,12 +2474,11 @@ class UniTransformer(base_model.BaseTask):
       }
 
       eval_metrics = {
+          'num_packed_examples': (num_items_in_batch, 1.0),
+          'batch_utilized_ratio': (num_nonpadding / batch_capacity, 1.0),
           'acc1':
               (tf.reduce_sum(acc1 * non_padding) / tf.reduce_sum(non_padding),
                tf.reduce_sum(non_padding)),
-          'acc1_excluding_eos': (tf.reduce_sum(acc1 * non_padding_nor_eos) /
-                                 tf.reduce_sum(non_padding_nor_eos),
-                                 tf.reduce_sum(non_padding_nor_eos)),
           'whole_tgt_accuracy':
               (tf.reduce_sum(whole_tgt_correct) /
                tf.cast(whole_tgt_correct.shape[0], whole_tgt_correct.dtype), 1.0
