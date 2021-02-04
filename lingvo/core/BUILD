@@ -615,9 +615,11 @@ py_test(
     deps = [
         ":base_input_generator",
         ":datasource",
+        ":generic_input",
         ":py_utils",
         ":test_utils",
         "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 

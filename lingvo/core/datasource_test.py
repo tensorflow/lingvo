@@ -22,6 +22,7 @@ import random
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import datasource
+from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
@@ -86,7 +87,42 @@ class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
     return dataset.map(AddSequenceLength, deterministic=True)
 
 
+class TestFileInputGenerator(base_input_generator.BaseInputGeneratorFromFiles):
+
+  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+    """Read and return input batch from a string file_pattern."""
+    del input_source_weights  # Unused.
+
+    def Process(source_id, record):
+      del source_id  # Unused.
+      [num] = tf.py_func(int, [record], [tf.int64])
+      return py_utils.NestedMap(data=num), 1
+
+    # Samples random records from the data files and processes them
+    # to generate batches.
+    inputs, _ = generic_input.GenericInput(
+        processor=Process,
+        file_pattern=file_pattern,
+        file_random_seed=123,
+        file_buffer_size=1,
+        file_parallelism=1,
+        bucket_batch_limit=[1],
+        bucket_upper_bound=[1])
+    return inputs
+
+
 class DatasourceTest(test_utils.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    # Generate a test file w/ 1 number.
+    cls.inputs = []
+    for i in range(2):
+      tmp = os.path.join(tf.test.get_temp_dir(), f'inputs.{i}')
+      with tf.python_io.TFRecordWriter(tmp) as w:
+        w.write(('%08d' % i).encode('utf-8'))
+      cls.inputs.append(tmp)
 
   def testSimpleDataSourceSucceedsWithStringInput(self):
     ds_params = datasource.SimpleDataSource.Params().Set(
@@ -112,7 +148,7 @@ class DatasourceTest(test_utils.TestCase):
       ret = ds.GetMeta()
       ret.data = self.evaluate(batch.data)
 
-    self.assertEqual(ret.data, b'tfrecord:pattern1,tfrecord:pattern2')
+    self.assertEqual(ret.data, b'tfrecord:pattern1,pattern2')
 
   def testSimpleDataSourceSucceedsWithListInput(self):
     files = ['file1', 'file2']
@@ -152,6 +188,56 @@ class DatasourceTest(test_utils.TestCase):
 
     with self.assertRaises(ValueError):
       ds_params.Instantiate()
+
+  def testSimpleDataSourceFileInputSucceedsWithStringInput(self):
+    ds_params = datasource.SimpleDataSource.Params().Set(
+        file_pattern='tfrecord:' + ','.join(self.inputs))
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestFileInputGenerator.Params().Instantiate())
+    with self.session():
+      batch = ds.GetNext()
+      data = []
+      for _ in range(2):
+        data.append(self.evaluate(batch.data).tolist()[0])
+      self.assertCountEqual(data, [0, 1])
+
+  def testSimpleDataSourceFileInputSucceedsWithFileType(self):
+    ds_params = datasource.SimpleDataSource.Params().Set(
+        file_pattern=','.join(self.inputs), file_type='tfrecord')
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestFileInputGenerator.Params().Instantiate())
+    with self.session():
+      batch = ds.GetNext()
+      data = []
+      for _ in range(2):
+        data.append(self.evaluate(batch.data).tolist()[0])
+      self.assertCountEqual(data, [0, 1])
+
+  def testSimpleDataSourceFileInputSucceedsWithListInput(self):
+    ds_params = datasource.SimpleDataSource.Params().Set(
+        file_pattern=self.inputs, file_type='tfrecord')
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestFileInputGenerator.Params().Instantiate())
+    with tf.Session():
+      batch = ds.GetNext()
+      data = []
+      for _ in range(2):
+        data.append(self.evaluate(batch.data).tolist()[0])
+      self.assertCountEqual(data, [0, 1])
+
+  def testSimpleDataSourceFileInputSucceedsWithListFilesAndWeights(self):
+    weights = [1, 4]
+    ds_params = datasource.SimpleDataSource.Params().Set(
+        file_pattern=self.inputs, file_type='tfrecord', weights=weights)
+    ds = ds_params.Instantiate()
+
+    ds.SetInputGenerator(TestFileInputGenerator.Params().Instantiate())
+    with self.session():
+      batch = ds.GetNext()
+      data = []
+      for _ in range(2):
+        data.append(self.evaluate(batch.data).tolist()[0])
+      self.assertCountEqual(data, [0, 1])
 
   def testCrossBatchMixingDataSourceSucceedsWithListFilesAndWeights(self):
     files = ['path_to_file', 'path_to_file']

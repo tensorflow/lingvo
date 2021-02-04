@@ -108,6 +108,9 @@ Status MatchParallelFilePattern(const string& parallel_file_pattern,
     std::vector<string> filenames_per_pattern;
     TF_RETURN_IF_ERROR(Env::Default()->GetMatchingPaths(
         expanded_file_pattern, &filenames_per_pattern));
+    if (filenames_per_pattern.empty()) {
+      LOG(FATAL) << "Found no files at " << expanded_file_pattern;
+    }
     if (parallel_filenames.empty()) {
       parallel_filenames.swap(filenames_per_pattern);
       continue;

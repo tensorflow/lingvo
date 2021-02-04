@@ -96,7 +96,7 @@ class SimpleDataSource(DataSource):
         'If a list is provided elements may not contain commas.')
     # TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param
     # and clean up existing usages.
-    p.Define('file_type', '', 'A string or list of file types, eg. `tfrecord`.')
+    p.Define('file_type', '', 'A string file types, eg. `tfrecord`.')
     p.Define(
         'weights', None,
         'A list of weights for each file pattern for within-batch mixing. If '
@@ -125,8 +125,6 @@ class SimpleDataSource(DataSource):
 
     if isinstance(p.file_pattern, str):
       p.file_pattern = p.file_pattern.split(',')
-      if p.file_type:
-        p.file_type = [p.file_type] * len(p.file_pattern)
     else:
       if not all(isinstance(x, str) for x in p.file_pattern):
         raise ValueError(
@@ -147,19 +145,19 @@ class SimpleDataSource(DataSource):
       An input batch.
     """
     p = self.params
-    file_patterns = p.file_pattern
+    file_patterns = ','.join(p.file_pattern)
     if p.file_type:
-      file_patterns = [f'{t}:{p}' for t, p in zip(p.file_type, file_patterns)]
+      file_patterns = f'{p.file_type}:{file_patterns}'
 
     if p.weights:
       # Within-batch mixing.
       batch = self._input_generator._DataSourceFromFilePattern(  # pylint: disable=protected-access
-          ','.join(file_patterns),
+          file_patterns,
           input_source_weights=p.weights)
     else:
       # Default.
       batch = self._input_generator._DataSourceFromFilePattern(  # pylint: disable=protected-access
-          ','.join(file_patterns))
+          file_patterns)
 
     return batch
 
@@ -313,8 +311,6 @@ class PrefixedDataSource(SimpleDataSource):
   def __init__(self, params):
     if isinstance(params.file_pattern, str):
       params.file_pattern = params.file_pattern.split(',')
-      if params.file_type:
-        params.file_type = [params.file_type] * len(params.file_pattern)
     prefixed = []
     for file_pattern in params.file_pattern:
       patterns = file_pattern.split(',')
