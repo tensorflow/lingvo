@@ -4568,6 +4568,9 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim):
     if inputs.shape.rank == 2:
       outputs = tf.matmul(inputs, weight)
     else:
+      # This is equivalent to:
+      #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
+      # Unfortunately ... in einsum() leads to extra HBM usage.
       s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
       r = inputs.shape.rank
       outputs = tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
