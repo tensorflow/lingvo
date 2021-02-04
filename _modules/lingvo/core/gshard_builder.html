@@ -2511,7 +2511,8 @@
 
 <div class="viewcode-block" id="UniTransformer._ComputeNonPadding"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeNonPadding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="k">if</span> <span class="s1">&#39;paddings&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">:</span>
-      <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span>
+                     <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
 
     <span class="n">non_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
@@ -2607,9 +2608,11 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">))</span>
       <span class="n">avg_loss</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">aux_loss_coef</span> <span class="o">*</span> <span class="n">aux_loss</span>
 
-      <span class="n">non_padding_nor_eos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">non_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">non_padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">non_padding</span><span class="p">)</span>
+      <span class="n">num_items_in_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+      <span class="n">num_nonpadding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+          <span class="n">_ToInt32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+      <span class="n">batch_capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span>
 
       <span class="n">whole_tgt_correct</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
@@ -2623,12 +2626,11 @@
       <span class="p">}</span>
 
       <span class="n">eval_metrics</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="s1">&#39;num_packed_examples&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_items_in_batch</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+          <span class="s1">&#39;batch_utilized_ratio&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_nonpadding</span> <span class="o">/</span> <span class="n">batch_capacity</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
           <span class="s1">&#39;acc1&#39;</span><span class="p">:</span>
               <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">acc1</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span>
                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
-          <span class="s1">&#39;acc1_excluding_eos&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">acc1</span> <span class="o">*</span> <span class="n">non_padding_nor_eos</span><span class="p">)</span> <span class="o">/</span>
-                                 <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding_nor_eos</span><span class="p">),</span>
-                                 <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding_nor_eos</span><span class="p">)),</span>
           <span class="s1">&#39;whole_tgt_accuracy&#39;</span><span class="p">:</span>
               <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">whole_tgt_correct</span><span class="p">)</span> <span class="o">/</span>
                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">whole_tgt_correct</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">whole_tgt_correct</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="mf">1.0</span>
