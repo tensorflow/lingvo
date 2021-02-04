@@ -372,17 +372,11 @@ class ExecutorTpu(base_runner.BaseRunner):
             program_schedule.Shutdown()
           return
 
-        # global_step local variable above is a result of sess.run, not a
-        # tf variable, so when we do save_only_checkpointer.Save(...) here
-        # py_utils.GetGlobalStep() is ahead of it by
-        #   (train_executions_per_eval * train_steps_per_loop)
-        # steps ahead already, due to program_schedule.Run(sess).
-        #
         if not self._ml_perf_log:
           tf.logging.info('Retrieve params.')
           sess.run(self._retrieve_ops)
           tf.logging.info('Retrieve params done.')
-          self.save_only_checkpointer.MaybeSave(sess, py_utils.GetGlobalStep())
+          self.save_only_checkpointer.MaybeSave(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
