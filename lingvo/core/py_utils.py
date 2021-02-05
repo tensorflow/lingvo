@@ -2223,8 +2223,11 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules):
     for regexp, name_format in variable_loading_rules:
       match = re.match(regexp, model_var.name)
       # Skip if var doesn't match the loading rules, or if it should be ignored.
-      if not match or any(
-          re.match(r, model_var.name) for r in var_ignore_rules):
+      if not match:
+        tf.logging.info('Loading rules do not match %s.', model_var)
+        continue
+      elif any(re.match(r, model_var.name) for r in var_ignore_rules):
+        tf.logging.info('Ignoring %s from loading.', model_var)
         continue
       checkpoint_var_name = name_format % match.groups()
       if checkpoint_var_name.endswith(':0'):
