@@ -363,15 +363,17 @@ PostProcessDecodeOut().</p>
 
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough">
-<code class="sig-name descname">DequeueCpuPassthrough</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.DequeueCpuPassthrough"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">DequeueCpuPassthrough</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">concat</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.DequeueCpuPassthrough"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create CPU dequeue ops.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>A NestedMap of the CPU passthrough input batch, or None if there are no</dt><dd><p>cpu passthrough values.</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>concat</strong> – Whether to concat the passthrough batches for each host into one
+batch.</p>
 </dd>
-</dl>
-</p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if there are no CPU passthrough values. Otherwise, a NestedMap of the
+CPU passthrough input batch if <code class="xref py py-obj docutils literal notranslate"><span class="pre">concat</span></code>, or a list of NestedMaps (one for
+each host) if not <code class="xref py py-obj docutils literal notranslate"><span class="pre">concat</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>

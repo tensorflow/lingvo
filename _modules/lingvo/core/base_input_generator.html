@@ -417,6 +417,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_emb_batches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># A list of lists, where the [i][j] element is the j-th passthrought batch</span>
+    <span class="c1"># of the i-th task. Each task will have more than one passthrought batch iff</span>
+    <span class="c1"># sharded infeed is used.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_passthrough_batches</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
@@ -457,12 +460,18 @@
           <span class="sa">f</span><span class="s1">&#39;does not match available devices </span><span class="si">{</span><span class="n">host_devices</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
       <span class="n">host_device</span> <span class="o">=</span> <span class="n">host_devices</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">cpu_passthrough_keys</span> <span class="ow">and</span> <span class="p">(</span>
+          <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">host_device</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;CPU passthrough configuration mismatch, device </span><span class="si">{</span><span class="n">host_device</span><span class="si">}</span><span class="s1"> &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;does not match task id </span><span class="si">{</span><span class="n">task_id</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">),</span> <span class="n">cluster</span><span class="o">.</span><span class="n">InfeedContextScope</span><span class="p">(</span>
           <span class="n">infeed_host_index</span><span class="o">=</span><span class="n">task_id</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="o">=</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
         <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
           <span class="n">batch</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch</span><span class="p">]</span>
 
+        <span class="n">cur_passthrough_batches</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)):</span>
           <span class="n">b</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
           <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span>
@@ -472,7 +481,7 @@
           <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;bucket_keys&#39;</span><span class="p">))</span>
 
           <span class="c1"># Split out any keys that are meant for CPU passthrough only.</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_passthrough_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">cur_passthrough_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
               <span class="n">b</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cpu_passthrough_keys</span><span class="p">))</span>
           <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cpu_passthrough_keys</span><span class="p">)</span>
           <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span>
@@ -480,6 +489,7 @@
             <span class="c1"># If the input batch is already sharded, check that the shards are</span>
             <span class="c1"># compatible with each other.</span>
             <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_passthrough_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_passthrough_batches</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU passthrough keys: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cpu_passthrough_keys</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_sparse_tensors</span><span class="p">:</span>
@@ -575,6 +585,9 @@
               <span class="k">return</span> <span class="n">shard_index_in_host</span>
 
           <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># In this case, the `shard_index_in_host` argument of</span>
+            <span class="c1"># `TPUOrdinalFunction` is the index of a sharded batch in the</span>
+            <span class="c1"># `batch` list.</span>
             <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
                 <span class="n">placement_function</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">host_device</span><span class="p">,</span>  <span class="c1"># pylint: disable=cell-var-from-loop</span>
@@ -738,27 +751,33 @@
     <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
       <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_passthrough_batches</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_nm_types</span> <span class="o">=</span> <span class="n">batch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_nm_types</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">batch</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device CPU passthrough types: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
                         <span class="n">host_device</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
-        <span class="n">cpu_dtypes</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+        <span class="n">cpu_dtypes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">batch</span><span class="p">))</span>
         <span class="c1"># NOTE: we use a large capacity queue under the assumption that the size</span>
         <span class="c1"># of these tensors will be generally smaller than that sent to the TPU,</span>
         <span class="c1"># and that the TPU queue will likely fill up before the host queue,</span>
         <span class="c1"># blocking further enqueues.</span>
         <span class="n">host_queue</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">FIFOQueue</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">dtypes</span><span class="o">=</span><span class="n">cpu_dtypes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_host_queues</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">host_queue</span>
-        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="p">[</span><span class="n">host_queue</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())]</span>
+        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="p">[</span><span class="n">host_queue</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">batch</span><span class="p">))]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">enqueue_ops</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.DequeueCpuPassthrough"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough">[docs]</a>  <span class="k">def</span> <span class="nf">DequeueCpuPassthrough</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGenerator.DequeueCpuPassthrough"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough">[docs]</a>  <span class="k">def</span> <span class="nf">DequeueCpuPassthrough</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">concat</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create CPU dequeue ops.</span>
 
+<span class="sd">    Args:</span>
+<span class="sd">      concat: Whether to concat the passthrough batches for each host into one</span>
+<span class="sd">        batch.</span>
+
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap of the CPU passthrough input batch, or None if there are no</span>
-<span class="sd">        cpu passthrough values.</span>
+<span class="sd">      None if there are no CPU passthrough values. Otherwise, a NestedMap of the</span>
+<span class="sd">      CPU passthrough input batch if `concat`, or a list of NestedMaps (one for</span>
+<span class="sd">      each host) if not `concat`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cpu_passthrough_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">cpu_passthrough_keys</span><span class="p">:</span>
@@ -767,26 +786,24 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
     <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
-    <span class="n">tensor_list</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">tensor_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
-      <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)):</span>
         <span class="n">tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_host_queues</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span><span class="o">.</span><span class="n">dequeue</span><span class="p">()</span>
-        <span class="c1"># Make list if only one host.</span>
+        <span class="c1"># Make list if only one tensor.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
           <span class="n">tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">tensors</span><span class="p">]</span>
-        <span class="n">num_saved_tensors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">tensor_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">tensor_list</span> <span class="o">=</span> <span class="p">[[]]</span> <span class="o">*</span> <span class="n">num_saved_tensors</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_saved_tensors</span><span class="p">):</span>
-          <span class="n">tensor_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tensors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">tensor_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/task:0/device:CPU:0&#39;</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">)):</span>
-        <span class="n">tensor_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># TODO(laigd): consider moving the concat logic out to make the API simpler.</span>
+    <span class="k">if</span> <span class="n">concat</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/task:0/device:CPU:0&#39;</span><span class="p">):</span>
+        <span class="c1"># Transpose to get per-dequeue-element tuples, then concat.</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">xs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">tensor_list</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpu_nm_types</span><span class="o">.</span><span class="n">Pack</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 
-    <span class="n">packed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_nm_types</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">packed</span></div>
+    <span class="c1"># Return a list of batches, one per host.</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cpu_nm_types</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="k">for</span> <span class="n">xs</span> <span class="ow">in</span> <span class="n">tensor_list</span><span class="p">]</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tpu_infeed_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
