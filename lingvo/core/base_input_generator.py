@@ -265,6 +265,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     self._tpu_queues = []
     self._per_host_batches = []
     self._per_host_emb_batches = []
+    # A list of lists, where the [i][j] element is the j-th passthrought batch
+    # of the i-th task. Each task will have more than one passthrought batch iff
+    # sharded infeed is used.
     self._per_host_passthrough_batches = []
     p = self.params
     num_tpu_hosts = self.cluster.num_tpu_hosts
@@ -305,12 +308,18 @@ class BaseInputGenerator(base_layer.BaseLayer):
           f'does not match available devices {host_devices}.')
     for task_id in range(num_infeed_hosts):
       host_device = host_devices[task_id]
+      if cpu_passthrough_keys and (
+          '/task:{}/device:CPU:0'.format(task_id) not in host_device):
+        raise ValueError(
+            f'CPU passthrough configuration mismatch, device {host_device} '
+            f'does not match task id {task_id}.')
       with tf.device(host_device), cluster.InfeedContextScope(
           infeed_host_index=task_id, num_infeed_hosts=num_infeed_hosts):
         batch = self.GetPreprocessedInputBatch()
         if not isinstance(batch, (list, tuple)):
           batch = [batch]
 
+        cur_passthrough_batches = []
         for i in range(len(batch)):
           b = batch[i]
           assert isinstance(b, py_utils.NestedMap)
@@ -320,7 +329,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           b = b.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
 
           # Split out any keys that are meant for CPU passthrough only.
-          self._per_host_passthrough_batches.append(
+          cur_passthrough_batches.append(
               b.FilterKeyVal(lambda k, _: k in cpu_passthrough_keys))
           b = b.FilterKeyVal(lambda k, _: k not in cpu_passthrough_keys)
           batch[i] = b
@@ -328,6 +337,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
             # If the input batch is already sharded, check that the shards are
             # compatible with each other.
             assert py_utils.IsCompatible(b, batch[0])
+        self._per_host_passthrough_batches.append(cur_passthrough_batches)
         tf.logging.info('CPU passthrough keys: %s', cpu_passthrough_keys)
 
         if p.filter_sparse_tensors:
@@ -423,6 +433,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
               return shard_index_in_host
 
           if len(batch) > 1:
+            # In this case, the `shard_index_in_host` argument of
+            # `TPUOrdinalFunction` is the index of a sharded batch in the
+            # `batch` list.
             input_ops = q.generate_enqueue_ops(
                 [b.Flatten() for b in batch],
                 placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
@@ -586,27 +599,33 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
       batch = self._per_host_passthrough_batches[task_id]
+      assert isinstance(batch, list)
       with tf.device(host_device):
-        tf.logging.info(batch.FlattenItems())
-        self._cpu_nm_types = batch
+        self._cpu_nm_types = batch[0] if len(batch) == 1 else batch
         tf.logging.info('host_device CPU passthrough types: %s, batch: %r',
                         host_device, batch)
-        cpu_dtypes = batch.Transform(lambda x: x.dtype).Flatten()
+        cpu_dtypes = py_utils.Flatten(
+            py_utils.Transform(lambda x: x.dtype, batch))
         # NOTE: we use a large capacity queue under the assumption that the size
         # of these tensors will be generally smaller than that sent to the TPU,
         # and that the TPU queue will likely fill up before the host queue,
         # blocking further enqueues.
         host_queue = tf.queue.FIFOQueue(capacity=10000, dtypes=cpu_dtypes)
         self._host_queues[task_id] = host_queue
-        enqueue_ops += [host_queue.enqueue(batch.Flatten())]
+        enqueue_ops += [host_queue.enqueue(py_utils.Flatten(batch))]
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
-  def DequeueCpuPassthrough(self):
+  def DequeueCpuPassthrough(self, concat=True):
     """Create CPU dequeue ops.
 
+    Args:
+      concat: Whether to concat the passthrough batches for each host into one
+        batch.
+
     Returns:
-      A NestedMap of the CPU passthrough input batch, or None if there are no
-        cpu passthrough values.
+      None if there are no CPU passthrough values. Otherwise, a NestedMap of the
+      CPU passthrough input batch if `concat`, or a list of NestedMaps (one for
+      each host) if not `concat`.
     """
     cpu_passthrough_keys = self.GetCpuPassthroughKeys()
     if not cpu_passthrough_keys:
@@ -615,26 +634,24 @@ class BaseInputGenerator(base_layer.BaseLayer):
     p = self.params
     num_tpu_hosts = self.cluster.num_tpu_hosts
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
-    tensor_list = None
+    tensor_list = []
     for task_id in range(num_infeed_hosts):
-      host_device = '/task:{}/device:CPU:0'.format(task_id)
-      with tf.device(host_device):
+      with tf.device('/task:{}/device:CPU:0'.format(task_id)):
         tensors = self._host_queues[task_id].dequeue()
-        # Make list if only one host.
+        # Make list if only one tensor.
         if not isinstance(tensors, list):
           tensors = [tensors]
-        num_saved_tensors = len(tensors)
-        if tensor_list is None:
-          tensor_list = [[]] * num_saved_tensors
-        for i in range(num_saved_tensors):
-          tensor_list[i].append(tensors[i])
+        tensor_list.append(tensors)
 
-    with tf.device('/task:0/device:CPU:0'):
-      for i in range(len(tensor_list)):
-        tensor_list[i] = tf.concat(tensor_list[i], axis=0)
+    # TODO(laigd): consider moving the concat logic out to make the API simpler.
+    if concat:
+      with tf.device('/task:0/device:CPU:0'):
+        # Transpose to get per-dequeue-element tuples, then concat.
+        result = list(map(lambda xs: tf.concat(xs, axis=0), zip(*tensor_list)))
+        return py_utils.Pack(self._cpu_nm_types.Pack, result)
 
-    packed = self._cpu_nm_types.Pack(tensor_list)
-    return packed
+    # Return a list of batches, one per host.
+    return [py_utils.Pack(self._cpu_nm_types, xs) for xs in tensor_list]
 
   @property
   def tpu_infeed_op(self):
