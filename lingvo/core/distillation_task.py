@@ -66,11 +66,15 @@ class DistillationTask(base_model.BaseTask):
     super().__init__(params)
 
     p = self.params
-    # While student does not need its own input generator for training, it
-    # needs an input generator for inference graphs.
-    p.student.input = p.input
-    # Teacher also might need an input generator, eg. for waveform_processor.
-    p.teacher.input = p.input
+
+    # This seems to be root cause of teacher/student input ops being
+    # incorrectly placed on TPU.
+    if not py_utils.use_tpu():
+      # While student does not need its own input generator for training, it
+      # needs an input generator for inference graphs.
+      p.student.input = p.input
+      # Teacher also might need an input generator, eg. for waveform_processor.
+      p.teacher.input = p.input
     for child in ('teacher', 'student'):
       child_p = getattr(p, child)
       assert issubclass(child_p.cls, base_model.BaseTask)
