@@ -955,6 +955,9 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     log_probs = self.fns.qlogsoftmax(
         logits, qmin=p.qlogsoftmax_range_min, qmax=0.0)
     if p.disallow_misaligned_eos:
+      if 'num_sentences' not in encoder_outputs:
+        raise ValueError('Model does not support p.disallow_misaligned_eos as '
+                         'key "num_sentences" is missing from encoder_outputs.')
       source_num_sentences = tf.tile(
           encoder_outputs['num_sentences'], multiples=[num_hyps_per_beam])
       log_probs = self._DisallowMisalignedEos(log_probs, source_num_sentences,
