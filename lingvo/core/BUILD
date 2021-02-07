@@ -1869,6 +1869,7 @@ py_library(
         ":hyperparams",
         ":layers",
         ":py_utils",
+        ":summary_utils",
         ":symbolic",
         "//lingvo:compat",
     ],

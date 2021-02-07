@@ -812,6 +812,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       reshaped_inputs = _split(reshaped_inputs, ap.gsm)
       reshaped_paddings = _split(reshaped_paddings, ap.gs)
 
+      # gshard_layers.Top2Gating is not stable in low-precision mode.
+      assert py_utils.FPropDtype(p) == tf.float32
+
       # Here and below, we assume num devices equals num groups.
       # TODO(yonghui): Expose some of the options below through params.
       # NOTE(yonghui): The following code might break during beam search decode
