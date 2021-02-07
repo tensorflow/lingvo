@@ -648,7 +648,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       with tf.device('/task:0/device:CPU:0'):
         # Transpose to get per-dequeue-element tuples, then concat.
         result = list(map(lambda xs: tf.concat(xs, axis=0), zip(*tensor_list)))
-        return py_utils.Pack(self._cpu_nm_types.Pack, result)
+        return py_utils.Pack(self._cpu_nm_types, result)
 
     # Return a list of batches, one per host.
     return [py_utils.Pack(self._cpu_nm_types, xs) for xs in tensor_list]
