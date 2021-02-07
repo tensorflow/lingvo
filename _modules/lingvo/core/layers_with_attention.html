@@ -964,6 +964,9 @@
       <span class="n">reshaped_inputs</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">ap</span><span class="o">.</span><span class="n">gsm</span><span class="p">)</span>
       <span class="n">reshaped_paddings</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span><span class="n">reshaped_paddings</span><span class="p">,</span> <span class="n">ap</span><span class="o">.</span><span class="n">gs</span><span class="p">)</span>
 
+      <span class="c1"># gshard_layers.Top2Gating is not stable in low-precision mode.</span>
+      <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+
       <span class="c1"># Here and below, we assume num devices equals num groups.</span>
       <span class="c1"># TODO(yonghui): Expose some of the options below through params.</span>
       <span class="c1"># NOTE(yonghui): The following code might break during beam search decode</span>
