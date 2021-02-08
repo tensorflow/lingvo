@@ -452,13 +452,20 @@ class TFDatasetFnInput(TFDatasetSource):
         'p.args and return a tf.data.Dataset.')
     p.Define('args', None,
              'Arguments to pass to load_fn. If a list, it will be expanded.')
-    p.Define('shuffle_buffer_size', 10000,
+    p.Define('shuffle_buffer_size', None,
              'Number of records buffered for random shuffling.')
     p.Define(
         'require_sequential_order', False,
         'Whether elements need to be produced in sequential order. '
         'Disables randomization.')
     return p
+
+  def __init__(self, params):
+    super().__init__(params)
+
+    if (not self.params.shuffle_buffer_size and
+        not self.params.require_sequential_order):
+      raise ValueError('shuffle_buffer_size must be set.')
 
   def GetDataset(self):
     p = self.params
@@ -472,7 +479,8 @@ class TFDatasetFnInput(TFDatasetSource):
 
     require_sequential_order = p.require_sequential_order or self.do_eval
     if not require_sequential_order:
-      dataset = dataset.shuffle(p.shuffle_buffer_size)
+      dataset = dataset.shuffle(
+          p.shuffle_buffer_size, reshuffle_each_iteration=True)
       dataset = dataset.repeat()
     return dataset
 

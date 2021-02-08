@@ -431,7 +431,9 @@ class TFDatasetSourceTest(test_utils.TestCase):
 
   def testTFDatasetFnInput(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
-        load_fn='LoadDataset', args=os.path.join(self.tmpdir, '*file_*'))
+        load_fn='LoadDataset',
+        args=os.path.join(self.tmpdir, '*file_*'),
+        shuffle_buffer_size=100)
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
     files = []
@@ -445,6 +447,30 @@ class TFDatasetSourceTest(test_utils.TestCase):
     self.assertEqual(set(files), set(self.files))
     # Should not be produced in deterministic order.
     self.assertNotAllEqual(self.files * 5, files)
+
+  def testTFDatasetFnInput_ShuffleBufferMustBeSet(self):
+
+    def CreateDatasource(**kwargs):
+      ds_params = datasource.TFDatasetFnInput.Params().Set(
+          load_fn='LoadDataset',
+          args=os.path.join(self.tmpdir, '*file_*'),
+          **kwargs)
+      ds = ds_params.Instantiate()
+      ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+      ds.GetNext()
+
+    with self.assertRaisesRegex(ValueError, 'shuffle_buffer_size must be set.'):
+      CreateDatasource()
+
+    # Setting shuffle_buffer_size works.
+    CreateDatasource(shuffle_buffer_size=1)
+
+    # Setting require_sequential_order works.
+    CreateDatasource(require_sequential_order=True)
+
+    # Sanity check that params are not persisting between calls.
+    with self.assertRaisesRegex(ValueError, 'shuffle_buffer_size must be set.'):
+      CreateDatasource()
 
   def testTFDatasetFnInput_RequireSequentialOrder(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
@@ -505,7 +531,9 @@ class TFDatasetSourceTest(test_utils.TestCase):
 
   def testTFDatasetBatchBySequenceLength(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
-        load_fn='LoadDataset', args=os.path.join(self.tmpdir, '*file_*'))
+        load_fn='LoadDataset',
+        args=os.path.join(self.tmpdir, '*file_*'),
+        shuffle_buffer_size=100)
     ds_params = datasource.TFDatasetBatchBySequenceLength.Params().Set(
         sub=ds_params,
         seqlen_fn='GetSequenceLength',
