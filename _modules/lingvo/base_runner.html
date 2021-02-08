@@ -430,6 +430,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Execution stopped due to fatal error. &#39;</span>
                            <span class="s1">&#39;Returning 0 to be scheduled for retry.&#39;</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+          <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
           <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
 
         <span class="k">raise</span>
@@ -461,6 +462,7 @@
         <span class="c1"># Because sys.exit(1) must be called from the main thread, and does</span>
         <span class="c1"># not cancel non-daemon threads anyway, we use os._exit instead.</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
 
 <div class="viewcode-block" id="BaseRunner._DequeueThreadComplete"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._DequeueThreadComplete">[docs]</a>  <span class="k">def</span> <span class="nf">_DequeueThreadComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
