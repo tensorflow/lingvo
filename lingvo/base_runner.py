@@ -278,6 +278,7 @@ class BaseRunner:
           tf.logging.error('Execution stopped due to fatal error. '
                            'Returning 0 to be scheduled for retry.')
           tf.logging.flush()
+          time.sleep(10)
           os._exit(0)  # pylint: disable=protected-access
 
         raise
@@ -309,6 +310,7 @@ class BaseRunner:
         # Because sys.exit(1) must be called from the main thread, and does
         # not cancel non-daemon threads anyway, we use os._exit instead.
         tf.logging.flush()
+        time.sleep(10)
         os._exit(1)  # pylint: disable=protected-access
 
   def _DequeueThreadComplete(self):
