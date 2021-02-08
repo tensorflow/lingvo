@@ -235,6 +235,31 @@ class LearningRateScheduleTest(test_utils.TestCase):
           self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
           self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
 
+  def testTransformerMLPerfSchedule(self):
+    params = schedule.TransformerMLPerfSchedule.Params().Set(
+        warmup_steps=4000, warmup_init_fraction=.3, model_dim=512)
+    lrs = params.Instantiate()
+
+    base_params = schedule.TransformerSchedule.Params().Set(
+        warmup_steps=4000, model_dim=512)
+    base_lrs = base_params.Instantiate()
+
+    with self.session():
+
+      # Linear warmup starting from 0.3 * peak_lr.
+      peak_lr = 0.000698684
+      for step in (0, 1000, 2000, 3000, 4000):
+        with py_utils.GlobalStepContext(step):
+          self.assertAllClose(.3 * peak_lr + .7 * base_lrs.Value().eval(),
+                              lrs.Value().eval())
+
+      # Test that the schedule is identical with transformer-lr after 4k steps
+      for step in (4000, 4010, 5000):
+        with py_utils.GlobalStepContext(step):
+          self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
+          self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
+          self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
+
   def testPolynomialLRSchedule(self):
     p = schedule.PolynomialSchedule.Params().Set(
         power=2, start=(0, 0.), limit=(20000, 2.))

@@ -304,6 +304,10 @@ class TransformerMLPerfSchedule(BaseSchedule):
         'warmup_steps', 4000, 'Increase the learning rate linearly for '
         'the first warmup_steps training steps.')
     p.Define(
+        'warmup_init_fraction', 0.,
+        'Begin the first step of warm-up with this fraction of the peak LR. '
+        'Set to 1 for constant peak LR during the entire warm-up period.')
+    p.Define(
         'model_dim', 512, 'Model dimension that applies to embedding '
         'layers and all Transformer layers.')
     return p
@@ -313,7 +317,9 @@ class TransformerMLPerfSchedule(BaseSchedule):
     p = self.params
     current_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
     warmup_steps = tf.cast(p.warmup_steps, tf.float32)
-    linear_warmup = tf.minimum(1.0, current_step / warmup_steps)
+    init_fraction = tf.cast(p.warmup_init_fraction, tf.float32)
+    linear_warmup = tf.minimum(
+        1.0, init_fraction + (1. - init_fraction) * current_step / warmup_steps)
     rsqrt_decay = tf.math.rsqrt(tf.maximum(current_step, warmup_steps))
     return p.model_dim**-0.5 * linear_warmup * rsqrt_decay
 
