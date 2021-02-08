@@ -23,6 +23,7 @@ from absl.testing import flagsaver
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import cluster_factory
+from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import test_utils
@@ -152,6 +153,45 @@ class BaseInputGeneratorTest(test_utils.TestCase):
         input_generator.CreateTpuEnqueueOps()
         batch = input_generator.TpuDequeueBatch()
         self.assertEqual(batch.inp.shape.as_list(), [16, 3])
+
+  def testGetPreprocessedBatchWithDatasource(self):
+
+    class TestDataset(datasource.TFDatasetSource):
+
+      def GetDataset(self):
+        return tf.data.Dataset.from_tensors(0)
+
+    with self.subTest('AllowedWithNoOverrides'):
+      p = base_input_generator.BaseInputGenerator.Params()
+      p.file_datasource = TestDataset.Params()
+      p.Instantiate().GetPreprocessedInputBatch()
+
+    msg = 'Batches obtained through p.file_datasource'
+
+    with self.subTest('DisallowedWhenOverridingInputBatch'):
+
+      class OverrideInputBatch(base_input_generator.BaseInputGenerator):
+
+        def _InputBatch(self):
+          return 0
+
+      p = OverrideInputBatch.Params()
+      p.file_datasource = TestDataset.Params()
+      with self.assertRaisesRegex(ValueError, msg):
+        p.Instantiate().GetPreprocessedInputBatch()
+
+    with self.subTest('DisallowedWhenOverridingPreprocessInputBatch'):
+
+      class OverridePreprocessInputBatch(base_input_generator.BaseInputGenerator
+                                        ):
+
+        def _PreprocessInputBatch(self, batch):
+          return batch
+
+      p = OverridePreprocessInputBatch.Params()
+      p.file_datasource = TestDataset.Params()
+      with self.assertRaisesRegex(ValueError, msg):
+        p.Instantiate().GetPreprocessedInputBatch()
 
 
 class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):

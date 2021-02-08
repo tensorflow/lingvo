@@ -233,6 +233,17 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # TODO(b/139345706): Use self.datasource.GetNext() for all datasource.
     if ('datasource' in self.children and
         isinstance(self.datasource, datasource.TFDatasetSource)):
+      if (self._InputBatch.__func__ is not BaseInputGenerator._InputBatch or
+          self._PreprocessInputBatch.__func__ is
+          not BaseInputGenerator._PreprocessInputBatch):
+        # If you hit this error trying to run with --tf_data_service_replicas,
+        # try to refactor your input generator by moving all the code inside
+        # _InputBatch and _PreprocessInputBatch to _DataSourceFromFilePattern.
+        raise ValueError(
+            'Batches obtained through p.file_datasource do not go through '
+            'self._InputBatch() or self._PreprocessInputBatch(). To reduce the '
+            'potential of mistakes, this error is raised when either of those '
+            'functions have been overridden.')
       batch = self.datasource.GetNext()
     else:
       batch = self._PreprocessInputBatch(self._InputBatch())
