@@ -601,21 +601,22 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
             pad_to_bucket_boundary=True,
             drop_remainder=py_utils.use_tpu()))
 
-    if min(bucket_batch_limit) != max(bucket_batch_limit):
-      if py_utils.use_tpu():
+    if py_utils.use_tpu():
+      # Set static shapes for TPU.
+      if min(bucket_batch_limit) != max(bucket_batch_limit):
         raise ValueError('TPU requires constant batch sizes.')
-    else:
-      b = bucket_batch_limit[0]
+      else:
+        b = bucket_batch_limit[0]
 
-      def SetShape(element):
-        for t in element.Flatten():
-          t.set_shape((b,) + t.shape[1:])
-        return element
+        def SetShape(element):
+          for t in element.Flatten():
+            t.set_shape((b,) + t.shape[1:])
+          return element
 
-      dataset = dataset.map(
-          SetShape,
-          num_parallel_calls=tf.data.experimental.AUTOTUNE,
-          deterministic=require_sequential_order)
+        dataset = dataset.map(
+            SetShape,
+            num_parallel_calls=tf.data.experimental.AUTOTUNE,
+            deterministic=require_sequential_order)
 
     return dataset
 
