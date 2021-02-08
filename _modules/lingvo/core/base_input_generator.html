@@ -385,6 +385,17 @@
     <span class="c1"># TODO(b/139345706): Use self.datasource.GetNext() for all datasource.</span>
     <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;datasource&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span> <span class="ow">and</span>
         <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="p">,</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetSource</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputBatch</span><span class="o">.</span><span class="vm">__func__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">BaseInputGenerator</span><span class="o">.</span><span class="n">_InputBatch</span> <span class="ow">or</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="o">.</span><span class="vm">__func__</span> <span class="ow">is</span>
+          <span class="ow">not</span> <span class="n">BaseInputGenerator</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">):</span>
+        <span class="c1"># If you hit this error trying to run with --tf_data_service_replicas,</span>
+        <span class="c1"># try to refactor your input generator by moving all the code inside</span>
+        <span class="c1"># _InputBatch and _PreprocessInputBatch to _DataSourceFromFilePattern.</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Batches obtained through p.file_datasource do not go through &#39;</span>
+            <span class="s1">&#39;self._InputBatch() or self._PreprocessInputBatch(). To reduce the &#39;</span>
+            <span class="s1">&#39;potential of mistakes, this error is raised when either of those &#39;</span>
+            <span class="s1">&#39;functions have been overridden.&#39;</span><span class="p">)</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">GetNext</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputBatch</span><span class="p">())</span>
