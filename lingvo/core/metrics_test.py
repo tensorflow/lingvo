@@ -116,7 +116,10 @@ class MetricsTest(test_utils.TestCase):
     summary = m.Summary('test')
     self.assertEqual(1, summary.value[0].simple_value)
 
-    # Add four more updates.
+    # Calling Summary() clears out history.
+    #
+    # Add five total updates.
+    m.Update(py_utils.NestedMap(value=1))
     m.Update(py_utils.NestedMap(value=2))
     m.Update(py_utils.NestedMap(value=3))
     m.Update(py_utils.NestedMap(value=4))

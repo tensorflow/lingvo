@@ -509,6 +509,8 @@ class SamplingMetric(ConfigurableMetric):
   def Summary(self, name):
     if self._summary is None:
       self._summary = self._CreateSummary(name)
+      self._sampler = py_utils.UniformSampler(
+          num_samples=self.params.num_samples)
     return self._summary
 
   def _CreateSummary(self, name):
