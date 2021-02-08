@@ -753,21 +753,22 @@
             <span class="n">pad_to_bucket_boundary</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">drop_remainder</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()))</span>
 
-    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">bucket_batch_limit</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bucket_batch_limit</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="c1"># Set static shapes for TPU.</span>
+      <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">bucket_batch_limit</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bucket_batch_limit</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TPU requires constant batch sizes.&#39;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">b</span> <span class="o">=</span> <span class="n">bucket_batch_limit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">bucket_batch_limit</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-      <span class="k">def</span> <span class="nf">SetShape</span><span class="p">(</span><span class="n">element</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
-          <span class="n">t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">((</span><span class="n">b</span><span class="p">,)</span> <span class="o">+</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-        <span class="k">return</span> <span class="n">element</span>
+        <span class="k">def</span> <span class="nf">SetShape</span><span class="p">(</span><span class="n">element</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">((</span><span class="n">b</span><span class="p">,)</span> <span class="o">+</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+          <span class="k">return</span> <span class="n">element</span>
 
-      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-          <span class="n">SetShape</span><span class="p">,</span>
-          <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
-          <span class="n">deterministic</span><span class="o">=</span><span class="n">require_sequential_order</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="n">SetShape</span><span class="p">,</span>
+            <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
+            <span class="n">deterministic</span><span class="o">=</span><span class="n">require_sequential_order</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">dataset</span></div></div>
 
