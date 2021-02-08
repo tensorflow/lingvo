@@ -694,15 +694,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bak_rnn&#39;</span><span class="p">,</span> <span class="n">params_backward</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BidirectionalFRNN._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNN._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="n">fwd_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-      <span class="n">bwd_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">fwd_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-      <span class="n">bwd_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">fwd_device</span><span class="p">):</span>
+    <span class="c1"># Create outside of tf.variable_scope(p.name) for backwards compatibility.</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PlaceOnTpuCore</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">bwd_device</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PlaceOnTpuCore</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 

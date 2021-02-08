@@ -1036,6 +1036,19 @@ addition of <code class="xref py py-obj docutils literal notranslate"><span clas
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.PlaceOnTpuCore">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">PlaceOnTpuCore</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">core_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PlaceOnTpuCore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.PlaceOnTpuCore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a VariableCreatorScope that places variables on a given tpu core.</p>
+<p>Only applies when running with TPUs.</p>
+<p>Does not yet properly support model parallelism.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>core_id</strong> – The tpu core id.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils.CreateVariable">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CreateVariable</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">params</em>, <em class="sig-param">reuse=None</em>, <em class="sig-param">trainable=True</em>, <em class="sig-param">collections=None</em>, <em class="sig-param">default_seed=None</em>, <em class="sig-param">synchronization=&lt;VariableSynchronization.AUTO: 0&gt;</em>, <em class="sig-param">aggregation=&lt;VariableAggregationV2.NONE: 0&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateVariable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates tf.Variable according to param_config.</p>

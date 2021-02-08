@@ -722,18 +722,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTDecoderV1._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="n">emb_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">emb_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">emb_device</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">frnn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn</span><span class="p">:</span>
-          <span class="n">frnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
       <span class="c1"># Taking shared emb/softmax layer out of the decoder variable scope so</span>
       <span class="c1"># that it can also be shared by encoder if needed.</span>
