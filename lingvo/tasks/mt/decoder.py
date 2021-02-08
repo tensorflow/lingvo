@@ -570,18 +570,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     self.CreateChild('softmax', p.softmax)
 
   def _CreateChildrenVariables(self):
-    with tf.variable_scope(self.params.name):
-      if py_utils.use_tpu():
-        emb_device = self.cluster.WorkerDeviceInModelSplit(0)
-      else:
-        emb_device = ''
-      with tf.device(emb_device):
-        if not self._share_sm_emb:
-          self.emb.InstantiateVariables()
-        self.frnn_with_atten.InstantiateVariables()
-        for frnn in self.frnn:
-          frnn.InstantiateVariables()
-
     if self._share_sm_emb:
       # Taking shared emb/softmax layer out of the decoder variable scope so
       # that it can also be shared by encoder if needed.

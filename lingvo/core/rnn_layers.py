@@ -542,15 +542,10 @@ class BidirectionalFRNN(base_layer.BaseLayer):
     self.CreateChild('bak_rnn', params_backward)
 
   def _CreateChildrenVariables(self):
-    if py_utils.use_tpu() and self.cluster.num_devices_per_split > 1:
-      fwd_device = self.cluster.WorkerDeviceInModelSplit(0)
-      bwd_device = self.cluster.WorkerDeviceInModelSplit(1)
-    else:
-      fwd_device = ''
-      bwd_device = ''
-    with tf.device(fwd_device):
+    # Create outside of tf.variable_scope(p.name) for backwards compatibility.
+    with py_utils.PlaceOnTpuCore(0):
       self.fwd_rnn.InstantiateVariables()
-    with tf.device(bwd_device):
+    with py_utils.PlaceOnTpuCore(1):
       self.bak_rnn.InstantiateVariables()
     super()._CreateChildrenVariables()
 

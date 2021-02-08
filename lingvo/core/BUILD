@@ -1276,6 +1276,7 @@ py_library(
     srcs = ["py_utils.py"],
     srcs_version = "PY3",
     deps = [
+        ":cluster_factory",
         ":gshard_utils",
         ":hyperparams",
         ":nested_map",

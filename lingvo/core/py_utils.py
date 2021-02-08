@@ -34,6 +34,7 @@ import threading
 import traceback
 
 import lingvo.compat as tf
+from lingvo.core import cluster_factory
 from lingvo.core import gshard_utils
 from lingvo.core import hyperparams
 from lingvo.core import nested_map
@@ -1426,6 +1427,36 @@ def VariableCreatorScope(variable_creator):
     yield
   finally:
     _VARIABLE_CREATOR_STACK.pop()
+
+
+def PlaceOnTpuCore(core_id):
+  """Returns a VariableCreatorScope that places variables on a given tpu core.
+
+  Only applies when running with TPUs.
+
+  Does not yet properly support model parallelism.
+
+  Args:
+    core_id: The tpu core id.
+  """
+
+  def Creator(next_creator, **kwargs):
+    cluster = cluster_factory.Current()
+    if use_tpu():
+      device = cluster.WorkerDeviceInModelSplit(core_id)
+    elif tpu_compat():
+      # The job is running in a fleet that uses tpu, but does not itself have
+      # access to the tpu, e.g. controller job. In this case, the returned
+      # device needs to be the cpu device on the tpu host for the given core.
+      # FIXME: the current implementation is wrong for large values of core_id.
+      device = cluster.ListDevices(cluster.params.worker)[0, 0]
+    else:
+      device = ''
+
+    with tf.device(device):
+      return next_creator(**kwargs)
+
+  return VariableCreatorScope(Creator)
 
 
 # TODO(yonghui): Add support for partitioned Variables.
