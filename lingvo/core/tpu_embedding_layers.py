@@ -497,6 +497,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         'partition_strategy', 'div', 'A string, either "mod" or "div", '
         'specifying how to map the lookup id to the embedding tensor. For '
         'more information see `tf.nn.embedding_lookup_sparse`.')
+    p.Define(
+        'gradient_multiplier_schedule', schedule.ConstantOne.Params(),
+        'Values from this schedule will be multiplied to the embedding '
+        'gradients. Gradients from Tensorcore will not be affected.')
     return p
 
   def __init__(self, params):
@@ -509,6 +513,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.optimizer
     assert p.learning_rate
     assert p.lr_schedule
+    assert p.gradient_multiplier_schedule
     assert p.partition_strategy in ['mod', 'div']
 
     num_tpu_hosts = p.tables[0].num_tpu_hosts
@@ -532,6 +537,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           table_params.lr_schedule = p.lr_schedule.Copy()
 
     self.CreateChildren('tables', p.tables)
+    self.CreateChild('gradient_multiplier_schedule',
+                     p.gradient_multiplier_schedule)
 
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.InstantiateVariables()
@@ -593,6 +600,9 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             partition_strategy=p.partition_strategy,
             device_config=device_config)
         tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
+        tf.add_to_collection(
+            py_utils.TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE,
+            self.gradient_multiplier_schedule)
 
   def _TpuEmbLookup(self) -> Dict[str, tf.Tensor]:
     """TPU Embedding lookup."""

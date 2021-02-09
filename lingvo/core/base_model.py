@@ -311,10 +311,9 @@ class BaseTask(base_layer.BaseLayer):
           # We require static dataset size for non-resettable inputs.
           assert p.eval.samples_per_summary > 0
         if seq_inp and p.input.num_batcher_threads > 1:
-          tf.logging.warning(
-              'input.num_batcher_threads > 1 inside eval mode.  '
-              'The input generator may not iterate over exactly '
-              'one epoch per run')
+          tf.logging.warning('input.num_batcher_threads > 1 inside eval mode.  '
+                             'The input generator may not iterate over exactly '
+                             'one epoch per run')
       input_params = input_policy.Apply(p.input)
       tf.logging.info('input_params: %s', input_params)
       self.CreateChild('input', input_params)
@@ -636,8 +635,12 @@ class BaseTask(base_layer.BaseLayer):
       # Lookup the per-task activations.
       tpu_embedding_activations_dict = tpu_embedding_activations[0][p.name]
       tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
+      tpu_embedding_gradient_multiplier_schedule = tf.get_collection(
+          py_utils.TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE)[0]
+
       tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
-          self.loss, tpu_embedding_activations_dict, tpu_embedding)
+          self.loss, tpu_embedding_activations_dict, tpu_embedding,
+          tpu_embedding_gradient_multiplier_schedule)
       train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
 
       tpu_embedding_summary_tensors = tf.get_collection(
@@ -678,9 +681,8 @@ class BaseTask(base_layer.BaseLayer):
           tf.zeros(len(bprop_variable_filters), dtype=tf.float32))
       for i in range(len(bprop_variable_filters)):
         if re.search(bprop_variable_filters[i], var.name):
-          tf.logging.info(
-              'Keep gradient after filtering, regex: %s var: %s' %
-              (bprop_variable_filters[i], var.name))
+          tf.logging.info('Keep gradient after filtering, regex: %s var: %s' %
+                          (bprop_variable_filters[i], var.name))
           self._per_input_gradient_mask[var.name] += (
               tf.one_hot(i, len(bprop_variable_filters), dtype=tf.float32))
 
