@@ -516,7 +516,8 @@ class EvalProgram(BaseProgram):
           device_assignment=py_utils.GetTpuDeviceAssignment())
       self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
 
-      # Get metric result from a single replica; they are all same here.
+      # Get metric result from a single replica; they are all same here because
+      # TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
       self.tpu_ops = [[t[0] for t in batch_parallel_res]]
       return self.tpu_ops
 
