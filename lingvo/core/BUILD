@@ -89,6 +89,7 @@ py_library(
         ":attention_util",
         ":base_layer",
         ":builder",
+        ":computation_cost",
         ":conv_layers_builder",
         ":favor_attention",
         ":gpipe",
@@ -98,10 +99,12 @@ py_library(
         ":layers",
         ":layers_with_attention",
         ":py_utils",
+        ":repeat_layer",
         ":symbolic",
         ":tshape",
         # Implicit absl.logging dependency.
         "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -189,6 +192,7 @@ py_library(
     srcs = ["conformer_layer.py"],
     srcs_version = "PY3",
     deps = [
+        ":gshard_utils",
         ":hyperparams",
         ":py_utils",
         ":recurrent",
@@ -199,7 +203,6 @@ py_library(
         "//lingvo/core:bn_layers",
         "//lingvo/core:conv_layers_with_time_padding",
         "//lingvo/core:gshard_builder",
-        "//lingvo/core:gshard_layers",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
     ],
@@ -2377,6 +2380,18 @@ py_library(
     srcs = ["nested_map.py"],
     srcs_version = "PY3",
     deps = [
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "repeat_layer",
+    srcs = ["repeat_layer.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":recurrent",
         "//lingvo:compat",
     ],
 )

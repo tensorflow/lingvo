@@ -341,15 +341,19 @@ class LConvLayer(base_layer.BaseLayer):
       return output, paddings
 
   def zero_state(self, batch_size):
-    if self.params.is_causal:
-      res = py_utils.NestedMap(
-          conv_state=self.depthwise_conv1d.zero_state(batch_size))
-      if hasattr(self.norm, 'zero_state'):
-        res.norm_state = self.norm.zero_state(batch_size)
-      return res
-    else:
-      # If not causal, depthwise_conv1d does not have zero_state().
-      return py_utils.NestedMap()
+    p = self.params
+    with tf.name_scope('zero_state'):
+      if p.is_causal:
+        with tf.name_scope('depthwise_conv1d'):
+          res = py_utils.NestedMap(
+              conv_state=self.depthwise_conv1d.zero_state(batch_size))
+        if hasattr(self.norm, 'zero_state'):
+          with tf.name_scope('norm'):
+            res.norm_state = self.norm.zero_state(batch_size)
+        return res
+      else:
+        # If not causal, depthwise_conv1d does not have zero_state().
+        return py_utils.NestedMap()
 
   def _NormalizeStep(self, theta, inputs, paddings, state0, state1):
     if hasattr(self.norm, 'StreamStep'):
@@ -840,9 +844,12 @@ class ConformerLayer(base_layer.BaseLayer):
 
   def zero_state(self, batch_size):
     if self.params.is_causal:
+      with tf.name_scope('lconv'):
+        lconv_state = self.lconv.zero_state(batch_size)
+      with tf.name_scope('atten'):
+        atten_state = self.trans_atten.zero_state(batch_size)
       return py_utils.NestedMap(
-          lconv_state=self.lconv.zero_state(batch_size),
-          atten_state=self.trans_atten.zero_state(batch_size))
+          lconv_state=lconv_state, atten_state=atten_state)
     else:
       return py_utils.NestedMap()
 

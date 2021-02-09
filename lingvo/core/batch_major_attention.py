@@ -39,6 +39,7 @@ from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import repeat_layer
 from lingvo.core import symbolic
 from lingvo.core import tshape
 import numpy as np
@@ -4048,6 +4049,104 @@ class MultiSourceTransformerDecoderLayer(MultiSourceTransformerLayer):
     p.has_aux_atten = True
     p.mask_self_atten = True
     return p
+
+
+class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
+  """A stack of uniform TransformerLayer's as a RepeatLayer."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.body = TransformerLayer.Params()
+    p.Define(
+        'atten_prob_aggregation', None,
+        'None: return attention probabilities for each layer separately. '
+        'mean: return the mean attention probabilities across layers.')
+    return p
+
+  def FProp(self, theta, query_vec, **kwargs):
+    p = self.params
+    assert not p.body.tr_atten_tpl.atten_dropout_prob
+    assert not p.body.tr_atten_tpl.residual_dropout_prob
+    assert not p.body.tr_fflayer_tpl.relu_dropout_prob
+    assert not p.body.tr_fflayer_tpl.residual_dropout_prob
+    with tf.name_scope(p.name):
+      # iterative: query_vec
+      # common_input: **kwargs
+      # layerwise_output: atten_probs
+
+      def _Fn(theta, *, common_input, layerwise_input, iterative):
+        del layerwise_input
+        layer_out, layer_atten_probs = self.body.FProp(
+            theta.body, query_vec=iterative.query_vec, **common_input)
+        return py_utils.NestedMap(
+            iterative=py_utils.NestedMap(query_vec=layer_out),
+            layerwise_output=py_utils.NestedMap(atten_probs=layer_atten_probs))
+
+      repeat_results = self._Repeat(
+          theta,
+          _Fn,
+          common_input=py_utils.NestedMap(kwargs),
+          layerwise_inputs=py_utils.NestedMap(),
+          iterative_input_0=py_utils.NestedMap(query_vec=query_vec))
+      atten_probs = repeat_results.layerwise.atten_probs
+      assert p.atten_prob_aggregation in (None, 'mean')
+      if p.atten_prob_aggregation == 'mean':
+        tf.logging.info('atten_probs=%s', atten_probs)
+        atten_probs = tf.nest.map_structure(lambda x: tf.reduce_mean(x, axis=0),
+                                            atten_probs)
+      return repeat_results.iterative.query_vec, atten_probs
+
+  def InitStates(self, theta, *args, **kwargs):
+    # common_input: *args, **kwargs
+    # layerwise_output: states
+
+    def _Fn(theta, *, common_input, layerwise_input, iterative):
+      del layerwise_input
+      del iterative
+      states = self.body.InitStates(theta.body, *common_input.args,
+                                    **common_input.kwargs)
+      return py_utils.NestedMap(
+          iterative=py_utils.NestedMap(), layerwise_output=states)
+
+    return self._Repeat(
+        theta,
+        _Fn,
+        common_input=py_utils.NestedMap(args=list(args),
+                                        kwargs=kwargs)).layerwise
+
+  def ExtendStep(self, theta, query_vec, *, cached_states, **kwargs):
+    p = self.params
+    with tf.name_scope(p.name):
+      # iterative: query_vec
+      # common_input: **kwargs
+      # layerwise_input: cached_states
+      # layerwise_output: updated_state, atten_probs
+
+      def _Fn(theta, *, common_input, layerwise_input, iterative):
+        layer_out, layer_atten_probs, updated_states = self.body.ExtendStep(
+            theta.body,
+            query_vec=iterative.query_vec,
+            cached_states=layerwise_input.cached_states,
+            **common_input)
+        return py_utils.NestedMap(
+            iterative=py_utils.NestedMap(query_vec=layer_out),
+            layerwise_output=py_utils.NestedMap(
+                atten_probs=layer_atten_probs, updated_states=updated_states))
+
+      repeat_results = self._Repeat(
+          theta,
+          _Fn,
+          common_input=py_utils.NestedMap(kwargs),
+          layerwise_inputs=py_utils.NestedMap(cached_states=cached_states),
+          iterative_input_0=py_utils.NestedMap(query_vec=query_vec))
+      atten_probs = repeat_results.layerwise.atten_probs
+      assert p.atten_prob_aggregation in (None, 'mean')
+      if p.atten_prob_aggregation == 'mean':
+        atten_probs = tf.nest.map_structure(lambda x: tf.reduce_mean(x, axis=0),
+                                            atten_probs)
+      return (repeat_results.iterative.query_vec, atten_probs,
+              repeat_results.layerwise.updated_states)
 
 
 class StackedTransformerLayers(base_layer.BaseLayer):
