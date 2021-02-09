@@ -1,0 +1,427 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.core.repeat_layer &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.repeat_layer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.repeat_layer</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;A generic repeat layer.</span>
+
+<span class="sd">Adapted from builder_layers.RepeatLayer.</span>
+
+<span class="sd">A repeat layer consists a stack of `repeat` identical sub layers, where</span>
+<span class="sd">  * The variables are stacked across layers. Each stacked variable has shape</span>
+<span class="sd">    [repeat, ...].</span>
+<span class="sd">  * The computation is performed with a recurrent loop across layers.</span>
+
+<span class="sd">Compared with a layer stack, a repeat layer&#39;s TF graph size does not grow</span>
+<span class="sd">proportional to the number of layers. It also reduces HBM usage but incurs</span>
+<span class="sd">additional computation through rematerialization.</span>
+
+<span class="sd">GenericRepeatLayer._Repeat() allows its subclasses to describe arbitrary</span>
+<span class="sd">computation across sub layers.</span>
+
+<span class="sd">Inputs to repeat layer computation fall into three categories:</span>
+
+<span class="sd">  * common_input: shared tensor or numeric inputs to all sub layers, e.g.,</span>
+<span class="sd">      aux_vec for cross attention, batch_size for creating zero state.</span>
+<span class="sd">  * layerwise_inputs: separate inputs for each sub layer, specified by tensors</span>
+<span class="sd">      of shape [repeat, ...], where T[i, ...] is the input for sub layer i,</span>
+<span class="sd">      e.g., cached_states for ExtendStep. In particular, &#39;theta&#39; is also a type</span>
+<span class="sd">      of layerwise input, but in API we treat it separately for convenience.</span>
+<span class="sd">  * iterative_input_0: iterative input to the first sub layer, e.g., hidden</span>
+<span class="sd">      vectors.</span>
+
+<span class="sd">The output of a sub layer can include:</span>
+
+<span class="sd">  * layerwise: layerwise outputs, to be stacked for the final output, e.g.,</span>
+<span class="sd">      updated_states from ExtendStep.</span>
+<span class="sd">  * iterative: iterative input for the next sub layer.</span>
+
+<span class="sd">The final output of a repeat layer will include:</span>
+
+<span class="sd">  * layerwise: stacked tensors of layerwise outputs, of shape [repeat, ...],</span>
+<span class="sd">      where T[i, ...] is a layerwise output of sub layer i.</span>
+<span class="sd">  * iterative: the iterative output of the final sub layer.</span>
+
+<span class="sd">In pseudo code::</span>
+
+<span class="sd">  def _Repeat(theta, fn, common_input, layerwise_inputs, iterative_input_0):</span>
+<span class="sd">    iterative = iterative_input_0</span>
+<span class="sd">    for i in range(p.repeat):</span>
+<span class="sd">      fn_out = fn(theta.body[i, ...],</span>
+<span class="sd">                  iterative=iterative,</span>
+<span class="sd">                  common_input=common_input,</span>
+<span class="sd">                  layerwise_input=layerwise_inputs[i, ...])</span>
+<span class="sd">      layerwise_outputs[i, ...] = fn_out.layerwise_output</span>
+<span class="sd">      iterative = fn_out.iterative</span>
+<span class="sd">    return NestedMap(iterative=iterative, layerwise=layerwise_outputs)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
+
+
+<div class="viewcode-block" id="_CopyShapes"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer._CopyShapes">[docs]</a><span class="k">def</span> <span class="nf">_CopyShapes</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">):</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">dst</span></div>
+
+
+<div class="viewcode-block" id="GenericRepeatLayer"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer.GenericRepeatLayer">[docs]</a><span class="k">class</span> <span class="nc">GenericRepeatLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer which repeats itself sequentially using lingvo Recurrent.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GenericRepeatLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer.GenericRepeatLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The param for the main network layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+             <span class="s1">&#39;Repeat layers specified in </span><span class="se">\&#39;</span><span class="s1">body</span><span class="se">\&#39;</span><span class="s1"> this many times.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GenericRepeatLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GenericRepeatLayer._MaybeStackExtraTheta"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer.GenericRepeatLayer._MaybeStackExtraTheta">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeStackExtraTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">var_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()])</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">theta</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">var_set</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Replicate non-variable theta by p.repeat times.</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">value</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">)</span>
+      <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GenericRepeatLayer._Repeat"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer.GenericRepeatLayer._Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">_Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">theta</span><span class="p">,</span>
+              <span class="n">fn</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">common_input</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">layerwise_inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">iterative_input_0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">layerwise_output_0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Invokes &#39;fn&#39; for each sub-layer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: layer parameters.</span>
+<span class="sd">      fn: A function with args (theta, common_input, layerwise_input, iterative)</span>
+<span class="sd">        returning a NestedMap(layerwise_output=..., iterative=...).</span>
+<span class="sd">      common_input: a NestedMap with common inputs for every sub-layer.</span>
+<span class="sd">      layerwise_inputs: a nested tensor with separate inputs for each sub-layer,</span>
+<span class="sd">        where each leaf value T is a tensor of shape [p.repeat, ...] and T[i,</span>
+<span class="sd">        ...] represents layerwise inputs to the i&#39;th sub-layer.</span>
+<span class="sd">      iterative_input_0: a nested tensor for the iterative input of the 0&#39;th</span>
+<span class="sd">        sub-layer.</span>
+<span class="sd">      layerwise_output_0: a nested tensor representing the layerwise output of</span>
+<span class="sd">        the first sub layer. The actual tensor values are not used. Only the</span>
+<span class="sd">        structure and tensor shapes are. In particular, if layerwise_output_0 is</span>
+<span class="sd">        None, calls fn(...) to compute the output.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap with:</span>
+<span class="sd">      - iterative: a nested tensor with the same structure as iterative_input_0</span>
+<span class="sd">          representing the iterative output of the last sub-layer.</span>
+<span class="sd">      - layerwise: a nested tensor where each leaf value T is a tensor of shape</span>
+<span class="sd">          [p.repeat, ...] and T[i, ...] represents layerwise output from the</span>
+<span class="sd">          i&#39;th sub-layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">common_input</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">common_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">layerwise_inputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">layerwise_inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">iterative_input_0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">iterative_input_0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeStackExtraTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">theta_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="n">layerwise_input_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+                                              <span class="n">layerwise_inputs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">layerwise_output_0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Run &#39;fn&#39; for sublayer 0 to get a template for layerwise output.</span>
+      <span class="n">layerwise_output_0</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span>
+          <span class="n">theta_0</span><span class="p">,</span>
+          <span class="n">common_input</span><span class="o">=</span><span class="n">common_input</span><span class="p">,</span>
+          <span class="n">layerwise_input</span><span class="o">=</span><span class="n">layerwise_input_0</span><span class="p">,</span>
+          <span class="n">iterative</span><span class="o">=</span><span class="n">iterative_input_0</span><span class="p">)</span><span class="o">.</span><span class="n">layerwise_output</span>
+
+    <span class="c1"># Split &#39;common_input&#39; to static vs. tensor values.</span>
+    <span class="n">static_common_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span><span class="p">,</span> <span class="n">common_input</span><span class="p">)</span>
+    <span class="n">dummy_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">tensor_common_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">dummy_tensor</span><span class="p">,</span> <span class="n">common_input</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ToRecurState</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">iterative</span><span class="p">,</span> <span class="n">layerwise_output</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns a recurrent state.&quot;&quot;&quot;</span>
+      <span class="c1"># Make sure each value in the NestedMap is a tensor.</span>
+      <span class="n">recur_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">iterative</span><span class="o">=</span><span class="n">iterative</span><span class="p">,</span> <span class="n">layerwise_output</span><span class="o">=</span><span class="n">layerwise_output</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">recur_state</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+              <span class="s1">&#39;Each value in the recurrent state must be a tensor: &#39;</span> <span class="o">+</span>
+              <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">recur_state</span>
+
+    <span class="k">def</span> <span class="nf">_CellFn</span><span class="p">(</span><span class="n">recur_theta</span><span class="p">,</span> <span class="n">recur_state0</span><span class="p">,</span> <span class="n">recur_input_i</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Recurrent cell function wrapper of body.FProp.&quot;&quot;&quot;</span>
+      <span class="c1"># Retrieves fprop arguments from state and sets shapes.</span>
+      <span class="n">theta_i</span> <span class="o">=</span> <span class="n">_CopyShapes</span><span class="p">(</span><span class="n">theta_0</span><span class="p">,</span> <span class="n">recur_input_i</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+      <span class="c1"># Use non-tensor values from &#39;static_common_input&#39; if available.</span>
+      <span class="n">merged_common_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+          <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span><span class="p">),</span> <span class="n">common_input</span><span class="p">,</span>
+          <span class="n">static_common_input</span><span class="p">,</span> <span class="n">recur_theta</span><span class="p">)</span>
+
+      <span class="c1"># Call &#39;fn&#39;.</span>
+      <span class="n">fn_results</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span>
+          <span class="n">theta_i</span><span class="p">,</span>
+          <span class="n">common_input</span><span class="o">=</span><span class="n">merged_common_input</span><span class="p">,</span>
+          <span class="n">layerwise_input</span><span class="o">=</span><span class="n">_CopyShapes</span><span class="p">(</span><span class="n">layerwise_input_0</span><span class="p">,</span>
+                                      <span class="n">recur_input_i</span><span class="o">.</span><span class="n">layerwise</span><span class="p">),</span>
+          <span class="n">iterative</span><span class="o">=</span><span class="n">_CopyShapes</span><span class="p">(</span><span class="n">iterative_input_0</span><span class="p">,</span> <span class="n">recur_state0</span><span class="o">.</span><span class="n">iterative</span><span class="p">))</span>
+
+      <span class="c1"># Pack results.</span>
+      <span class="k">return</span> <span class="n">_ToRecurState</span><span class="p">(</span><span class="o">**</span><span class="n">fn_results</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">):</span>
+      <span class="n">recur_state0</span> <span class="o">=</span> <span class="n">_ToRecurState</span><span class="p">(</span>
+          <span class="n">iterative</span><span class="o">=</span><span class="n">iterative_input_0</span><span class="p">,</span> <span class="n">layerwise_output</span><span class="o">=</span><span class="n">layerwise_output_0</span><span class="p">)</span>
+      <span class="c1"># Runs body.FProp k times using Recurrent where k = dim 0 of var_nmap.</span>
+      <span class="n">acc_states</span><span class="p">,</span> <span class="n">final_recur_state</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">=</span><span class="n">tensor_common_input</span><span class="p">,</span>
+          <span class="n">state0</span><span class="o">=</span><span class="n">recur_state0</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">layerwise</span><span class="o">=</span><span class="n">layerwise_inputs</span><span class="p">),</span>
+          <span class="n">cell_fn</span><span class="o">=</span><span class="n">_CellFn</span><span class="p">,</span>
+          <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">)</span>
+      <span class="c1"># Retrieves outputs from recur_state1 and sets shapes.</span>
+      <span class="n">iterative_output</span> <span class="o">=</span> <span class="n">_CopyShapes</span><span class="p">(</span><span class="n">iterative_input_0</span><span class="p">,</span>
+                                     <span class="n">final_recur_state</span><span class="o">.</span><span class="n">iterative</span><span class="p">)</span>
+      <span class="c1"># Set shapes of layer-wise outputs according to layerwise_output_0.</span>
+      <span class="n">layerwise_outputs</span> <span class="o">=</span> <span class="n">acc_states</span><span class="o">.</span><span class="n">layerwise_output</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+          <span class="k">lambda</span> <span class="n">t_stack</span><span class="p">,</span> <span class="n">t_0</span><span class="p">:</span> <span class="n">t_stack</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">]</span> <span class="o">+</span> <span class="n">t_0</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(</span>
+          <span class="p">)),</span> <span class="n">layerwise_outputs</span><span class="p">,</span> <span class="n">layerwise_output_0</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">iterative</span><span class="o">=</span><span class="n">iterative_output</span><span class="p">,</span> <span class="n">layerwise</span><span class="o">=</span><span class="n">layerwise_outputs</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

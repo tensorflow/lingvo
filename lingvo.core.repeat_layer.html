@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.core.repeat_layer module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.retry module" href="lingvo.core.retry.html" />
+    <link rel="prev" title="lingvo.core.recurrent module" href="lingvo.core.recurrent.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.repeat_layer module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/lingvo.core.repeat_layer.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.repeat_layer">
+<span id="lingvo-core-repeat-layer-module"></span><h1>lingvo.core.repeat_layer module<a class="headerlink" href="#module-lingvo.core.repeat_layer" title="Permalink to this headline">¶</a></h1>
+<p>A generic repeat layer.</p>
+<p>Adapted from builder_layers.RepeatLayer.</p>
+<dl class="simple">
+<dt>A repeat layer consists a stack of <code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat</span></code> identical sub layers, where</dt><dd><ul class="simple">
+<li><p>The variables are stacked across layers. Each stacked variable has shape
+[repeat, …].</p></li>
+<li><p>The computation is performed with a recurrent loop across layers.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Compared with a layer stack, a repeat layer’s TF graph size does not grow
+proportional to the number of layers. It also reduces HBM usage but incurs
+additional computation through rematerialization.</p>
+<p>GenericRepeatLayer._Repeat() allows its subclasses to describe arbitrary
+computation across sub layers.</p>
+<p>Inputs to repeat layer computation fall into three categories:</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>common_input: shared tensor or numeric inputs to all sub layers, e.g.,</dt><dd><p>aux_vec for cross attention, batch_size for creating zero state.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>layerwise_inputs: separate inputs for each sub layer, specified by tensors</dt><dd><p>of shape [repeat, …], where T[i, …] is the input for sub layer i,
+e.g., cached_states for ExtendStep. In particular, ‘theta’ is also a type
+of layerwise input, but in API we treat it separately for convenience.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>iterative_input_0: iterative input to the first sub layer, e.g., hidden</dt><dd><p>vectors.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<p>The output of a sub layer can include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>layerwise: layerwise outputs, to be stacked for the final output, e.g.,</dt><dd><p>updated_states from ExtendStep.</p>
+</dd>
+</dl>
+</li>
+<li><p>iterative: iterative input for the next sub layer.</p></li>
+</ul>
+</div></blockquote>
+<p>The final output of a repeat layer will include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>layerwise: stacked tensors of layerwise outputs, of shape [repeat, …],</dt><dd><p>where T[i, …] is a layerwise output of sub layer i.</p>
+</dd>
+</dl>
+</li>
+<li><p>iterative: the iterative output of the final sub layer.</p></li>
+</ul>
+</div></blockquote>
+<p>In pseudo code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_Repeat</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_inputs</span><span class="p">,</span> <span class="n">iterative_input_0</span><span class="p">):</span>
+  <span class="n">iterative</span> <span class="o">=</span> <span class="n">iterative_input_0</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+    <span class="n">fn_out</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+                <span class="n">iterative</span><span class="o">=</span><span class="n">iterative</span><span class="p">,</span>
+                <span class="n">common_input</span><span class="o">=</span><span class="n">common_input</span><span class="p">,</span>
+                <span class="n">layerwise_input</span><span class="o">=</span><span class="n">layerwise_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+    <span class="n">layerwise_outputs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn_out</span><span class="o">.</span><span class="n">layerwise_output</span>
+    <span class="n">iterative</span> <span class="o">=</span> <span class="n">fn_out</span><span class="o">.</span><span class="n">iterative</span>
+  <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">iterative</span><span class="o">=</span><span class="n">iterative</span><span class="p">,</span> <span class="n">layerwise</span><span class="o">=</span><span class="n">layerwise_outputs</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py function">
+<dt id="lingvo.core.repeat_layer._CopyShapes">
+<code class="sig-prename descclassname">lingvo.core.repeat_layer.</code><code class="sig-name descname">_CopyShapes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">src</span></em>, <em class="sig-param"><span class="n">dst</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#_CopyShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.repeat_layer._CopyShapes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.repeat_layer.GenericRepeatLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.repeat_layer.</code><code class="sig-name descname">GenericRepeatLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer which repeats itself sequentially using lingvo Recurrent.</p>
+<dl class="py method">
+<dt id="lingvo.core.repeat_layer.GenericRepeatLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables">
+<code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.repeat_layer.GenericRepeatLayer._MaybeStackExtraTheta">
+<code class="sig-name descname">_MaybeStackExtraTheta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._MaybeStackExtraTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._MaybeStackExtraTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.repeat_layer.GenericRepeatLayer._Repeat">
+<code class="sig-name descname">_Repeat</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">fn</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">common_input</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">layerwise_inputs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">iterative_input_0</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">layerwise_output_0</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._Repeat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._Repeat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invokes ‘fn’ for each sub-layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – layer parameters.</p></li>
+<li><p><strong>fn</strong> – A function with args (theta, common_input, layerwise_input, iterative)
+returning a NestedMap(layerwise_output=…, iterative=…).</p></li>
+<li><p><strong>common_input</strong> – a NestedMap with common inputs for every sub-layer.</p></li>
+<li><p><strong>layerwise_inputs</strong> – a nested tensor with separate inputs for each sub-layer,
+where each leaf value T is a tensor of shape [p.repeat, …] and T[i,
+…] represents layerwise inputs to the i’th sub-layer.</p></li>
+<li><p><strong>iterative_input_0</strong> – a nested tensor for the iterative input of the 0’th
+sub-layer.</p></li>
+<li><p><strong>layerwise_output_0</strong> – a nested tensor representing the layerwise output of
+the first sub layer. The actual tensor values are not used. Only the
+structure and tensor shapes are. In particular, if layerwise_output_0 is
+None, calls fn(…) to compute the output.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>iterative: a nested tensor with the same structure as iterative_input_0</dt><dd><p>representing the iterative output of the last sub-layer.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>layerwise: a nested tensor where each leaf value T is a tensor of shape</dt><dd><p>[p.repeat, …] and T[i, …] represents layerwise output from the
+i’th sub-layer.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A NestedMap with</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="lingvo.core.retry.html" class="btn btn-neutral float-right" title="lingvo.core.retry module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="lingvo.core.recurrent.html" class="btn btn-neutral float-left" title="lingvo.core.recurrent module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

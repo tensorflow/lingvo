@@ -493,15 +493,19 @@
       <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span></div>
 
 <div class="viewcode-block" id="LConvLayer.zero_state"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_causal</span><span class="p">:</span>
-      <span class="n">res</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">conv_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span>
-      <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span> <span class="s1">&#39;zero_state&#39;</span><span class="p">):</span>
-        <span class="n">res</span><span class="o">.</span><span class="n">norm_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">res</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># If not causal, depthwise_conv1d does not have zero_state().</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;zero_state&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_causal</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;depthwise_conv1d&#39;</span><span class="p">):</span>
+          <span class="n">res</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+              <span class="n">conv_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span> <span class="s1">&#39;zero_state&#39;</span><span class="p">):</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;norm&#39;</span><span class="p">):</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">norm_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># If not causal, depthwise_conv1d does not have zero_state().</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="LConvLayer._NormalizeStep"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer._NormalizeStep">[docs]</a>  <span class="k">def</span> <span class="nf">_NormalizeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">state1</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span> <span class="s1">&#39;StreamStep&#39;</span><span class="p">):</span>
@@ -992,9 +996,12 @@
 
 <div class="viewcode-block" id="ConformerLayer.zero_state"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_causal</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;lconv&#39;</span><span class="p">):</span>
+        <span class="n">lconv_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lconv</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">):</span>
+        <span class="n">atten_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">lconv_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lconv</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">),</span>
-          <span class="n">atten_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span>
+          <span class="n">lconv_state</span><span class="o">=</span><span class="n">lconv_state</span><span class="p">,</span> <span class="n">atten_state</span><span class="o">=</span><span class="n">atten_state</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
 

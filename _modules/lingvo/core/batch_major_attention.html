@@ -191,6 +191,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">repeat_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tshape</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -4200,6 +4201,104 @@
     <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="RepeatedTransformerLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RepeatedTransformerLayer">[docs]</a><span class="k">class</span> <span class="nc">RepeatedTransformerLayer</span><span class="p">(</span><span class="n">repeat_layer</span><span class="o">.</span><span class="n">GenericRepeatLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A stack of uniform TransformerLayer&#39;s as a RepeatLayer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RepeatedTransformerLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RepeatedTransformerLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">TransformerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;atten_prob_aggregation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;None: return attention probabilities for each layer separately. &#39;</span>
+        <span class="s1">&#39;mean: return the mean attention probabilities across layers.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="RepeatedTransformerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">relu_dropout_prob</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># iterative: query_vec</span>
+      <span class="c1"># common_input: **kwargs</span>
+      <span class="c1"># layerwise_output: atten_probs</span>
+
+      <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_input</span><span class="p">,</span> <span class="n">iterative</span><span class="p">):</span>
+        <span class="k">del</span> <span class="n">layerwise_input</span>
+        <span class="n">layer_out</span><span class="p">,</span> <span class="n">layer_atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">query_vec</span><span class="o">=</span><span class="n">iterative</span><span class="o">.</span><span class="n">query_vec</span><span class="p">,</span> <span class="o">**</span><span class="n">common_input</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">iterative</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">query_vec</span><span class="o">=</span><span class="n">layer_out</span><span class="p">),</span>
+            <span class="n">layerwise_output</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">atten_probs</span><span class="o">=</span><span class="n">layer_atten_probs</span><span class="p">))</span>
+
+      <span class="n">repeat_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Repeat</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span>
+          <span class="n">_Fn</span><span class="p">,</span>
+          <span class="n">common_input</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">kwargs</span><span class="p">),</span>
+          <span class="n">layerwise_inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
+          <span class="n">iterative_input_0</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">query_vec</span><span class="o">=</span><span class="n">query_vec</span><span class="p">))</span>
+      <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">repeat_results</span><span class="o">.</span><span class="n">layerwise</span><span class="o">.</span><span class="n">atten_probs</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_prob_aggregation</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_prob_aggregation</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;atten_probs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
+        <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+                                            <span class="n">atten_probs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">repeat_results</span><span class="o">.</span><span class="n">iterative</span><span class="o">.</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">atten_probs</span></div>
+
+<div class="viewcode-block" id="RepeatedTransformerLayer.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RepeatedTransformerLayer.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="c1"># common_input: *args, **kwargs</span>
+    <span class="c1"># layerwise_output: states</span>
+
+    <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_input</span><span class="p">,</span> <span class="n">iterative</span><span class="p">):</span>
+      <span class="k">del</span> <span class="n">layerwise_input</span>
+      <span class="k">del</span> <span class="n">iterative</span>
+      <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InitStates</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="o">*</span><span class="n">common_input</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
+                                    <span class="o">**</span><span class="n">common_input</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">iterative</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span> <span class="n">layerwise_output</span><span class="o">=</span><span class="n">states</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Repeat</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">_Fn</span><span class="p">,</span>
+        <span class="n">common_input</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+                                        <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">))</span><span class="o">.</span><span class="n">layerwise</span></div>
+
+<div class="viewcode-block" id="RepeatedTransformerLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RepeatedTransformerLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cached_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># iterative: query_vec</span>
+      <span class="c1"># common_input: **kwargs</span>
+      <span class="c1"># layerwise_input: cached_states</span>
+      <span class="c1"># layerwise_output: updated_state, atten_probs</span>
+
+      <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_input</span><span class="p">,</span> <span class="n">iterative</span><span class="p">):</span>
+        <span class="n">layer_out</span><span class="p">,</span> <span class="n">layer_atten_probs</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span>
+            <span class="n">query_vec</span><span class="o">=</span><span class="n">iterative</span><span class="o">.</span><span class="n">query_vec</span><span class="p">,</span>
+            <span class="n">cached_states</span><span class="o">=</span><span class="n">layerwise_input</span><span class="o">.</span><span class="n">cached_states</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">common_input</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">iterative</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">query_vec</span><span class="o">=</span><span class="n">layer_out</span><span class="p">),</span>
+            <span class="n">layerwise_output</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                <span class="n">atten_probs</span><span class="o">=</span><span class="n">layer_atten_probs</span><span class="p">,</span> <span class="n">updated_states</span><span class="o">=</span><span class="n">updated_states</span><span class="p">))</span>
+
+      <span class="n">repeat_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Repeat</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span>
+          <span class="n">_Fn</span><span class="p">,</span>
+          <span class="n">common_input</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">kwargs</span><span class="p">),</span>
+          <span class="n">layerwise_inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">cached_states</span><span class="o">=</span><span class="n">cached_states</span><span class="p">),</span>
+          <span class="n">iterative_input_0</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">query_vec</span><span class="o">=</span><span class="n">query_vec</span><span class="p">))</span>
+      <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">repeat_results</span><span class="o">.</span><span class="n">layerwise</span><span class="o">.</span><span class="n">atten_probs</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_prob_aggregation</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_prob_aggregation</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+        <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+                                            <span class="n">atten_probs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">repeat_results</span><span class="o">.</span><span class="n">iterative</span><span class="o">.</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span>
+              <span class="n">repeat_results</span><span class="o">.</span><span class="n">layerwise</span><span class="o">.</span><span class="n">updated_states</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="StackedTransformerLayers"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StackedTransformerLayers">[docs]</a><span class="k">class</span> <span class="nc">StackedTransformerLayers</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
