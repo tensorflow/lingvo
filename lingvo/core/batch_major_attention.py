@@ -4596,6 +4596,59 @@ class ResidualAddLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(flops=x.num_elements() * 2, out_shapes=(x,))
 
 
+class StochasticResidualLayer(base_layer.BaseLayer):
+  """Stocahstic residual layer that randomly drop the residual branch.
+
+  Originally proposed in "Deep Networks with Stochastic Depth" for ConvNets,
+  https://arxiv.org/pdf/1603.09382.pdf
+  """
+
+  @classmethod
+  def Params(cls):
+    """Params for `StochasticResidualLayer`."""
+    p = super().Params()
+    p.Define('residual_weight', 1.0, 'Residual weight.')
+    p.Define('survival_prob', 1.0,
+             'Survival probability of the residual branch.')
+    return p
+
+  def _DropConnect(self, x):
+    """Drop the entire residual layer with given survival probability."""
+    if self.do_eval:
+      return x
+
+    # Compute tensor.
+    batch_size = tf.shape(x)[0]
+    random_tensor = self.params.survival_prob
+    random_tensor += tf.random.uniform([batch_size], dtype=x.dtype)
+    for _ in range(x.shape.rank - 1):
+      random_tensor = tf.expand_dims(random_tensor, axis=-1)
+    binary_tensor = tf.floor(random_tensor)
+    # Unlike conventional way that multiply survival_prob at test time, here we
+    # divide survival_prob at training time, such that no addition compute is
+    # needed at test time.
+    output = x / self.params.survival_prob * binary_tensor
+    return output
+
+  def FProp(self, theta, x, y):
+    """Return combined inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      x: input tensor.
+      y: input tensor to apply weight to.
+
+    Returns:
+      Added tensors.
+    """
+    return x + self.params.residual_weight * self._DropConnect(y)
+
+  @classmethod
+  def FPropMeta(cls, p, x, y):
+    py_utils.CheckShapes((x, y))
+    return py_utils.NestedMap(flops=x.num_elements() * 6, out_shapes=(x,))
+
+
 class PaddingLayer(base_layer.BaseLayer):
   """A layer that applies paddings to the inputs."""
 
@@ -5045,6 +5098,8 @@ class Builder(builder.Base):
         'different XLA fusion decisions.')
     p.Define('funnel_pool_tpl', FunnelPoolingLayer.Params(),
              'Template for the Funnel Pooling layer.')
+    p.Define('survival_prob', 1.0,
+             'Survival probability for the residual branch.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -5100,9 +5155,17 @@ class Builder(builder.Base):
     return super()._Dropout(name, keep_prob=1.0 - drop_prob)
 
   def _Add(self, name, residual_weight=1.0, apply_residual=True):
-    return ResidualAddLayer.Params().Set(name=name,
-                                         residual_weight=residual_weight,
-                                         apply_residual=apply_residual)
+    if self.params.survival_prob < 1.0:
+      assert apply_residual, ('survival_prob < 1.0 is not compatible with '
+                              'apply_residual = False')
+      return StochasticResidualLayer.Params().Set(
+          name=name,
+          residual_weight=residual_weight,
+          survival_prob=self.params.survival_prob)
+    else:
+      return ResidualAddLayer.Params().Set(name=name,
+                                           residual_weight=residual_weight,
+                                           apply_residual=apply_residual)
 
   def _DefaultLN(self, name):
     """Layer norm with default params."""

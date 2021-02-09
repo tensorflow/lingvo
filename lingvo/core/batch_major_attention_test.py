@@ -3230,6 +3230,65 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters(
       {
+          'testcase_name': '_baseline',
+          'strides': [1, 1],
+      }, {
+          'testcase_name': '_stride_2',
+          'strides': [1, 2],
+      }, {
+          'testcase_name': '_first_token',
+          'strides': [2, 0],
+      })
+  def testFunnelTransformerStackStochasticDepth(self,
+                                                strides,
+                                                begin_intact=0,
+                                                trunc_seq=True):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder_params = attention.Builder.Params().Set(
+          model_dim=d,
+          num_heads=2,
+          ff_hidden_dim=5,
+          survival_prob=0.9,
+          funnel_pool_tpl=attention.FunnelPoolingLayer.Params().Set(
+              begin_intact=begin_intact, trunc_seq=trunc_seq))
+      atten_builder = atten_builder_params.Instantiate()
+      layers = []
+      accumulate_stride = 1
+      for layer_i, stride in enumerate(strides):
+        accumulate_stride *= stride
+        layers.append(
+            atten_builder.FunnelEncoderLayer(
+                name='atten_{}'.format(layer_i), stride=stride))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      enc_out = l_out.vec
+      tf.global_variables_initializer().run()
+      actual_enc_out = sess.run(enc_out)
+      if accumulate_stride == 0:
+        self.assertAllEqual([bs, 1, d], actual_enc_out.shape)
+      elif (not begin_intact) or (begin_intact and trunc_seq):
+        seq_len = sl // accumulate_stride
+        self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+      elif begin_intact and not trunc_seq:
+        seq_len = sl
+        for stride in strides:
+          if stride > 1:
+            seq_len = begin_intact + int(
+                math.ceil((seq_len - begin_intact) / stride))
+        self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+
+  @parameterized.named_parameters(
+      {
           'testcase_name': '_avg_pool_exclude',
           'stride': 2,
           'pooling_type': 'AVG',
@@ -3478,6 +3537,47 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       tf.random.set_seed(12345)
       atten_builder = attention.Builder.Params().Set(
           model_dim=d, num_heads=2, ff_hidden_dim=5).Instantiate()
+      layers = []
+      accumulate_stride = 1
+      for layer_i, stride in enumerate(strides):
+        accumulate_stride *= stride
+        layers.append(
+            atten_builder.TransformerEncoderLayer(
+                name='atten_{}'.format(layer_i), stride=stride))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      enc_out = l_out.vec
+      tf.global_variables_initializer().run()
+      actual_enc_out = sess.run(enc_out)
+      seq_len = sl // accumulate_stride if accumulate_stride != 0 else 1
+      self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_baseline',
+          'strides': [1, 1],
+      }, {
+          'testcase_name': '_stride_2',
+          'strides': [2, 1],
+      }, {
+          'testcase_name': '_first_token',
+          'strides': [2, 0],
+      })
+  def testTransformerStackWithStochasticDepth(self, strides):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder = attention.Builder.Params().Set(
+          model_dim=d, num_heads=2, ff_hidden_dim=5,
+          survival_prob=0.9).Instantiate()
       layers = []
       accumulate_stride = 1
       for layer_i, stride in enumerate(strides):
