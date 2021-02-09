@@ -553,9 +553,12 @@ this to split computation across subgraph boundaries.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.mt.decoder.MTDecoderV1._DisallowMisalignedEos">
-<code class="sig-name descname">_DisallowMisalignedEos</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">log_probs</span></em>, <em class="sig-param"><span class="n">source_num_sentences</span></em>, <em class="sig-param"><span class="n">hyp_num_sentences</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._DisallowMisalignedEos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._DisallowMisalignedEos" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update ‘log_probs’ to disallow misaligned EOS.</p>
+<dt id="lingvo.tasks.mt.decoder.MTDecoderV1._ForceAlignment">
+<code class="sig-name descname">_ForceAlignment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">log_probs</span></em>, <em class="sig-param"><span class="n">source_num_sentences</span></em>, <em class="sig-param"><span class="n">hyp_num_sentences</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._ForceAlignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._ForceAlignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update ‘log_probs’ to for alignment.</p>
+<p>We adjust ‘log_probs’ to disallow p.sentence_boundary_token_id or EOS if
+emitting it would result in a misaligned output with an unequal number
+of sentences.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -567,9 +570,8 @@ number of sentences in hyp.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The new log_probs (score used for beam search), which is reduced at
-EOS if the number of sentences in the hyp is insufficient such when
-compared to the number of sentences in the source.</p>
+<dd class="field-even"><p>The adjusted log_probs (score used for beam search) which ensures
+aligned output in terms of number of sentences.</p>
 </dd>
 </dl>
 </dd></dl>

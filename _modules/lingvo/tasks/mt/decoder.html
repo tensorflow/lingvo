@@ -586,10 +586,11 @@
         <span class="s1">&#39;token at time step 0. Make sure the training data has &#39;</span>
         <span class="s1">&#39;target_lang id as the first token in target sequence.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;disallow_misaligned_eos&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;When input contains multiple sentences, disallows EOS until &#39;</span>
-        <span class="s1">&#39;the hypothesis contains at least the same number of sentences &#39;</span>
-        <span class="s1">&#39;as the input source. Must also set p.sentence_boundary_token_id.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;force_alignment&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;When input contains multiple sentences, adjusts the scores of &#39;</span>
+        <span class="s1">&#39;p.sentence_boundary_token_id and EOS during beam search to force &#39;</span>
+        <span class="s1">&#39;the hypothesis to contain the same number of sentences as the input &#39;</span>
+        <span class="s1">&#39;source. Must also set p.sentence_boundary_token_id.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;sentence_boundary_token_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;None, or an int. The token id that separates different sentences.&#39;</span><span class="p">)</span>
@@ -646,8 +647,8 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">disallow_misaligned_eos</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">sentence_boundary_token_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;When p.disallow_misaligned_eos is set, &#39;</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_alignment</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">sentence_boundary_token_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;When p.force_alignment is set, &#39;</span>
                        <span class="s1">&#39;must specify p.sentence_boundary_token_id.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">layers</span><span class="o">.</span><span class="n">SharedSoftmaxLayer</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span> <span class="o">=</span> <span class="kc">True</span>
@@ -1041,7 +1042,7 @@
         <span class="s1">&#39;atten_probs&#39;</span><span class="p">:</span> <span class="n">atten_probs</span><span class="p">,</span>
         <span class="s1">&#39;atten_states&#39;</span><span class="p">:</span> <span class="n">atten_states</span><span class="p">,</span>
     <span class="p">})</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">disallow_misaligned_eos</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_alignment</span><span class="p">:</span>
       <span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">states</span></div>
 
@@ -1094,14 +1095,14 @@
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">step_out</span><span class="p">])</span>
     <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span><span class="o">.</span><span class="n">qlogsoftmax</span><span class="p">(</span>
         <span class="n">logits</span><span class="p">,</span> <span class="n">qmin</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">qlogsoftmax_range_min</span><span class="p">,</span> <span class="n">qmax</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">disallow_misaligned_eos</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_alignment</span><span class="p">:</span>
       <span class="k">if</span> <span class="s1">&#39;num_sentences&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">encoder_outputs</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Model does not support p.disallow_misaligned_eos as &#39;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Model does not support p.force_alignment as &#39;</span>
                          <span class="s1">&#39;key &quot;num_sentences&quot; is missing from encoder_outputs.&#39;</span><span class="p">)</span>
       <span class="n">source_num_sentences</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
           <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">],</span> <span class="n">multiples</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">])</span>
-      <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DisallowMisalignedEos</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">source_num_sentences</span><span class="p">,</span>
-                                              <span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">])</span>
+      <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ForceAlignment</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">source_num_sentences</span><span class="p">,</span>
+                                       <span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_prev_atten_ctx</span><span class="p">:</span>
       <span class="n">cur_atten_probs</span> <span class="o">=</span> <span class="n">prev_atten_probs</span>
@@ -1119,7 +1120,7 @@
         <span class="s1">&#39;atten_probs&#39;</span><span class="p">:</span> <span class="n">atten_probs</span><span class="p">,</span>  <span class="c1"># the updated attention probs</span>
         <span class="s1">&#39;atten_states&#39;</span><span class="p">:</span> <span class="n">atten_states</span><span class="p">,</span>
     <span class="p">})</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">disallow_misaligned_eos</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_alignment</span><span class="p">:</span>
       <span class="n">new_states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span>
@@ -1127,16 +1128,19 @@
 <div class="viewcode-block" id="MTDecoderV1._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span>
                                   <span class="n">states</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">disallow_misaligned_eos</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_alignment</span><span class="p">:</span>
       <span class="n">add</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">new_step_ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sentence_boundary_token_id</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">add</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">states</span></div>
 
-<div class="viewcode-block" id="MTDecoderV1._DisallowMisalignedEos"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._DisallowMisalignedEos">[docs]</a>  <span class="k">def</span> <span class="nf">_DisallowMisalignedEos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">,</span> <span class="n">source_num_sentences</span><span class="p">,</span>
-                             <span class="n">hyp_num_sentences</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Update &#39;log_probs&#39; to disallow misaligned EOS.</span>
+<div class="viewcode-block" id="MTDecoderV1._ForceAlignment"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._ForceAlignment">[docs]</a>  <span class="k">def</span> <span class="nf">_ForceAlignment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">,</span> <span class="n">source_num_sentences</span><span class="p">,</span> <span class="n">hyp_num_sentences</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update &#39;log_probs&#39; to for alignment.</span>
+
+<span class="sd">    We adjust &#39;log_probs&#39; to disallow p.sentence_boundary_token_id or EOS if</span>
+<span class="sd">    emitting it would result in a misaligned output with an unequal number</span>
+<span class="sd">    of sentences.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      log_probs: encoder&#39;s log_probs output.</span>
@@ -1146,9 +1150,8 @@
 <span class="sd">        number of sentences in hyp.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The new log_probs (score used for beam search), which is reduced at</span>
-<span class="sd">      EOS if the number of sentences in the hyp is insufficient such when</span>
-<span class="sd">      compared to the number of sentences in the source.</span>
+<span class="sd">      The adjusted log_probs (score used for beam search) which ensures</span>
+<span class="sd">      aligned output in terms of number of sentences.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">eos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span>
