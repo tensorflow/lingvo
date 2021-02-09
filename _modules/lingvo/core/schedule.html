@@ -456,6 +456,10 @@
         <span class="s1">&#39;warmup_steps&#39;</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="s1">&#39;Increase the learning rate linearly for &#39;</span>
         <span class="s1">&#39;the first warmup_steps training steps.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;warmup_init_fraction&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+        <span class="s1">&#39;Begin the first step of warm-up with this fraction of the peak LR. &#39;</span>
+        <span class="s1">&#39;Set to 1 for constant peak LR during the entire warm-up period.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;model_dim&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="s1">&#39;Model dimension that applies to embedding &#39;</span>
         <span class="s1">&#39;layers and all Transformer layers.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -465,7 +469,9 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">current_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">warmup_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">linear_warmup</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">current_step</span> <span class="o">/</span> <span class="n">warmup_steps</span><span class="p">)</span>
+    <span class="n">init_fraction</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_init_fraction</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">linear_warmup</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+        <span class="mf">1.0</span><span class="p">,</span> <span class="n">init_fraction</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">init_fraction</span><span class="p">)</span> <span class="o">*</span> <span class="n">current_step</span> <span class="o">/</span> <span class="n">warmup_steps</span><span class="p">)</span>
     <span class="n">rsqrt_decay</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">warmup_steps</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">linear_warmup</span> <span class="o">*</span> <span class="n">rsqrt_decay</span></div></div>
 
