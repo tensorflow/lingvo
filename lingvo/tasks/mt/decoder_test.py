@@ -467,7 +467,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
                         actual_decode_feeding_att_context.topk_scores)
 
   def testBeamSearchDisallowMisalignment(self):
-    """Test p.disallow_misaligned_eos behaves correctly."""
+    """Test p.force_alignment behaves correctly."""
     with self.session(use_gpu=True), self.SetEval(True), tf.variable_scope(
         'test', reuse=tf.AUTO_REUSE):
       tf.random.set_seed(_TF_RANDOM_SEED)
@@ -482,7 +482,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       p.sentence_boundary_token_id = 1
       dec = p.Instantiate()
       p_disallow = p.Copy()
-      p_disallow.disallow_misaligned_eos = True
+      p_disallow.force_alignment = True
       dec_disallow = p_disallow.Instantiate()
 
       encoder_outputs, _ = self._Inputs(dtype=tf.float32)

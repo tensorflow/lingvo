@@ -434,10 +434,11 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'token at time step 0. Make sure the training data has '
         'target_lang id as the first token in target sequence.')
     p.Define(
-        'disallow_misaligned_eos', False,
-        'When input contains multiple sentences, disallows EOS until '
-        'the hypothesis contains at least the same number of sentences '
-        'as the input source. Must also set p.sentence_boundary_token_id.')
+        'force_alignment', False,
+        'When input contains multiple sentences, adjusts the scores of '
+        'p.sentence_boundary_token_id and EOS during beam search to force '
+        'the hypothesis to contain the same number of sentences as the input '
+        'source. Must also set p.sentence_boundary_token_id.')
     p.Define(
         'sentence_boundary_token_id', None,
         'None, or an int. The token id that separates different sentences.')
@@ -494,8 +495,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    if p.disallow_misaligned_eos and p.sentence_boundary_token_id is None:
-      raise ValueError('When p.disallow_misaligned_eos is set, '
+    if p.force_alignment and p.sentence_boundary_token_id is None:
+      raise ValueError('When p.force_alignment is set, '
                        'must specify p.sentence_boundary_token_id.')
     if p.softmax.cls == layers.SharedSoftmaxLayer:
       self._share_sm_emb = True
@@ -889,7 +890,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'atten_probs': atten_probs,
         'atten_states': atten_states,
     })
-    if p.disallow_misaligned_eos:
+    if p.force_alignment:
       states['num_sentences'] = tf.ones([num_hyps], dtype=tf.int32)
     return initial_results, states
 
@@ -942,14 +943,14 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     logits = self.softmax.Logits(theta.softmax, [step_out])
     log_probs = self.fns.qlogsoftmax(
         logits, qmin=p.qlogsoftmax_range_min, qmax=0.0)
-    if p.disallow_misaligned_eos:
+    if p.force_alignment:
       if 'num_sentences' not in encoder_outputs:
-        raise ValueError('Model does not support p.disallow_misaligned_eos as '
+        raise ValueError('Model does not support p.force_alignment as '
                          'key "num_sentences" is missing from encoder_outputs.')
       source_num_sentences = tf.tile(
           encoder_outputs['num_sentences'], multiples=[num_hyps_per_beam])
-      log_probs = self._DisallowMisalignedEos(log_probs, source_num_sentences,
-                                              states['num_sentences'])
+      log_probs = self._ForceAlignment(log_probs, source_num_sentences,
+                                       states['num_sentences'])
 
     if p.use_prev_atten_ctx:
       cur_atten_probs = prev_atten_probs
@@ -967,7 +968,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'atten_probs': atten_probs,  # the updated attention probs
         'atten_states': atten_states,
     })
-    if p.disallow_misaligned_eos:
+    if p.force_alignment:
       new_states['num_sentences'] = states['num_sentences']
 
     return bs_results, new_states
@@ -975,16 +976,19 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
                                   states):
     p = self.params
-    if p.disallow_misaligned_eos:
+    if p.force_alignment:
       add = tf.squeeze(
           tf.math.equal(new_step_ids, p.sentence_boundary_token_id), axis=1)
       states['num_sentences'] += tf.cast(
           add, dtype=states['num_sentences'].dtype)
     return states
 
-  def _DisallowMisalignedEos(self, log_probs, source_num_sentences,
-                             hyp_num_sentences):
-    """Update 'log_probs' to disallow misaligned EOS.
+  def _ForceAlignment(self, log_probs, source_num_sentences, hyp_num_sentences):
+    """Update 'log_probs' to for alignment.
+
+    We adjust 'log_probs' to disallow p.sentence_boundary_token_id or EOS if
+    emitting it would result in a misaligned output with an unequal number
+    of sentences.
 
     Args:
       log_probs: encoder's log_probs output.
@@ -994,9 +998,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         number of sentences in hyp.
 
     Returns:
-      The new log_probs (score used for beam search), which is reduced at
-      EOS if the number of sentences in the hyp is insufficient such when
-      compared to the number of sentences in the source.
+      The adjusted log_probs (score used for beam search) which ensures
+      aligned output in terms of number of sentences.
     """
     p = self.params
     eos_id = p.target_eos_id
