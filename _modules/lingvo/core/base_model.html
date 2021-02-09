@@ -463,10 +463,9 @@
           <span class="c1"># We require static dataset size for non-resettable inputs.</span>
           <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">seq_inp</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-              <span class="s1">&#39;input.num_batcher_threads &gt; 1 inside eval mode.  &#39;</span>
-              <span class="s1">&#39;The input generator may not iterate over exactly &#39;</span>
-              <span class="s1">&#39;one epoch per run&#39;</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;input.num_batcher_threads &gt; 1 inside eval mode.  &#39;</span>
+                             <span class="s1">&#39;The input generator may not iterate over exactly &#39;</span>
+                             <span class="s1">&#39;one epoch per run&#39;</span><span class="p">)</span>
       <span class="n">input_params</span> <span class="o">=</span> <span class="n">input_policy</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_params</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="n">input_params</span><span class="p">)</span>
@@ -788,8 +787,12 @@
       <span class="c1"># Lookup the per-task activations.</span>
       <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tpu_embedding_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
       <span class="n">tpu_embedding_send_gradient_op</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeTpuEmbeddingGradients</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span>
+          <span class="n">tpu_embedding_gradient_multiplier_schedule</span><span class="p">)</span>
       <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;tpu_embedding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_send_gradient_op</span>
 
       <span class="n">tpu_embedding_summary_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
@@ -830,9 +833,8 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">)):</span>
         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-              <span class="s1">&#39;Keep gradient after filtering, regex: </span><span class="si">%s</span><span class="s1"> var: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-              <span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Keep gradient after filtering, regex: </span><span class="si">%s</span><span class="s1"> var: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                          <span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_per_input_gradient_mask</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span></div>
 

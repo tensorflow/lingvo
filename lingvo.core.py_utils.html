@@ -1348,7 +1348,7 @@ from checkpoint and return a list of overwritten variables.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.ComputeTpuEmbeddingGradients">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeTpuEmbeddingGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">activation_dict</span></em>, <em class="sig-param"><span class="n">tpu_embedding</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeTpuEmbeddingGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeTpuEmbeddingGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeTpuEmbeddingGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">activation_dict</span></em>, <em class="sig-param"><span class="n">tpu_embedding</span></em>, <em class="sig-param"><span class="n">gradient_multiplier_schedule</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeTpuEmbeddingGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeTpuEmbeddingGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a TpuEmbedding SendGradient op.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1356,6 +1356,8 @@ from checkpoint and return a list of overwritten variables.</p>
 <li><p><strong>loss</strong> – The loss to backprop from.</p></li>
 <li><p><strong>activation_dict</strong> – String feature -&gt; embedding activations dict.</p></li>
 <li><p><strong>tpu_embedding</strong> – TPUEmbedding instance.</p></li>
+<li><p><strong>gradient_multiplier_schedule</strong> – Values from this schedule will be multiplied
+to the TPUEmbedding gradients.</p></li>
 </ul>
 </dd>
 </dl>

@@ -649,6 +649,10 @@
         <span class="s1">&#39;partition_strategy&#39;</span><span class="p">,</span> <span class="s1">&#39;div&#39;</span><span class="p">,</span> <span class="s1">&#39;A string, either &quot;mod&quot; or &quot;div&quot;, &#39;</span>
         <span class="s1">&#39;specifying how to map the lookup id to the embedding tensor. For &#39;</span>
         <span class="s1">&#39;more information see `tf.nn.embedding_lookup_sparse`.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gradient_multiplier_schedule&#39;</span><span class="p">,</span> <span class="n">schedule</span><span class="o">.</span><span class="n">ConstantOne</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Values from this schedule will be multiplied to the embedding &#39;</span>
+        <span class="s1">&#39;gradients. Gradients from Tensorcore will not be affected.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -661,6 +665,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">partition_strategy</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mod&#39;</span><span class="p">,</span> <span class="s1">&#39;div&#39;</span><span class="p">]</span>
 
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
@@ -684,6 +689,8 @@
           <span class="n">table_params</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gradient_multiplier_schedule&#39;</span><span class="p">,</span>
+                     <span class="n">p</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
@@ -744,7 +751,10 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">),</span>
             <span class="n">partition_strategy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">partition_strategy</span><span class="p">,</span>
             <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span></div>
+        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._TpuEmbLookup"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">_TpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;TPU Embedding lookup.&quot;&quot;&quot;</span>
