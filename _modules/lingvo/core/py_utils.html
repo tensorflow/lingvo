@@ -3558,9 +3558,10 @@
                              <span class="k">lambda</span><span class="p">:</span> <span class="n">update_delta</span><span class="p">)</span>
       <span class="n">bn_update</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_sub</span><span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">update_delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">scope</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">BATCH_NORM_UPDATES</span><span class="p">,</span> <span class="n">bn_update</span><span class="p">)</span>
-  <span class="n">bn_update_dict</span> <span class="o">=</span> <span class="n">_get_batch_norm_updates_dict</span><span class="p">()</span>
-  <span class="k">assert</span> <span class="n">bn_update</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bn_update_dict</span>
-  <span class="n">bn_update_dict</span><span class="p">[</span><span class="n">bn_update</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">batch_norm_stats</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="n">bn_update_dict</span> <span class="o">=</span> <span class="n">_get_batch_norm_updates_dict</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">bn_update</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bn_update_dict</span>
+    <span class="n">bn_update_dict</span><span class="p">[</span><span class="n">bn_update</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">batch_norm_stats</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">bn_update</span></div>
 
 
@@ -3576,6 +3577,8 @@
 <span class="sd">    that are relevant to the loss being optimized, and the second list contains</span>
 <span class="sd">    all in batch_norm_updates but not in the first list.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[],</span> <span class="p">[]</span>
   <span class="n">dependent_ops_and_tensors</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">FindNeeded</span><span class="p">(</span><span class="n">loss</span><span class="p">))</span>
   <span class="n">relevant_updates</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="n">irrelevant_updates</span> <span class="o">=</span> <span class="p">[]</span>
