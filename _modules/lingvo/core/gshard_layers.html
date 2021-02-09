@@ -523,6 +523,32 @@
     <span class="bp">cls</span><span class="o">.</span><span class="n">_OVERRIDE</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div></div>
 
 
+<div class="viewcode-block" id="ReshapeInputLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ReshapeInputLayer">[docs]</a><span class="k">class</span> <span class="nc">ReshapeInputLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reshape input only for training.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ReshapeInputLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ReshapeInputLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_groups&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of groups.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_devices&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of devices.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="ReshapeInputLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ReshapeInputLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="c1"># Do not reshape for eval.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+      <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span>
+          <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">orig_inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+      <span class="p">])</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span></div></div>
+
+
 <div class="viewcode-block" id="SharedEmbeddingSoftmaxLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer">[docs]</a><span class="k">class</span> <span class="nc">SharedEmbeddingSoftmaxLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Shared weights for embemdding lookup and softmax.&quot;&quot;&quot;</span>
 
@@ -1183,7 +1209,8 @@
   <span class="c1"># combine_tensor: G`SEC</span>
   <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">G</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-  <span class="k">assert</span> <span class="n">num_groups</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">dimension_value</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+  <span class="c1"># allow evaler/decoder to run.</span>
+  <span class="k">del</span> <span class="n">num_groups</span>
   <span class="n">C</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">A</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="n">C</span>
   <span class="c1"># pylint: enable=invalid-name</span>
