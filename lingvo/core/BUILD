@@ -1332,9 +1332,11 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":layers",
         ":py_utils",
         ":test_utils",
         "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 

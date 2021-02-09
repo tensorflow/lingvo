@@ -159,6 +159,8 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       self.evaluate(bn_update_list)
+      # IMPORTANT: Keep these values consistent with the corresponding
+      # test in py_utils_eager_test.py
       self.assertAllClose(2.6575434, sig1.eval(), atol=1e-5)
       self.assertAllClose(15.473802, sig2.eval())
 

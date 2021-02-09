@@ -3406,9 +3406,10 @@ def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
                              lambda: update_delta)
       bn_update = tf.assign_sub(batch_norm_var, update_delta, name=scope)
   tf.add_to_collection(BATCH_NORM_UPDATES, bn_update)
-  bn_update_dict = _get_batch_norm_updates_dict()
-  assert bn_update.name not in bn_update_dict
-  bn_update_dict[bn_update.name] = (batch_norm_var, batch_norm_stats)
+  if not tf.executing_eagerly():
+    bn_update_dict = _get_batch_norm_updates_dict()
+    assert bn_update.name not in bn_update_dict
+    bn_update_dict[bn_update.name] = (batch_norm_var, batch_norm_stats)
   return bn_update
 
 
@@ -3424,6 +3425,8 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
     that are relevant to the loss being optimized, and the second list contains
     all in batch_norm_updates but not in the first list.
   """
+  if tf.executing_eagerly():
+    return [], []
   dependent_ops_and_tensors = set(FindNeeded(loss))
   relevant_updates = []
   irrelevant_updates = []
