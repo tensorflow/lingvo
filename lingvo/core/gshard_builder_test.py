@@ -456,7 +456,7 @@ class UniTransformerTest(test_utils.TestCase):
         parallel_ffn=True,
         hidden_dim_reshape_segments=2,
         conv_kernel_size=2,
-        builder=gshard_builder.DenseBuilder.Params().Set(
+        builder=gshard_builder.RecurrentDenseBuilderParallelDecode.Params().Set(
             device_mesh_shape=[1, 1],
             device_mesh=None,
             relative_attention_num_buckets=32,
@@ -467,6 +467,8 @@ class UniTransformerTest(test_utils.TestCase):
             relative_attention_use_universal_1d_position=True,
             model_dim=32,
             model_dim_reshape_segments=2,
+            attention_num_memory_heads=1,
+            proj_weight_hdim=2,
             attention_num_heads=8,
             ff_dim=128,
             attention_key_value_dim=8,
@@ -490,7 +492,7 @@ class UniTransformerTest(test_utils.TestCase):
       loss = model.FPropDefaultTheta(input_batch)[0]['loss'][0]
       sess.run(tf.global_variables_initializer())
       loss_eval = sess.run(loss)
-      test_utils.CompareToGoldenSingleFloat(self, 5.968699, loss_eval)
+      test_utils.CompareToGoldenSingleFloat(self, 5.832047, loss_eval)
 
 
 if __name__ == '__main__':

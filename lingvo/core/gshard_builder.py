@@ -2126,7 +2126,7 @@ class DenseBuilder(MoEBuilder):
 
 
 class RecurrentDenseBuilder(DenseBuilder):
-  """Same as DenseBuilder but layers are stacked using recurrent."""
+  """Deprecated. Same as DenseBuilder but layers are stacked using recurrent."""
 
   # Required manually changing Split() split dimension for variables creating
   # with VarLayer().
@@ -2187,6 +2187,286 @@ class RecurrentDenseBuilder(DenseBuilder):
     ], [
         'outputs',
         'output_loss',
+    ], *stack)
+
+
+class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
+  """Same as RecurrentDenseBuilder but with micro variables.
+
+  Projection variables created under this builder will be replaced by multiple
+  micro variables, each with shape [model_dim, proj_weight_hdim, d_kv].
+  For example, the original wi_o with shape [1024, 4096] was replaced with
+  8 micro variables each with  shape [1024, 4, 128] when proj_weight_hdim = 4
+  and d_kv = 128.
+
+  Using smaller micro variables reduced the total size of variables created by
+  RepeatLayer. For example, when the number of layers is 120, model_dim = 16k,
+  ff_dim = 64k, d_kv = 128, then RepeatLayer will create variables with size
+  120 * 16k * 64k * 4Bytes = 491GB, exceeding the host memoery limit.
+  By setting proj_weight_hdim = 64, RepeatLayer will create 8x micro variables,
+  each with shape [L, 16k, 64, 128] only. Using leasting loading placer those
+  micro variables will be placed at different hosts.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('proj_weight_hdim', 64,
+             'weight hd_dims = [proj_weight_hdim, attention_key_value_dim].')
+    return p
+
+  @property
+  def _num_input_proj_weights(self):
+    p = self.params
+    num_wq = p.attention_num_heads // p.proj_weight_hdim
+    kv_h = p.attention_num_memory_heads or p.attention_num_heads
+    if kv_h < p.proj_weight_hdim:
+      num_wkv = 1
+    else:
+      num_wkv = kv_h // p.proj_weight_hdim
+    num_wi = p.ff_dim // p.attention_key_value_dim // p.proj_weight_hdim
+    return num_wq, num_wkv, num_wi
+
+  @property
+  def _num_output_proj_weights(self):
+    p = self.params
+    num_atten = p.attention_num_heads // p.proj_weight_hdim
+    num_wo = p.ff_dim // p.attention_key_value_dim // p.proj_weight_hdim
+    return num_atten, num_wo
+
+  def _DecoderLayerInputProjWeights(self, name):
+    # Create multiple input projection weights, each of which has shape
+    # [model_dim, proj_weight_hdim, d_kv].
+    p = self.params
+    assert p.ff_dim % p.attention_key_value_dim == 0
+    assert p.attention_num_heads % p.proj_weight_hdim == 0
+    assert (p.ff_dim // p.attention_key_value_dim) % p.proj_weight_hdim == 0
+    input_w_split = [p.mhd_w_split[0], max(p.mhd_w_split[1], p.mhd_w_split[2])]
+
+    q_stddev = (p.model_dim * p.attention_key_value_dim)**-0.5
+    wq_tpl = gshard_layers.ShardedWeightParams(
+        shape=[p.model_dim, p.proj_weight_hdim * p.attention_key_value_dim],
+        dtype=p.dtype,
+        init=py_utils.WeightInit.Gaussian(q_stddev),
+        tensor_split_dims_mapping=input_w_split)
+
+    kv_h = p.attention_num_memory_heads or p.attention_num_heads
+    kv_stddev = (p.model_dim)**-0.5
+    h_dim = kv_h if kv_h < p.proj_weight_hdim else p.proj_weight_hdim
+    wkv_tpl = gshard_layers.ShardedWeightParams(
+        shape=[p.model_dim, h_dim * p.attention_key_value_dim],
+        dtype=p.dtype,
+        init=py_utils.WeightInit.Gaussian(kv_stddev),
+        tensor_split_dims_mapping=input_w_split)
+
+    ffw_tpl = gshard_layers.ShardedWeightParams(
+        init=py_utils.WeightInit.Uniform(((1. / p.model_dim)**0.5) * 3.0**0.5),
+        dtype=p.dtype,
+        shape=[p.model_dim, p.proj_weight_hdim * p.attention_key_value_dim],
+        tensor_split_dims_mapping=input_w_split)
+
+    num_wq, num_wkv, num_wi = self._num_input_proj_weights
+
+    weights_params = []
+    for i in range(num_wq):
+      weights_params.append(('wq_%d' % i, wq_tpl))
+    for i in range(num_wkv):
+      weights_params.append(('wk_%d' % i, wkv_tpl))
+    for i in range(num_wkv):
+      weights_params.append(('wv_%d' % i, wkv_tpl))
+    for i in range(num_wi):
+      weights_params.append(('wi0_%d' % i, ffw_tpl))
+    for i in range(num_wi):
+      weights_params.append(('wi1_%d' % i, ffw_tpl))
+    return self._ShardedVar(
+        name=name, weights=weights_params, device_mesh=self._device_mesh)
+
+  def _DecoderLayerOutputProjWeights(self, name):
+    p = self.params
+    out_w_split = [max(p.mhd_w_split[1], p.mhd_w_split[2]), p.mhd_w_split[0]]
+
+    atten_stddev = (p.attention_num_heads * p.attention_key_value_dim)**-0.5
+    atten_tpl = gshard_layers.ShardedWeightParams(
+        shape=[p.proj_weight_hdim * p.attention_key_value_dim, p.model_dim],
+        dtype=p.dtype,
+        init=py_utils.WeightInit.Gaussian(atten_stddev),
+        tensor_split_dims_mapping=out_w_split)
+    ffw_tpl = gshard_layers.ShardedWeightParams(
+        init=py_utils.WeightInit.Uniform(((1. / p.ff_dim)**0.5) * 3.0**0.5),
+        dtype=p.dtype,
+        shape=[p.proj_weight_hdim * p.attention_key_value_dim, p.model_dim],
+        tensor_split_dims_mapping=out_w_split)
+    num_atten, num_wo = self._num_output_proj_weights
+    weights_params = []
+    for i in range(num_atten):
+      weights_params.append(('atten_wo_%d' % i, atten_tpl))
+    for i in range(num_wo):
+      weights_params.append(('ffw_wo_%d' % i, ffw_tpl))
+    return self._ShardedVar(
+        name=name, weights=weights_params, device_mesh=self._device_mesh)
+
+  def _ComputeQKVH(self, name, hidden_dim_reshape_segments=4):
+    p = self.params
+    d_kv = p.attention_key_value_dim
+
+    def _Compute(x, *ws):
+      num_wq, num_wkv, num_wi = self._num_input_proj_weights
+
+      def _ReshapeW(w, h=0):
+        if p.attention_num_heads > 1 and h == 1:
+          return tf.reshape(w, self._ReshapedModelDims() + [h, -1])
+        else:
+          return tf.reshape(
+              w,
+              self._ReshapedModelDims() +
+              [hidden_dim_reshape_segments, -1, d_kv])
+
+      wqs = ws[:num_wq]
+      wks = ws[num_wq:num_wq + num_wkv]
+      wvs = ws[num_wq + num_wkv:num_wq + 2 * num_wkv]
+      wi0s = ws[num_wq + 2 * num_wkv:num_wq + 2 * num_wkv + num_wi]
+      wi1s = ws[num_wq + 2 * num_wkv + num_wi:]
+
+      if (p.attention_num_memory_heads and
+          p.attention_num_heads != p.attention_num_memory_heads):
+        # Combined tf.einsum is not possible, falling back to individual
+        # einsum ops.
+        h_kv = p.attention_num_memory_heads or p.attention_num_heads
+        wk = tf.concat([_ReshapeW(w, h_kv) for w in wks], -2)
+        wv = tf.concat([_ReshapeW(w, h_kv) for w in wvs], -2)
+        k = self._EinsumWithModelDim('BLM,MHD->BLHD', x, wk)
+        v = self._EinsumWithModelDim('BLM,MHD->BLHD', x, wv)
+        wc = tf.concat([_ReshapeW(w) for w in wqs + wi0s + wi1s], -2)
+        splits = [p.attention_num_heads // hidden_dim_reshape_segments
+                 ] + [p.ff_dim // d_kv // hidden_dim_reshape_segments] * 2
+        r = self._MeshSplit(
+            self._EinsumWithModelDim('BLM,MSHD->BLSHD', x, wc),
+            p.blh_split + [-1, -1])
+        q, f1, f2 = tf.split(r, splits, -2)
+        f1 = self._MeshSplit(f1, p.blh_split + [-1, -1])
+        f2 = self._MeshSplit(f2, p.blh_split + [-1, -1])
+        q = self._MeshSplit(
+            tf.reshape(q,
+                       q.shape.as_list()[:2] + [-1, q.shape[-1]]), p.qkv_split)
+
+        # Only one head so there is nothing to shard the H in BLHD k,v tensors.
+        kv_split = p.qkv_split[:2] + [-1, p.qkv_split[-1]]
+        k = self._MeshSplit(k, kv_split)
+        v = self._MeshSplit(v, kv_split)
+        return q, k, v, f1, f2
+      wc = tf.concat([_ReshapeW(w) for w in ws], -2)
+      splits = [p.attention_num_heads // hidden_dim_reshape_segments
+               ] * 3 + [p.ff_dim // d_kv // hidden_dim_reshape_segments] * 2
+      ret = tf.split(
+          self._EinsumWithModelDim('BLM,MSHD->BLSHD', x, wc), splits, -2)
+
+      def _MeshSplitQKV(x):
+        return tf.reshape(x, x.shape.as_list()[:2] + [-1, x.shape[-1]])
+
+      return [_MeshSplitQKV(x) for x in ret[:3]] + ret[3:]
+
+    return self._Fn(name, _Compute)
+
+  def DecoderLayer(self,
+                   name,
+                   activation_fn,
+                   conv_kernel_size=None,
+                   hidden_dim_reshape_segments=4):
+    p = self.params
+
+    collections = None
+    if p.relative_attention_type == 'bias_shared':
+      collections = ['_dec_self_attention_shared_var']
+    else:
+      assert p.relative_attention_type == 'bias', p.relative_attention_type
+
+    def _ComputeBias(segment_id, segment_pos):
+      return self._DecNotVisible(segment_id, segment_pos) * (-1e+09)
+
+    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+
+    if conv_kernel_size is not None:
+      ln_layer = self._LNConv('ln', conv_kernel_size)
+      d = p.ff_dim // hidden_dim_reshape_segments // p.attention_key_value_dim
+      model_dims = [hidden_dim_reshape_segments, d, p.attention_key_value_dim]
+      optional_conv_layer = self.DepthwiseConvAutoregressive(
+          name='conv', kernel_size=conv_kernel_size, model_dims=model_dims)
+    else:
+      ln_layer = self._LN('ln')
+      optional_conv_layer = self._Identity('conv')
+    num_q, num_kv, num_wi = self._num_input_proj_weights
+    num_weights = num_q + 2 * num_kv + 2 * num_wi
+    wi_str = ','.join(['wi_%d' % i for i in range(num_weights)])
+    num_atten, num_wo = self._num_output_proj_weights
+    num_weights = num_atten + num_wo
+    wo_str = ','.join(['wo_%d' % i for i in range(num_weights)])
+
+    def _Outputs(o_atten, o_ffw, *ws):
+      h_shape = [hidden_dim_reshape_segments, -1, p.attention_key_value_dim]
+      wo = tf.concat(
+          [tf.reshape(w, h_shape + self._ReshapedModelDims()) for w in ws], 1)
+
+      o_atten = tf.reshape(o_atten, o_atten.shape.as_list()[:2] + h_shape)
+      o = self._MeshSplit(
+          tf.concat([o_atten, o_ffw], -2), p.blh_split + [-1, -1])
+      return self._EinsumWithModelDim('SHDM,BLSHD->BLM', wo, o) * (2.0**-0.5)
+
+    return self._Graph(
+        name,
+        ['inputs', 'segment_id', 'segment_pos'],
+        ['outputs', 'segment_id', 'segment_pos'],
+        ('inputs,segment_id->input_masked', self.Mask()),
+        ('input_masked->x', ln_layer),
+        ('->%s' % wi_str, self._DecoderLayerInputProjWeights('get_w_in')),
+        ('->relative_bias_weights',
+         self._RelativeAttentionBiasWeights('wrb', collections)),
+        ('x,%s->q,k,v,h1,h2' % wi_str,
+         self._ComputeQKVH('qkvh', hidden_dim_reshape_segments)),
+        ('k->k_full', self._State('k_state', state_shape)),
+        ('v->v_full', self._State('v_state', state_shape)),
+        ('segment_pos->key_segment_pos',
+         self._State('seg_pos', [None, None], dtype=tf.int32)),
+        ('segment_id,segment_pos->qq_bias', self._Fn('bias', fn=_ComputeBias)),
+        ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
+        # Decoder _AddRelativeBias always has bidirectional=False.
+        ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
+         self._Fn('relative_bias', fn=self._AddRelativeBias)),
+        ('q,k_full,v_full,qhk_bias->o_atten', self.Attention('attention')),
+        ('h1->h1_act', self._Fn('h1_act', fn=activation_fn)),
+        ('h1_act->h1_conv', optional_conv_layer),
+        ('h1_conv,h2->o_ffw', self._Fn('h_ffw', fn=tf.math.multiply)),
+        ('->%s' % wo_str, self._DecoderLayerOutputProjWeights('get_w_out')),
+        ('o_atten,o_ffw,%s->y' % wo_str, self._Fn('compute_output', _Outputs)),
+        ('y->y_dropout', self._Dropout('y_dropout', 1 - p.dropout_rate)),
+        ('input_masked,y_dropout->outputs', self._Add('add')))
+
+  def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
+    """DecoderLayerStack with self attention and feedforward in parallel."""
+    stack = [
+        ('inputs->inputs_split', self.Split('inputs_split')),
+        ('segment_id->segment_id_split', self.Split('segment_id_split')),
+        ('segment_pos->segment_pos_split', self.Split('segment_pos_split')),
+        ('encoder_output->encoder_output_split',
+         self.Split('encoder_output_split')),
+        ('encoder_segment_id->encoder_segment_id_split',
+         self.Split('encoder_segment_id_split')),
+        ('encoder_segment_pos->encoder_segment_pos_split',
+         self.Split('encoder_segment_pos_split')),
+        ('inputs->input_dropout',
+         self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
+        ('input_dropout,segment_id_split,segment_pos_split->'
+         'y,o_segment_id_split,o_segment_pos_split', sub_layers[0]),
+        ('y->y_norm', self._LN('final_layer_norm')),
+        ('y_norm->y_dropout',
+         self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
+        ('y_dropout,segment_id_split->outputs', self.Mask()),
+    ]
+    return self._Graph(name, [
+        'inputs', 'segment_id', 'segment_pos', 'encoder_output',
+        'encoder_segment_id', 'encoder_segment_pos', 'zero_loss'
+    ], [
+        'outputs',
+        'zero_loss',
     ], *stack)
 
 
@@ -2274,11 +2554,12 @@ class UniTransformer(base_model.BaseTask):
         assert not p.positional_embedding
         assert gated_ffn_activation
         decoder_sub_layers += [
-            b.ParallelDecSelfAttentionRelativeBiasFFN(
-                'parallel_self_attention_ffn' + str_i,
-                gated_ffn_activation,
-                conv_kernel_size=p.conv_kernel_size,
-                hidden_dim_reshape_segments=p.hidden_dim_reshape_segments)
+            builder_layers.RepeatLayer.Params().Set(
+                name='blocks',
+                body=b.DecoderLayer('block', gated_ffn_activation,
+                                    p.conv_kernel_size,
+                                    p.hidden_dim_reshape_segments),
+                repeat=p.num_transformer_layers)
         ]
       else:
         if p.positional_embedding:
