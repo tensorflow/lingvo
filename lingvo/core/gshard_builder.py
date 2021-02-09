@@ -1426,28 +1426,16 @@ class MoEBuilder(builder.Base):
     p = self.params
     num_groups = p.num_groups or p.num_devices
 
-    def _ReshapeInputs(inputs, segment_id):
-      """Prepare inputs and paddings for the gating layer."""
-      paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
-      orig_inputs = inputs
-      inputs = tf.reshape(orig_inputs, [
-          num_groups,
-          -1,
-          py_utils.GetShape(orig_inputs)[-1],
-      ])
-      inputs = gshard_utils.Split(inputs, 0, p.num_devices)
-      paddings = tf.reshape(paddings, py_utils.GetShape(inputs)[:2])
-      return inputs, paddings
-
-    return self._Graph(name, ['inputs', 'segment_id', 'wi', 'wo'],
-                       ['outputs', 'aux_loss'],
-                       ('inputs,segment_id->reshaped_inputs, paddings',
-                        self._Fn('reshape_inputs', _ReshapeInputs)),
-                       ('->gw', self._Top2GatingWeights('top_2_gating')),
-                       ('gw,reshaped_inputs,paddings->gating',
-                        self._ComputeTopKGating('compute_gating')),
-                       ('gating,inputs,reshaped_inputs,wi,wo->outputs,aux_loss',
-                        self._FeedForwardNetworksApplyGating('process_gating')))
+    reshape_input = gshard_layers.ReshapeInputLayer.Params().Set(
+        num_groups=num_groups, num_devices=p.num_devices)
+    return self._Graph(
+        name, ['inputs', 'segment_id', 'wi', 'wo'], ['outputs', 'aux_loss'],
+        ('inputs,segment_id->reshaped_inputs, paddings', reshape_input),
+        ('->gw', self._Top2GatingWeights('top_2_gating')),
+        ('gw,reshaped_inputs,paddings->gating',
+         self._ComputeTopKGating('compute_gating')),
+        ('gating,inputs,reshaped_inputs,wi,wo->outputs,aux_loss',
+         self._FeedForwardNetworksApplyGating('process_gating')))
 
   def _State(self, name, shape, dtype=None):
     dtype = dtype or py_utils.FPropDtype(self.params)

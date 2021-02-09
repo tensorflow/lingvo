@@ -371,6 +371,32 @@ class OverrideLayer(base_layer.BaseLayer):
     cls._OVERRIDE.clear()
 
 
+class ReshapeInputLayer(base_layer.BaseLayer):
+  """Reshape input only for training."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('num_groups', None, 'Number of groups.')
+    p.Define('num_devices', 1, 'Number of devices.')
+    return p
+
+  def FProp(self, unused_theta, inputs, segment_id):
+    p = self.params
+    paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
+    # Do not reshape for eval.
+    if not self.do_eval:
+      orig_inputs = inputs
+      inputs = tf.reshape(orig_inputs, [
+          p.num_groups,
+          -1,
+          py_utils.GetShape(orig_inputs)[-1],
+      ])
+    inputs = gshard_utils.Split(inputs, 0, p.num_devices)
+    paddings = tf.reshape(paddings, py_utils.GetShape(inputs)[:2])
+    return inputs, paddings
+
+
 class SharedEmbeddingSoftmaxLayer(base_layer.BaseLayer):
   """Shared weights for embemdding lookup and softmax."""
 
@@ -1031,7 +1057,8 @@ def FeedForwardNetworksApplyGating(gating,
   # combine_tensor: G`SEC
   # pylint: disable=invalid-name
   G = py_utils.GetShape(gating.combine_tensor)[0]
-  assert num_groups == tf.compat.dimension_value(G)
+  # allow evaler/decoder to run.
+  del num_groups
   C = py_utils.GetShape(gating.combine_tensor)[-1]  # pylint: disable=invalid-name
   A = G * C
   # pylint: enable=invalid-name
