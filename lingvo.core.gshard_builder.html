@@ -945,7 +945,7 @@ to compute per position-pair bias.</p>
 <dt id="lingvo.core.gshard_builder.RecurrentDenseBuilder">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_builder.</code><code class="sig-name descname">RecurrentDenseBuilder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.DenseBuilder" title="lingvo.core.gshard_builder.DenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.DenseBuilder</span></code></a></p>
-<p>Same as DenseBuilder but layers are stacked using recurrent.</p>
+<p>Deprecated. Same as DenseBuilder but layers are stacked using recurrent.</p>
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.RecurrentDenseBuilder._Repeat">
 <code class="sig-name descname">_Repeat</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">body</span></em>, <em class="sig-param"><span class="n">repeat</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilder._Repeat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder._Repeat" title="Permalink to this definition">¶</a></dt>
@@ -960,6 +960,67 @@ to compute per position-pair bias.</p>
 <dt id="lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack">
 <code class="sig-name descname">DecoderLayerStack</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">sub_layers</span></em>, <em class="sig-param"><span class="n">num</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">conv_kernel_size</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilder.DecoderLayerStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack" title="Permalink to this definition">¶</a></dt>
 <dd><p>Clean DecoderLayerStack.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.gshard_builder.</code><code class="sig-name descname">RecurrentDenseBuilderParallelDecode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder" title="lingvo.core.gshard_builder.RecurrentDenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.RecurrentDenseBuilder</span></code></a></p>
+<p>Same as RecurrentDenseBuilder but with micro variables.</p>
+<p>Projection variables created under this builder will be replaced by multiple
+micro variables, each with shape [model_dim, proj_weight_hdim, d_kv].
+For example, the original wi_o with shape [1024, 4096] was replaced with
+8 micro variables each with  shape [1024, 4, 128] when proj_weight_hdim = 4
+and d_kv = 128.</p>
+<p>Using smaller micro variables reduced the total size of variables created by
+RepeatLayer. For example, when the number of layers is 120, model_dim = 16k,
+ff_dim = 64k, d_kv = 128, then RepeatLayer will create variables with size
+120 * 16k * 64k * 4Bytes = 491GB, exceeding the host memoery limit.
+By setting proj_weight_hdim = 64, RepeatLayer will create 8x micro variables,
+each with shape [L, 16k, 64, 128] only. Using leasting loading placer those
+micro variables will be placed at different hosts.</p>
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>The params of this layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_input_proj_weights">
+<em class="property">property </em><code class="sig-name descname">_num_input_proj_weights</code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_input_proj_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights">
+<em class="property">property </em><code class="sig-name descname">_num_output_proj_weights</code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights">
+<code class="sig-name descname">_DecoderLayerInputProjWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights">
+<code class="sig-name descname">_DecoderLayerOutputProjWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ComputeQKVH">
+<code class="sig-name descname">_ComputeQKVH</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">hidden_dim_reshape_segments</span><span class="o">=</span><span class="default_value">4</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._ComputeQKVH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ComputeQKVH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer">
+<code class="sig-name descname">DecoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">activation_fn</span></em>, <em class="sig-param"><span class="n">conv_kernel_size</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">hidden_dim_reshape_segments</span><span class="o">=</span><span class="default_value">4</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.DecoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack">
+<code class="sig-name descname">DecoderLayerStack</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">sub_layers</span></em>, <em class="sig-param"><span class="n">num</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">conv_kernel_size</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.DecoderLayerStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack" title="Permalink to this definition">¶</a></dt>
+<dd><p>DecoderLayerStack with self attention and feedforward in parallel.</p>
 </dd></dl>
 
 </dd></dl>
