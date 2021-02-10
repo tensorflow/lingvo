@@ -1496,6 +1496,7 @@ class DenseBuilder(MoEBuilder):
     # Weight sharding configs.
     p.Define('emb_w_split', None, 'Mesh split for embedding weights.')
     p.Define('mhd_w_split', [0, 1, -1], 'Mesh split for attention MHD weight')
+    p.Define('kv_mhd_w_split', None, 'Mesh split for K/V MHD weight')
     p.Define('mh_wi_split', [0, 1], 'Mesh split for dense MH weight')
     p.Define('hm_wo_split', [1, 0], 'Mesh split for dense HM weight')
 
@@ -2242,6 +2243,10 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
     assert p.attention_num_heads % p.proj_weight_hdim == 0
     assert (p.ff_dim // p.attention_key_value_dim) % p.proj_weight_hdim == 0
     input_w_split = [p.mhd_w_split[0], max(p.mhd_w_split[1], p.mhd_w_split[2])]
+    kv_w_split = input_w_split if p.kv_mhd_w_split is None else [
+        p.kv_mhd_w_split[0],
+        max(p.kv_mhd_w_split[1], p.kv_mhd_w_split[2])
+    ]
 
     q_stddev = (p.model_dim * p.attention_key_value_dim)**-0.5
     wq_tpl = gshard_layers.ShardedWeightParams(
@@ -2257,7 +2262,7 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
         shape=[p.model_dim, h_dim * p.attention_key_value_dim],
         dtype=p.dtype,
         init=py_utils.WeightInit.Gaussian(kv_stddev),
-        tensor_split_dims_mapping=input_w_split)
+        tensor_split_dims_mapping=kv_w_split)
 
     ffw_tpl = gshard_layers.ShardedWeightParams(
         init=py_utils.WeightInit.Uniform(((1. / p.model_dim)**0.5) * 3.0**0.5),
