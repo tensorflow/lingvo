@@ -1599,7 +1599,9 @@
     <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">device</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="n">core_id</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">tpu_compat</span><span class="p">():</span>
+    <span class="k">elif</span> <span class="p">(</span>
+        <span class="n">tpu_compat</span><span class="p">()</span> <span class="ow">and</span>
+        <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="s1">&#39;executor_tpu&#39;</span><span class="p">)):</span>
       <span class="c1"># The job is running in a fleet that uses tpu, but does not itself have</span>
       <span class="c1"># access to the tpu, e.g. controller job. In this case, the returned</span>
       <span class="c1"># device needs to be the cpu device on the tpu host for the given core.</span>
