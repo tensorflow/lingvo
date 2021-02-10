@@ -812,22 +812,23 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       reshaped_inputs = _split(reshaped_inputs, ap.gsm)
       reshaped_paddings = _split(reshaped_paddings, ap.gs)
 
-      # gshard_layers.Top2Gating is not stable in low-precision mode.
-      assert py_utils.FPropDtype(p) == tf.float32
+      fprop_dtype = py_utils.FPropDtype(p)
+      logits = tf.einsum('gsm,me->gse', reshaped_inputs, theta.gate)
 
       # Here and below, we assume num devices equals num groups.
       # TODO(yonghui): Expose some of the options below through params.
       # NOTE(yonghui): The following code might break during beam search decode
       # due to much smaller group size.
-      gating_output = gshard_layers.Top2Gating(
-          theta.gate,
-          inputs=reshaped_inputs,
-          paddings=reshaped_paddings,
+      # TODO(yonghui): Avoid explicitly casting everything to fp32 once
+      # Top2GatingOnLogits is stable in low-precision mode.
+      aux_loss, combine_tensor, dispatch_tensor = gshard_layers.Top2GatingOnLogits(
+          inputs=None,
+          paddings=tf.cast(reshaped_paddings, tf.float32),
+          logits=tf.cast(logits, tf.float32),
           num_devices=p.num_groups,
           experts_dim=p.num_experts,
           expert_capacity_dim=0,  # automatically decided.
-          local_dispatch=True,
-          fprop_dtype=py_utils.FPropDtype(p),
+          fprop_dtype=tf.float32,
           use_xla_sharding=False,
           second_expert_policy='all',
           second_expert_threshold=0.0,
@@ -838,12 +839,15 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
           # x 2.0 because we choose top-2 experts per example.
           capacity_factor=2.0 * p.expert_capacity_factor)
 
+      if fprop_dtype != tf.float32:
+        aux_loss = tf.cast(aux_loss, fprop_dtype)
+        dispatch_tensor = tf.cast(dispatch_tensor, fprop_dtype)
+        combine_tensor = tf.cast(combine_tensor, fprop_dtype)
+
       # of shape [g, s, e, c]
-      combine_tensor = _split(gating_output.combine_tensor, ap.gsec)
+      combine_tensor = _split(combine_tensor, ap.gsec)
       # of shape [g, s, e, c]
-      dispatch_tensor = _split(gating_output.dispatch_tensor, ap.gsec)
-      # a scalar.
-      aux_loss = gating_output.aux_loss
+      dispatch_tensor = _split(dispatch_tensor, ap.gsec)
 
       expert_inputs = _split(
           tf.einsum('gsec,gsm->egcm', dispatch_tensor, reshaped_inputs),
