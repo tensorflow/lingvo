@@ -1447,7 +1447,9 @@ def PlaceOnTpuCore(core_id):
     cluster = cluster_factory.Current()
     if use_tpu():
       device = cluster.WorkerDeviceInModelSplit(core_id)
-    elif tpu_compat():
+    elif (
+        tpu_compat() and
+        cluster.params.job in ('controller', 'trainer_client', 'executor_tpu')):
       # The job is running in a fleet that uses tpu, but does not itself have
       # access to the tpu, e.g. controller job. In this case, the returned
       # device needs to be the cpu device on the tpu host for the given core.
