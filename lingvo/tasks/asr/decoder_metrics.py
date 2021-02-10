@@ -76,6 +76,9 @@ class DecoderMetrics(base_layer.BaseLayer):
         'include_auxiliary_metrics', True,
         'In addition to simple WER, also computes oracle WER, SACC, TER, etc. '
         'Turning off this option will speed up the decoder job.')
+    p.Define(
+        'log_utf8', False,
+        'If True, decodes reference and hypotheses bytes to UTF-8 for logging.')
     return p
 
   def __init__(self, params):
@@ -244,7 +247,8 @@ class DecoderMetrics(base_layer.BaseLayer):
         if not py_utils.use_tpu():
           tf.logging.info('utt_id: %s', utt_id[i])
         if self.cluster.add_summary:
-          tf.logging.info('  ref_str: %s', ref_str)
+          tf.logging.info('  ref_str: %s',
+                          ref_str.decode('utf-8') if p.log_utf8 else ref_str)
         hyps = topk_decoded[i]
         num_hyps_per_beam = len(hyps)
         ref_ids = GetRefIds(target_labels[i], target_paddings[i])
@@ -263,7 +267,8 @@ class DecoderMetrics(base_layer.BaseLayer):
         oracle_errs = norm_wer_errors[i][0]
         for n, (score, hyp_str) in enumerate(zip(topk_scores[i], hyps)):
           if self.cluster.add_summary:
-            tf.logging.info('  %f: %s', score, hyp_str)
+            tf.logging.info('  %f: %s', score,
+                            hyp_str.decode('utf-8') if p.log_utf8 else hyp_str)
           filtered_hyp = decoder_utils.FilterNoise(hyp_str)
           filtered_hyp = decoder_utils.FilterEpsilon(filtered_hyp)
           ins, subs, dels, errs = decoder_utils.EditDistance(

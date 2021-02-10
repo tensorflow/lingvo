@@ -14,6 +14,8 @@
 # limitations under the License.
 """Tests for Asr Model."""
 
+from unittest import mock
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
@@ -169,6 +171,55 @@ class AsrModelTest(test_utils.TestCase):
     self.assertEqual((0 + 1) / 2, metrics_dict['sacc'].value)
     self.assertEqual((0 + 1) / (4 + 1), metrics_dict['oracle_norm_wer'].value)
     self.assertEqual(0, len(key_value_pairs))
+
+  def testPostProcessLogUtf8(self):
+    p = self._testParams()
+    p.decoder_metrics.log_utf8 = True
+    mdl = p.Instantiate()
+    fake_dec_out = {
+        'utt_id': ['utt1', 'utt2'],
+        'transcripts': ['あいうえ'.encode('utf-8'), 'あ'.encode('utf-8')],
+        'topk_decoded': [
+            ['あいうえ'.encode('utf-8'), 'あいう'.encode('utf-8')],
+            ['wrong'.encode('utf-8'), ''.encode('utf-8')],
+        ],
+        'topk_scores': [[1.0, 0.9], [1.0, 0.9]],
+        'topk_ids': [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [4, 5, 6, 7]],
+        'topk_lens': [2, 4, 4, 2],
+        'target_labels': [[1, 2, 3, 4], [2, 3, 4, 5]],
+        'target_paddings': [[0, 0, 0, 1], [0, 0, 0, 1]],
+        'norm_wer_errors': [[0, 0], [1, 1]],
+        'norm_wer_words': [[4, 4], [1, 1]],
+    }
+    fake_dec_out = {k: np.array(v) for k, v in fake_dec_out.items()}
+    metrics_dict = mdl.CreateDecoderMetrics()
+    with cluster_factory.ForTestingWorker(add_summary=True):
+      with mock.patch.object(tf.logging, 'info', autospec=True) as mock_info:
+        mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
+        mock_info.assert_has_calls([
+            mock.call('utt_id: %s', 'utt1'),
+            mock.call('  ref_str: %s', 'あいうえ'),
+            mock.call('  ref_ids: %s', [1, 2, 3]),
+        ])
+        mock_info.assert_has_calls([
+            # Skips np.array values for ValueError from `inspect` module.
+            # mock.call('  top_hyp_ids: %s', np.array([1, 2])),
+            mock.call('  %f: %s', 1.0, 'あいうえ'),
+            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 0, 0, 0),
+            mock.call('  %f: %s', 0.9, 'あいう'),
+            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 1, 0, 1),
+            mock.call('utt_id: %s', 'utt2'),
+            mock.call('  ref_str: %s', 'あ'),
+            mock.call('  ref_ids: %s', [2, 3, 4]),
+        ])
+        mock_info.assert_has_calls([
+            # Skips np.array values for ValueError from `inspect` module.
+            # mock.call('  top_hyp_ids: %s', np.array([3, 4, 5, 6])),
+            mock.call('  %f: %s', 1.0, 'wrong'),
+            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 1, 0, 1),
+            mock.call('  %f: %s', 0.9, ''),
+            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 0, 1, 1)
+        ])
 
   def testPostProcessDecodeOutFiltersEpsilonTokensForWER(self):
     p = self._testParams()
