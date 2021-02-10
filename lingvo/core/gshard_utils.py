@@ -310,7 +310,7 @@ class TensorShardingSpec:
 
   @property
   def is_replicated(self) -> bool:
-    if self.split_dims_mapping is None:
+    if self.device_mesh is None or self.split_dims_mapping is None:
       return True
     for mesh_dim in self.split_dims_mapping:
       if mesh_dim >= 0 and self.device_mesh.shape[mesh_dim] > 1:
