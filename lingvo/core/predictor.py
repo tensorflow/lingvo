@@ -264,7 +264,7 @@ class Predictor:
         if x not in self._fetches:
           raise KeyError(
               "%s is not in the list of available fetches. Available keys: %s" %
-              (x, list(self._fetches.keys())))
+              (x, list(sorted(self._fetches.keys()))))
     valid_fetch_idxs, valid_fetches = zip(*[(i, self._fetches[k])
                                             for i, k in enumerate(fetch_keys)
                                             if k in self._fetches.keys()])
@@ -273,7 +273,7 @@ class Predictor:
       if k not in self._feeds:
         raise KeyError(
             "%s is not in the list of available feeds. Available keys: %s" %
-            (k, list(self._feeds.keys())))
+            (k, list(sorted(self._feeds.keys()))))
     feeds = {self._feeds[k]: v for k, v in kwargs.items()}
 
     run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
