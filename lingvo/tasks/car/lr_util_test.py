@@ -74,6 +74,19 @@ class LrUtilTest(test_utils.TestCase):
       with py_utils.GlobalStepContext(4):
         self.assertLess(self.evaluate(schedule_layer.Value()), 1.)
 
+  def testCosineWithLinearRamp(self):
+    p = self._testParams()
+    lr_util.SetCosineLR(
+        p.train, p.input, warmup_epoch=1, total_epoch=10, warmup_init=0.)
+    schedule_layer = p.train.lr_schedule.Instantiate()
+    with self.session():
+      # Linear ramp up.
+      with py_utils.GlobalStepContext(8):
+        self.assertLess(self.evaluate(schedule_layer.Value()), 1.)
+      # Cosine ramp down.
+      with py_utils.GlobalStepContext(48):
+        self.assertLess(self.evaluate(schedule_layer.Value()), 1.)
+
 
 if __name__ == '__main__':
   tf.test.main()
