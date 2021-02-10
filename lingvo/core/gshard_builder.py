@@ -2534,10 +2534,10 @@ class UniTransformer(base_model.BaseTask):
 
     if callable(p.gated_ffn_activation):
       gated_ffn_activation = p.gated_ffn_activation
-    elif p.gated_gelu or p.gated_ffn_activation == 'gelu':
-      gated_ffn_activation = lambda x: tf.nn.gelu(x, approximate=True)
     elif p.gated_ffn_activation == 'silu':
       gated_ffn_activation = tf.nn.silu
+    elif p.gated_gelu or p.gated_ffn_activation == 'gelu':
+      gated_ffn_activation = lambda x: tf.nn.gelu(x, approximate=True)
     else:
       assert not p.gated_ffn_activation, p.gated_ffn_activation
       gated_ffn_activation = None
