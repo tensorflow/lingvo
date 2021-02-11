@@ -181,10 +181,9 @@ class GenericRepeatLayer(base_layer.BaseLayer):
       recur_state = py_utils.NestedMap(
           iterative=iterative, layerwise_output=layerwise_output)
       for key, value in recur_state.FlattenItems():
-        if not isinstance(value, tf.Tensor):
-          raise ValueError(
-              'Each value in the recurrent state must be a tensor: ' +
-              f'{key}={value}')
+        if not isinstance(value, tf.Tensor) or value.shape.rank is None:
+          raise ValueError('Each value in the recurrent state must be a tensor '
+                           f'with a known rank: {key}={value}')
       return recur_state
 
     def _CellFn(recur_theta, recur_state0, recur_input_i):
