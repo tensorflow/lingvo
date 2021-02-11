@@ -3921,6 +3921,48 @@ class EinsumSoftmaxLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual([2, 4], py_utils.GetShape(per_example_argmax))
 
 
+class FocalFullSoftmaxLayerTest(test_utils.TestCase, parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      ('no_smooth_no_focal', False, None, 27.981373),
+      ('no_smooth_focal', False, 0.5, 27.539188),
+      ('smooth_no_focal', True, None, 28.038475),
+      ('smooth_focal', True, 0.5, 27.5981063),
+  )
+  def testFocalFullSoftmax(self, label_smoothing, gamma, expected_loss):
+    with self.session(use_gpu=False) as sess:
+      tf.random.set_seed(123)
+      input_dim = 10
+      num_classes = 32
+      params = layers.FocalFullSoftmax.Params().Set(
+          name='softmax',
+          input_dim=input_dim,
+          num_classes=num_classes,
+          focal_loss_gamma=gamma)
+      params.random_seed = 12345678
+      softmax = params.Instantiate()
+      sess.run(tf.global_variables_initializer())
+      np.random.seed(12345)
+      inputs = tf.constant(np.random.rand(8, 10), dtype=tf.float32)
+      logits = softmax.Logits(softmax.theta, inputs)
+      self.assertAllEqual([8, num_classes], py_utils.GetShape(logits))
+      class_ids = tf.constant([3, 4, 5, 2, 4, 5, 6, 2], dtype=tf.int32)
+      class_weights = tf.ones_like(class_ids, dtype=tf.float32)
+      if label_smoothing:
+        class_onehots = tf.one_hot(
+            class_ids, depth=num_classes, dtype=tf.float32)
+        class_probabilities = (0.1 / (num_classes - 1) * (1. - class_onehots) +
+                               0.9 * class_onehots)
+      else:
+        class_probabilities = None
+      per_example_loss, per_example_argmax = softmax.XentLossFromLogits(
+          softmax.theta, logits, class_weights, class_ids, class_probabilities)
+      self.assertAllEqual([8], py_utils.GetShape(per_example_loss))
+      self.assertAllClose(expected_loss,
+                          sess.run(tf.reduce_sum(per_example_loss)))
+      self.assertAllEqual([8], py_utils.GetShape(per_example_argmax))
+
+
 class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNetConstruction(self):

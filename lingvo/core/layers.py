@@ -3169,10 +3169,10 @@ class SimpleFullSoftmax(SoftmaxLayer):
     """Computes cross-entropy, argmax etc. from logits."""
     p = self.params
     assert logits is not None
+    per_example_argmax = py_utils.ArgMax(logits)
     if class_probabilities is not None:
       per_example_xent = tf.nn.softmax_cross_entropy_with_logits(
           labels=class_probabilities, logits=logits)
-      per_example_argmax = py_utils.ArgMax(logits)
     elif p.num_sampled == 0 or self.do_eval:
       assert class_ids is not None
       tf.logging.vlog(
@@ -3181,15 +3181,54 @@ class SimpleFullSoftmax(SoftmaxLayer):
           py_utils.GetShape(logits))
       per_example_xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
           labels=tf.reshape(class_ids, [-1]), logits=logits)
-      per_example_argmax = py_utils.ArgMax(logits)
     else:
       raise ValueError(
           'This set of arguments is not supported for XentLossFromLogits.')
     return per_example_xent, per_example_argmax
 
 
+class FocalFullSoftmax(SimpleFullSoftmax):
+  """An extended softmax layer with focal loss.
+
+  Focal loss: https://arxiv.org/abs/1708.02002, Eq (3) and (4).
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'focal_loss_alpha', None,
+        'The weighting factor alpha with shape [#classes] for focal loss.')
+    p.Define('focal_loss_gamma', None,
+             'The modulating factor scalar gamma for focal loss.')
+    return p
+
+  def XentLossFromLogits(self,
+                         theta,
+                         logits,
+                         class_weights,
+                         class_ids=None,
+                         class_probabilities=None):
+    """Computes cross-entropy, argmax etc. from logits."""
+    p = self.params
+    assert logits is not None
+    per_example_argmax = py_utils.ArgMax(logits)
+    if class_ids is not None:
+      class_ids = tf.reshape(class_ids, [-1])
+    per_example_xent = py_utils.SoftmaxCrossEntropyFocalLoss(
+        logits=logits,
+        label_ids=class_ids,
+        label_probs=class_probabilities,
+        alpha=p.focal_loss_alpha,
+        gamma=p.focal_loss_gamma)
+    return per_example_xent, per_example_argmax
+
+
 class EinsumSoftmax(base_layer.BaseLayer):
-  """A simple softmax layer implemented with Einsum to avoid reshape ops."""
+  """A simple softmax layer implemented with Einsum to avoid reshape ops.
+
+  TODO(jiahuiyu): Adds support of focal_loss.
+  """
 
   @classmethod
   def Params(cls):

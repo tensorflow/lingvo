@@ -282,7 +282,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
     p = super().Params()
     p.Define('rnns', rnn_layers.StackedFRNNLayerByLayer.Params(),
              'The stacked-RNNs layer params.')
-    p.Define('softmax', layers.SimpleFullSoftmax.Params(),
+    p.Define('softmax', layers.FocalFullSoftmax.Params(),
              'The softmax layer params.')
     p.Define(
         'direct_features_dim', 0,
