@@ -537,7 +537,11 @@ class ConformerLayer(base_layer.BaseLayer):
                    moe_num_partitions=None,
                    moe_num_experts=None,
                    moe_num_groups=None,
-                   moe_per_capacity_dim=None):
+                   moe_per_capacity_dim=None,
+                   fflayer_start_tpl=None,
+                   fflayer_end_tpl=None,
+                   trans_atten_tpl=None,
+                   lconv_tpl=None):
     assert all([input_dim, atten_num_heads, kernel_size, fflayer_hidden_dim])
 
     if _AttenCtxIsSet(atten_local_context):
@@ -560,6 +564,17 @@ class ConformerLayer(base_layer.BaseLayer):
         is_causal=is_causal,
         layer_order=layer_order,
         dropout_prob=dropout_prob)
+    # Set the two feed forward modules.
+    if fflayer_end_tpl is not None:
+      p.fflayer_end_tpl = fflayer_end_tpl
+    if fflayer_start_tpl is not None:
+      p.fflayer_start_tpl = fflayer_start_tpl
+    # Set the MHSA module.
+    if trans_atten_tpl is not None:
+      p.trans_atten_tpl = trans_atten_tpl
+    # Set the convolution module.
+    if lconv_tpl is not None:
+      p.lconv_tpl = lconv_tpl
     if conv_norm_layer_tpl is not None:
       p.lconv_tpl.conv_norm_layer_tpl = conv_norm_layer_tpl
     if fprop_dtype is not None:
