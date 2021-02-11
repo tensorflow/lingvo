@@ -22,6 +22,7 @@ from lingvo.core import gshard_utils
 from lingvo.core import py_utils
 from lingvo.core import tpu_summary
 # pylint: disable=g-direct-tensorflow-import
+from tensorflow.compiler.tf2xla.python import xla
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
 # pylint: enable=g-direct-tensorflow-import
 
@@ -194,6 +195,7 @@ class StateLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('shape', [None, None], 'batch, time, etc...')
+    p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
     return p
 
   def NewState(self, shape):
@@ -222,8 +224,14 @@ class StateLayer(base_layer.BaseLayer):
       # For use with flat_beam_search
       self._use_flat_beam_search = True
       batch, beam, max_steps = shape
-      state = tf.Empty(
-          [max_steps, batch, beam] + p.shape[2:], fprop_dtype, init=True)
+      if p.use_xla_dynamic_update_slice:
+        state_shape = [batch, max_steps * beam]
+        # Need to remember beam_size to correctly map 't' argument of Fprop
+        # to the combined (max_steps * beam) dimension.
+        self._beam = beam
+      else:
+        state_shape = [max_steps, batch, beam]
+      state = tf.Empty(state_shape + p.shape[2:], fprop_dtype, init=True)
       return state
     else:
       raise ValueError('bad shape: %r' % shape)
@@ -250,7 +258,8 @@ class StateLayer(base_layer.BaseLayer):
         while len(z.shape) < len(x.shape):
           z = tf.expand_dims(z, -1)
         y = state = (1 - z) * state + z * x
-      if self._use_flat_beam_search:
+
+      if self._use_flat_beam_search and not p.use_xla_dynamic_update_slice:
         state_slice_size = int(state.shape[2])
         update_slice_size = int(x.shape[1])
         if update_slice_size == state_slice_size:
@@ -276,6 +285,14 @@ class StateLayer(base_layer.BaseLayer):
         y_shape = list(y.shape)
         y_shape[1:3] = [int(y_shape[1]) * int(y_shape[2])]
         y = tf.reshape(y, y_shape)
+
+      if self._use_flat_beam_search and p.use_xla_dynamic_update_slice:
+        update_index = [0] * len(state.shape)
+        update_index[1] = (t * self._beam)
+        state = xla.dynamic_update_slice(state, tf.cast(x, state.dtype),
+                                         update_index)
+        y = state
+
     theta.state = state
 
     tf.logging.info('y=%r', y)
