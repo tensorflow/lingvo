@@ -157,6 +157,10 @@ class _Cluster:
         'enable_asserts', None, 'If set to non-None, '
         'this value is used instead of FLAGS.enable_asserts. '
         'If False, we disable all asserts ops and return tf.no_op() instead.')
+    p.Define(
+        'enable_check_numerics', None, 'If set to non-None, '
+        'this value is used instead of FLAGS.enable_check_numerics. '
+        'If False, we bypass calls to CheckNumerics.')
     return p
 
   def InitDevices(self, sess):

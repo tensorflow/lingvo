@@ -211,7 +211,7 @@ def _CheckNumerics(x, message=None, *args, **kwargs):
 
 def CheckNumerics(inp, message=None, *args, **kwargs):
   """Check numerics for tensors in inp."""
-  if not _FromGlobal('enable_check_numerics'):
+  if not py_utils_flags.enable_check_numerics():
     return inp
   if isinstance(inp, list):
     return [_CheckNumerics(x, message, *args, **kwargs) for x in inp]

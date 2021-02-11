@@ -128,6 +128,12 @@ def enable_asserts():  # pylint: disable=invalid-name
   return res
 
 
+def enable_check_numerics():  # pylint: disable=invalid-name
+  res = _FromGlobal('enable_check_numerics', allow_override_from_cluster=True)
+  assert res in [True, False]
+  return res
+
+
 def use_xla():  # pylint: disable=invalid-name
   res = _FromGlobal('xla_device', allow_override_from_cluster=True)
   if res:

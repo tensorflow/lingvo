@@ -57,6 +57,15 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     with cluster_factory.Cluster(cluster_params):
       self.assertFalse(py_utils_flags.enable_asserts())
 
+  def testEnableCheckNumericsFlagOverrideFromCluster(self):
+    cluster_params = cluster_factory.Current().Params()
+    cluster_params.enable_check_numerics = True
+    with cluster_factory.Cluster(cluster_params):
+      self.assertTrue(py_utils_flags.enable_check_numerics())
+    cluster_params.enable_check_numerics = False
+    with cluster_factory.Cluster(cluster_params):
+      self.assertFalse(py_utils_flags.enable_check_numerics())
+
   def testIsDefaultParamInit(self):
     p = py_utils.DefaultParamInit()
     self.assertTrue(py_utils.IsDefaultParamInit(p))
