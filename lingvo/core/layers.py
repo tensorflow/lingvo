@@ -3225,16 +3225,18 @@ class FocalFullSoftmax(SimpleFullSoftmax):
 
 
 class EinsumSoftmax(base_layer.BaseLayer):
-  """A simple softmax layer implemented with Einsum to avoid reshape ops.
-
-  TODO(jiahuiyu): Adds support of focal_loss.
-  """
+  """A simple softmax layer implemented with Einsum to avoid reshape ops."""
 
   @classmethod
   def Params(cls):
     p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input.')
     p.Define('num_classes', 0, 'Total number of target classes.')
+    p.Define(
+        'focal_loss_alpha', None,
+        'The weighting factor alpha with shape [#classes] for focal loss.')
+    p.Define('focal_loss_gamma', None,
+             'The modulating factor scalar gamma for focal loss.')
     return p
 
   def _CreateLayerVariables(self):
@@ -3293,19 +3295,15 @@ class EinsumSoftmax(base_layer.BaseLayer):
                          class_ids=None,
                          class_probabilities=None):
     """Computes cross-entropy, argmax etc. from logits."""
+    p = self.params
     assert logits is not None
-    if class_probabilities is not None:
-      per_example_xent = tf.nn.softmax_cross_entropy_with_logits(
-          labels=class_probabilities, logits=logits)
-    else:
-      assert class_ids is not None
-      tf.logging.vlog(
-          0, 'Using sparse_softmax_cross_entropy_with_logits() in '
-          'EinsumSoftmax::XentLossFromLogits logits_shape=%r',
-          py_utils.GetShape(logits))
-      per_example_xent = tf.nn.sparse_softmax_cross_entropy_with_logits(
-          labels=class_ids, logits=logits)
     per_example_argmax = py_utils.ArgMax(logits)
+    per_example_xent = py_utils.SoftmaxCrossEntropyFocalLoss(
+        logits=logits,
+        label_ids=class_ids,
+        label_probs=class_probabilities,
+        alpha=p.focal_loss_alpha,
+        gamma=p.focal_loss_gamma)
     return per_example_xent, per_example_argmax
 
 

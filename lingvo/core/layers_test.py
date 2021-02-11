@@ -3883,20 +3883,40 @@ class SharedSoftmaxLayerTest(SoftmaxLayerTest):
 class EinsumSoftmaxLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters(
-      ('no_label_smoothing', False, 27.981373),
-      ('bfloat16_input', False, 27.980932, tf.bfloat16),
-      ('with_label_smoothing', True, 28.038475),
+      {
+          'testcase_name': 'no_label_smoothing',
+          'expected_loss': 27.981373
+      },
+      {
+          'testcase_name': 'bfloat16_input',
+          'expected_loss': 27.980932,
+          'input_dtype': tf.bfloat16
+      },
+      {
+          'testcase_name': 'with_label_smoothing',
+          'expected_loss': 28.038475,
+          'label_smoothing': True
+      },
+      {
+          'testcase_name': 'focal_loss',
+          'expected_loss': 27.539188,
+          'focal_loss_gamma': 0.5
+      },
   )
   def testEinsumSoftmax(self,
-                        label_smoothing,
                         expected_loss,
-                        input_dtype=tf.float32):
+                        label_smoothing=False,
+                        input_dtype=tf.float32,
+                        focal_loss_gamma=None):
     with self.session(use_gpu=False) as sess:
       tf.random.set_seed(123)
       input_dim = 10
       num_classes = 32
       params = layers.EinsumSoftmax.Params().Set(
-          name='softmax', input_dim=input_dim, num_classes=num_classes)
+          name='softmax',
+          input_dim=input_dim,
+          num_classes=num_classes,
+          focal_loss_gamma=focal_loss_gamma)
       params.random_seed = 12345678
       softmax = params.Instantiate()
       sess.run(tf.global_variables_initializer())
