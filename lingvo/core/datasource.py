@@ -682,14 +682,21 @@ class TFDataServiceSource(TFDatasetTransform):
              'a sorted list of integers.')
     return p
 
+  def SetInputGenerator(self, input_generator):
+    super().SetInputGenerator(input_generator)
+    if self.params.bucket_upper_bound and self.num_hosts > 1:
+      if self._input_generator.params.tpu_infeed_parallelism != 1:
+        tf.logging.warning('Bucket-synchronized input from the tf.data service '
+                           'requires setting tpu_infeed_parallelism to 1.')
+        # Hacky: relies on SetInputGenerator called in input_generator.__init__,
+        # before p.tpu_infeed_parallelism is used.
+        self._input_generator.params.tpu_infeed_parallelism = 1
+
   def Transform(self, dataset):
     p = self.params
     if p.bucket_upper_bound and self.num_hosts > 1:
       # Batch is bucketed by sequence length. split into num_hosts batches
       # and pull from the service in round-robin style.
-      if self._input_generator.params.tpu_infeed_parallelism != 1:
-        raise ValueError('Bucket-synchronized input from the tf.data service '
-                         'requires tpu_infeed_parallelism == 1.')
 
       def KeyFunc(batch):
         key = tf.reduce_min(batch.bucket_keys)
