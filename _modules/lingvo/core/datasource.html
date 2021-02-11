@@ -834,14 +834,21 @@
              <span class="s1">&#39;a sorted list of integers.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+<div class="viewcode-block" id="TFDataServiceSource.SetInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.SetInputGenerator">[docs]</a>  <span class="k">def</span> <span class="nf">SetInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_generator</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">SetInputGenerator</span><span class="p">(</span><span class="n">input_generator</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Bucket-synchronized input from the tf.data service &#39;</span>
+                           <span class="s1">&#39;requires setting tpu_infeed_parallelism to 1.&#39;</span><span class="p">)</span>
+        <span class="c1"># Hacky: relies on SetInputGenerator called in input_generator.__init__,</span>
+        <span class="c1"># before p.tpu_infeed_parallelism is used.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">=</span> <span class="mi">1</span></div>
+
 <div class="viewcode-block" id="TFDataServiceSource.Transform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="c1"># Batch is bucketed by sequence length. split into num_hosts batches</span>
       <span class="c1"># and pull from the service in round-robin style.</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Bucket-synchronized input from the tf.data service &#39;</span>
-                         <span class="s1">&#39;requires tpu_infeed_parallelism == 1.&#39;</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">KeyFunc</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
         <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">bucket_keys</span><span class="p">)</span>
