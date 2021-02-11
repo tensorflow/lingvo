@@ -1779,10 +1779,31 @@ input_dim].</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers.FocalFullSoftmax">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">FocalFullSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#FocalFullSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.FocalFullSoftmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.SimpleFullSoftmax" title="lingvo.core.layers.SimpleFullSoftmax"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.SimpleFullSoftmax</span></code></a></p>
+<p>An extended softmax layer with focal loss.</p>
+<p>Focal loss: <a class="reference external" href="https://arxiv.org/abs/1708.02002">https://arxiv.org/abs/1708.02002</a>, Eq (3) and (4).</p>
+<dl class="py method">
+<dt id="lingvo.core.layers.FocalFullSoftmax.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#FocalFullSoftmax.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.FocalFullSoftmax.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for SimpleFullSoftmax.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.FocalFullSoftmax.XentLossFromLogits">
+<code class="sig-name descname">XentLossFromLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">logits</span></em>, <em class="sig-param"><span class="n">class_weights</span></em>, <em class="sig-param"><span class="n">class_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">class_probabilities</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#FocalFullSoftmax.XentLossFromLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.FocalFullSoftmax.XentLossFromLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cross-entropy, argmax etc. from logits.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers.EinsumSoftmax">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">EinsumSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A simple softmax layer implemented with Einsum to avoid reshape ops.</p>
+<p>TODO(jiahuiyu): Adds support of focal_loss.</p>
 <dl class="py method">
 <dt id="lingvo.core.layers.EinsumSoftmax.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax.Params" title="Permalink to this definition">¶</a></dt>
