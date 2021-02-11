@@ -174,6 +174,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.compiler.tf2xla.python</span> <span class="kn">import</span> <span class="n">xla</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
@@ -346,6 +347,7 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="s1">&#39;batch, time, etc...&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_xla_dynamic_update_slice&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;internal optimization&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="StateLayer.NewState"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer.NewState">[docs]</a>  <span class="k">def</span> <span class="nf">NewState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
@@ -374,8 +376,14 @@
       <span class="c1"># For use with flat_beam_search</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">=</span> <span class="n">shape</span>
-      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
+        <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">*</span> <span class="n">beam</span><span class="p">]</span>
+        <span class="c1"># Need to remember beam_size to correctly map &#39;t&#39; argument of Fprop</span>
+        <span class="c1"># to the combined (max_steps * beam) dimension.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span> <span class="o">=</span> <span class="n">beam</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">]</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span><span class="n">state_shape</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">state</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;bad shape: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shape</span><span class="p">)</span></div>
@@ -402,7 +410,8 @@
         <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
           <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">x</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span><span class="p">:</span>
+
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
         <span class="n">state_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
         <span class="n">update_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">update_slice_size</span> <span class="o">==</span> <span class="n">state_slice_size</span><span class="p">:</span>
@@ -428,6 +437,14 @@
         <span class="n">y_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_shape</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
+        <span class="n">update_index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">update_index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">xla</span><span class="o">.</span><span class="n">dynamic_update_slice</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                                         <span class="n">update_index</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">state</span>
+
     <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;y=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
