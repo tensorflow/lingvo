@@ -131,10 +131,6 @@ tf.flags.DEFINE_integer('decoder_gpus', 0, 'Number of gpus to use per replica.')
 tf.flags.DEFINE_string('tf_data_service_address', '',
                        'The address of the tf.data service.')
 
-tf.flags.DEFINE_integer(
-    'inference_graph_random_seed', None,
-    'Random seed to fix when exporting inference graph. '
-    'Not fixed when set to None.')
 tf.flags.DEFINE_string(
     'inference_graph_filename', None,
     'Output inference graph filename. If unspecified, output two inference '
@@ -143,6 +139,14 @@ tf.flags.DEFINE_string(
     'inference_graph_device', None,
     'Type of device the output inference graph is for. This flag is applicable '
     'only when FLAGS.inference_graph_filename is specified.')
+tf.flags.DEFINE_integer(
+    'inference_graph_random_seed', None,
+    'Random seed to fix when exporting inference graph. '
+    'Not fixed when set to None.')
+tf.flags.DEFINE_string(
+    'graph_def_filename', None,
+    'Output inference graph_def filename. Defaults to CPU graph if '
+    'inference_graph_filename and inference_graph_device are not specified.')
 
 tf.flags.DEFINE_bool(
     'evaler_in_same_address_as_controller', False,
@@ -1444,6 +1448,8 @@ class RunnerManager:
         not FLAGS.model_task_name):
       task_names = base_model.MultiTaskModel.TaskNames(cfg)
 
+    inference_graph_proto = None
+
     if FLAGS.inference_graph_filename:
       # Custom inference graph.
       for task_name in task_names:
@@ -1464,12 +1470,13 @@ class RunnerManager:
             gen_init_op=True,
             dtype_override=None,
             fprop_dtype_override=None)
-        self.inference_graph_exporter.InferenceGraphExporter.Export(
-            model_cfg=cfg,
-            model_task_name=task_name,
-            device_options=device_options,
-            export_path=filename_prefix + '.pbtxt',
-            random_seed=FLAGS.inference_graph_random_seed)
+        inference_graph_proto = (
+            self.inference_graph_exporter.InferenceGraphExporter.Export(
+                model_cfg=cfg,
+                model_task_name=task_name,
+                device_options=device_options,
+                export_path=filename_prefix + '.pbtxt',
+                random_seed=FLAGS.inference_graph_random_seed))
     else:
       for task_name in task_names:
         filename_prefix = 'inference'
@@ -1479,11 +1486,12 @@ class RunnerManager:
 
         # Standard inference graph.
         try:
-          self.inference_graph_exporter.InferenceGraphExporter.Export(
-              model_cfg=cfg,
-              model_task_name=task_name,
-              export_path=filename_prefix + '.pbtxt',
-              random_seed=FLAGS.inference_graph_random_seed)
+          inference_graph_proto = (
+              self.inference_graph_exporter.InferenceGraphExporter.Export(
+                  model_cfg=cfg,
+                  model_task_name=task_name,
+                  export_path=filename_prefix + '.pbtxt',
+                  random_seed=FLAGS.inference_graph_random_seed))
         except NotImplementedError as e:
           tf.logging.error('Cannot write inference graph: %s', e)
 
@@ -1504,6 +1512,14 @@ class RunnerManager:
               random_seed=FLAGS.inference_graph_random_seed)
         except Exception as e:  # pylint: disable=broad-except
           tf.logging.error('Error exporting TPU inference graph: %s' % e)
+
+    if FLAGS.graph_def_filename and inference_graph_proto:
+      tf.logging.info('Writing graphdef: %s', FLAGS.graph_def_filename)
+      dir_path = os.path.dirname(FLAGS.graph_def_filename)
+      if (not tf.io.gfile.exists(dir_path) or not tf.io.gfile.isdir(dir_path)):
+        tf.io.gfile.makedirs(dir_path)
+      with tf.io.gfile.GFile(FLAGS.graph_def_filename, 'w') as f:
+        f.write(text_format.MessageToString(inference_graph_proto.graph_def))
 
   def RunEvalerOnce(self):
     """Run once evaler."""
