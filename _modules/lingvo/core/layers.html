@@ -3377,16 +3377,18 @@
 
 
 <div class="viewcode-block" id="EinsumSoftmax"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax">[docs]</a><span class="k">class</span> <span class="nc">EinsumSoftmax</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A simple softmax layer implemented with Einsum to avoid reshape ops.</span>
-
-<span class="sd">  TODO(jiahuiyu): Adds support of focal_loss.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;A simple softmax layer implemented with Einsum to avoid reshape ops.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="EinsumSoftmax.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_classes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of target classes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;focal_loss_alpha&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The weighting factor alpha with shape [#classes] for focal loss.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_gamma&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;The modulating factor scalar gamma for focal loss.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="EinsumSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3445,19 +3447,15 @@
                          <span class="n">class_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                          <span class="n">class_probabilities</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes cross-entropy, argmax etc. from logits.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">class_probabilities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">class_probabilities</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">class_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span>
-          <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Using sparse_softmax_cross_entropy_with_logits() in &#39;</span>
-          <span class="s1">&#39;EinsumSoftmax::XentLossFromLogits logits_shape=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">logits</span><span class="p">))</span>
-      <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy_with_logits</span><span class="p">(</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">class_ids</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
     <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ArgMax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+    <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SoftmaxCrossEntropyFocalLoss</span><span class="p">(</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
+        <span class="n">label_ids</span><span class="o">=</span><span class="n">class_ids</span><span class="p">,</span>
+        <span class="n">label_probs</span><span class="o">=</span><span class="n">class_probabilities</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_alpha</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span></div></div>
 
 
