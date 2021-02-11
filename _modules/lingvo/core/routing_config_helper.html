@@ -169,6 +169,36 @@
 <span class="sd">See https://arxiv.org/abs/2003.05997 for the paper.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">batch_major_attention</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
+
+
+<div class="viewcode-block" id="RoutingTransformerEncoderParams"><a class="viewcode-back" href="../../../lingvo.core.routing_config_helper.html#lingvo.core.routing_config_helper.RoutingTransformerEncoderParams">[docs]</a><span class="k">class</span> <span class="nc">RoutingTransformerEncoderParams</span><span class="p">(</span><span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Container for Routing Transformer encoder params.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq_len</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">routing_factor</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default Routing Transformer encoder params constructor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      seq_len: Sequence length for the problem.</span>
+<span class="sd">      routing_factor: Factor determining the block size compared to seq len.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">routing_factor</span> <span class="o">&gt;</span> <span class="mi">1</span>
+    <span class="n">b_size</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="n">routing_factor</span>
+    <span class="n">attention_window</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">b_size</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_size&#39;</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="s1">&#39;block size for local attention&#39;</span><span class="p">)</span>
+    <span class="c1"># Left context includes the current position in addition to the elements</span>
+    <span class="c1"># it attends to the left, thus to attend to the previous block we set it to</span>
+    <span class="c1"># b_size + 1.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="n">b_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;size of left context, which&#39;</span>
+                <span class="s1">&#39;includes the current position&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;right_context&#39;</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="s1">&#39;size of right context&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_routing_layers&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;number of routing layers&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_routing_heads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;number of routing heads&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_clusters&#39;</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="n">attention_window</span><span class="p">,</span>
+                <span class="s1">&#39;number of clusters&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_window&#39;</span><span class="p">,</span> <span class="n">attention_window</span><span class="p">,</span>
+                <span class="s1">&#39;attention window for routing attention&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SetupRoutingTransformerEncoder"><a class="viewcode-back" href="../../../lingvo.core.routing_config_helper.html#lingvo.core.routing_config_helper.SetupRoutingTransformerEncoder">[docs]</a><span class="k">def</span> <span class="nf">SetupRoutingTransformerEncoder</span><span class="p">(</span><span class="n">model_dim</span><span class="p">,</span>
