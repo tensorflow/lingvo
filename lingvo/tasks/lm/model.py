@@ -74,7 +74,7 @@ class LanguageModel(base_model.BaseTask):
     Returns:
       Model params updated with the vocab size and wpm model.
     """
-    p.lm = p.lm.cls.UpdateTargetVocabSize(p.lm, vocab_size, wpm_model)
+    p.lm = p.lm.cls.UpdateTargetVocabSize(p.lm, vocab_size, wpm_model=wpm_model)
     return p
 
   def _TrimIfPossibleThenTranspose(self, ids, paddings, labels, weights):
