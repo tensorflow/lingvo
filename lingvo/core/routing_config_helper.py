@@ -17,6 +17,36 @@
 See https://arxiv.org/abs/2003.05997 for the paper.
 """
 from lingvo.core import batch_major_attention
+from lingvo.core import hyperparams
+
+
+class RoutingTransformerEncoderParams(hyperparams.Params):
+  """Container for Routing Transformer encoder params."""
+
+  def __init__(self, seq_len=32, routing_factor=4):
+    """Default Routing Transformer encoder params constructor.
+
+    Args:
+      seq_len: Sequence length for the problem.
+      routing_factor: Factor determining the block size compared to seq len.
+    """
+    super().__init__()
+    assert routing_factor > 1
+    b_size = seq_len // routing_factor
+    attention_window = 2 * b_size
+    self.Define('block_size', b_size, 'block size for local attention')
+    # Left context includes the current position in addition to the elements
+    # it attends to the left, thus to attend to the previous block we set it to
+    # b_size + 1.
+    self.Define('left_context', b_size + 1, 'size of left context, which'
+                'includes the current position')
+    self.Define('right_context', b_size, 'size of right context')
+    self.Define('num_routing_layers', 1, 'number of routing layers')
+    self.Define('num_routing_heads', 1, 'number of routing heads')
+    self.Define('num_clusters', seq_len // attention_window,
+                'number of clusters')
+    self.Define('attention_window', attention_window,
+                'attention window for routing attention')
 
 
 def SetupRoutingTransformerEncoder(model_dim,

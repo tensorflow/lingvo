@@ -1830,6 +1830,16 @@ py_library(
     ],
 )
 
+py_test(
+    name = "routing_config_helper_test",
+    srcs = ["routing_config_helper_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":routing_config_helper",
+    ],
+)
+
 py_library(
     name = "rnn_cell",
     srcs = ["rnn_cell.py"],
