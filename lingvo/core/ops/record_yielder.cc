@@ -21,6 +21,7 @@ limitations under the License.
 #include <thread>  // NOLINT(build/c++11)
 #include <unordered_map>
 
+#include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
 #include "lingvo/core/ops/versioned_file_set.pb.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -584,16 +585,23 @@ void BasicRecordYielder::ShardLoop(Shard* shard) {
     VLOG(1) << "Shard " << shard->index << " " << filename;
     std::unique_ptr<RecordIterator> iter(
         RecordIterator::New(file_type_, filename));
+    int64 shard_record_count = 0;
     string key;
     Rope val;
     while (iter->Next(&key, &val)) {
-      LOG_EVERY_N_SEC(INFO, 10) << "Record: key=" << key;
+      ++shard_record_count;
+      LOG_EVERY_N_SEC(INFO, 10)
+          << "Record " << shard_record_count << ": key=" << key;
       values.emplace_back(val);
       if (values.size() >= kRecordsPerAdd && Add(&values)) {
+        LOG(INFO) << "Shard stopped at " << shard_record_count
+                  << "records from " << absl::CEscape(filename);
         shard->status = errors::Aborted("stopped");
         break;
       }
     }
+    LOG(INFO) << "Emitted " << shard_record_count << " records from "
+              << absl::CEscape(filename);
   }
   // Adds the remaining values of this shard to buf_.
   while (!values.empty()) {

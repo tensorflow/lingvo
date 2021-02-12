@@ -133,6 +133,7 @@ lingvo_cc_library(
     deps = [
         ":rope",
         ":versioned_file_set_proto_cc",
+        # Implicit absl.strings dependency.
         # Implicit absl.synchronization dependency.
     ],
 )

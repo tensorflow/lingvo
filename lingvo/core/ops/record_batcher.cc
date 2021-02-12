@@ -306,9 +306,10 @@ void RecordBatcher::ProcessorLoop() {
     Record record;
     record.source_id = kDefaultSourceId;
     Status s = yielder_->Yield(&record);
-    // If yielder returns OutOfRange, set
-    // the out status appropriately and return.
+    // yielder may return OutOfRange to indicate end-of-epoch.
+    // Set the out status appropriately and return.
     if (errors::IsOutOfRange(s)) {
+      LOG(INFO) << "Yielder out of range: " << s;
       absl::MutexLock l(&mu_);
       stop_status_ = s;
       stop_ = true;
