@@ -185,7 +185,6 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;disable_meta_optimizer_in_executor&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Disabling the grappler meta_optimizer improves start-up time.&#39;</span><span class="p">)</span>
-
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
@@ -528,7 +527,13 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
           <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint asynchronously AT YOUR OWN RISK.&#39;</span><span class="p">)</span>
+            <span class="n">threadpool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">dummy</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">saver_future</span> <span class="o">=</span> <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
         <span class="c1"># If a task is explicitly selected, only run the programs associated</span>
         <span class="c1"># with that task.</span>
@@ -542,6 +547,10 @@
           <span class="n">program_schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">model_task</span><span class="p">]</span>
 
         <span class="n">done</span> <span class="o">=</span> <span class="n">program_schedule</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">):</span>
+          <span class="n">saver_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Program schedule told us to stop.</span><span class="se">\n</span><span class="s1">&#39;</span>
                           <span class="s1">&#39;Shutting down programs.&#39;</span><span class="p">)</span>

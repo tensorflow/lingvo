@@ -296,6 +296,8 @@
               <span class="s1">&#39;Maximum number of recent checkpoints to keep.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_keep_checkpoint_every_n_hours&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span>
               <span class="s1">&#39;How often to keep a checkpoint.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;async_checkpointing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+              <span class="s1">&#39;Checkpointing asynchronously. Currently only support executor.&#39;</span><span class="p">)</span>
 
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
               <span class="s1">&#39;Generates a summary roughly once every this many steps.&#39;</span><span class="p">)</span>
@@ -1104,7 +1106,8 @@
               <span class="s1">&#39;How often to keep a checkpoint.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
               <span class="s1">&#39;Generates a checkpoint roughly once every this many steps.&#39;</span><span class="p">)</span>
-
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;async_checkpointing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+              <span class="s1">&#39;Checkpointing asynchronously. Currently only support executor.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1258,6 +1261,7 @@
       <span class="n">tp</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">)</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">summary_interval_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">summary_interval_steps</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">async_checkpointing</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">async_checkpointing</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 

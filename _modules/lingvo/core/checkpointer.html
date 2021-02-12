@@ -272,6 +272,10 @@
         <span class="n">pad_step_number</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># %08d</span>
         <span class="n">write_version</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">SaverDef</span><span class="o">.</span><span class="n">V2</span><span class="p">)</span></div>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">async_checkpointing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">async_checkpointing</span>
+
 <div class="viewcode-block" id="Checkpointer.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Load the checkpoint from specified path.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
