@@ -33,7 +33,6 @@ from tensorflow.python.tpu import device_assignment as device_assignment_lib  # 
 tf.flags.DEFINE_bool(
     'disable_meta_optimizer_in_executor', False,
     'Disabling the grappler meta_optimizer improves start-up time.')
-
 FLAGS = tf.flags.FLAGS
 
 
@@ -376,7 +375,13 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Retrieve params.')
           sess.run(self._retrieve_ops)
           tf.logging.info('Retrieve params done.')
-          self.save_only_checkpointer.MaybeSave(sess, global_step)
+          if self.save_only_checkpointer.async_checkpointing:
+            tf.logging.info('Save checkpoint asynchronously AT YOUR OWN RISK.')
+            threadpool = multiprocessing.dummy.Pool(1)
+            saver_future = threadpool.apply_async(
+                self.save_only_checkpointer.MaybeSave, args=(sess, global_step))
+          else:
+            self.save_only_checkpointer.MaybeSave(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
@@ -390,6 +395,10 @@ class ExecutorTpu(base_runner.BaseRunner):
           program_schedule = self._program_schedule_dict[model_task]
 
         done = program_schedule.Run(sess)
+        if (not self._ml_perf_log and
+            self.save_only_checkpointer.async_checkpointing):
+          saver_future.wait()
+
         if done:
           tf.logging.info('Program schedule told us to stop.\n'
                           'Shutting down programs.')

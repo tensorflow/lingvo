@@ -120,6 +120,10 @@ class Checkpointer:
         pad_step_number=True,  # %08d
         write_version=tf.train.SaverDef.V2)
 
+  @property
+  def async_checkpointing(self):
+    return self._train_params.async_checkpointing
+
   def RestoreFromPath(self, sess, checkpoint_path):
     """Load the checkpoint from specified path."""
     assert not self._save_only

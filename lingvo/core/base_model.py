@@ -144,6 +144,8 @@ class BaseTask(base_layer.BaseLayer):
               'Maximum number of recent checkpoints to keep.')
     tp.Define('save_keep_checkpoint_every_n_hours', 0.5,
               'How often to keep a checkpoint.')
+    tp.Define('async_checkpointing', False,
+              'Checkpointing asynchronously. Currently only support executor.')
 
     tp.Define('summary_interval_steps', 100,
               'Generates a summary roughly once every this many steps.')
@@ -952,7 +954,8 @@ class BaseModel(base_layer.BaseLayer):
               'How often to keep a checkpoint.')
     tp.Define('summary_interval_steps', 100,
               'Generates a checkpoint roughly once every this many steps.')
-
+    tp.Define('async_checkpointing', False,
+              'Checkpointing asynchronously. Currently only support executor.')
     return p
 
   def __init__(self, params):
@@ -1106,6 +1109,7 @@ class SingleTaskModel(SingleTaskBase):
       tp.save_keep_checkpoint_every_n_hours = (
           p.task.train.save_keep_checkpoint_every_n_hours)
       tp.summary_interval_steps = p.task.train.summary_interval_steps
+      tp.async_checkpointing = p.task.train.async_checkpointing
 
     return p
 
