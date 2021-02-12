@@ -48,7 +48,8 @@ class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
 
   def LoadDataset(self, file_pattern):
     file_pattern_glob = py_utils.ShardedFilePatternToGlob(file_pattern)
-    dataset = tf.data.Dataset.list_files(file_pattern_glob, shuffle=False)
+    filenames = sorted(tf.io.gfile.glob(file_pattern_glob))
+    dataset = tf.data.Dataset.from_tensor_slices(filenames)
 
     def MakeExample(data):
       return py_utils.NestedMap(data=data, source_id=tf.constant(0))
@@ -432,7 +433,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
   def testTFDatasetFnInput(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        args=os.path.join(self.tmpdir, '*file_*'),
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
         shuffle_buffer_size=100)
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
@@ -453,7 +454,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
     def CreateDatasource(**kwargs):
       ds_params = datasource.TFDatasetFnInput.Params().Set(
           load_fn='LoadDataset',
-          args=os.path.join(self.tmpdir, '*file_*'),
+          kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
           **kwargs)
       ds = ds_params.Instantiate()
       ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
@@ -475,7 +476,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
   def testTFDatasetFnInput_RequireSequentialOrder(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        args=os.path.join(self.tmpdir, '*file_*'),
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
         require_sequential_order=True)
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
@@ -498,7 +499,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
   def testCustomTFDatasetTransform(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        args=os.path.join(self.tmpdir, '*file_*'),
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
         require_sequential_order=True)
     ds_params = datasource.CustomTFDatasetTransform.Params().Set(
         sub=ds_params, fn='SequenceLengthTransform')
@@ -532,7 +533,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
   def testTFDatasetBatchBySequenceLength(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        args=os.path.join(self.tmpdir, '*file_*'),
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
         shuffle_buffer_size=100)
     ds_params = datasource.TFDatasetBatchBySequenceLength.Params().Set(
         sub=ds_params,
@@ -570,7 +571,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
 
     ds2 = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        args=os.path.join(self.tmpdir, '*file_*'),
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
         require_sequential_order=True)
 
     with self.subTest(name='DS1Only'), self.session(graph=tf.Graph()):

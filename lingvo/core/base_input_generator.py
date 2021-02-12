@@ -1235,37 +1235,7 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
     params = params.Copy()
     if not params.file_datasource:
       # Convert p.file_pattern into p.file_datasource.
-      if isinstance(params.file_pattern, str):
-        file_patterns = params.file_pattern.split(',')
-        weights = None
-      else:
-        if all([isinstance(x, str) for x in params.file_pattern]):
-          file_patterns = params.file_pattern
-          weights = None
-        elif all([isinstance(x, tuple) for x in params.file_pattern]):
-          file_patterns, weights = zip(*params.file_pattern)
-        else:
-          raise ValueError(
-              f'p.file_pattern must be all strings or all tuples, but got: '
-              f'{params.file_pattern}.')
-      for fp in file_patterns:
-        if ',' in fp:
-          raise ValueError(f'p.file_pattern should not contain comma: {fp}')
-
-      ds = []
-      for i, fp in enumerate(file_patterns):
-        ds.append(datasource.TFDatasetFnInput.Params().Set(
-            load_fn='LoadDataset',
-            args=fp,
-            shuffle_buffer_size=params.file_buffer_size,
-            require_sequential_order=params.require_sequential_order))
-      if len(ds) > 1:
-        if not params.use_within_batch_mixing:
-          raise ValueError(
-              'Only p.use_within_batch_mixing is supported with multiple '
-              'file_patterns.')
-        ds = [datasource.TFDatasetMixer.Params().Set(sub=ds, weights=weights)]
-      ds = ds[0]
+      ds = self.ConvertFilePatternToDataSource(params, params.file_pattern)
     else:
       ds = params.file_datasource
 
@@ -1292,17 +1262,51 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
 
     super().__init__(params)
 
+  @classmethod
+  def ConvertFilePatternToDataSource(cls, params, file_pattern):
+    if isinstance(file_pattern, str):
+      file_patterns = file_pattern.split(',')
+      weights = None
+    else:
+      if all([isinstance(x, str) for x in file_pattern]):
+        file_patterns = file_pattern
+        weights = None
+      elif all([isinstance(x, tuple) for x in file_pattern]):
+        file_patterns, weights = zip(*file_pattern)
+      else:
+        raise ValueError(
+            f'file_pattern must be all strings or all tuples, but got: '
+            f'{file_pattern}.')
+    for fp in file_patterns:
+      if ',' in fp:
+        raise ValueError(f'file_pattern should not contain comma: {fp}')
+
+    ds = []
+    for fp in file_patterns:
+      ds.append(datasource.TFDatasetFnInput.Params().Set(
+          load_fn='LoadDataset',
+          kwargs=dict(file_pattern=fp),
+          shuffle_buffer_size=params.file_buffer_size,
+          require_sequential_order=params.require_sequential_order))
+    if len(ds) > 1:
+      if not params.use_within_batch_mixing:
+        raise ValueError(
+            'Only p.use_within_batch_mixing is supported with multiple '
+            'file_patterns.')
+      ds = [datasource.TFDatasetMixer.Params().Set(sub=ds, weights=weights)]
+    return ds[0]
+
   def Reset(self, sess):
     self.datasource.Reset(sess)
 
   def GetPreprocessedInputBatch(self):
     return self.datasource.GetNext()
 
-  def LoadDataset(self, filename):
+  def LoadDataset(self, file_pattern):
     """Load a dataset from file.
 
     Args:
-      filename: the file to load.
+      file_pattern: the path to the file to load.
 
     Returns:
       A tf.data.Dataset() whose elements represent a single training sample

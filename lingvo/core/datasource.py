@@ -433,11 +433,14 @@ class CustomTFDatasetTransform(TFDatasetTransform):
     p.Define(
         'fn', '', 'The method name to call. '
         'It must accept and return a tf.data.Dataset.')
+    p.Define('kwargs', None, 'A dict with keyword arguments to pass to fn.')
     return p
 
   def Transform(self, dataset):
     """Returns a transformed tf.data.Dataset."""
-    return getattr(self._input_generator, self.params.fn)(dataset)
+    fn = getattr(self._input_generator, self.params.fn)
+    kwargs = self.params.kwargs or {}
+    return fn(dataset, **kwargs)
 
 
 class TFDatasetFnInput(TFDatasetSource):
@@ -450,8 +453,8 @@ class TFDatasetFnInput(TFDatasetSource):
         'load_fn', 'LoadDataset',
         'An input_generator method name to call to load data. It must accept '
         'p.args and return a tf.data.Dataset.')
-    p.Define('args', None,
-             'Arguments to pass to load_fn. If a list, it will be expanded.')
+    p.Define('kwargs', None,
+             'A dict with keyword arguments to pass to load_fn.')
     p.Define('shuffle_buffer_size', None,
              'Number of records buffered for random shuffling.')
     p.Define(
@@ -470,12 +473,8 @@ class TFDatasetFnInput(TFDatasetSource):
   def GetDataset(self):
     p = self.params
     fn = getattr(self._input_generator, p.load_fn)
-    if p.args is None:
-      dataset = fn()
-    elif isinstance(p.args, list):
-      dataset = fn(*p.args)
-    else:
-      dataset = fn(p.args)
+    kwargs = p.kwargs or {}
+    dataset = fn(**kwargs)
 
     require_sequential_order = p.require_sequential_order or self.do_eval
     if not require_sequential_order:
