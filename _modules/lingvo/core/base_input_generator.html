@@ -1387,37 +1387,7 @@
     <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
       <span class="c1"># Convert p.file_pattern into p.file_datasource.</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">]):</span>
-          <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span>
-          <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">elif</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">]):</span>
-          <span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-              <span class="sa">f</span><span class="s1">&#39;p.file_pattern must be all strings or all tuples, but got: &#39;</span>
-              <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
-          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;p.file_pattern should not contain comma: </span><span class="si">{</span><span class="n">fp</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-
-      <span class="n">ds</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">):</span>
-        <span class="n">ds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetFnInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">load_fn</span><span class="o">=</span><span class="s1">&#39;LoadDataset&#39;</span><span class="p">,</span>
-            <span class="n">args</span><span class="o">=</span><span class="n">fp</span><span class="p">,</span>
-            <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
-            <span class="n">require_sequential_order</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">))</span>
-      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
-          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-              <span class="s1">&#39;Only p.use_within_batch_mixing is supported with multiple &#39;</span>
-              <span class="s1">&#39;file_patterns.&#39;</span><span class="p">)</span>
-        <span class="n">ds</span> <span class="o">=</span> <span class="p">[</span><span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetMixer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)]</span>
-      <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ConvertFilePatternToDataSource</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">ds</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span>
 
@@ -1444,17 +1414,51 @@
 
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
+<div class="viewcode-block" id="TFDataSequenceInputGenerator.ConvertFilePatternToDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.ConvertFilePatternToDataSource">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ConvertFilePatternToDataSource</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+      <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+      <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">]):</span>
+        <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">file_pattern</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">elif</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">]):</span>
+        <span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">file_pattern</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;file_pattern must be all strings or all tuples, but got: &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">file_pattern</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;file_pattern should not contain comma: </span><span class="si">{</span><span class="n">fp</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">ds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
+      <span class="n">ds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetFnInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">load_fn</span><span class="o">=</span><span class="s1">&#39;LoadDataset&#39;</span><span class="p">,</span>
+          <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">file_pattern</span><span class="o">=</span><span class="n">fp</span><span class="p">),</span>
+          <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
+          <span class="n">require_sequential_order</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Only p.use_within_batch_mixing is supported with multiple &#39;</span>
+            <span class="s1">&#39;file_patterns.&#39;</span><span class="p">)</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="p">[</span><span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetMixer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">ds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
 <div class="viewcode-block" id="TFDataSequenceInputGenerator.Reset"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TFDataSequenceInputGenerator.GetPreprocessedInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.GetPreprocessedInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetPreprocessedInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">GetNext</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="TFDataSequenceInputGenerator.LoadDataset"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.LoadDataset">[docs]</a>  <span class="k">def</span> <span class="nf">LoadDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<div class="viewcode-block" id="TFDataSequenceInputGenerator.LoadDataset"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.LoadDataset">[docs]</a>  <span class="k">def</span> <span class="nf">LoadDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Load a dataset from file.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      filename: the file to load.</span>
+<span class="sd">      file_pattern: the path to the file to load.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tf.data.Dataset() whose elements represent a single training sample</span>
