@@ -140,7 +140,8 @@ class BaseLanguageModel(base_layer.BaseLayer):
     output = py_utils.NestedMap()
     output.log_probs = tf.squeeze(xent_output.log_probs, axis=0)
     output.probs = tf.squeeze(xent_output.probs, axis=0)
-    output.last_hidden = tf.squeeze(xent_output.last_hidden, axis=0)
+    if 'last_hidden' in xent_output:
+      output.last_hidden = tf.squeeze(xent_output.last_hidden, axis=0)
     if 'logits' in xent_output:
       # FstLm doesn't return logits.
       output.logits = tf.squeeze(xent_output.logits, axis=0)
