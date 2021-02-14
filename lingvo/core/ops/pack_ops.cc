@@ -129,6 +129,11 @@ class PackSequencesOp : public OpKernel {
   mutable absl::Mutex mu_;
   // Used for randomizing the dropping of input rows when needed.
   std::mt19937 rnd_ ABSL_GUARDED_BY(mu_);
+  int64 total_src_tokens_ ABSL_GUARDED_BY(mu_) = 0;
+  int64 total_tgt_tokens_ ABSL_GUARDED_BY(mu_) = 0;
+  int64 total_examples_ ABSL_GUARDED_BY(mu_) = 0;
+  int64 total_packed_records_ ABSL_GUARDED_BY(mu_) = 0;
+  int64 total_dropped_packed_records_ ABSL_GUARDED_BY(mu_) = 0;
 
   TF_DISALLOW_COPY_AND_ASSIGN(PackSequencesOp);
 };
@@ -199,6 +204,7 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
                       /*align=*/1,
                       /*pack=*/true, /*spread_first_n=*/packed_batch_size_);
   int max_output_batch_idx = 0;
+  int64 total_src_seq_len = 0, total_tgt_seq_len = 0;
   for (int i = 0; i < input_num; ++i) {
     int src_seq_len = src_actual_seq_len(i);
     int tgt_seq_len = tgt_actual_seq_len(i);
@@ -222,8 +228,31 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
     }
     max_output_batch_idx = std::max(p.packing.batch, max_output_batch_idx);
     pack_records->push_back(p);
+    total_src_seq_len += src_seq_len;
+    total_tgt_seq_len += tgt_seq_len;
   }
-  return max_output_batch_idx + 1;
+  int num_packed_records = max_output_batch_idx + 1;
+  {
+    absl::MutexLock l(&mu_);
+    total_src_tokens_ += total_src_seq_len;
+    total_tgt_tokens_ += total_tgt_seq_len;
+    total_examples_ += input_num;
+    total_packed_records_ += num_packed_records;
+    if (num_packed_records > packed_batch_size_) {
+      total_dropped_packed_records_ += num_packed_records - packed_batch_size_;
+    }
+    LOG_EVERY_N_SEC(INFO, 60)
+        << "Packed " << total_examples_ << " examples into "
+        << total_packed_records_ << " rows, dropping "
+        << total_dropped_packed_records_
+        << " rows. Average src/tgt tokens per example: "
+        << 1. * total_src_tokens_ / total_examples_ << ", "
+        << 1. * total_tgt_tokens_ / total_examples_ << ". Utilization: "
+        << 1. * total_src_tokens_ / total_packed_records_ / packed_src_seq_len_
+        << ", "
+        << 1. * total_tgt_tokens_ / total_packed_records_ / packed_tgt_seq_len_;
+  }
+  return num_packed_records;
 }
 
 bool PackSequencesOp::DropPackedRows(
