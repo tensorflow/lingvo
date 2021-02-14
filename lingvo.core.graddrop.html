@@ -175,7 +175,7 @@
 <p>The Gradient Sign Dropout (GradDrop) algorithm.</p>
 <dl class="py class">
 <dt id="lingvo.core.graddrop.GradDrop">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.graddrop.</code><code class="sig-name descname">GradDrop</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.graddrop.</span></code><code class="sig-name descname"><span class="pre">GradDrop</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Implements the Gradient Sign Dropout (GradDrop) algorithm.</p>
 <p>This is most useful when your model computes a shared representation tensor
@@ -202,13 +202,13 @@ find the GradDrop layer instance.</p></li>
 </dl>
 <dl class="py method">
 <dt id="lingvo.core.graddrop.GradDrop.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.graddrop.GradDrop.SetLosses">
-<code class="sig-name descname">SetLosses</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">losses</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop.SetLosses"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop.SetLosses" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">SetLosses</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">losses</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop.SetLosses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop.SetLosses" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the losses.</p>
 <p>The leak ratio controls how much of the original gradient to pass through.</p>
 <p>In practice, we usually set leak_ratio to 0 for all the losses. However,
@@ -225,7 +225,7 @@ those task(s) unchanged, and apply GradDrop only to the other losses.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.graddrop.GradDrop.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_tensor</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/graddrop.html#GradDrop.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.graddrop.GradDrop.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.graddrop.GradDrop.FProp" title="lingvo.core.graddrop.GradDrop.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>

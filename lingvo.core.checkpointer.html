@@ -175,30 +175,30 @@
 <p>Checkpointing utilities for save/restore.</p>
 <dl class="py class">
 <dt id="lingvo.core.checkpointer.Checkpointer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.checkpointer.</code><code class="sig-name descname">Checkpointer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_dir</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">init_op</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">train_params</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">save_only</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.checkpointer.</span></code><code class="sig-name descname"><span class="pre">Checkpointer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Checkpointing utility class.</p>
 <p>Needs to be created within a graph context.</p>
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer._GetSaver">
-<code class="sig-name descname">_GetSaver</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer._GetSaver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer._GetSaver" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">_GetSaver</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer._GetSaver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer._GetSaver" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a saver.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer.async_checkpointing">
-<em class="property">property </em><code class="sig-name descname">async_checkpointing</code><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.async_checkpointing" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">async_checkpointing</span></code><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.async_checkpointing" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer.RestoreFromPath">
-<code class="sig-name descname">RestoreFromPath</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">checkpoint_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.RestoreFromPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.RestoreFromPath" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">RestoreFromPath</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.RestoreFromPath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.RestoreFromPath" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load the checkpoint from specified path.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer.MaybeSave">
-<code class="sig-name descname">MaybeSave</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">gsteps</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.MaybeSave"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.MaybeSave" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">MaybeSave</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.MaybeSave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.MaybeSave" title="Permalink to this definition">¶</a></dt>
 <dd><p>If it’s time to save, save the checkpoint.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -215,7 +215,7 @@
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer.Save">
-<code class="sig-name descname">Save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">gsteps</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.Save" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">Save</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.Save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save the checkpoint.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -229,29 +229,29 @@
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer._RestoreFromLatestCheckpoint">
-<code class="sig-name descname">_RestoreFromLatestCheckpoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer._RestoreFromLatestCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer._RestoreFromLatestCheckpoint" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">_RestoreFromLatestCheckpoint</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer._RestoreFromLatestCheckpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer._RestoreFromLatestCheckpoint" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer._GetUninitializedVarNames">
-<code class="sig-name descname">_GetUninitializedVarNames</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer._GetUninitializedVarNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer._GetUninitializedVarNames" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">_GetUninitializedVarNames</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer._GetUninitializedVarNames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer._GetUninitializedVarNames" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer.Restore">
-<code class="sig-name descname">Restore</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">force_reinitialize</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.Restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.Restore" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">Restore</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_reinitialize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.Restore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.Restore" title="Permalink to this definition">¶</a></dt>
 <dd><p>Restore from latest checkpoint if available, or initialize.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded">
-<code class="sig-name descname">RestoreIfNeeded</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.RestoreIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">RestoreIfNeeded</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.RestoreIfNeeded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
 <dd><p>If vars are not initialized, restore from checkpoint.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.checkpointer.Checkpointer.RestoreGlobalStepIfNeeded">
-<code class="sig-name descname">RestoreGlobalStepIfNeeded</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.RestoreGlobalStepIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.RestoreGlobalStepIfNeeded" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">RestoreGlobalStepIfNeeded</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.RestoreGlobalStepIfNeeded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.RestoreGlobalStepIfNeeded" title="Permalink to this definition">¶</a></dt>
 <dd><p>If global step is not initialized, load it from the checkpoint.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -264,7 +264,7 @@
 
 <dl class="py function">
 <dt id="lingvo.core.checkpointer.GetSpecificCheckpoint">
-<code class="sig-prename descclassname">lingvo.core.checkpointer.</code><code class="sig-name descname">GetSpecificCheckpoint</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">load_checkpoint_from</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#GetSpecificCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.checkpointer.GetSpecificCheckpoint" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.checkpointer.</span></code><code class="sig-name descname"><span class="pre">GetSpecificCheckpoint</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_checkpoint_from</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#GetSpecificCheckpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.GetSpecificCheckpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a specific checkpoint given <code class="xref py py-obj docutils literal notranslate"><span class="pre">load_checkpoint_from</span></code>.</p>
 <p>When <code class="xref py py-obj docutils literal notranslate"><span class="pre">load_checkpoint_from</span></code> is a checkpoint (determined by the existence of
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">load_checkpoint_from</span></code> + ‘.index’), validate the path and return it.</p>
