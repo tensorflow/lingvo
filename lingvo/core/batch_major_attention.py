@@ -4186,6 +4186,10 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         'are placed on the same and only one partition. Else, len(splits) is '
         'the number of partitions the stack is sliced into. layer_i is placed '
         'on the kth partition (0-based) where split[k] < i <= split[k+1].')
+    # MOE related params.
+    p.Define('num_experts', 0, 'Total number of experts.')
+    p.Define('num_groups', 1, 'Num of groups for dispatching.')
+    p.Define('moe_layers', [], 'The list of MoE layer indices, e.g. [0, 2, 4].')
     return p
 
   def __init__(self, params):
@@ -4211,6 +4215,29 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         raise ValueError('num_layers should be divisible by '
                          'transformer_layer_params_tpl')
 
+    def _MoeLayerParams(ff_p):
+      """Convert a Feedforward layer into an MOE layer."""
+      assert issubclass(ff_p.cls,
+                        layers_with_attention.TransformerFeedForwardLayer)
+      assert p.num_experts > 0
+      moe_p = layers_with_attention.TransformerShardedMoeLayer.Params()
+      # Copy over the base params.
+      base_layer.BaseLayer.CopyBaseParams(ff_p, moe_p)
+      # Copy over other params.
+      moe_p.name = ff_p.name
+      moe_p.input_dim = ff_p.input_dim
+      moe_p.output_dim = ff_p.output_dim
+      moe_p.hidden_dim = ff_p.hidden_dim
+      moe_p.activation = ff_p.activation
+      moe_p.residual_dropout_prob = ff_p.residual_dropout_prob
+      moe_p.relu_dropout_prob = ff_p.relu_dropout_prob
+      moe_p.dropout_tpl = ff_p.residual_dropout_tpl.Copy()
+      moe_p.num_groups = p.num_groups
+      moe_p.num_experts = p.num_experts
+      # Set weight_split_dims_mapping
+      # Set activation_split_dims_mapping
+      return moe_p
+
     def _LayerParams(ii):
       """Construct ii-th layer params."""
       if isinstance(p.transformer_layer_params_tpl, list):
@@ -4233,6 +4260,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       p_ii.tr_fflayer_tpl.hidden_dim = p.hidden_dim
       p_ii.tr_fflayer_tpl.residual_dropout_prob = p.dropout_prob
       p_ii.tr_fflayer_tpl.relu_dropout_prob = p.dropout_prob
+      if ii in p.moe_layers:
+        p_ii.tr_fflayer_tpl = _MoeLayerParams(p_ii.tr_fflayer_tpl)
       return p_ii
 
     layer_params = [_LayerParams(ii) for ii in range(p.num_layers)]
