@@ -698,6 +698,9 @@ class TrainerTpu(base_runner.BaseRunner):
       global_step = sess.run(self._model.global_step)
       self._initialized.set()
       eval_metrics = None
+      if FLAGS.checkpoint_in_trainer_tpu and global_step == 0:
+        # Always save a ckpt at step 0.
+        self.checkpointer.MaybeSave(sess, global_step)
 
       sess.run(self._load_ops)
       while True:
