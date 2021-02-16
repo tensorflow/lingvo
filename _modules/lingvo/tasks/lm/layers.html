@@ -167,7 +167,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Common layers for language models.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -187,6 +186,7 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of vocabulary tokens.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether the inputs are packed.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="BaseLanguageModel.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.BaseLanguageModel.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
@@ -450,6 +450,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">allow_implicit_capture</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
 
     <span class="n">cell_output_size</span> <span class="o">=</span> <span class="n">_RnnOutputSize</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="p">)</span>
     <span class="n">output_layer_size</span> <span class="o">=</span> <span class="n">cell_output_size</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">direct_features_dim</span>
@@ -538,7 +539,7 @@
             <span class="n">state0</span><span class="p">,</span>
             <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">direct_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">input_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes xent loss given the language model input activations.</span>
 
 <span class="sd">    Args:</span>
@@ -558,7 +559,7 @@
 <span class="sd">      direct_features:</span>
 <span class="sd">        If not None, a tensor of [time, batch, direct_feature_dims] that is</span>
 <span class="sd">        concatenated to the output of the last RNN layer.</span>
-<span class="sd">      input_ids: input token ids. Tensor of shape [time, batch]</span>
+<span class="sd">      **kwargs: Optional extra keyword arguments to be passed on to rnns.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      If `labels` is not None, returns (xent_output, state1), where</span>
@@ -571,12 +572,6 @@
     <span class="n">seqlen</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="n">num</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">seqlen</span><span class="p">,</span> <span class="n">batch</span><span class="p">])</span>
     <span class="k">assert</span> <span class="n">state0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-
-    <span class="c1"># Include input_ids as arg only if supported by rnns.FProp function</span>
-    <span class="c1"># pylint: disable=deprecated-method</span>
-    <span class="n">fprop_args</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">FProp</span><span class="p">)</span>
-    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">input_ids</span><span class="o">=</span><span class="n">input_ids</span><span class="p">)</span>
-    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fprop_args</span><span class="p">}</span>
 
     <span class="n">activation</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">rnns</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
                                          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">state0</span><span class="p">,</span>
@@ -735,7 +730,8 @@
             <span class="n">paddings</span><span class="p">,</span>
             <span class="n">state0</span><span class="p">,</span>
             <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">direct_features</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">direct_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes xent loss given the language model input activations.</span>
 
 <span class="sd">    Args:</span>
@@ -755,6 +751,7 @@
 <span class="sd">      direct_features:</span>
 <span class="sd">        If not None, a tensor of [time, batch, direct_feature_dims] that is</span>
 <span class="sd">        concatenated to the output of the last RNN layer.</span>
+<span class="sd">      **kwargs: Optional extra keyword arguments to be passed on to rnns.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      If `labels` is not None, returns (xent_output, state1), where</span>
@@ -780,7 +777,8 @@
         <span class="n">state0</span><span class="p">,</span>
         <span class="n">labels</span><span class="p">,</span>
         <span class="n">direct_features</span><span class="p">,</span>
-        <span class="n">input_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span></div></div>
+        <span class="n">input_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="ConditionalRnnLm"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.ConditionalRnnLm">[docs]</a><span class="k">class</span> <span class="nc">ConditionalRnnLm</span><span class="p">(</span><span class="n">RnnLmNoEmbedding</span><span class="p">):</span>

@@ -166,7 +166,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Lingvo RNN layers.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention</span>
@@ -332,12 +331,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;To reset states for packed inputs.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are currently not supported by &#39;</span>
-                                <span class="s1">&#39;Static RNN Base&#39;</span><span class="p">)</span>
-
 <div class="viewcode-block" id="StackedRNNBase._GetCellTpls"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedRNNBase._GetCellTpls">[docs]</a>  <span class="k">def</span> <span class="nf">_GetCellTpls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
@@ -378,6 +371,7 @@
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;frnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">params</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
         <span class="n">params</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
           <span class="n">params</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
@@ -416,7 +410,7 @@
       <span class="n">ret</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="StackedFRNNLayerByLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="StackedFRNNLayerByLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute RNN forward pass.</span>
 
 <span class="sd">    Args:</span>
@@ -426,7 +420,7 @@
 <span class="sd">      paddings: A single tensor of shape [time, batch, 1].</span>
 <span class="sd">      state0: If not None, the initial rnn state in a `.NestedMap`. Defaults</span>
 <span class="sd">        to the init state.</span>
-<span class="sd">      input_ids: input token ids. Tensor of shape [time, batch]</span>
+<span class="sd">      **kwargs: Optional extra keyword arguments to be passed on to rnns.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      (outputs, state1)</span>
@@ -439,13 +433,6 @@
     <span class="n">xs</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">rnn</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_layers</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_layers</span><span class="p">):</span>
-
-      <span class="c1"># Include input_ids as arg only if supported by rnns.FProp function</span>
-      <span class="c1"># pylint: disable=deprecated-method</span>
-      <span class="n">fprop_args</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rnn</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">)</span>
-      <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">input_ids</span><span class="o">=</span><span class="n">input_ids</span><span class="p">)</span>
-      <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fprop_args</span><span class="p">}</span>
-
       <span class="n">ys</span><span class="p">,</span> <span class="n">state1</span><span class="o">.</span><span class="n">rnn</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">rnn</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">xs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span>
                                             <span class="n">state0</span><span class="o">.</span><span class="n">rnn</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
       <span class="n">ys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
@@ -472,6 +459,8 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;Packed inputs are currently not supported by </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="n">rnn_params</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">feature_dim</span> <span class="o">=</span> <span class="kc">None</span>
@@ -606,6 +595,7 @@
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">segment_id</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">segment_id</span><span class="p">))</span>
       <span class="n">reset_mask</span> <span class="o">=</span> <span class="n">GeneratePackedInputResetMask</span><span class="p">(</span>
           <span class="n">segment_id</span><span class="p">,</span> <span class="n">is_reverse</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">reverse</span><span class="p">)</span>
       <span class="n">reset_mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">reset_mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">))</span>

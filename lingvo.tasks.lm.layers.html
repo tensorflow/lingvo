@@ -489,7 +489,7 @@ that is concatenated to the output of the last RNN layer.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes xent loss given the language model input activations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -511,7 +511,7 @@ float values indicating class-membership probabilities.</p></li>
 </p></li>
 <li><p><strong>direct_features</strong> – If not None, a tensor of [time, batch, direct_feature_dims] that is
 concatenated to the output of the last RNN layer.</p></li>
-<li><p><strong>input_ids</strong> – input token ids. Tensor of shape [time, batch]</p></li>
+<li><p><strong>**kwargs</strong> – Optional extra keyword arguments to be passed on to rnns.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -587,7 +587,7 @@ chunking is done.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.tasks.lm.layers.RnnLm.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes xent loss given the language model input activations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -609,6 +609,7 @@ float values indicating class-membership probabilities.</p></li>
 </p></li>
 <li><p><strong>direct_features</strong> – If not None, a tensor of [time, batch, direct_feature_dims] that is
 concatenated to the output of the last RNN layer.</p></li>
+<li><p><strong>**kwargs</strong> – Optional extra keyword arguments to be passed on to rnns.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
