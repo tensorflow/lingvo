@@ -15,7 +15,6 @@
 # ==============================================================================
 """Common layers for language models."""
 
-import inspect
 import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -35,6 +34,7 @@ class BaseLanguageModel(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('vocab_size', 0, 'Number of vocabulary tokens.')
+    p.Define('packed_input', False, 'Whether the inputs are packed.')
     return p
 
   @classmethod
@@ -298,6 +298,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
     if not isinstance(p.rnns.cell_tpl, (list, tuple)):
       p.rnns.cell_tpl = [p.rnns.cell_tpl]
     p.rnns.allow_implicit_capture = p.allow_implicit_capture
+    p.rnns.packed_input = p.packed_input
 
     cell_output_size = _RnnOutputSize(p.rnns)
     output_layer_size = cell_output_size + p.direct_features_dim
@@ -386,7 +387,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
             state0,
             labels=None,
             direct_features=None,
-            input_ids=None):
+            **kwargs):
     """Computes xent loss given the language model input activations.
 
     Args:
@@ -406,7 +407,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
       direct_features:
         If not None, a tensor of [time, batch, direct_feature_dims] that is
         concatenated to the output of the last RNN layer.
-      input_ids: input token ids. Tensor of shape [time, batch]
+      **kwargs: Optional extra keyword arguments to be passed on to rnns.
 
     Returns:
       If `labels` is not None, returns (xent_output, state1), where
@@ -419,12 +420,6 @@ class RnnLmNoEmbedding(BaseLanguageModel):
     seqlen, batch, _ = tf.unstack(tf.shape(inputs), num=3)
     paddings = py_utils.HasShape(paddings, [seqlen, batch])
     assert state0 is not None
-
-    # Include input_ids as arg only if supported by rnns.FProp function
-    # pylint: disable=deprecated-method
-    fprop_args, _, _, _ = inspect.getargspec(self.rnns.FProp)
-    kwargs = dict(input_ids=input_ids)
-    kwargs = {k: v for k, v in kwargs.items() if k in fprop_args}
 
     activation, state1 = self.rnns.FProp(theta.rnns, inputs,
                                          tf.expand_dims(paddings, 2), state0,
@@ -583,7 +578,8 @@ class RnnLm(RnnLmNoEmbedding):
             paddings,
             state0,
             labels=None,
-            direct_features=None):
+            direct_features=None,
+            **kwargs):
     """Computes xent loss given the language model input activations.
 
     Args:
@@ -603,6 +599,7 @@ class RnnLm(RnnLmNoEmbedding):
       direct_features:
         If not None, a tensor of [time, batch, direct_feature_dims] that is
         concatenated to the output of the last RNN layer.
+      **kwargs: Optional extra keyword arguments to be passed on to rnns.
 
     Returns:
       If `labels` is not None, returns (xent_output, state1), where
@@ -628,7 +625,8 @@ class RnnLm(RnnLmNoEmbedding):
         state0,
         labels,
         direct_features,
-        input_ids=ids)
+        input_ids=ids,
+        **kwargs)
 
 
 class ConditionalRnnLm(RnnLmNoEmbedding):

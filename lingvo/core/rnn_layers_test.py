@@ -798,6 +798,68 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
   def testStackedFRNNLayerByLayerGrad(self):
     self._testStackedFRNNGradHelper(rnn_layers.StackedFRNNLayerByLayer)
 
+  def testStackedFRNNPackedInput(self):
+    tf.random.set_seed(123456)
+    batch = 2
+    dims = 4
+    slen = 5
+    num_layers = 4
+    dtype = tf.float32
+    with self.session() as sess:
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.output_nonlinearity = True
+      params.dtype = dtype
+      params.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      params.num_input_nodes = dims
+      params.num_output_nodes = dims
+
+      sfrnn_params = rnn_layers.StackedFRNNLayerByLayer.Params()
+      sfrnn_params.name = 'sfrnn'
+      sfrnn_params.dtype = dtype
+      sfrnn_params.random_seed = 123456
+      sfrnn_params.cell_tpl = params
+      sfrnn_params.num_layers = num_layers
+      sfrnn_params.skip_start = 2
+      sfrnn_params.num_input_nodes = dims
+      sfrnn_params.num_output_nodes = dims
+      sfrnn_params.packed_input = True
+      with tf.name_scope('sfrnn'):
+        sfrnn = sfrnn_params.Instantiate()
+
+      np.random.seed(12345)
+      inputs = tf.constant(np.random.uniform(size=(slen, batch, dims)), dtype)
+      paddings = tf.constant(np.zeros([slen, batch, 1]), dtype)
+      segment_id = tf.constant(np.ones([slen, batch, 1]), dtype)
+
+      self.evaluate(tf.global_variables_initializer())
+
+      # Output with unpacked inputs.
+      sfrnn_outputs, _ = sfrnn.FPropDefaultTheta(
+          inputs, paddings, segment_id=segment_id)
+      sfrnn_outputs = py_utils.HasShape(sfrnn_outputs, [slen, batch, dims])
+
+      def _Pack(x):
+        # [batch, slen, ...].
+        x = tf.transpose(x, [1, 0, 2])
+        # [batch * slen, 1, ...].
+        return tf.reshape(x, [batch * slen, 1, -1])
+
+      # Output with packed inputs.
+      packed_inputs = _Pack(inputs)
+      packed_paddings = _Pack(paddings)
+      packed_segment_id = _Pack(tf.cumsum(segment_id, axis=1))
+      packed_outputs, _ = sfrnn.FPropDefaultTheta(
+          packed_inputs, packed_paddings, segment_id=packed_segment_id)
+      packed_outputs = tf.reshape(packed_outputs, [batch, slen, dims])
+      packed_outputs = tf.transpose(packed_outputs, [1, 0, 2])
+
+      # Check that the outputs are equal.
+      sfrnn_outputs, packed_outputs = sess.run([sfrnn_outputs, packed_outputs])
+      self.assertAllClose(sfrnn_outputs, packed_outputs)
+
   def testStackedBiFRNNDropout(self):
     v1_out = self._testStackedFRNNHelper(
         rnn_layers.StackedBiFRNNLayerByLayer,

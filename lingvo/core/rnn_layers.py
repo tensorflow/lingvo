@@ -14,7 +14,6 @@
 # limitations under the License.
 """Lingvo RNN layers."""
 
-import inspect
 import math
 import lingvo.compat as tf
 from lingvo.core import attention
@@ -180,12 +179,6 @@ class StackedRNNBase(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
-    p = self.params
-    assert not p.packed_input, ('Packed inputs are currently not supported by '
-                                'Static RNN Base')
-
   def _GetCellTpls(self):
     p = self.params
     if not isinstance(p.cell_tpl, (tuple, list)):
@@ -226,6 +219,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
         params.name = 'frnn_%d' % i
         params.cell = cell_tpl.Copy()
         params.cell.name = '%s_%d' % (p.name, i)
+        params.packed_input = p.packed_input
         if p.num_input_nodes > 0 and i == 0:
           params.cell.num_input_nodes = p.num_input_nodes
         if p.num_output_nodes > 0 and i == p.num_layers - 1:
@@ -264,7 +258,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
       ret.rnn.append(state0)
     return ret
 
-  def FProp(self, theta, inputs, paddings, state0=None, input_ids=None):
+  def FProp(self, theta, inputs, paddings, state0=None, **kwargs):
     """Compute RNN forward pass.
 
     Args:
@@ -274,7 +268,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
       paddings: A single tensor of shape [time, batch, 1].
       state0: If not None, the initial rnn state in a `.NestedMap`. Defaults
         to the init state.
-      input_ids: input token ids. Tensor of shape [time, batch]
+      **kwargs: Optional extra keyword arguments to be passed on to rnns.
 
     Returns:
       (outputs, state1)
@@ -287,13 +281,6 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     xs = inputs
     state1 = py_utils.NestedMap(rnn=[None] * p.num_layers)
     for i in range(p.num_layers):
-
-      # Include input_ids as arg only if supported by rnns.FProp function
-      # pylint: disable=deprecated-method
-      fprop_args, _, _, _ = inspect.getargspec(self.rnn[i].FProp)
-      kwargs = dict(input_ids=input_ids)
-      kwargs = {k: v for k, v in kwargs.items() if k in fprop_args}
-
       ys, state1.rnn[i] = self.rnn[i].FProp(theta.rnn[i], xs, paddings,
                                             state0.rnn[i], **kwargs)
       ys = self.dropout.FProp(theta.dropout, ys)
@@ -320,6 +307,8 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
+    assert not p.packed_input, (
+        f'Packed inputs are currently not supported by {type(self)}')
 
     rnn_params = []
     feature_dim = None
@@ -454,6 +443,7 @@ class FRNN(base_layer.BaseLayer):
 
     if p.packed_input:
       assert segment_id is not None
+      segment_id = py_utils.HasShape(segment_id, tf.shape(segment_id))
       reset_mask = GeneratePackedInputResetMask(
           segment_id, is_reverse=p.reverse)
       reset_mask = py_utils.HasShape(reset_mask, tf.shape(paddings))

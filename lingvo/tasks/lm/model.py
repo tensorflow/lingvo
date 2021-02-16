@@ -30,6 +30,7 @@ class LanguageModel(base_model.BaseTask):
   def Params(cls):
     p = super().Params()
     p.Define('lm', layers.RnnLm.Params(), 'LM layer.')
+    p.Define('packed_input', False, 'Whether the inputs are packed.')
 
     tp = p.train
     tp.Define(
@@ -60,7 +61,8 @@ class LanguageModel(base_model.BaseTask):
         (p.lm.vocab_size, p.input.tokenizer.vocab_size))
 
     # Construct the model.
-    self.CreateChild('lm', p.lm)
+    lm_p = p.lm.Copy().Set(packed_input=p.packed_input)
+    self.CreateChild('lm', lm_p)
 
   @classmethod
   def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):
@@ -77,28 +79,53 @@ class LanguageModel(base_model.BaseTask):
     p.lm = p.lm.cls.UpdateTargetVocabSize(p.lm, vocab_size, wpm_model=wpm_model)
     return p
 
-  def _TrimIfPossibleThenTranspose(self, ids, paddings, labels, weights):
-    data = (ids, paddings, labels, weights)
+  def _TrimIfPossibleThenTranspose(self, input_batch):
+    paddings = input_batch['paddings']
+    max_seq_len = None
     if not py_utils.use_tpu():
       max_seq_len = tf.cast(
           tf.reduce_max(tf.reduce_sum(1.0 - paddings, 1)), tf.int32)
-      data = (x[:, :max_seq_len] for x in data)
-    return (tf.transpose(x) for x in data)
+
+    def _TrimAndTranspose(name):
+      x = input_batch[name]
+      if name not in ('ids', 'paddings', 'labels', 'weights', 'segment_ids',
+                      'segment_pos'):
+        return x
+      with tf.name_scope(f'trim_and_transpose_{name}'):
+        x = py_utils.HasShape(x, tf.shape(paddings))
+        if max_seq_len is not None:
+          x = x[:, :max_seq_len]
+        return tf.transpose(x)
+
+    return py_utils.NestedMap(
+        {name: _TrimAndTranspose(name) for name in input_batch})
 
   def FPropTower(self, theta, input_batch):
     p = self.params
-    ids, paddings, labels_ids, weights = self._TrimIfPossibleThenTranspose(
-        input_batch.ids, input_batch.paddings, input_batch.labels,
-        input_batch.weights)
+    batch_size = tf.shape(input_batch.ids)[0]
+    transposed_input_batch = self._TrimIfPossibleThenTranspose(input_batch)
+    labels_ids = transposed_input_batch.labels
+    weights = transposed_input_batch.weights
 
-    batch_size = tf.shape(ids)[1]
     state0 = self.lm.zero_state(theta.lm, batch_size)
     labels = py_utils.NestedMap(class_ids=labels_ids, class_weights=weights)
-    xent_output, _ = self.lm.FProp(theta.lm, ids, paddings, state0, labels)
+    fprop_kwargs = dict()
+    if p.packed_input:
+      # segment_id for FRNN should be of shape [time, batch, 1].
+      fprop_kwargs.update(
+          segment_id=tf.expand_dims(transposed_input_batch.segment_ids, -1))
+    xent_output, _ = self.lm.FProp(theta.lm, transposed_input_batch.ids,
+                                   transposed_input_batch.paddings, state0,
+                                   labels, **fprop_kwargs)
 
     # +1 to account for the end of sequence symbol.
+    if p.packed_input:
+      num_sentences = input_batch.num_sentences
+    else:
+      num_sentences = tf.constant(1, dtype=tf.int32)
     num_words = tf.cast(
-        tf.reduce_sum(input_batch.word_count + tf.constant(1, dtype=tf.int32)),
+        # words and eos tokens.
+        tf.reduce_sum(input_batch.word_count + num_sentences),
         tf.float32)
     predicted_labels = tf.cast(xent_output.per_example_argmax, labels_ids.dtype)
 
@@ -195,8 +222,16 @@ class LanguageModel(base_model.BaseTask):
             tf.reduce_sum(tf.cast(oovs, tf.float32) * (1 - paddings), axis=1)),
         tf.int32)
     # [time, batch]
-    ids, paddings, labels, weights = self._TrimIfPossibleThenTranspose(
-        ids, paddings, labels, 1.0 - paddings)
+    transposed = self._TrimIfPossibleThenTranspose({
+        'ids': ids,
+        'paddings': paddings,
+        'labels': labels,
+        'weights': 1.0 - paddings
+    })
+    ids = transposed.ids
+    paddings = transposed.paddings
+    labels = transposed.labels
+    weights = transposed.weights
     batch_size = tf.shape(ids)[1]
     xent_output, _ = self.lm.FPropDefaultTheta(
         inputs=ids,
