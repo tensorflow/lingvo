@@ -2461,7 +2461,7 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
         ('input_dropout,segment_id_split,segment_pos_split->'
          'y,o_segment_id_split,o_segment_pos_split', sub_layers[0]),
-        ('y->y_norm', self._LN('final_layer_norm')),
+        ('y->y_norm', self._LNNoScale('final_layer_norm')),
         ('y_norm->y_dropout',
          self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
         ('y_dropout,segment_id_split->outputs', self.Mask()),
