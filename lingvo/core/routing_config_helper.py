@@ -50,6 +50,7 @@ class RoutingTransformerEncoderParams(hyperparams.Params):
 
 
 def SetupRoutingTransformerEncoder(model_dim,
+                                   hidden_dim,
                                    num_layers,
                                    num_heads,
                                    left_context,
@@ -67,6 +68,7 @@ def SetupRoutingTransformerEncoder(model_dim,
   Args:
    model_dim: specifies dimension of transformer layers, token embeddings, and
      positional embeddings as well context vectors (attention values).
+   hidden_dim: hidden dim of model.
    num_layers: number of transformer layers.
    num_heads: number of attention heads.
    left_context: amount of left context in local attention.
@@ -88,7 +90,7 @@ def SetupRoutingTransformerEncoder(model_dim,
       name='routing_transformer_stack',
       mdl_dim=model_dim,
       num_layers=num_layers,
-      hidden_dim=model_dim,
+      hidden_dim=hidden_dim,
       num_atten_heads=num_heads,
       dropout_prob=relu_dropout_prob,
       add_unnormalized_input=False,
