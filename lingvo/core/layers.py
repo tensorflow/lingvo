@@ -2517,7 +2517,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
       a Tensor of shape [bs, seq_length, embedding_dim].
     """
     p = self.params
-    seq_length = tf.shape(position)[1]
+    seq_length = py_utils.GetShape(position)[1]
     num_timescales = p.embedding_dim // 2
     log_timescale_increment = (
         math.log(float(p.max_timescale) / float(p.min_timescale)) / tf.maximum(

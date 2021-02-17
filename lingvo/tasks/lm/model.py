@@ -214,6 +214,7 @@ class LanguageModel(base_model.BaseTask):
     text = tf.placeholder(tf.string, shape=[None])
     # [batch, time]
     ids, labels, paddings = self.input_generator.StringsToIds(text)
+    weights = 1. - paddings
     lengths = tf.reduce_sum(tf.cast(1 - paddings, tf.int32), axis=1)
     tokens_from_labels = self.input_generator.IdsToStrings(labels, lengths)
     oovs = tf.equal(labels, self.input_generator.tokenizer.unk_id)
@@ -226,23 +227,20 @@ class LanguageModel(base_model.BaseTask):
         'ids': ids,
         'paddings': paddings,
         'labels': labels,
-        'weights': 1.0 - paddings
+        'weights': weights,
     })
-    ids = transposed.ids
-    paddings = transposed.paddings
-    labels = transposed.labels
-    weights = transposed.weights
-    batch_size = tf.shape(ids)[1]
+    batch_size = tf.shape(ids)[0]
     xent_output, _ = self.lm.FPropDefaultTheta(
-        inputs=ids,
-        paddings=paddings,
+        inputs=transposed.ids,
+        paddings=transposed.paddings,
         state0=self.lm.zero_state(self.theta.lm, batch_size),
-        labels=py_utils.NestedMap(class_ids=labels, class_weights=weights))
+        labels=py_utils.NestedMap(
+            class_ids=transposed.labels, class_weights=transposed.weights))
 
     per_example_xent = py_utils.HasShape(xent_output.per_example_xent,
-                                         tf.shape(ids))
+                                         tf.shape(transposed.ids))
     log_pplx_per_sample = tf.reduce_sum(
-        per_example_xent * (1 - paddings), axis=0)
+        per_example_xent * (1 - transposed.paddings), axis=0)
     fetches = {
         'log_pplx_per_token':  # [batch, time]
             tf.transpose(per_example_xent),
@@ -257,9 +255,15 @@ class LanguageModel(base_model.BaseTask):
         'tokens_from_labels':  # [batch], string
             tokens_from_labels,
         'ids':  # [batch, time], int32
-            ids
+            ids,
     }
-    feeds = {'text': text}
+    feeds = {
+        'text': text,
+        'ids': ids,
+        'paddings': paddings,
+        'labels': labels,
+        'weights': weights,
+    }
     return fetches, feeds
 
 
@@ -278,8 +282,9 @@ class BatchMajorLanguageModel(LanguageModel):
   """Batch major implementation of the language model."""
 
   def _TrimIfPossible(self, ids, paddings, labels, weights):
+    p = self.params
     data = (ids, paddings, labels, weights)
-    if not py_utils.use_tpu():
+    if not py_utils.use_tpu() and not p.packed_input:
       max_seq_len = tf.cast(
           tf.reduce_max(tf.reduce_sum(1.0 - paddings, 1)), tf.int32)
       data = (x[:, :max_seq_len] for x in data)
@@ -297,14 +302,23 @@ class BatchMajorLanguageModel(LanguageModel):
     tf.logging.info('inputs={}'.format((ids, paddings, labels_ids, weights)))
 
     batch_size = tf.shape(ids)[0]
-    state0 = self.lm.zero_state(theta.lm, batch_size)
+    state0 = None
     labels = py_utils.NestedMap(class_ids=labels_ids, class_weights=weights)
-    xent_output, _ = self.lm.FProp(theta.lm, ids, paddings, state0, labels)
+    fprop_kwargs = dict()
+    if 'segment_ids' in input_batch:
+      fprop_kwargs.update(
+          segment_ids=input_batch.segment_ids,
+          segment_pos=input_batch.segment_pos)
+    xent_output, _ = self.lm.FProp(theta.lm, ids, paddings, state0, labels,
+                                   **fprop_kwargs)
 
-    # +1 to account for the end of sequence symbol.
+    if 'segment_ids' in input_batch:
+      num_sentences = input_batch.num_sentences
+    else:
+      num_sentences = tf.ones(shape=[batch_size], dtype=tf.int32)
+    # +num_sentences to account for the end of sequence symbol.
     num_words = tf.cast(
-        tf.reduce_sum(input_batch.word_count + tf.constant(1, dtype=tf.int32)),
-        fprop_dtype)
+        tf.reduce_sum(input_batch.word_count + num_sentences), fprop_dtype)
     predicted_labels = tf.cast(xent_output.per_example_argmax, labels_ids.dtype)
 
     num_preds = xent_output.total_weight
@@ -320,8 +334,60 @@ class BatchMajorLanguageModel(LanguageModel):
         'log_pplx': (xent_output.avg_xent, num_preds),
         'log_pplx_per_word': (xent_output.total_xent / num_words, num_words),
         'num_predictions': (num_preds, 1),
-        'num_words': (num_words, 1)
+        'num_words': (num_words, 1),
+        'num_sentences': (tf.reduce_sum(num_sentences), 1),
     }, {}
+
+  def _InferenceSubgraph_Default(self):
+    """Default inference subgraph."""
+    text = tf.placeholder(tf.string, shape=[None])
+    # [batch, time]
+    ids, labels, paddings = self.input_generator.StringsToIds(text)
+    weights = 1. - paddings
+    ids, paddings, labels, weights = self._TrimIfPossible(
+        ids, paddings, labels, weights)
+    lengths = tf.reduce_sum(tf.cast(1 - paddings, tf.int32), axis=1)
+    tokens_from_labels = self.input_generator.IdsToStrings(labels, lengths)
+    oovs = tf.equal(labels, self.input_generator.tokenizer.unk_id)
+    num_oovs_per_sample = tf.cast(
+        tf.round(
+            tf.reduce_sum(tf.cast(oovs, tf.float32) * (1 - paddings), axis=1)),
+        tf.int32)
+    batch_size = tf.shape(ids)[0]
+    xent_output, _ = self.lm.FPropDefaultTheta(
+        inputs=ids,
+        paddings=paddings,
+        state0=self.lm.zero_state(self.theta.lm, batch_size),
+        labels=py_utils.NestedMap(class_ids=labels, class_weights=weights))
+
+    per_example_xent = py_utils.HasShape(xent_output.per_example_xent,
+                                         tf.shape(ids))
+    log_pplx_per_sample = tf.reduce_sum(
+        per_example_xent * (1 - paddings), axis=1)
+    fetches = {
+        'log_pplx_per_token':  # [batch, time]
+            per_example_xent,
+        'paddings':  # [batch, time]
+            paddings,
+        'lengths':  # [batch]
+            lengths,
+        'log_pplx_per_sample':  # [batch]
+            log_pplx_per_sample,
+        'num_oovs_per_sample':  # [batch], int32
+            num_oovs_per_sample,
+        'tokens_from_labels':  # [batch], string
+            tokens_from_labels,
+        'ids':  # [batch, time], int32
+            ids
+    }
+    feeds = {
+        'text': text,
+        'ids': ids,
+        'paddings': paddings,
+        'labels': labels,
+        'weights': weights,
+    }
+    return fetches, feeds
 
 
 class PackedBatchMajorLanguageModel(base_model.BaseTask):

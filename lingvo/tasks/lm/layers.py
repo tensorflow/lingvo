@@ -419,7 +419,8 @@ class RnnLmNoEmbedding(BaseLanguageModel):
     inputs = py_utils.HasRank(inputs, 3)
     seqlen, batch, _ = tf.unstack(tf.shape(inputs), num=3)
     paddings = py_utils.HasShape(paddings, [seqlen, batch])
-    assert state0 is not None
+    if state0 is None:
+      state0 = self.zero_state(theta, batch)
 
     activation, state1 = self.rnns.FProp(theta.rnns, inputs,
                                          tf.expand_dims(paddings, 2), state0,

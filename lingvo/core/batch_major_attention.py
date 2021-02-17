@@ -674,7 +674,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     b, t, n, h = py_utils.GetShape(query, 4)
     s, b, _, _ = py_utils.GetShape(key, 4)
     paddings = py_utils.HasShape(paddings, [b, s])
-    assert t == 1
+    assert t == 1, query
 
     if per_step_padding is not None:
       paddings += tf.squeeze(per_step_padding, 1)
