@@ -2454,7 +2454,7 @@ class SequencesToDebugStrings(test_utils.TestCase):
                               tf.constant([3, 2], dtype=tf.int32)).eval())
 
 
-class StepSeedTest(test_utils.TestCase):
+class StepSeedTest(test_utils.TestCase, parameterized.TestCase):
 
   def _testStepSeedHelper(self, sess, step_fn):
     state0 = py_utils.NestedMap(
@@ -2509,6 +2509,23 @@ class StepSeedTest(test_utils.TestCase):
         step_seed6 = self._testStepSeedHelper(sess, RecurrentStep2)
         self.assertEqual(step_seed, step_seed5)
         self.assertNotEqual(step_seed2, step_seed6)
+
+  @parameterized.named_parameters(('Base', False), ('Tpu', True))
+  def testGenerateStepSeedPair(self, use_tpu):
+    with self.session(use_gpu=False), mock.patch(
+        'lingvo.core.py_utils.use_tpu', return_value=use_tpu):
+      tf.random.set_seed(12345678)
+      seed_dtype = tf.int32 if use_tpu else tf.int64
+      p = base_layer.BaseLayer.Params()
+      global_step = py_utils.GetGlobalStep()
+      global_step = tf.assign_add(global_step, 10)
+      with tf.control_dependencies([global_step]):
+        seed1 = py_utils.GenerateStepSeedPair(p) + tf.cast(
+            [global_step, global_step + 1], seed_dtype)
+        seed2 = py_utils.GenerateStepSeedPair(p, global_step)
+        self.evaluate(tf.global_variables_initializer())
+        seeds = self.evaluate([seed1, seed2])
+        self.assertAllClose(seeds[0], seeds[1])
 
 
 class WeightParamsTest(test_utils.TestCase):

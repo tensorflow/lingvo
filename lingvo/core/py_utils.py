@@ -3303,6 +3303,7 @@ def GenerateStepSeedPair(p, op_seed=None):
   if p.random_seed is not None:
     seeds += p.random_seed
   if op_seed is not None:
+    op_seed = tf.cast(op_seed, seed_dtype)
     seeds += op_seed
   return seeds
 
