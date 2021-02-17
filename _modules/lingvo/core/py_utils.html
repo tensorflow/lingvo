@@ -3455,6 +3455,7 @@
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">seeds</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
   <span class="k">if</span> <span class="n">op_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">op_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">op_seed</span><span class="p">,</span> <span class="n">seed_dtype</span><span class="p">)</span>
     <span class="n">seeds</span> <span class="o">+=</span> <span class="n">op_seed</span>
   <span class="k">return</span> <span class="n">seeds</span></div>
 
