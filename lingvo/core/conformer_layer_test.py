@@ -390,6 +390,29 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
                                   new_grads_val.FlattenItems()):
         self.assertAllClose(v1, v2, msg=k)
 
+  @parameterized.named_parameters(
+      ('Basic', 8, 'SWISH'),
+      ('BasicReLU', 16, 'RELU'),
+  )
+  def testFFlayerParams(self, fflayer_hidden_dim=None, fflayer_activation=None):
+
+    p = self._GetParams()
+    p.fflayer_hidden_dim = fflayer_hidden_dim
+    p.fflayer_activation = fflayer_activation
+    layer = p.Instantiate()
+
+    start_fflayer = layer.fflayer_start
+    actual_start_hidden_dim = start_fflayer.params.hidden_dim
+    actual_start_activation = start_fflayer.params.activation
+    end_fflayer = layer.fflayer_end
+    actual_end_hidden_dim = end_fflayer.params.hidden_dim
+    actual_end_activation = end_fflayer.params.activation
+
+    self.assertEqual(fflayer_hidden_dim, actual_start_hidden_dim)
+    self.assertEqual(fflayer_activation, actual_start_activation)
+    self.assertEqual(fflayer_hidden_dim, actual_end_hidden_dim)
+    self.assertEqual(fflayer_activation, actual_end_activation)
+
   def testCommonParamsAbuse(self):
     """Checks CommonParams() is not called in __init__()."""
     p = self._GetParams()

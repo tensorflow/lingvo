@@ -721,7 +721,7 @@ class ConformerLayer(base_layer.BaseLayer):
       fflayer_p = fflayer_tpl.Copy().Set(
           input_dim=p.input_dim,
           hidden_dim=p.fflayer_hidden_dim,
-          activation='SWISH',
+          activation=p.fflayer_activation,
           residual_weight=p.fflayer_residual_weight,
           residual_dropout_prob=p.dropout_prob,
           relu_dropout_prob=p.dropout_prob)
@@ -731,7 +731,7 @@ class ConformerLayer(base_layer.BaseLayer):
           model_dim=p.input_dim,
           dropout_rate=p.dropout_prob,
           moe_hidden_dim=p.fflayer_hidden_dim,
-          moe_activation='SWISH')
+          moe_activation=p.fflayer_activation)
       if moe_builder_p.num_devices is None:
         raise ValueError('num_devices must be specified for MoEBuilder.')
       is_moe_layer = True
