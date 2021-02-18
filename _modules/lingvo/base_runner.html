@@ -250,6 +250,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_worker_cluster_def</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">worker_cluster_def</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">())</span>
 
+    <span class="c1"># Merged TF scalar summaries for training related input data stats.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="kc">None</span>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
@@ -271,13 +274,13 @@
 <div class="viewcode-block" id="BaseRunner._ShouldStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Check if the runner should stop.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> params.train.max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span>
-                           <span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> params.train.max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
       <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> _max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
-                           <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">)</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">)</span>
       <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
@@ -529,7 +532,17 @@
         <span class="c1"># We account for all of them when updating global_enqueue_steps.</span>
         <span class="n">global_enqueue_steps</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span>
 
-        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">op</span><span class="p">])</span></div>
+        <span class="c1"># Input data stats generated during training are collected and logged in</span>
+        <span class="c1"># in input generators. The merged summary op for input data stats merges</span>
+        <span class="c1"># all the scalar summaries for the stats logged from the input</span>
+        <span class="c1"># generators. If merged scalar summaries for input data stats are</span>
+        <span class="c1"># available write them to the training directory along with processing</span>
+        <span class="c1"># the TPU infeed op.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">summary_str</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span><span class="p">,</span> <span class="n">op</span><span class="p">])</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStatSummaries</span><span class="p">(</span><span class="n">summary_str</span><span class="p">,</span> <span class="n">global_enqueue_steps</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">op</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="BaseRunner._GetSession"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetSession">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">)</span>
@@ -603,22 +616,37 @@
       <span class="k">if</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
           <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;simple_value&#39;</span><span class="p">):</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> summary on checkpoint@</span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%.8g</span><span class="s1">&#39;</span><span class="p">,</span>
-                                 <span class="n">job_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
-                                 <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> summary on checkpoint@</span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%.8g</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span>
+                            <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">)</span>
             <span class="n">status_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%.8g</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">))</span>
             <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
                                                        <span class="n">global_step</span><span class="p">,</span>
                                                        <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">)</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> summary on checkpoint@</span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span>
-                                 <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span>
+                            <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">)</span>
     <span class="n">summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: step:</span><span class="si">%6d</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                            <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_metrics</span><span class="p">)))</span>
     <span class="k">if</span> <span class="n">text_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">text_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_metrics</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BaseRunner._WriteInputDataStatSummaries"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._WriteInputDataStatSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteInputDataStatSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">summary_str</span><span class="p">,</span> <span class="n">global_enqueue_steps</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write input data stats as TF summaries to the training dir.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      summary_str: Merged TF scalar summaries for training related input data</span>
+<span class="sd">        stats.</span>
+<span class="sd">      global_enqueue_steps: Measures how many global steps for which data has</span>
+<span class="sd">        been enqueued.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">summary_str</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">global_enqueue_steps</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_stats_summary_interval_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary_str</span><span class="p">,</span> <span class="n">global_enqueue_steps</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseRunner._ExportMetrics"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ExportMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ExportMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exports metrics externally.&quot;&quot;&quot;</span>

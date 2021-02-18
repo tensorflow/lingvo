@@ -205,6 +205,7 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 <span class="n">DEFAULT_TOKENIZER_KEY</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+<span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span> <span class="o">=</span> <span class="s1">&#39;INPUT_DATA_STATS_SUMMARIES&#39;</span>
 
 
 <div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -291,6 +292,11 @@
         <span class="s1">&#39;max_inflights_per_target&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="s1">&#39;The maximum number of &#39;</span>
         <span class="s1">&#39;concurrent inflight remote input fetches per remote target.&#39;</span><span class="p">)</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;input_stats_summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="s1">&#39;Number of steps in between logging of TF scalar summaries for &#39;</span>
+        <span class="s1">&#39;training related input data stats.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -316,6 +322,9 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;datasource&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">SetInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="c1"># Merged TF scalar summaries for training related input data stats.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
@@ -618,6 +627,8 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_ops_list </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_ops_list</span><span class="p">)</span>
     <span class="n">grouped_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">input_ops_list</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grouped_infeed_op</span><span class="p">)</span></div>
 
@@ -822,6 +833,10 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TPU infeed op not set. Call CreateTpuEnqueueOps first.&#39;</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">merged_input_data_summary_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.SplitInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.SplitInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">SplitInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Splits the current InputBatch into num_splits ways.</span>

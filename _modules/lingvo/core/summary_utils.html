@@ -169,6 +169,7 @@
 
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -182,6 +183,14 @@
 <div class="viewcode-block" id="scalar"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar">[docs]</a><span class="k">def</span> <span class="nf">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="scalar_input_stats"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar_input_stats">[docs]</a><span class="k">def</span> <span class="nf">scalar_input_stats</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
+    <span class="n">collections</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;collections&#39;</span><span class="p">,</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">base_input_generator</span><span class="o">.</span><span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span>
+    <span class="p">]</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="histogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.histogram">[docs]</a><span class="k">def</span> <span class="nf">histogram</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -525,8 +534,7 @@
       <span class="n">elapsed_secs</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
       <span class="n">rate</span> <span class="o">=</span> <span class="p">(</span><span class="n">s1</span> <span class="o">-</span> <span class="n">s0</span><span class="p">)</span> <span class="o">/</span> <span class="n">elapsed_secs</span>
       <span class="n">example_rate</span> <span class="o">=</span> <span class="p">(</span><span class="n">e1</span> <span class="o">-</span> <span class="n">e0</span><span class="p">)</span> <span class="o">/</span> <span class="n">elapsed_secs</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Steps/second: </span><span class="si">%f</span><span class="s1">, Examples/second: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span>
-                         <span class="n">example_rate</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Steps/second: </span><span class="si">%f</span><span class="s1">, Examples/second: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span></div></div>
 
 
