@@ -245,7 +245,7 @@ class LanguageModel(base_model.BaseTask):
         'log_pplx_per_token':  # [batch, time]
             tf.transpose(per_example_xent),
         'paddings':  # [batch, time]
-            tf.transpose(paddings),
+            paddings,
         'lengths':  # [batch]
             lengths,
         'log_pplx_per_sample':  # [batch]

@@ -162,7 +162,7 @@ class ModelTest(test_utils.TestCase):
       expected_num_oovs_per_sample = [2, 1, 1]
       self.assertListEqual(vals['num_oovs_per_sample'].tolist(),
                            expected_num_oovs_per_sample)
-      expected_ids = [[1, 1, 1], [3, 3, 41], [21, 8, 3], [35, 2, 61], [3, 2, 2]]
+      expected_ids = [[1, 3, 21, 35, 3], [1, 3, 8, 2, 2], [1, 41, 3, 61, 2]]
       self.assertListEqual(vals['ids'].tolist(), expected_ids)
 
 
