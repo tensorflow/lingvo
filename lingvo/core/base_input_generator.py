@@ -53,6 +53,7 @@ from tensorflow.python.tpu import tpu_feed
 # pylint: enable=g-direct-tensorflow-import
 
 DEFAULT_TOKENIZER_KEY = 'default'
+INPUT_DATA_STATS_SUMMARIES_COLLECTION = 'INPUT_DATA_STATS_SUMMARIES'
 
 
 class BaseInputGenerator(base_layer.BaseLayer):
@@ -139,6 +140,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'max_inflights_per_target', 32, 'The maximum number of '
         'concurrent inflight remote input fetches per remote target.')
 
+    p.Define(
+        'input_stats_summary_interval_steps', 10,
+        'Number of steps in between logging of TF scalar summaries for '
+        'training related input data stats.')
+
     return p
 
   def __init__(self, params):
@@ -164,6 +170,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     if self.params.file_datasource:
       self.CreateChild('datasource', self.params.file_datasource)
       self.datasource.SetInputGenerator(self)
+
+    # Merged TF scalar summaries for training related input data stats.
+    self._merged_input_data_summary_op = None
 
   def CommonInputOpArgs(self):
     """Common input params."""
@@ -466,6 +475,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('input_ops_list %s', input_ops_list)
     grouped_infeed_op = tf.group(*input_ops_list)
     self._tpu_infeed_op = []
+    self._merged_input_data_summary_op = tf.summary.merge_all(
+        key=INPUT_DATA_STATS_SUMMARIES_COLLECTION)
     for _ in range(p.tpu_infeed_parallelism):
       self._tpu_infeed_op.append(grouped_infeed_op)
 
@@ -670,6 +681,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
       return self._tpu_infeed_op
     else:
       raise ValueError('TPU infeed op not set. Call CreateTpuEnqueueOps first.')
+
+  @property
+  def merged_input_data_summary_op(self):
+    return self._merged_input_data_summary_op
 
   def SplitInputBatch(self, num_splits):
     """Splits the current InputBatch into num_splits ways.

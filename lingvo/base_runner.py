@@ -98,6 +98,9 @@ class BaseRunner:
     self._worker_cluster_def = self._cluster.worker_cluster_def
     self._cluster.InitDevices(self._GetSession())
 
+    # Merged TF scalar summaries for training related input data stats.
+    self._merged_input_data_summary_op = None
+
   @property
   def params(self):
     return self._params
@@ -119,13 +122,13 @@ class BaseRunner:
   def _ShouldStop(self, sess, step):
     """Check if the runner should stop."""
     if step >= self.params.train.max_steps:
-      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d',
-                           step, self.params.train.max_steps)
+      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
+                      self.params.train.max_steps)
       return True
 
     if self._max_steps and step >= self._max_steps:
       tf.logging.info('ShouldStop: step:%6d _max_steps:%6d', step,
-                           self._max_steps)
+                      self._max_steps)
       return True
 
     if self._early_stop and self._early_stop.Stop(sess):
@@ -377,7 +380,17 @@ class BaseRunner:
         # We account for all of them when updating global_enqueue_steps.
         global_enqueue_steps += p.input.tpu_infeed_parallelism
 
-        sess.run([op])
+        # Input data stats generated during training are collected and logged in
+        # in input generators. The merged summary op for input data stats merges
+        # all the scalar summaries for the stats logged from the input
+        # generators. If merged scalar summaries for input data stats are
+        # available write them to the training directory along with processing
+        # the TPU infeed op.
+        if self._merged_input_data_summary_op is not None:
+          summary_str, _ = sess.run([self._merged_input_data_summary_op, op])
+          self._WriteInputDataStatSummaries(summary_str, global_enqueue_steps)
+        else:
+          sess.run([op])
 
   def _GetSession(self, **kwargs):
     graph = kwargs.pop('graph', self._graph)
@@ -451,22 +464,37 @@ class BaseRunner:
       if summary.value:
         for value in summary.value:
           if value.HasField('simple_value'):
-            tf.logging.info('%s summary on checkpoint@%d %s = %.8g',
-                                 job_name, global_step, value.tag,
-                                 value.simple_value)
+            tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
+                            global_step, value.tag, value.simple_value)
             status_metrics.append('%s: %.8g' % (value.tag, value.simple_value))
             early_stop.MetricHistory.ConditionalAppend(job_name, value.tag,
                                                        global_step,
                                                        value.simple_value)
           else:
             tf.logging.info('%s summary on checkpoint@%d %s', job_name,
-                                 global_step, value.tag)
+                            global_step, value.tag)
     summary_writer.flush()
     self._SetStatusMessage('%s: step:%6d, %s' %
                            (job_name, global_step, ', '.join(status_metrics)))
     if text_filename is not None:
       with tf.io.gfile.GFile(text_filename, 'w') as f:
         f.write('\n'.join(status_metrics))
+
+  def _WriteInputDataStatSummaries(self, summary_str, global_enqueue_steps):
+    """Write input data stats as TF summaries to the training dir.
+
+    Args:
+      summary_str: Merged TF scalar summaries for training related input data
+        stats.
+      global_enqueue_steps: Measures how many global steps for which data has
+        been enqueued.
+    """
+    if summary_str is None or not self._write_train_input_stats:
+      return
+
+    if global_enqueue_steps % self._input_stats_summary_interval_steps == 0:
+      self._summary_writer.add_summary(summary_str, global_enqueue_steps)
+      self._summary_writer.flush()
 
   def _ExportMetrics(self, **kwargs):
     """Exports metrics externally."""

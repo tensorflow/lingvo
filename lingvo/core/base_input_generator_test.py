@@ -26,6 +26,7 @@ from lingvo.core import cluster_factory
 from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+from lingvo.core import summary_utils
 from lingvo.core import test_utils
 import mock
 import numpy as np
@@ -103,10 +104,14 @@ class BaseInputGeneratorTest(test_utils.TestCase):
     class FooInputGenerator(base_input_generator.BaseInputGenerator):
 
       def _InputBatch(self):
+        summary_utils.scalar_input_stats('dropped_to_extracted_ratio',
+                                         tf.constant(0.2))
+
         return py_utils.NestedMap(
             inp=tf.constant(1.0, shape=[2048, 3], dtype=tf.float32))
 
-    with cluster_factory.ForTestingWorker(tpus=128, num_tpu_hosts=16):
+    with cluster_factory.ForTestingWorker(
+        tpus=128, num_tpu_hosts=16, add_summary=True):
       with self._DeviceAssignment():
         p = FooInputGenerator.Params()
         p.use_per_host_infeed = False
@@ -114,6 +119,7 @@ class BaseInputGeneratorTest(test_utils.TestCase):
         input_generator.CreateTpuEnqueueOps()
         batch = input_generator.TpuDequeueBatch()
         self.assertEqual(batch.inp.shape.as_list(), [16, 3])
+        self.assertIsNotNone(input_generator.merged_input_data_summary_op)
 
   @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
   def testCreateTpuEnqueueOpsPerHostInfeed(self):

@@ -283,6 +283,7 @@ py_test(
         ":cluster_factory",
         ":hyperparams",
         ":py_utils",
+        ":summary_utils",
         ":test_utils",
         # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
@@ -1666,6 +1667,7 @@ py_library(
     srcs = ["summary_utils.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_input_generator",
         ":cluster_factory",
         ":plot",
         ":py_utils",

@@ -435,6 +435,10 @@ class TrainerTpu(base_runner.BaseRunner):
         _ = py_utils.GetOrCreateGlobalStepVar()
         self._CreateTF2SummaryOps()
 
+        self._input_stats_summary_interval_steps = (
+            self._task.input.params.input_stats_summary_interval_steps)
+        self._write_train_input_stats = FLAGS.add_summary
+
         def TpuTrainStep(*args):
           """Train a shard of a batch on a single TPU core.
 
@@ -655,6 +659,11 @@ class TrainerTpu(base_runner.BaseRunner):
     sess = self._GetSession()
     if FLAGS.checkpoint_in_trainer_tpu:
       self.checkpointer.RestoreGlobalStepIfNeeded(sess)
+
+    # Get merged summary op for training related input data stats from the
+    # tasks's input generator.
+    self._merged_input_data_summary_op = (
+        self._task.input.merged_input_data_summary_op)
 
     return super()._LoopEnqueue(op, sess)
 

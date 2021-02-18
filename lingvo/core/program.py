@@ -36,6 +36,7 @@ from tensorflow.python.tpu import tpu
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.tpu import training_loop as tpu_training_loop
 from tensorflow.python.tpu.ops import tpu_ops
+
 # pylint:enable=g-direct-tensorflow-import
 
 
@@ -71,6 +72,8 @@ class BaseProgram:
              'If multi-task, what the high-level task name is')
     p.Define('num_threads', 1, 'Number of threads in multiprocessing pool.')
     p.Define('spmd', False, 'Whether program is running under SPMD mode.')
+    p.Define('write_train_input_stats', False,
+             'Whether to write input data stats during training.')
     return p
 
   def __init__(self, params, shared_model=None, **kwargs):
@@ -82,6 +85,7 @@ class BaseProgram:
     self._program_name = ''
     self._shared_model = shared_model
     self._tf_master = kwargs.pop('tf_master', None)
+    self._write_train_input_stats = p.write_train_input_stats
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
@@ -141,12 +145,31 @@ class BaseProgram:
                             global_step, value.tag, value.simple_value)
       self._summary_writer.flush()
 
+  def _WriteInputDataStats(self, sess):
+    """Write input data stats for model training as TF summaries.
+
+    Args:
+      sess: The Tensorflow session.
+    """
+    if (self._task.input.merged_input_data_summary_op is None or
+        not self._write_train_input_stats):
+      return
+
+    global_step = sess.run(self._model.global_step)
+    if (global_step %
+        self._task.input.params.input_stats_summary_interval_steps == 0):
+      summary_str = sess.run(self._task.input.merged_input_data_summary_op)
+      self._summary_writer.add_summary(summary_str, global_step)
+      self._summary_writer.flush()
+
   def _InfeedLoop(self, sess):
+    """Infeed loop for input generator for batched data and input data stats."""
     tf.logging.info('_InfeedLoop start')
     try:
       for i in range(self._steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
         sess.run(self._task.input.tpu_infeed_op)
+      self._WriteInputDataStats(sess)
       tf.logging.info('_InfeedLoop done')
     except Exception as e:
       tf.logging.info('_InfeedLoop exception %r %s', e, e)

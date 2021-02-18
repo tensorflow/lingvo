@@ -17,6 +17,7 @@
 
 import time
 import lingvo.compat as tf
+from lingvo.core import base_input_generator
 from lingvo.core import cluster_factory
 from lingvo.core import plot
 from lingvo.core import py_utils
@@ -30,6 +31,14 @@ def _ShouldAddSummary():
 def scalar(*args, **kwargs):  # pylint: disable=invalid-name
   if _ShouldAddSummary():
     tf.summary.scalar(*args, **kwargs)
+
+
+def scalar_input_stats(*args, **kwargs):  # pylint: disable=invalid-name
+  if _ShouldAddSummary():
+    collections = kwargs.pop('collections', []) + [
+        base_input_generator.INPUT_DATA_STATS_SUMMARIES_COLLECTION
+    ]
+    tf.summary.scalar(*args, **kwargs, collections=collections)
 
 
 def histogram(*args, **kwargs):  # pylint: disable=invalid-name
@@ -373,8 +382,7 @@ class StepRateTracker:
       elapsed_secs = t1 - t0
       rate = (s1 - s0) / elapsed_secs
       example_rate = (e1 - e0) / elapsed_secs
-    tf.logging.info('Steps/second: %f, Examples/second: %f', rate,
-                         example_rate)
+    tf.logging.info('Steps/second: %f, Examples/second: %f', rate, example_rate)
     return rate, example_rate, total_examples
 
 
