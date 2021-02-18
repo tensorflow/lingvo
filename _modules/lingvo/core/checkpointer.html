@@ -318,8 +318,8 @@
     <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="kc">False</span></div>
+      <span class="k">return</span> <span class="n">path</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="Checkpointer._GetUninitializedVarNames"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._GetUninitializedVarNames">[docs]</a>  <span class="k">def</span> <span class="nf">_GetUninitializedVarNames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">)))</span>
@@ -331,11 +331,12 @@
 <div class="viewcode-block" id="Checkpointer.Restore"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Restore from latest checkpoint if available, or initialize.&quot;&quot;&quot;</span>
     <span class="c1"># Try and restore from the latest checkpoint.</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
       <span class="c1"># Successfully restored from checkpoint.</span>
       <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetUninitializedVarNames</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">,</span> <span class="n">uninitialized_var_names</span>
-      <span class="k">return</span>
+      <span class="k">return</span> <span class="n">path</span>
 
     <span class="c1"># Otherwise we need to initialize.</span>
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetUninitializedVarNames</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
@@ -361,7 +362,8 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
         <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restored vars using checkpoint rules.&#39;</span><span class="p">)</span></div>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restored vars using checkpoint rules.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="Checkpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If vars are not initialized, restore from checkpoint.&quot;&quot;&quot;</span>
@@ -369,9 +371,9 @@
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetUninitializedVarNames</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">:</span>
       <span class="c1"># All variables are already initialized.</span>
-      <span class="k">return</span>
+      <span class="k">return</span> <span class="kc">None</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Checkpointer.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If global step is not initialized, load it from the checkpoint.</span>
