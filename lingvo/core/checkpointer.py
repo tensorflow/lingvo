@@ -166,8 +166,8 @@ class Checkpointer:
     path = tf.train.latest_checkpoint(self._train_dir)
     if path:
       self.RestoreFromPath(sess, path)
-      return True
-    return False
+      return path
+    return None
 
   def _GetUninitializedVarNames(self, sess):
     uninitialized_var_names = sorted(list(sess.run(self._uninitialized_vars)))
@@ -179,11 +179,12 @@ class Checkpointer:
   def Restore(self, sess, force_reinitialize=False):
     """Restore from latest checkpoint if available, or initialize."""
     # Try and restore from the latest checkpoint.
-    if self._RestoreFromLatestCheckpoint(sess):
+    path = self._RestoreFromLatestCheckpoint(sess)
+    if path:
       # Successfully restored from checkpoint.
       uninitialized_var_names = self._GetUninitializedVarNames(sess)
       assert not uninitialized_var_names, uninitialized_var_names
-      return
+      return path
 
     # Otherwise we need to initialize.
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
@@ -210,6 +211,7 @@ class Checkpointer:
       for fn in self._restore_fns:
         fn(sess)
       tf.logging.info('Restored vars using checkpoint rules.')
+    return None
 
   def RestoreIfNeeded(self, sess):
     """If vars are not initialized, restore from checkpoint."""
@@ -217,9 +219,9 @@ class Checkpointer:
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
     if not uninitialized_var_names:
       # All variables are already initialized.
-      return
+      return None
 
-    self.Restore(sess)
+    return self.Restore(sess)
 
   def RestoreGlobalStepIfNeeded(self, sess):
     """If global step is not initialized, load it from the checkpoint.

@@ -208,6 +208,10 @@ class BaseProgram:
   def RestoreIfNeeded(self, sess):
     self._checkpointer.RestoreIfNeeded(sess)
 
+  def SaveProgramState(self, sess, global_step):
+    """Saves program state information that need to be loaded during restore."""
+    pass
+
   def _InstantiateTaskModel(self, task_params):
     """Instantiates a model object for a particular task.
 

@@ -366,6 +366,8 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Training finished.')
           if not self._ml_perf_log:
             self.save_only_checkpointer.Save(sess, global_step)
+            for program in self._programs:
+              program.SaveProgramState(sess, global_step)
           if program_schedule:
             tf.logging.info('Shutting down programs.')
             program_schedule.Shutdown()
@@ -380,8 +382,9 @@ class ExecutorTpu(base_runner.BaseRunner):
             threadpool = multiprocessing.dummy.Pool(1)
             saver_future = threadpool.apply_async(
                 self.save_only_checkpointer.MaybeSave, args=(sess, global_step))
-          else:
-            self.save_only_checkpointer.MaybeSave(sess, global_step)
+          elif self.save_only_checkpointer.MaybeSave(sess, global_step):
+            for program in self._programs:
+              program.SaveProgramState(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
