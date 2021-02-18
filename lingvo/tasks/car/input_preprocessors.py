@@ -3443,6 +3443,38 @@ class RandomChoicePreprocessor(Preprocessor):
     return transformed_dtypes[0]
 
 
+class Sequence(Preprocessor):
+  """Packages a sequence of preprocessors as one preprocessor."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'preprocessors', [], 'A list of preprocessors. '
+        'Each should be of type Preprocessor.Params().')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self.CreateChildren('preprocessors', p.preprocessors)
+
+  def TransformFeatures(self, features):
+    for preprocessor in self.preprocessors:
+      features = preprocessor.TransformFeatures(features)
+    return features
+
+  def TransformShapes(self, shapes):
+    for preprocessor in self.preprocessors:
+      shapes = preprocessor.TransformShapes(shapes)
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    for preprocessor in self.preprocessors:
+      dtypes = preprocessor.TransformDTypes(dtypes)
+    return dtypes
+
+
 class SparseSampler(Preprocessor):
   """Fused SparseCenterSelector and SparseCellGatherFeatures.
 

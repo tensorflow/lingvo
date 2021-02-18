@@ -131,6 +131,36 @@ class InputPreprocessorsTest(test_utils.TestCase):
     with self.assertRaises(TypeError):
       preprocessor = p.Instantiate()
 
+  def testSequencePreprocessor(self):
+    sub1_p = input_preprocessors.ConstantPreprocessor.Params().Set(
+        name='sub1', constants={'foo': 1})
+    sub2_p = input_preprocessors.ConstantPreprocessor.Params().Set(
+        name='sub2', constants={'bar': 2})
+    preprocessor_p = input_preprocessors.Sequence.Params().Set(
+        name='list', preprocessors=[sub1_p, sub2_p])
+
+    features = py_utils.NestedMap()
+    shapes = py_utils.NestedMap()
+    dtypes = py_utils.NestedMap()
+
+    preprocessor = preprocessor_p.Instantiate()
+    new_features = preprocessor.TransformFeatures(features)
+    new_shapes = preprocessor.TransformShapes(shapes)
+    new_dtypes = preprocessor.TransformDTypes(dtypes)
+
+    # Verify shape and dtype
+    self.assertEqual(new_shapes.foo, tf.TensorShape([]))
+    self.assertEqual(new_shapes.bar, tf.TensorShape([]))
+
+    self.assertEqual(new_dtypes.foo, tf.int64)
+    self.assertEqual(new_dtypes.bar, tf.int64)
+
+    with self.session() as sess:
+      np_new_features = sess.run(new_features)
+      # Check the new constants exist in the features for both preprocessors
+      self.assertEqual(np_new_features.foo, 1)
+      self.assertEqual(np_new_features.bar, 2)
+
 
 if __name__ == '__main__':
   tf.test.main()
