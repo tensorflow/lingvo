@@ -672,6 +672,7 @@ def SessionConfig(soft_placement=True,
           optimizer_options=tf.OptimizerOptions(
               opt_level=tf.OptimizerOptions.L1, do_function_inlining=inline)),
       cluster_def=cluster_def)
+  session_config.share_cluster_devices_in_session = True
 
   if disable_meta_optimizer:
     # Useful if start-up time is critical.
