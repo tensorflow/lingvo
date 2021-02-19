@@ -2008,6 +2008,31 @@ py_test(
 )
 
 py_library(
+    name = "entmax",
+    srcs = ["entmax.py"],
+    srcs_version = "PY3",
+    visibility = [
+        "//lingvo/core:__subpackages__",
+    ],
+    deps = [
+        ":test_utils",
+        "//lingvo:compat",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_test(
+    name = "entmax_test",
+    srcs = ["entmax_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":entmax",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "model_helper",
     srcs = ["model_helper.py"],
     srcs_version = "PY3",
@@ -2024,6 +2049,7 @@ py_library(
     deps = [
         ":base_model",
         ":builder",
+        ":entmax",
         ":gshard_layers",
         ":layers",
         ":py_utils",

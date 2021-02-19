@@ -494,6 +494,101 @@ class UniTransformerTest(test_utils.TestCase):
       loss_eval = sess.run(loss)
       test_utils.CompareToGoldenSingleFloat(self, 5.832047, loss_eval)
 
+  def testUniTransformerFPropEntmax(self):
+    length_dim = 4
+    graph = tf.Graph()
+    params = gshard_builder.UniTransformer.Params().Set(
+        gated_gelu=False,
+        positional_embedding=False,
+        dtype=tf.float32,
+        name='transformer',
+        builder=gshard_builder.DenseBuilder.Params().Set(
+            device_mesh_shape=[1, 1],
+            device_mesh=None,
+            relative_attention_num_buckets=32,
+            relative_attention_type='bias',
+            relative_attention_max_distance=128,
+            dtype=tf.float32,
+            num_devices=1,  # we call .Split num_devices on axis 0 (batch)
+            relative_attention_use_universal_1d_position=True,
+            model_dim=32,
+            attention_num_heads=8,
+            ff_dim=128,
+            attention_key_value_dim=8,
+            attention_combine_dims=True),
+        batch_size=32,
+        sequence_length=length_dim,
+        num_transformer_layers=2,
+        aux_loss_coef=0.0,
+        loss_denominator=None,
+        label_smoothing=0,
+        vocab_size=128,
+        max_length=length_dim,
+        use_entmax=True)
+    with graph.as_default():
+      py_utils.GetOrCreateGlobalStepVar()
+      params.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      tf.random.set_seed(24332)
+      model = params.Instantiate()
+
+    with tf.Session(graph=graph) as sess:
+      input_batch = self._PreLoadInput()
+      loss = model.FPropDefaultTheta(input_batch)[0]['loss'][0]
+      sess.run(tf.global_variables_initializer())
+      loss_eval = sess.run(loss)
+      test_utils.CompareToGoldenSingleFloat(self, 3.704313, loss_eval)
+
+  def testUniTransformerParallelFPropEntmax(self):
+    length_dim = 4
+    graph = tf.Graph()
+    params = gshard_builder.UniTransformer.Params().Set(
+        gated_gelu=False,
+        gated_ffn_activation=tf.nn.relu,
+        positional_embedding=False,
+        dtype=tf.float32,
+        name='transformer',
+        parallel_ffn=True,
+        hidden_dim_reshape_segments=2,
+        conv_kernel_size=2,
+        builder=gshard_builder.RecurrentDenseBuilderParallelDecode.Params().Set(
+            device_mesh_shape=[1, 1],
+            device_mesh=None,
+            relative_attention_num_buckets=32,
+            relative_attention_type='bias',
+            relative_attention_max_distance=128,
+            dtype=tf.float32,
+            num_devices=1,  # we call .Split num_devices on axis 0 (batch)
+            relative_attention_use_universal_1d_position=True,
+            model_dim=32,
+            model_dim_reshape_segments=2,
+            attention_num_memory_heads=1,
+            proj_weight_hdim=2,
+            attention_num_heads=8,
+            ff_dim=128,
+            attention_key_value_dim=8,
+            attention_combine_dims=True),
+        batch_size=32,
+        sequence_length=length_dim,
+        num_transformer_layers=2,
+        aux_loss_coef=0.0,
+        loss_denominator=None,
+        label_smoothing=0,
+        vocab_size=128,
+        max_length=length_dim,
+        use_entmax=True)
+    with graph.as_default():
+      py_utils.GetOrCreateGlobalStepVar()
+      params.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      tf.random.set_seed(24332)
+      model = params.Instantiate()
+
+    with tf.Session(graph=graph) as sess:
+      input_batch = self._PreLoadInput()
+      loss = model.FPropDefaultTheta(input_batch)[0]['loss'][0]
+      sess.run(tf.global_variables_initializer())
+      loss_eval = sess.run(loss)
+      test_utils.CompareToGoldenSingleFloat(self, 5.146667, loss_eval)
+
 
 if __name__ == '__main__':
   tf.test.main()

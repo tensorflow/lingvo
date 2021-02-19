@@ -19,6 +19,7 @@ from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import builder
 from lingvo.core import builder_layers
+from lingvo.core import entmax
 from lingvo.core import gshard_layers
 from lingvo.core import gshard_utils
 from lingvo.core import layers
@@ -2522,6 +2523,17 @@ class UniTransformer(base_model.BaseTask):
         ' parallel_ffn is true currently.')
     p.Define('conv_kernel_size', None,
              'Optional 1D depthwise convolutional kernel.')
+    p.Define(
+        'use_entmax', False, 'Flag to use the entmax for entropy and loss '
+        'calculation. The entmax is following this publication: '
+        'https://arxiv.org/pdf/2004.02644.pdf.')
+    p.Define('entmax_alpha', 1.5, 'Define the alpha value for the entmax '
+             'calculation.')
+    p.Define('entmax_n_iters', 50, 'Define the number of iterations for the '
+             'entmax.')
+    p.Define(
+        'entmax_ensure_sum_one', True, 'Define the if the summation of '
+        'the output probabilities should be 1.')
     return p
 
   def __init__(self, params):
@@ -2706,18 +2718,35 @@ class UniTransformer(base_model.BaseTask):
       logits, aux_loss = predictions
       soft_labels = self._ComputeSoftLabels(input_batch)
 
-      xent = tf.nn.softmax_cross_entropy_with_logits(
-          labels=tf.one_hot(input_batch.tgt.labels, vocab_size), logits=logits)
+      if p.use_entmax:
+        entropy = entmax.entmax_loss(
+            labels=tf.one_hot(input_batch.tgt.labels, vocab_size),
+            inputs=logits,
+            alpha=p.entmax_alpha,
+            n_iter=p.entmax_n_iters,
+            ensure_sum_one=p.entmax_ensure_sum_one)
+        loss = entmax.entmax_loss(
+            labels=soft_labels,
+            inputs=logits,
+            alpha=p.entmax_alpha,
+            n_iter=p.entmax_n_iters,
+            ensure_sum_one=p.entmax_ensure_sum_one)
+      else:
+        entropy = tf.nn.softmax_cross_entropy_with_logits(
+            labels=tf.one_hot(input_batch.tgt.labels, vocab_size),
+            logits=logits)
+        loss = tf.nn.softmax_cross_entropy_with_logits(
+            labels=soft_labels, logits=logits)
 
       top1 = tf.math.argmax(
           logits, -1, output_type=input_batch.tgt.labels.dtype)
       acc1 = tf.cast(tf.equal(input_batch.tgt.labels, top1), logits.dtype)
-      assert acc1.shape == xent.shape, (acc1.shape, xent.shape)
+      assert acc1.shape == entropy.shape, (acc1.shape, entropy.shape)
 
-      loss = tf.nn.softmax_cross_entropy_with_logits(
-          labels=soft_labels, logits=logits)
-      soft_labels_xent = loss
+      soft_labels_entropy = loss
 
+      # To make sure the entmax works as intended, the z_loss should be set
+      # to 0.
       if self.params.z_loss > 0.0:
         log_z = tf.math.reduce_logsumexp(logits, -1)
         z_loss_increment = self.params.z_loss * tf.math.square(log_z)
@@ -2741,8 +2770,8 @@ class UniTransformer(base_model.BaseTask):
       avg_z_loss_increment = (tf.reduce_sum(per_token_z_loss_increment) /
                               loss_denom) if p.z_loss else 0.0
 
-      soft_labels_xent = (
-          tf.reduce_sum(soft_labels_xent * non_padding) /
+      soft_labels_entropy = (
+          tf.reduce_sum(soft_labels_entropy * non_padding) /
           tf.reduce_sum(non_padding))
       avg_loss += p.aux_loss_coef * aux_loss
 
@@ -2773,10 +2802,9 @@ class UniTransformer(base_model.BaseTask):
               (tf.reduce_sum(whole_tgt_correct) /
                tf.cast(whole_tgt_correct.shape[0], whole_tgt_correct.dtype), 1.0
               ),
-          'mean_xent':
-              (tf.reduce_sum(xent * non_padding) / tf.reduce_sum(non_padding),
-               tf.reduce_sum(non_padding)),
-          'soft_labels_xent': (soft_labels_xent, tf.reduce_sum(non_padding)),
+          'mean_xent': (tf.reduce_sum(entropy * non_padding) /
+                        tf.reduce_sum(non_padding), tf.reduce_sum(non_padding)),
+          'soft_labels_xent': (soft_labels_entropy, tf.reduce_sum(non_padding)),
           'weight': (tf.reduce_sum(non_padding), 1.0),
           'loss': (avg_loss, 1.0),
           'aux_loss': (p.aux_loss_coef * aux_loss, 1.0),
