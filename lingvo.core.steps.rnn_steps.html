@@ -172,8 +172,201 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-steps-rnn-steps-module">
-<h1>lingvo.core.steps.rnn_steps module<a class="headerlink" href="#lingvo-core-steps-rnn-steps-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.steps.rnn_steps">
+<span id="lingvo-core-steps-rnn-steps-module"></span><h1>lingvo.core.steps.rnn_steps module<a class="headerlink" href="#module-lingvo.core.steps.rnn_steps" title="Permalink to this headline">¶</a></h1>
+<p>Step APIs for RNN layers.</p>
+<dl class="py class">
+<dt id="lingvo.core.steps.rnn_steps.RnnStep">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.steps.rnn_steps.</span></code><code class="sig-name descname"><span class="pre">RnnStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.step.html#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<p>A step containing an RNNCell.</p>
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStep.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStep.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStep.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStep.PrepareExternalInputs">
+<code class="sig-name descname"><span class="pre">PrepareExternalInputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStep.PrepareExternalInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStep.PrepareExternalInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does not modify the external_inputs parameter.</p>
+<p>This parameter, if provided, is assumed to be a vector that should be
+concatenated with the other vectors in step_inputs.inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – unused.</p></li>
+<li><p><strong>external_inputs</strong> – Either a tensor or None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>external_inputs, unmodified.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStep.ZeroState">
+<code class="sig-name descname"><span class="pre">ZeroState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStep.ZeroState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStep.ZeroState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the zero_state for the RNN cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Variables used by the RNNCell.</p></li>
+<li><p><strong>prepared_inputs</strong> – unused.</p></li>
+<li><p><strong>batch_size</strong> – An int scalar representing the batch size of per-step inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The zero state of the RNNCell.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStep.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStep.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs one inference step on the RNN cell.</p>
+<p>If external_inputs is not None, it is added as another act input
+to the RNNCell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Variables used by the RNNCell.</p></li>
+<li><p><strong>prepared_inputs</strong> – If not None, concatenated with step_inputs.input. A
+tensor of shape [batch_size, external_input_dim].</p></li>
+<li><p><strong>step_inputs</strong> – A NestedMap containing an ‘input’ list of [batch_size, dim]
+where the sum of dim (including external_inputs) is
+p.cell.num_input_nodes.</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – A NestedMap of state, either produced by ZeroState or a previous
+invocation of FProp.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(output, state1), where output is the cell output (GetOutput(state1))
+of shape [batch_size, p.cell.num_output_nodes], and state1 is the cell’s
+recurrent state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.steps.rnn_steps.RnnStackStep">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.steps.rnn_steps.</span></code><code class="sig-name descname"><span class="pre">RnnStackStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStackStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStackStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.step.html#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<p>A stack of RnnSteps.</p>
+<dl class="simple">
+<dt>Three types of inputs are supported:</dt><dd><dl class="simple">
+<dt>step_inputs.input: This is the standard input. It is expected to change</dt><dd><p>on every step of the sequence, and it is fed only to the first layer.</p>
+</dd>
+<dt>step_inputs.context: This input changes for each step of the sequence, but</dt><dd><p>is fed to every layer.</p>
+</dd>
+<dt>external_inputs: This input is fixed at the beginning of the sequence.</dt><dd><p>It is fed to every layer.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Residual connections are also supported. When residual_start &gt;= 0, the output
+of layer i (i &gt;= residual_start) is added to the output of layer
+i - residual_stride.</p>
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStackStep.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStackStep.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStackStep.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs Params for an RnnStackStep.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStackStep._CreateChildrenVariables">
+<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStackStep._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStackStep._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStackStep.PrepareExternalInputs">
+<code class="sig-name descname"><span class="pre">PrepareExternalInputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStackStep.PrepareExternalInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStackStep.PrepareExternalInputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delegates external inputs preparation to sub-layers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weight values of this layer and
+its children layers.</p></li>
+<li><p><strong>external_inputs</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object. The structure of the internal
+fields is defined by the sub-steps.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing a pre-processed version of the external_inputs,
+one per sub-step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStackStep.ZeroState">
+<code class="sig-name descname"><span class="pre">ZeroState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStackStep.ZeroState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStackStep.ZeroState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes a zero state for each sub-step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weight values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – An output from PrepareExternalInputs.</p></li>
+<li><p><strong>batch_size</strong> – The number of items in the batch that FProp will process.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing a state0 object for each sub-step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.rnn_steps.RnnStackStep.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/rnn_steps.html#RnnStackStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.rnn_steps.RnnStackStep.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs inference on the stack of sub-steps.</p>
+<p>See the documentation for StackStep for the particulars of passing context
+information to layers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weight values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – An output from PrepareExternalInputs.</p></li>
+<li><p><strong>step_inputs</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing a list called ‘inputs’, an
+optionally a tensor called ‘context’.</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – The previous recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>output: A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the output of the top-most step.</p></li>
+<li><p>state1: The recurrent state to feed to next invocation of this graph.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(output, state1)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

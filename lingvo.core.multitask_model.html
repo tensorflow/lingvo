@@ -170,8 +170,77 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-multitask-model-module">
-<h1>lingvo.core.multitask_model module<a class="headerlink" href="#lingvo-core-multitask-model-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.multitask_model">
+<span id="lingvo-core-multitask-model-module"></span><h1>lingvo.core.multitask_model module<a class="headerlink" href="#module-lingvo.core.multitask_model" title="Permalink to this headline">¶</a></h1>
+<p>Multitask models.</p>
+<dl class="py class">
+<dt id="lingvo.core.multitask_model.SharedEncoderModel">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.multitask_model.</span></code><code class="sig-name descname"><span class="pre">SharedEncoderModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.MultiTaskModel</span></code></p>
+<p>Multitask model that shares encoder between tasks.</p>
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.SharedEncoderModel.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.SharedEncoderModel._CreateChildrenVariables">
+<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.multitask_model.SharedEncoderDecoderModel">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.multitask_model.</span></code><code class="sig-name descname"><span class="pre">SharedEncoderDecoderModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderDecoderModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderDecoderModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.MultiTaskModel</span></code></p>
+<p>Multitask model that shares both encoder and decoder between tasks.</p>
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.SharedEncoderDecoderModel.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderDecoderModel.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderDecoderModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.multitask_model.RegExSharedVariableModel">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.multitask_model.</span></code><code class="sig-name descname"><span class="pre">RegExSharedVariableModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.MultiTaskModel</span></code></p>
+<p>Multitask models that share variables across different tasks.</p>
+<p>Note, do NOT use this model unless you know exactly what you are trying to do
+and you have verified that it indeed achieves what you would have expected.</p>
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.RegExSharedVariableModel.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.RegExSharedVariableModel.InstantiateVariables">
+<code class="sig-name descname"><span class="pre">InstantiateVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel.InstantiateVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel.InstantiateVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for this layer and child layers.</p>
+<p>DO NOT OVERRIDE. Override self._CreateLayerVariables instead.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.RegExSharedVariableModel.ConstructFPropBPropGraph">
+<code class="sig-name descname"><span class="pre">ConstructFPropBPropGraph</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel.ConstructFPropBPropGraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel.ConstructFPropBPropGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 

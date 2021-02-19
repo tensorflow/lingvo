@@ -366,6 +366,7 @@
     <span class="n">text</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">])</span>
     <span class="c1"># [batch, time]</span>
     <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">paddings</span>
     <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">tokens_from_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
     <span class="n">oovs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">unk_id</span><span class="p">)</span>
@@ -378,28 +379,25 @@
         <span class="s1">&#39;ids&#39;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span>
         <span class="s1">&#39;paddings&#39;</span><span class="p">:</span> <span class="n">paddings</span><span class="p">,</span>
         <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
-        <span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
+        <span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="n">weights</span><span class="p">,</span>
     <span class="p">})</span>
-    <span class="n">ids</span> <span class="o">=</span> <span class="n">transposed</span><span class="o">.</span><span class="n">ids</span>
-    <span class="n">paddings</span> <span class="o">=</span> <span class="n">transposed</span><span class="o">.</span><span class="n">paddings</span>
-    <span class="n">labels</span> <span class="o">=</span> <span class="n">transposed</span><span class="o">.</span><span class="n">labels</span>
-    <span class="n">weights</span> <span class="o">=</span> <span class="n">transposed</span><span class="o">.</span><span class="n">weights</span>
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">xent_output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span>
-        <span class="n">inputs</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
-        <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">transposed</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
+        <span class="n">paddings</span><span class="o">=</span><span class="n">transposed</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span>
         <span class="n">state0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">lm</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
-        <span class="n">labels</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">class_ids</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">class_weights</span><span class="o">=</span><span class="n">weights</span><span class="p">))</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">class_ids</span><span class="o">=</span><span class="n">transposed</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">class_weights</span><span class="o">=</span><span class="n">transposed</span><span class="o">.</span><span class="n">weights</span><span class="p">))</span>
 
     <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">per_example_xent</span><span class="p">,</span>
-                                         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+                                         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">transposed</span><span class="o">.</span><span class="n">ids</span><span class="p">))</span>
     <span class="n">log_pplx_per_sample</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
-        <span class="n">per_example_xent</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">per_example_xent</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">transposed</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">fetches</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;log_pplx_per_token&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time]</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">per_example_xent</span><span class="p">),</span>
         <span class="s1">&#39;paddings&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time]</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span>
+            <span class="n">paddings</span><span class="p">,</span>
         <span class="s1">&#39;lengths&#39;</span><span class="p">:</span>  <span class="c1"># [batch]</span>
             <span class="n">lengths</span><span class="p">,</span>
         <span class="s1">&#39;log_pplx_per_sample&#39;</span><span class="p">:</span>  <span class="c1"># [batch]</span>
@@ -409,9 +407,15 @@
         <span class="s1">&#39;tokens_from_labels&#39;</span><span class="p">:</span>  <span class="c1"># [batch], string</span>
             <span class="n">tokens_from_labels</span><span class="p">,</span>
         <span class="s1">&#39;ids&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time], int32</span>
-            <span class="n">ids</span>
+            <span class="n">ids</span><span class="p">,</span>
     <span class="p">}</span>
-    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
+        <span class="s1">&#39;ids&#39;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span>
+        <span class="s1">&#39;paddings&#39;</span><span class="p">:</span> <span class="n">paddings</span><span class="p">,</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+        <span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="n">weights</span><span class="p">,</span>
+    <span class="p">}</span>
     <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
 
 
@@ -430,8 +434,9 @@
   <span class="sd">&quot;&quot;&quot;Batch major implementation of the language model.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BatchMajorLanguageModel._TrimIfPossible"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.BatchMajorLanguageModel._TrimIfPossible">[docs]</a>  <span class="k">def</span> <span class="nf">_TrimIfPossible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
       <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_len</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)</span>
@@ -449,14 +454,23 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;inputs=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">((</span><span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels_ids</span><span class="p">,</span> <span class="n">weights</span><span class="p">)))</span>
 
     <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lm</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">state0</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">class_ids</span><span class="o">=</span><span class="n">labels_ids</span><span class="p">,</span> <span class="n">class_weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
-    <span class="n">xent_output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lm</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+    <span class="n">fprop_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s1">&#39;segment_ids&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="n">fprop_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+          <span class="n">segment_ids</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span>
+          <span class="n">segment_pos</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">segment_pos</span><span class="p">)</span>
+    <span class="n">xent_output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lm</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+                                   <span class="o">**</span><span class="n">fprop_kwargs</span><span class="p">)</span>
 
-    <span class="c1"># +1 to account for the end of sequence symbol.</span>
+    <span class="k">if</span> <span class="s1">&#39;segment_ids&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="n">num_sentences</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">num_sentences</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">num_sentences</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># +num_sentences to account for the end of sequence symbol.</span>
     <span class="n">num_words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">word_count</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
-        <span class="n">fprop_dtype</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">word_count</span> <span class="o">+</span> <span class="n">num_sentences</span><span class="p">),</span> <span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="n">predicted_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="p">,</span> <span class="n">labels_ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="n">num_preds</span> <span class="o">=</span> <span class="n">xent_output</span><span class="o">.</span><span class="n">total_weight</span>
@@ -472,8 +486,60 @@
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">num_preds</span><span class="p">),</span>
         <span class="s1">&#39;log_pplx_per_word&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">total_xent</span> <span class="o">/</span> <span class="n">num_words</span><span class="p">,</span> <span class="n">num_words</span><span class="p">),</span>
         <span class="s1">&#39;num_predictions&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-        <span class="s1">&#39;num_words&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="p">},</span> <span class="p">{}</span></div></div>
+        <span class="s1">&#39;num_words&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="s1">&#39;num_sentences&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">num_sentences</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">},</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="BatchMajorLanguageModel._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.BatchMajorLanguageModel._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default inference subgraph.&quot;&quot;&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">])</span>
+    <span class="c1"># [batch, time]</span>
+    <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">paddings</span>
+    <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrimIfPossible</span><span class="p">(</span>
+        <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">tokens_from_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
+    <span class="n">oovs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">unk_id</span><span class="p">)</span>
+    <span class="n">num_oovs_per_sample</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">oovs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">xent_output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+        <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">,</span>
+        <span class="n">state0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">lm</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">class_ids</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">class_weights</span><span class="o">=</span><span class="n">weights</span><span class="p">))</span>
+
+    <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">per_example_xent</span><span class="p">,</span>
+                                         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+    <span class="n">log_pplx_per_sample</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">per_example_xent</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">fetches</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;log_pplx_per_token&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time]</span>
+            <span class="n">per_example_xent</span><span class="p">,</span>
+        <span class="s1">&#39;paddings&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time]</span>
+            <span class="n">paddings</span><span class="p">,</span>
+        <span class="s1">&#39;lengths&#39;</span><span class="p">:</span>  <span class="c1"># [batch]</span>
+            <span class="n">lengths</span><span class="p">,</span>
+        <span class="s1">&#39;log_pplx_per_sample&#39;</span><span class="p">:</span>  <span class="c1"># [batch]</span>
+            <span class="n">log_pplx_per_sample</span><span class="p">,</span>
+        <span class="s1">&#39;num_oovs_per_sample&#39;</span><span class="p">:</span>  <span class="c1"># [batch], int32</span>
+            <span class="n">num_oovs_per_sample</span><span class="p">,</span>
+        <span class="s1">&#39;tokens_from_labels&#39;</span><span class="p">:</span>  <span class="c1"># [batch], string</span>
+            <span class="n">tokens_from_labels</span><span class="p">,</span>
+        <span class="s1">&#39;ids&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time], int32</span>
+            <span class="n">ids</span>
+    <span class="p">}</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
+        <span class="s1">&#39;ids&#39;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span>
+        <span class="s1">&#39;paddings&#39;</span><span class="p">:</span> <span class="n">paddings</span><span class="p">,</span>
+        <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+        <span class="s1">&#39;weights&#39;</span><span class="p">:</span> <span class="n">weights</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
 
 
 <div class="viewcode-block" id="PackedBatchMajorLanguageModel"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel">[docs]</a><span class="k">class</span> <span class="nc">PackedBatchMajorLanguageModel</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>

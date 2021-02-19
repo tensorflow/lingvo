@@ -202,6 +202,7 @@
 
 
 <div class="viewcode-block" id="SetupRoutingTransformerEncoder"><a class="viewcode-back" href="../../../lingvo.core.routing_config_helper.html#lingvo.core.routing_config_helper.SetupRoutingTransformerEncoder">[docs]</a><span class="k">def</span> <span class="nf">SetupRoutingTransformerEncoder</span><span class="p">(</span><span class="n">model_dim</span><span class="p">,</span>
+                                   <span class="n">hidden_dim</span><span class="p">,</span>
                                    <span class="n">num_layers</span><span class="p">,</span>
                                    <span class="n">num_heads</span><span class="p">,</span>
                                    <span class="n">left_context</span><span class="p">,</span>
@@ -219,6 +220,7 @@
 <span class="sd">  Args:</span>
 <span class="sd">   model_dim: specifies dimension of transformer layers, token embeddings, and</span>
 <span class="sd">     positional embeddings as well context vectors (attention values).</span>
+<span class="sd">   hidden_dim: hidden dim of model.</span>
 <span class="sd">   num_layers: number of transformer layers.</span>
 <span class="sd">   num_heads: number of attention heads.</span>
 <span class="sd">   left_context: amount of left context in local attention.</span>
@@ -240,7 +242,7 @@
       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;routing_transformer_stack&#39;</span><span class="p">,</span>
       <span class="n">mdl_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
       <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
-      <span class="n">hidden_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
       <span class="n">num_atten_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
       <span class="n">dropout_prob</span><span class="o">=</span><span class="n">relu_dropout_prob</span><span class="p">,</span>
       <span class="n">add_unnormalized_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>

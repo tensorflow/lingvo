@@ -170,8 +170,47 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-routing-config-helper-module">
-<h1>lingvo.core.routing_config_helper module<a class="headerlink" href="#lingvo-core-routing-config-helper-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.routing_config_helper">
+<span id="lingvo-core-routing-config-helper-module"></span><h1>lingvo.core.routing_config_helper module<a class="headerlink" href="#module-lingvo.core.routing_config_helper" title="Permalink to this headline">¶</a></h1>
+<p>Stacked Transformer setup template for Routing Transformer.</p>
+<p>See <a class="reference external" href="https://arxiv.org/abs/2003.05997">https://arxiv.org/abs/2003.05997</a> for the paper.</p>
+<dl class="py class">
+<dt id="lingvo.core.routing_config_helper.RoutingTransformerEncoderParams">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.routing_config_helper.</span></code><code class="sig-name descname"><span class="pre">RoutingTransformerEncoderParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">routing_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/routing_config_helper.html#RoutingTransformerEncoderParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.routing_config_helper.RoutingTransformerEncoderParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.hyperparams.Params</span></code></a></p>
+<p>Container for Routing Transformer encoder params.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.routing_config_helper.SetupRoutingTransformerEncoder">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.routing_config_helper.</span></code><code class="sig-name descname"><span class="pre">SetupRoutingTransformerEncoder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_routing_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_routing_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attention_window</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relu_dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/routing_config_helper.html#SetupRoutingTransformerEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.routing_config_helper.SetupRoutingTransformerEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>A lightweight wrapper for Routing Transformer encoder stack.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_dim</strong> – specifies dimension of transformer layers, token embeddings, and
+positional embeddings as well context vectors (attention values).</p></li>
+<li><p><strong>hidden_dim</strong> – hidden dim of model.</p></li>
+<li><p><strong>num_layers</strong> – number of transformer layers.</p></li>
+<li><p><strong>num_heads</strong> – number of attention heads.</p></li>
+<li><p><strong>left_context</strong> – amount of left context in local attention.</p></li>
+<li><p><strong>right_context</strong> – amount of right context in local attention.</p></li>
+<li><p><strong>block_size</strong> – size of block in local attention.</p></li>
+<li><p><strong>num_routing_layers</strong> – number of routing attention layers.</p></li>
+<li><p><strong>num_routing_heads</strong> – number of routing attention heads.</p></li>
+<li><p><strong>num_clusters</strong> – number of clusters for routing attention.</p></li>
+<li><p><strong>attention_window</strong> – attention window for routing attention.</p></li>
+<li><p><strong>atten_dropout_prob</strong> – used in attention layer.</p></li>
+<li><p><strong>relu_dropout_prob</strong> – used in transformer feedforward layer.</p></li>
+<li><p><strong>residual_dropout_prob</strong> – used in transformer feedforward and attention layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Routing Transformer encoder stack.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

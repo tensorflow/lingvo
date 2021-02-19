@@ -173,8 +173,207 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-tasks-lm-params-one-billion-wds-module">
-<h1>lingvo.tasks.lm.params.one_billion_wds module<a class="headerlink" href="#lingvo-tasks-lm-params-one-billion-wds-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.tasks.lm.params.one_billion_wds">
+<span id="lingvo-tasks-lm-params-one-billion-wds-module"></span><h1>lingvo.tasks.lm.params.one_billion_wds module<a class="headerlink" href="#module-lingvo.tasks.lm.params.one_billion_wds" title="Permalink to this headline">¶</a></h1>
+<p>Train word-level LMs on 1 Billion Words benchmark data.</p>
+<dl class="py class">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.params.one_billion_wds.</span></code><code class="sig-name descname"><span class="pre">WordLevelOneBwdsBase</span></code><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams" title="lingvo.core.base_model_params.SingleTaskModelParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model_params.SingleTaskModelParams</span></code></a></p>
+<p>Params for training a word-level LM on One Billion Wds text corpus.</p>
+<p>Tries to match <a class="reference external" href="https://github.com/rafaljozefowicz/lm">https://github.com/rafaljozefowicz/lm</a>.</p>
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.CORPUS_DIR">
+<code class="sig-name descname"><span class="pre">CORPUS_DIR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'/tmp/lm1b/1-billion-word-language-modeling-benchmark-r13output/'</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.CORPUS_DIR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.EMBEDDING_DIM">
+<code class="sig-name descname"><span class="pre">EMBEDDING_DIM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1024</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.EMBEDDING_DIM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.MAX_TOKENS">
+<code class="sig-name descname"><span class="pre">MAX_TOKENS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1024</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.MAX_TOKENS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.NUM_EMBEDDING_SHARDS">
+<code class="sig-name descname"><span class="pre">NUM_EMBEDDING_SHARDS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">8</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.NUM_EMBEDDING_SHARDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.NUM_SAMPLED">
+<code class="sig-name descname"><span class="pre">NUM_SAMPLED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">8192</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.NUM_SAMPLED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.NUM_SOFTMAX_SHARDS">
+<code class="sig-name descname"><span class="pre">NUM_SOFTMAX_SHARDS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">8</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.NUM_SOFTMAX_SHARDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.RNN_STATE_DIM">
+<code class="sig-name descname"><span class="pre">RNN_STATE_DIM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">8192</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.RNN_STATE_DIM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.VOCAB_SIZE">
+<code class="sig-name descname"><span class="pre">VOCAB_SIZE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">793472</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.VOCAB_SIZE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.WORD_VOCAB">
+<code class="sig-name descname"><span class="pre">WORD_VOCAB</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'/tmp/lm1b/1-billion-word-language-modeling-benchmark-r13output/vocab.txt'</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.WORD_VOCAB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Train">
+<code class="sig-name descname"><span class="pre">Train</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsBase.Train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the training dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Dev">
+<code class="sig-name descname"><span class="pre">Dev</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsBase.Dev"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the development dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Test">
+<code class="sig-name descname"><span class="pre">Test</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsBase.Test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the testing dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Task">
+<code class="sig-name descname"><span class="pre">Task</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsBase.Task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.params.one_billion_wds.</span></code><code class="sig-name descname"><span class="pre">WordLevelOneBwdsSimpleSampledSoftmax</span></code><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsSimpleSampledSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase" title="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase</span></code></a></p>
+<p>Use sampled soft-max in training.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax.Task">
+<code class="sig-name descname"><span class="pre">Task</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsSimpleSampledSoftmax.Task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns task params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.params.one_billion_wds.</span></code><code class="sig-name descname"><span class="pre">WordLevelOneBwdsSimpleSampledSoftmaxTiny</span></code><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#WordLevelOneBwdsSimpleSampledSoftmaxTiny"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax" title="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax</span></code></a></p>
+<p>Tiny model size for local, debugging runs of the above.</p>
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.EMBEDDING_DIM">
+<code class="sig-name descname"><span class="pre">EMBEDDING_DIM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">7</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.EMBEDDING_DIM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.MAX_TOKENS">
+<code class="sig-name descname"><span class="pre">MAX_TOKENS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1024</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.MAX_TOKENS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.NUM_EMBEDDING_SHARDS">
+<code class="sig-name descname"><span class="pre">NUM_EMBEDDING_SHARDS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.NUM_EMBEDDING_SHARDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.NUM_SAMPLED">
+<code class="sig-name descname"><span class="pre">NUM_SAMPLED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">8</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.NUM_SAMPLED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.NUM_SOFTMAX_SHARDS">
+<code class="sig-name descname"><span class="pre">NUM_SOFTMAX_SHARDS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">8</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.NUM_SOFTMAX_SHARDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.RNN_STATE_DIM">
+<code class="sig-name descname"><span class="pre">RNN_STATE_DIM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">32</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny.RNN_STATE_DIM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.params.one_billion_wds.</span></code><code class="sig-name descname"><span class="pre">OneBWdsGPipeTransformerWPM</span></code><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#OneBWdsGPipeTransformerWPM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase" title="lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.params.one_billion_wds.WordLevelOneBwdsBase</span></code></a></p>
+<p>LM using gpipe transformer.</p>
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.VOCAB_SIZE">
+<code class="sig-name descname"><span class="pre">VOCAB_SIZE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">32000</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.VOCAB_SIZE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.EMBEDDING_DIM">
+<code class="sig-name descname"><span class="pre">EMBEDDING_DIM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">2048</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.EMBEDDING_DIM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.BATCH_SIZE">
+<code class="sig-name descname"><span class="pre">BATCH_SIZE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">32</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.BATCH_SIZE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.MAX_TOKENS">
+<code class="sig-name descname"><span class="pre">MAX_TOKENS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1024</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.MAX_TOKENS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.GPUS">
+<code class="sig-name descname"><span class="pre">GPUS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">4</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.GPUS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.SPLITS">
+<code class="sig-name descname"><span class="pre">SPLITS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">[8,</span> <span class="pre">16,</span> <span class="pre">24,</span> <span class="pre">32]</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.SPLITS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.LAYERS">
+<code class="sig-name descname"><span class="pre">LAYERS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">32</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.LAYERS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.NUM_MICRO_BATCHES">
+<code class="sig-name descname"><span class="pre">NUM_MICRO_BATCHES</span></code><em class="property"> <span class="pre">=</span> <span class="pre">32</span></em><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.NUM_MICRO_BATCHES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Train">
+<code class="sig-name descname"><span class="pre">Train</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#OneBWdsGPipeTransformerWPM.Train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the training dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Dev">
+<code class="sig-name descname"><span class="pre">Dev</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#OneBWdsGPipeTransformerWPM.Dev"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the development dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Test">
+<code class="sig-name descname"><span class="pre">Test</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#OneBWdsGPipeTransformerWPM.Test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for the testing dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Task">
+<code class="sig-name descname"><span class="pre">Task</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/params/one_billion_wds.html#OneBWdsGPipeTransformerWPM.Task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Language model on 1bw dataset using gpipe transformer.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
