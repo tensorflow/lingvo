@@ -183,6 +183,7 @@
     <span class="s1">&#39;time_warp_bound&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_warp_max_frames&#39;</span><span class="p">,</span>
     <span class="s1">&#39;time_warp_max_ratio&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;freq_noise_max_stddev&#39;</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -277,6 +278,13 @@
              <span class="s1">&#39;Maximum portion of frames for shifting in time warping.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to noisify the time masked region.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gaussian_noise&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use Gaussian distribution for noise.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;freq_noise_max_stddev&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Maximum stddev of frequency noise. stddev is sampled by uniform &#39;</span>
+        <span class="s1">&#39;probability in range(0, freq_noise_max_stddev)&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;freq_noise_warmup_steps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of warm-up steps, in which the &#39;</span>
+        <span class="s1">&#39;freq_noise stddev increases linearly.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unstack&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to unstack features before applying SpecAugment.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_height&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span>
@@ -313,6 +321,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">time_mask_max_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_warp_max_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">time_warp_max_frames</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_noise_max_stddev</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
 
 <div class="viewcode-block" id="SpectrumAugmenter.EinsumBBmBm"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.EinsumBBmBm">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumBBmBm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;b,bm-&gt;bm&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
@@ -334,6 +343,16 @@
 
 <div class="viewcode-block" id="SpectrumAugmenter.EinsumBxycBzyBxzc"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.EinsumBxycBzyBxzc">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumBxycBzyBxzc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bxyc,bzy-&gt;bxzc&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">augment_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># TODO(b/180135215): apply it to other augmentations.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_noise_warmup_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">augment_warmup_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">freq_noise_warmup_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">augment_warmup_steps</span><span class="p">)</span> <span class="o">/</span> <span class="n">augment_warmup_steps</span>
 
 <div class="viewcode-block" id="SpectrumAugmenter._GetMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">batch_size</span><span class="p">,</span>
@@ -920,6 +939,71 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumBxycBzxBzyc</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">warp_matrix</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;einsum_forwarping&#39;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="SpectrumAugmenter._FrequencyNoise"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyNoise">[docs]</a>  <span class="k">def</span> <span class="nf">_FrequencyNoise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">inputs</span><span class="p">,</span>
+                      <span class="n">global_seed</span><span class="p">,</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                      <span class="n">domain_id_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies frequency noise with given degree to inputs.</span>
+
+<span class="sd">    It samples N(1, stddev) in frequency space. e.g. stddev = 0.1</span>
+<span class="sd">    It multiplies the noise scale vector to logmel features.</span>
+
+<span class="sd">    Rationale of this augmentation:</span>
+<span class="sd">      1) Multiplication in freq space is convolution in time space.</span>
+<span class="sd">      2) White noise has a periodical pattern in time space, which can be</span>
+<span class="sd">         represented by convolution operation [1][2].</span>
+<span class="sd">      3) So multiplication in freq space imitates white noise.</span>
+
+<span class="sd">    [1] https://ccrma.stanford.edu/~jos/sasp/Filtered_White_Noise.html</span>
+<span class="sd">    [2] https://en.wikipedia.org/wiki/White_noise#Discrete-time_white_noise</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: Batch of input features of shape (batch_size, time_length,</span>
+<span class="sd">        num_freq, channels).</span>
+<span class="sd">      global_seed: an integer seed tensor for stateless random ops.</span>
+<span class="sd">      dtype: Data type.</span>
+<span class="sd">      domain_id_index: Domain ID index.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Inputs with random frequency warping applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="c1"># Get parameters for noise.</span>
+    <span class="n">freq_noise_max_stddev</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">freq_noise_max_stddev</span><span class="p">[</span><span class="n">domain_id_index</span><span class="p">]</span>
+
+    <span class="c1"># If maximum noise stddev is zero, do nothing.</span>
+    <span class="k">if</span> <span class="n">freq_noise_max_stddev</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+
+    <span class="n">freq_noise_max_stddev</span> <span class="o">=</span> <span class="n">freq_noise_max_stddev</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">augment_weight</span>
+
+    <span class="c1"># Non-empty random seed values are only used for testing or when using</span>
+    <span class="c1"># stateless random ops. seed_1 and seed_2 are set separately to avoid</span>
+    <span class="c1"># correlation of random_uniform and random_normal.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_input_dependent_random_seed</span><span class="p">:</span>
+      <span class="n">seed_1</span> <span class="o">=</span> <span class="n">global_seed</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">seed_2</span> <span class="o">=</span> <span class="n">global_seed</span> <span class="o">+</span> <span class="mi">2</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">:</span>
+      <span class="n">seed_1</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">seed_2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">seed_1</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+      <span class="n">seed_2</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+    <span class="n">random_uniform</span> <span class="o">=</span> <span class="n">_random_uniform_op</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">use_input_dependent_random_seed</span><span class="p">)</span>
+    <span class="n">random_normal</span> <span class="o">=</span> <span class="n">_random_normal_op</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">use_input_dependent_random_seed</span><span class="p">)</span>
+
+    <span class="n">stddev</span> <span class="o">=</span> <span class="n">random_uniform</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">maxval</span><span class="o">=</span><span class="n">freq_noise_max_stddev</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed_1</span><span class="p">)</span>
+    <span class="n">noise_scale</span> <span class="o">=</span> <span class="n">random_normal</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_freq</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">mean</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed_2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">inputs</span> <span class="o">*</span> <span class="n">noise_scale</span></div>
+
 <div class="viewcode-block" id="SpectrumAugmenter.UnstackFeatures"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.UnstackFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">UnstackFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Unstacks src_input and src_paddings based off stack height.&quot;&quot;&quot;</span>
     <span class="n">sh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">stack_height</span>
@@ -969,6 +1053,11 @@
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TimeWarp</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">lengths</span><span class="p">,</span>
+        <span class="n">global_seed</span><span class="o">=</span><span class="n">global_seed</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FrequencyNoise</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
         <span class="n">global_seed</span><span class="o">=</span><span class="n">global_seed</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">domain_id_index</span><span class="o">=</span><span class="n">domain_id_index</span><span class="p">)</span>

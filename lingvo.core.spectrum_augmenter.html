@@ -270,6 +270,11 @@ usually different for each batch.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter.augment_weight">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">augment_weight</span></code><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter.augment_weight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">
 <code class="sig-name descname"><span class="pre">_GetMask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choose_range</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masks_per_frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiplicity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">tf.float32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns fixed size multi-masks starting from random positions.</p>
@@ -525,6 +530,39 @@ num_freq, channels).</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Inputs with random time warping applied.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyNoise">
+<code class="sig-name descname"><span class="pre">_FrequencyNoise</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">tf.float32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain_id_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyNoise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyNoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies frequency noise with given degree to inputs.</p>
+<p>It samples N(1, stddev) in frequency space. e.g. stddev = 0.1
+It multiplies the noise scale vector to logmel features.</p>
+<dl class="simple">
+<dt>Rationale of this augmentation:</dt><dd><ol class="arabic simple">
+<li><p>Multiplication in freq space is convolution in time space.</p></li>
+<li><p>White noise has a periodical pattern in time space, which can be
+represented by convolution operation [1][2].</p></li>
+<li><p>So multiplication in freq space imitates white noise.</p></li>
+</ol>
+</dd>
+</dl>
+<p>[1] <a class="reference external" href="https://ccrma.stanford.edu/~jos/sasp/Filtered_White_Noise.html">https://ccrma.stanford.edu/~jos/sasp/Filtered_White_Noise.html</a>
+[2] <a class="reference external" href="https://en.wikipedia.org/wiki/White_noise#Discrete-time_white_noise">https://en.wikipedia.org/wiki/White_noise#Discrete-time_white_noise</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
+num_freq, channels).</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
+<li><p><strong>dtype</strong> – Data type.</p></li>
+<li><p><strong>domain_id_index</strong> – Domain ID index.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Inputs with random frequency warping applied.</p>
 </dd>
 </dl>
 </dd></dl>
