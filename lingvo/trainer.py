@@ -143,9 +143,9 @@ tf.flags.DEFINE_integer(
     'inference_graph_random_seed', None,
     'Random seed to fix when exporting inference graph. '
     'Not fixed when set to None.')
-tf.flags.DEFINE_string(
-    'graph_def_filename', None,
-    'Output inference graph_def filename. Defaults to CPU graph if '
+tf.flags.DEFINE_list(
+    'graph_def_filename', [],
+    'Output inference graph_def filenames. Defaults to CPU graph if '
     'inference_graph_filename and inference_graph_device are not specified.')
 
 tf.flags.DEFINE_bool(
@@ -1526,12 +1526,14 @@ class RunnerManager:
           tf.logging.error('Error exporting TPU inference graph: %s' % e)
 
     if FLAGS.graph_def_filename and inference_graph_proto:
-      tf.logging.info('Writing graphdef: %s', FLAGS.graph_def_filename)
-      dir_path = os.path.dirname(FLAGS.graph_def_filename)
-      if (not tf.io.gfile.exists(dir_path) or not tf.io.gfile.isdir(dir_path)):
-        tf.io.gfile.makedirs(dir_path)
-      with tf.io.gfile.GFile(FLAGS.graph_def_filename, 'w') as f:
-        f.write(text_format.MessageToString(inference_graph_proto.graph_def))
+      for graph_def_filename in FLAGS.graph_def_filename:
+        tf.logging.info('Writing graphdef: %s', graph_def_filename)
+        dir_path = os.path.dirname(graph_def_filename)
+        if (not tf.io.gfile.exists(dir_path) or
+            not tf.io.gfile.isdir(dir_path)):
+          tf.io.gfile.makedirs(dir_path)
+        with tf.io.gfile.GFile(graph_def_filename, 'w') as f:
+          f.write(text_format.MessageToString(inference_graph_proto.graph_def))
 
   def RunEvalerOnce(self):
     """Run once evaler."""
