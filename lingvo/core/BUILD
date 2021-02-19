@@ -1433,6 +1433,7 @@ py_test(
     shard_count = 1,
     srcs_version = "PY3",
     deps = [
+        ":py_utils",
         ":spectrum_augmenter",
         ":test_utils",
         "//lingvo:compat",

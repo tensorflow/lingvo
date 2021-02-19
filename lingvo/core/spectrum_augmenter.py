@@ -31,6 +31,7 @@ _SPECAUGMENT_ARGS = (
     'time_warp_bound',
     'time_warp_max_frames',
     'time_warp_max_ratio',
+    'freq_noise_max_stddev',
 )
 
 
@@ -125,6 +126,13 @@ class SpectrumAugmenter(base_layer.BaseLayer):
              'Maximum portion of frames for shifting in time warping.')
     p.Define('use_noise', False, 'Whether to noisify the time masked region.')
     p.Define('gaussian_noise', False, 'Use Gaussian distribution for noise.')
+    p.Define(
+        'freq_noise_max_stddev', 0.0,
+        'Maximum stddev of frequency noise. stddev is sampled by uniform '
+        'probability in range(0, freq_noise_max_stddev)')
+    p.Define(
+        'freq_noise_warmup_steps', 0, 'Number of warm-up steps, in which the '
+        'freq_noise stddev increases linearly.')
     p.Define('unstack', False,
              'Whether to unstack features before applying SpecAugment.')
     p.Define('stack_height', 3,
@@ -161,6 +169,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     assert p.time_mask_max_frames[0] > -1
     assert p.freq_warp_max_bins[0] > -1
     assert p.time_warp_max_frames[0] > -1
+    assert p.freq_noise_max_stddev[0] >= 0.0
 
   def EinsumBBmBm(self, a, b, name=None):
     return tf.einsum('b,bm->bm', a, b, name=name)
@@ -182,6 +191,16 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
   def EinsumBxycBzyBxzc(self, a, b, name=None):
     return tf.einsum('bxyc,bzy->bxzc', a, b, name=name)
+
+  @property
+  def augment_weight(self):
+    # TODO(b/180135215): apply it to other augmentations.
+    p = self.params
+    if p.freq_noise_warmup_steps == 0:
+      return tf.cast(tf.constant(1.), p.dtype)
+    global_step = tf.cast(py_utils.GetGlobalStep(), p.dtype)
+    augment_warmup_steps = tf.cast(p.freq_noise_warmup_steps, p.dtype)
+    return tf.minimum(global_step, augment_warmup_steps) / augment_warmup_steps
 
   def _GetMask(self,
                batch_size,
@@ -768,6 +787,71 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     return self.EinsumBxycBzxBzyc(inputs, warp_matrix, name='einsum_forwarping')
 
+  def _FrequencyNoise(self,
+                      inputs,
+                      global_seed,
+                      dtype=tf.float32,
+                      domain_id_index=0):
+    """Applies frequency noise with given degree to inputs.
+
+    It samples N(1, stddev) in frequency space. e.g. stddev = 0.1
+    It multiplies the noise scale vector to logmel features.
+
+    Rationale of this augmentation:
+      1) Multiplication in freq space is convolution in time space.
+      2) White noise has a periodical pattern in time space, which can be
+         represented by convolution operation [1][2].
+      3) So multiplication in freq space imitates white noise.
+
+    [1] https://ccrma.stanford.edu/~jos/sasp/Filtered_White_Noise.html
+    [2] https://en.wikipedia.org/wiki/White_noise#Discrete-time_white_noise
+
+    Args:
+      inputs: Batch of input features of shape (batch_size, time_length,
+        num_freq, channels).
+      global_seed: an integer seed tensor for stateless random ops.
+      dtype: Data type.
+      domain_id_index: Domain ID index.
+
+    Returns:
+      Inputs with random frequency warping applied.
+    """
+    p = self.params
+    batch_size, _, num_freq, _ = py_utils.GetShape(inputs)
+
+    # Get parameters for noise.
+    freq_noise_max_stddev = p.freq_noise_max_stddev[domain_id_index]
+
+    # If maximum noise stddev is zero, do nothing.
+    if freq_noise_max_stddev <= 0.0:
+      return inputs
+
+    freq_noise_max_stddev = freq_noise_max_stddev * self.augment_weight
+
+    # Non-empty random seed values are only used for testing or when using
+    # stateless random ops. seed_1 and seed_2 are set separately to avoid
+    # correlation of random_uniform and random_normal.
+    if p.use_input_dependent_random_seed:
+      seed_1 = global_seed + 1
+      seed_2 = global_seed + 2
+    elif p.random_seed:
+      seed_1 = p.random_seed + 1
+      seed_2 = 2 * p.random_seed
+    else:
+      seed_1 = p.random_seed
+      seed_2 = p.random_seed
+    random_uniform = _random_uniform_op(p.use_input_dependent_random_seed)
+    random_normal = _random_normal_op(p.use_input_dependent_random_seed)
+
+    stddev = random_uniform(
+        shape=[batch_size, 1, 1, 1],
+        minval=0,
+        maxval=freq_noise_max_stddev,
+        seed=seed_1)
+    noise_scale = random_normal(
+        shape=[batch_size, 1, num_freq, 1], mean=1., stddev=stddev, seed=seed_2)
+    return inputs * noise_scale
+
   def UnstackFeatures(self, src_inputs, src_paddings):
     """Unstacks src_input and src_paddings based off stack height."""
     sh = self.params.stack_height
@@ -817,6 +901,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     inputs = self._TimeWarp(
         inputs,
         lengths,
+        global_seed=global_seed,
+        dtype=dtype,
+        domain_id_index=domain_id_index)
+    inputs = self._FrequencyNoise(
+        inputs,
         global_seed=global_seed,
         dtype=dtype,
         domain_id_index=domain_id_index)

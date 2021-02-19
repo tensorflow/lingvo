@@ -15,13 +15,15 @@
 # ==============================================================================
 """Tests for spectrum augmenter layer."""
 
+from absl.testing import parameterized
 import lingvo.compat as tf
+from lingvo.core import py_utils
 from lingvo.core import spectrum_augmenter
 from lingvo.core import test_utils
 import numpy as np
 
 
-class SpectrumAugmenterTest(test_utils.TestCase):
+class SpectrumAugmenterTest(test_utils.TestCase, parameterized.TestCase):
 
   def testSpectrumAugmenterWithTimeMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
@@ -478,6 +480,61 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  @parameterized.named_parameters(('Base', 0), ('WarmUp', 2))
+  def testSpectrumAugmenterWithFreqNoise(self, warmup_steps):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.random.set_seed(1234)
+      inputs = tf.broadcast_to(
+          tf.cast(tf.range(8), dtype=tf.float32), (5, 1, 8))
+      inputs = tf.expand_dims(inputs, -1)
+      paddings = tf.zeros([3, 2])
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.freq_noise_max_stddev = 0.1
+      p.freq_mask_max_bins = 0
+      p.time_mask_max_frames = 0
+      p.freq_warp_max_bins = 0
+      p.time_warp_max_frames = 0
+      p.freq_noise_warmup_steps = warmup_steps
+      p.random_seed = 345678
+      specaug_layer = p.Instantiate()
+      has_warmup_steps = warmup_steps != 0
+      # pyformat: disable
+      # pylint: disable=bad-whitespace,bad-continuation
+      if has_warmup_steps:
+        expected_output = np.array(
+            [[[0.      , 1.015837, 1.938253, 3.044222, 3.972092,
+               5.028179, 6.046204, 7.000574]],
+             [[0.      , 0.945328, 2.011299, 3.141700, 3.898298,
+               4.969969, 6.153418, 6.860528]],
+             [[0.      , 1.000181, 2.014447, 2.984220, 3.929903,
+               5.016436, 6.002871, 6.995663]],
+             [[0.      , 1.022656, 2.062904, 2.882567, 4.150898,
+               4.98871 , 5.857354, 6.989822]],
+             [[0.      , 1.002751, 2.009730, 3.000584, 3.984322,
+               4.995187, 6.032375, 7.020331 ]]])
+      else:
+        expected_output = np.array(
+            [[[0.      , 1.031674, 1.876506, 3.088444, 3.944183,
+               5.056358, 6.092408, 7.001149]],
+             [[0.      , 0.890657, 2.022598, 3.283400, 3.796596,
+               4.939937, 6.306836, 6.721056]],
+             [[0.      , 1.000362, 2.028894, 2.968441, 3.859807,
+               5.032872, 6.005741, 6.991328]],
+             [[0.      , 1.045312, 2.125809, 2.765134, 4.301796,
+               4.97742 , 5.714708, 6.979644]],
+             [[0.      , 1.005502, 2.019461, 3.001168, 3.968645,
+               4.990373, 6.064750, 7.040662]]])
+      # pylint: enable=bad-whitespace,bad-continuation
+      # pyformat: enable
+      global_step = py_utils.GetGlobalStep()
+      update_global_step = tf.assign(global_step, global_step + 1)
+      with tf.control_dependencies([update_global_step]):
+        h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
+      actual_layer_output = self.evaluate(tf.squeeze(h, -1))
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
   def testSpectrumAugmenterUnstacking(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
@@ -812,6 +869,28 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       self.assertAllEqual(
           np.shape(actual_layer_output1), np.array([5, 20, 2, 2]))
       self.assertNotAllEqual(actual_layer_output1, actual_layer_output2)
+
+  def testAugmentWeight(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      warmup_steps = 5
+      p.freq_noise_warmup_steps = warmup_steps
+      specaug_layer = p.Instantiate()
+      global_step = py_utils.GetGlobalStep()
+      update_global_step = global_step
+      augment_weights = []
+      for _ in range(7):
+        with tf.control_dependencies([update_global_step]):
+          weight = specaug_layer.augment_weight
+          augment_weights += [weight]
+        with tf.control_dependencies([weight]):
+          update_global_step = tf.assign(global_step, global_step + 1)
+
+      expected_augment_weights = np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.0])
+      actual_augment_weights = self.evaluate(augment_weights)
+      print(actual_augment_weights)
+      self.assertAllClose(actual_augment_weights, expected_augment_weights)
 
 
 if __name__ == '__main__':
