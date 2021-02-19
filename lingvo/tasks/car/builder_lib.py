@@ -674,9 +674,11 @@ class ModelBuilderBase:
     """Sequential layers operating on the features only."""
     return self._SeqOnKey(name, FEATURES_KEY, *subs)
 
+  # TODO(jngiam): Padded* layers should all return nested outputs with padding.
+  # Downstream callers should be fixed to handle the returned padding.
   @_Decorators.ExpectsNestedMapTensor((FEATURES_KEY, PADDING_KEY))
-  def _PaddedMax(self, name):
-    """Padding aware max pooling layer, emits a single tensor."""
+  def _PaddedMax(self, name, nested_output=False):
+    """Padding aware max pooling layer, emits either a single tensor or map."""
     def _PaddedMaxFn(inp):
       """Apply padded max using reduce_max with paddings replaced by neginf."""
       # Replace all padded features with -inf.
@@ -689,11 +691,15 @@ class ModelBuilderBase:
       # all padded, then reduce_min over the padding will be 1. We set the
       # features to be zero, so that we don't get any downstream issue with
       # NaNs. Note that inf * 0 = NaN.
-      all_padded = tf.cast(tf.reduce_min(inp.padding, axis=-1), tf.bool)
-      all_padded = tf.broadcast_to(all_padded[..., tf.newaxis],
-                                   py_utils.GetShape(features))
-      features = tf.where(all_padded, tf.zeros_like(features), features)
-      return py_utils.CheckNumerics(features)
+      padding = tf.reduce_min(inp.padding, axis=-1)
+      features = tf.where_v2(tf.cast(padding[..., tf.newaxis], tf.bool),
+                             tf.zeros_like(features), features)
+      features = py_utils.CheckNumerics(features)
+
+      if nested_output:
+        return py_utils.NestedMap(features=features, padding=padding)
+      else:
+        return features
 
     return self._Map(name=name, fn=_PaddedMaxFn)
 

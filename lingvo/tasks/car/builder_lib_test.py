@@ -186,6 +186,27 @@ class BuilderLibTest(test_utils.TestCase):
       actual_y = self.evaluate(y)
       self.assertAllClose(actual_y, expected_y)
 
+  def testPaddedMaxNestedOutput(self):
+    b = builder_lib.ModelBuilderBase()
+    p = b._PaddedMax('p', nested_output=True)
+    l = p.Instantiate()
+
+    np_x, x = self._getNestedMapTestData()
+    out = l.FPropDefaultTheta(x)
+
+    expected_y = np.stack([
+        # First example should take max over the first two points.
+        np.amax(np_x.features[0, :2, :], axis=0),
+        # Second example should take max over only the first points.
+        np_x.features[1, 0, :],
+        # Third example should be all zeros, since all points are padded.
+        np.zeros_like(np_x.features[2, 0, :]),
+    ], axis=0)  # pyformat: disable
+    with self.session():
+      actual_out = self.evaluate(out)
+      self.assertAllClose(actual_out.features, expected_y)
+      self.assertAllEqual(actual_out.padding, np.asarray([0., 0., 1.]))
+
   def testPaddedMean(self):
     b = builder_lib.ModelBuilderBase()
     p = b._PaddedMean('p')
