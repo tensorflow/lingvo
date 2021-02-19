@@ -674,7 +674,7 @@ class ModelBuilderBase:
     """Sequential layers operating on the features only."""
     return self._SeqOnKey(name, FEATURES_KEY, *subs)
 
-  @_Decorators.ExpectsNestedMapPointsTensor
+  @_Decorators.ExpectsNestedMapTensor((FEATURES_KEY, PADDING_KEY))
   def _PaddedMax(self, name):
     """Padding aware max pooling layer, emits a single tensor."""
     def _PaddedMaxFn(inp):
