@@ -171,8 +171,60 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-tasks-mt-layers-module">
-<h1>lingvo.tasks.mt.layers module<a class="headerlink" href="#lingvo-tasks-mt-layers-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.tasks.mt.layers">
+<span id="lingvo-tasks-mt-layers-module"></span><h1>lingvo.tasks.mt.layers module<a class="headerlink" href="#module-lingvo.tasks.mt.layers" title="Permalink to this headline">¶</a></h1>
+<p>Lingvo MT layers.</p>
+<dl class="py class">
+<dt id="lingvo.tasks.mt.layers.TransformerStack">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.layers.</span></code><code class="sig-name descname"><span class="pre">TransformerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Stacked self- multi-head attention and fully connected layers.</p>
+<p>With optional layer normalization applied to the final output.</p>
+<p>See ‘Attention Is All You Need’ <a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>
+for details.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.mt.layers.TransformerStack.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configs for TransformerStack.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.layers.TransformerStack.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformer_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_segment_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_vecs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_segment_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms source sequence of Tensors with Transformers layers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>transformer_input</strong> – A sequence of input Tensors of [time, batch, dim]
+shape.</p></li>
+<li><p><strong>paddings</strong> – A sequence of 0s and 1s indicating input paddings of
+[time, batch] shape.</p></li>
+<li><p><strong>src_segment_id</strong> – A sequence of ints indicating segment ids of
+[time, batch] shape.</p></li>
+<li><p><strong>aux_vecs</strong> – A sequence of input Tensors of [aux_time, batch, dim] shape, as
+context for the cross-attention layer.</p></li>
+<li><p><strong>aux_paddings</strong> – A sequence of 0s and 1s indicating input paddings of
+[aux_time, batch] shape.</p></li>
+<li><p><strong>aux_segment_id</strong> – A sequence of ints indicating segment ids of
+[aux_time, batch] shape.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(outputs, out_paddings, segment_ids) tuple. <code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code> is of the shape
+[time, batch, depth], and <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_paddings</span></code> has shape [time, batch]. If
+is_transparent is True, can return a list of num_transformer_layers
+tensors of shape [time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is False, and a
+[time, batch, depth, num_transparent_outputs] tensor if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is
+True. If packed_input is True, also returns segment_id, otherwise returns
+None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
