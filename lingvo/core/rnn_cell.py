@@ -273,6 +273,9 @@ class LSTMCellSimple(RNNCell):
     p.Define('gradient_pruning', False, 'Whether to gradient prune the model')
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Initialization parameters for bias')
+    p.Define(
+        'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
+        'with hyperparameter: value pairs. See google-research.model_pruning.')
 
     # Non-default quantization behaviour.
     p.qdomain.Define('weight', None, 'Quantization for the weights')
@@ -307,6 +310,9 @@ class LSTMCellSimple(RNNCell):
         dtype=p.dtype,
         collections=self._VariableCollections())
     self.CreateVariable('wm', wm_pc, self.AddVN)
+    if not p.apply_pruning and p.pruning_hparams_dict:
+      pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, wm_pc,
+                                           p.dtype, p.name)
     if p.apply_pruning:
       mask_pc = py_utils.WeightParams(wm_pc.shape,
                                       py_utils.WeightInit.Constant(1.0),
@@ -498,11 +504,13 @@ class LSTMCellSimple(RNNCell):
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
+    concat = tf.concat(inputs.act + [state0.m], 1)
+    if self.params.pruning_hparams_dict and not self.params.apply_pruning:
+      return pruning_utils.PruningOp.GetMixResult(theta, concat, self)
     if self.params.apply_pruning:
       wm = self.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weights'))
     else:
       wm = self.QWeight(theta.wm)
-    concat = tf.concat(inputs.act + [state0.m], 1)
     # Defer quantization until after adding in the bias to support fusing
     # matmul and bias add during inference.
     return tf.matmul(concat, wm)

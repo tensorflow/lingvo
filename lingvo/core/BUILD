@@ -427,6 +427,7 @@ py_library(
         ":hyperparams",
         ":learner",
         ":optimizer",
+        ":pruning_utils",
         ":py_utils",
         ":schedule",
         ":summary_utils",
@@ -1260,6 +1261,7 @@ py_library(
     srcs = ["pruning_utils.py"],
     srcs_version = "PY3",
     deps = [
+        ":py_utils",
         # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
     ],

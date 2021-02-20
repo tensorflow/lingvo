@@ -27,6 +27,7 @@ from lingvo.core import early_stop
 from lingvo.core import hyperparams
 from lingvo.core import learner
 from lingvo.core import optimizer
+from lingvo.core import pruning_utils
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
@@ -333,6 +334,10 @@ class BaseTask(base_layer.BaseLayer):
           self.CreateChildren('learners', [tp.learner])
     self._UpdateVnConfig()
 
+    if (tp and tp.pruning_hparams_dict and
+        pruning_utils.UsePruningInterface(tp.pruning_hparams_dict)):
+      pruning_utils.PruningOp.Setup(tp.pruning_hparams_dict, self.global_step)
+
   def InstantiateVariables(self):
     with py_utils.GlobalStepContext(self._global_step_var):
       super().InstantiateVariables()
@@ -415,7 +420,12 @@ class BaseTask(base_layer.BaseLayer):
       metrics: the metrics dict returned by FPropTower.
       per_example: the per_example dict returned by FPropTower.
     """
-    pass
+    p = self.params
+    tp = p.train
+    if not tp.pruning_hparams_dict:
+      return
+    if pruning_utils.PruningOp.ApplyPythonUpdate():
+      pruning_utils.PruningOp.RunPythonUpdate(sess, global_step)
 
   def FPropTower(self, theta, input_batch):
     """Forward propagation through one tower of the model.
@@ -882,6 +892,10 @@ class BaseTask(base_layer.BaseLayer):
       if self.cluster.add_summary:
         pruning_obj.add_pruning_summaries()
       mask_update_op = pruning_obj.conditional_mask_update_op()
+
+      if (pruning_utils.UsePruningInterface(tp.pruning_hparams_dict) and
+          pruning_utils.PruningOp.ApplyTensorflowUpdate()):
+        mask_update_op = pruning_utils.PruningOp.GetPruningUpdate()
     return mask_update_op
 
   def Export(self, train_dir):

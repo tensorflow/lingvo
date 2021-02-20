@@ -16,6 +16,8 @@
 """Utilities for pruning."""
 
 import lingvo.compat as tf
+from lingvo.core import py_utils
+
 from model_pruning.python import pruning
 
 
@@ -40,3 +42,102 @@ def AddToPruningCollections(weight,
       tf.add_to_collection(pruning.WEIGHT_GRADIENT_COLLECTION, gradient)
       tf.add_to_collection(pruning.OLD_WEIGHT_COLLECTION, old_weight)
       tf.add_to_collection(pruning.OLD_OLD_WEIGHT_COLLECTION, old_old_weight)
+
+
+def UsePruningInterface(pruning_hparams_dict):
+  if not pruning_hparams_dict:
+    return False
+  prune_option = pruning_hparams_dict.get('prune_option', 'weight')
+  return prune_option == 'compression'
+
+
+class PruningOp(object):
+  """A pruning op object.
+
+  This class encapsulates the methods that are needed for pruning (and
+  compression) so that both pruning and compression can be called in lingvo
+  using the same API.
+  """
+
+  _pruning_hparams_dict = {}
+  _global_step = None
+  _pruning_obj = None
+  _pruning_hparams = None
+
+  @classmethod
+  def Setup(cls, pruning_hparams_dict, global_step):  # pylint:disable=invalid-name
+    """Set up the pruning op with pruning hyperparameters and global step.
+
+    Args:
+      pruning_hparams_dict: a dict containing pruning hyperparameters;
+      global_step: global step in TensorFlow.
+    """
+    if cls._pruning_obj is not None:
+      pass
+    assert pruning_hparams_dict is not None
+    assert isinstance(pruning_hparams_dict, dict)
+    cls._pruning_hparams_dict = pruning_hparams_dict
+    cls._global_step = global_step
+    cls._pruning_hparams = pruning.get_pruning_hparams().override_from_dict(
+        pruning_hparams_dict)
+    cls._pruning_obj = pruning.Pruning(
+        spec=cls._pruning_hparams, global_step=global_step)
+
+  @classmethod
+  def ApplyPruning(cls, pruning_hparams_dict, lstmobj, wm_pc, dtype, scope):  # pylint:disable=unused-argument
+    if not cls._pruning_obj:
+      cls.Setup(pruning_hparams_dict, global_step=py_utils.GetGlobalStep())
+    return None
+
+  @classmethod
+  def GetMixResult(cls, theta, concat, lstmobj):  # pylint:disable=unused-argument
+    """Compute the mix result.
+
+    Args:
+      theta: a theta object in the LSTM cells;
+      concat: Tensor, concat of previous output and current state vector;
+      lstmobj: a LSTM cell object.
+
+    Returns:
+      result Tensor.
+
+    Raises:
+      NotImplementedError if prune_option is not 'weight',
+      'first_order_gradient', or 'second_order_gradient'.
+    """
+    return tf.matmul(
+        concat,
+        lstmobj.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weight')))
+
+  @classmethod
+  def GetPruningUpdate(cls):  # pylint:disable=invalid-name
+    # for pruning, it returns pruning_obj.conditional_mask_update_op()
+    return cls._pruning_obj.conditional_mask_update_op()
+
+  @classmethod
+  def ApplyTensorflowUpdate(cls):  # pylint:disable=invalid-name
+    if not cls._pruning_obj:
+      return False
+    hparams = cls._pruning_obj.get_spec()
+    return (hparams.prune_option in [
+        'weight', 'first_order_gradient', 'second_order_gradient'
+    ] or hparams.update_option == 0 or hparams.update_option == 2)
+
+  @classmethod
+  def ApplyPythonUpdate(cls):
+    if not cls._pruning_obj:
+      return False
+    hparams = cls._pruning_obj.get_spec()
+    return hparams.update_option == 1 or hparams.update_option == 2
+
+  @classmethod
+  def ApplyTensorflowAndPythonUpdate(cls):
+    """Returns True if both Tensorflow and Python updates need to run."""
+    if not cls._pruning_obj:
+      return False
+    hparams = cls._pruning_obj.get_spec()
+    return hparams.update_option == 2
+
+  @classmethod
+  def RunPythonUpdate(cls, session, global_step):  # pylint:disable=unused-argument
+    return
