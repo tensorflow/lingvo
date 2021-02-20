@@ -179,6 +179,110 @@
 <dd><p>Add mask, threshold, and weight vars to their respective collections.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.pruning_utils.UsePruningInterface">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.pruning_utils.</span></code><code class="sig-name descname"><span class="pre">UsePruningInterface</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pruning_hparams_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#UsePruningInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.UsePruningInterface" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.pruning_utils.PruningOp">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.pruning_utils.</span></code><code class="sig-name descname"><span class="pre">PruningOp</span></code><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A pruning op object.</p>
+<p>This class encapsulates the methods that are needed for pruning (and
+compression) so that both pruning and compression can be called in lingvo
+using the same API.</p>
+<dl class="py attribute">
+<dt id="lingvo.core.pruning_utils.PruningOp._pruning_hparams_dict">
+<code class="sig-name descname"><span class="pre">_pruning_hparams_dict</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp._pruning_hparams_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.pruning_utils.PruningOp._global_step">
+<code class="sig-name descname"><span class="pre">_global_step</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp._global_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.pruning_utils.PruningOp._pruning_obj">
+<code class="sig-name descname"><span class="pre">_pruning_obj</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp._pruning_obj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.pruning_utils.PruningOp._pruning_hparams">
+<code class="sig-name descname"><span class="pre">_pruning_hparams</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp._pruning_hparams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.Setup">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pruning_hparams_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.Setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.Setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up the pruning op with pruning hyperparameters and global step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pruning_hparams_dict</strong> – a dict containing pruning hyperparameters;</p></li>
+<li><p><strong>global_step</strong> – global step in TensorFlow.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.ApplyPruning">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">ApplyPruning</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pruning_hparams_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstmobj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wm_pc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.ApplyPruning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.ApplyPruning" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.GetMixResult">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">GetMixResult</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lstmobj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.GetMixResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.GetMixResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the mix result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – a theta object in the LSTM cells;</p></li>
+<li><p><strong>concat</strong> – Tensor, concat of previous output and current state vector;</p></li>
+<li><p><strong>lstmobj</strong> – a LSTM cell object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>result Tensor.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>NotImplementedError if prune_option is not 'weight'</strong><strong>,</strong> – </p></li>
+<li><p><strong>'first_order_gradient'</strong><strong>, or </strong><strong>'second_order_gradient'.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.GetPruningUpdate">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">GetPruningUpdate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.GetPruningUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.GetPruningUpdate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.ApplyTensorflowUpdate">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">ApplyTensorflowUpdate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.ApplyTensorflowUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.ApplyTensorflowUpdate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.ApplyPythonUpdate">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">ApplyPythonUpdate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.ApplyPythonUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.ApplyPythonUpdate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.ApplyTensorflowAndPythonUpdate">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">ApplyTensorflowAndPythonUpdate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.ApplyTensorflowAndPythonUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.ApplyTensorflowAndPythonUpdate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if both Tensorflow and Python updates need to run.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.pruning_utils.PruningOp.RunPythonUpdate">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">RunPythonUpdate</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/pruning_utils.html#PruningOp.RunPythonUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.pruning_utils.PruningOp.RunPythonUpdate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 

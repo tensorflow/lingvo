@@ -168,6 +168,8 @@
 <span class="sd">&quot;&quot;&quot;Utilities for pruning.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+
 <span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="kn">import</span> <span class="n">pruning</span>
 
 
@@ -192,6 +194,105 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">WEIGHT_GRADIENT_COLLECTION</span><span class="p">,</span> <span class="n">gradient</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">OLD_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">old_weight</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">OLD_OLD_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">old_old_weight</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UsePruningInterface"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.UsePruningInterface">[docs]</a><span class="k">def</span> <span class="nf">UsePruningInterface</span><span class="p">(</span><span class="n">pruning_hparams_dict</span><span class="p">):</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">pruning_hparams_dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">False</span>
+  <span class="n">prune_option</span> <span class="o">=</span> <span class="n">pruning_hparams_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;prune_option&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">prune_option</span> <span class="o">==</span> <span class="s1">&#39;compression&#39;</span></div>
+
+
+<div class="viewcode-block" id="PruningOp"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp">[docs]</a><span class="k">class</span> <span class="nc">PruningOp</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A pruning op object.</span>
+
+<span class="sd">  This class encapsulates the methods that are needed for pruning (and</span>
+<span class="sd">  compression) so that both pruning and compression can be called in lingvo</span>
+<span class="sd">  using the same API.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">_pruning_hparams_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="n">_global_step</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">_pruning_obj</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">_pruning_hparams</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="PruningOp.Setup"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.Setup">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Setup</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
+    <span class="sd">&quot;&quot;&quot;Set up the pruning op with pruning hyperparameters and global step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      pruning_hparams_dict: a dict containing pruning hyperparameters;</span>
+<span class="sd">      global_step: global step in TensorFlow.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">pass</span>
+    <span class="k">assert</span> <span class="n">pruning_hparams_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_hparams_dict</span> <span class="o">=</span> <span class="n">pruning_hparams_dict</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">global_step</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_hparams</span> <span class="o">=</span> <span class="n">pruning</span><span class="o">.</span><span class="n">get_pruning_hparams</span><span class="p">()</span><span class="o">.</span><span class="n">override_from_dict</span><span class="p">(</span>
+        <span class="n">pruning_hparams_dict</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span> <span class="o">=</span> <span class="n">pruning</span><span class="o">.</span><span class="n">Pruning</span><span class="p">(</span>
+        <span class="n">spec</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">global_step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PruningOp.ApplyPruning"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.ApplyPruning">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ApplyPruning</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">lstmobj</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">scope</span><span class="p">):</span>  <span class="c1"># pylint:disable=unused-argument</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="p">:</span>
+      <span class="bp">cls</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="PruningOp.GetMixResult"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.GetMixResult">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetMixResult</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">concat</span><span class="p">,</span> <span class="n">lstmobj</span><span class="p">):</span>  <span class="c1"># pylint:disable=unused-argument</span>
+    <span class="sd">&quot;&quot;&quot;Compute the mix result.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: a theta object in the LSTM cells;</span>
+<span class="sd">      concat: Tensor, concat of previous output and current state vector;</span>
+<span class="sd">      lstmobj: a LSTM cell object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      result Tensor.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      NotImplementedError if prune_option is not &#39;weight&#39;,</span>
+<span class="sd">      &#39;first_order_gradient&#39;, or &#39;second_order_gradient&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+        <span class="n">concat</span><span class="p">,</span>
+        <span class="n">lstmobj</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s1">&#39;masked_weight&#39;</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="PruningOp.GetPruningUpdate"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.GetPruningUpdate">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetPruningUpdate</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
+    <span class="c1"># for pruning, it returns pruning_obj.conditional_mask_update_op()</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="o">.</span><span class="n">conditional_mask_update_op</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PruningOp.ApplyTensorflowUpdate"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.ApplyTensorflowUpdate">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ApplyTensorflowUpdate</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">hparams</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="o">.</span><span class="n">get_spec</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">hparams</span><span class="o">.</span><span class="n">prune_option</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;first_order_gradient&#39;</span><span class="p">,</span> <span class="s1">&#39;second_order_gradient&#39;</span>
+    <span class="p">]</span> <span class="ow">or</span> <span class="n">hparams</span><span class="o">.</span><span class="n">update_option</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">hparams</span><span class="o">.</span><span class="n">update_option</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PruningOp.ApplyPythonUpdate"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.ApplyPythonUpdate">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ApplyPythonUpdate</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">hparams</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="o">.</span><span class="n">get_spec</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">hparams</span><span class="o">.</span><span class="n">update_option</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">hparams</span><span class="o">.</span><span class="n">update_option</span> <span class="o">==</span> <span class="mi">2</span></div>
+
+<div class="viewcode-block" id="PruningOp.ApplyTensorflowAndPythonUpdate"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.ApplyTensorflowAndPythonUpdate">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ApplyTensorflowAndPythonUpdate</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if both Tensorflow and Python updates need to run.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">hparams</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="o">.</span><span class="n">get_spec</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">hparams</span><span class="o">.</span><span class="n">update_option</span> <span class="o">==</span> <span class="mi">2</span></div>
+
+<div class="viewcode-block" id="PruningOp.RunPythonUpdate"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.RunPythonUpdate">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">RunPythonUpdate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>  <span class="c1"># pylint:disable=unused-argument</span>
+    <span class="k">return</span></div></div>
 </pre></div>
 
            </div>
