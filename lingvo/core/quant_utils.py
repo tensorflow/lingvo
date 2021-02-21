@@ -105,13 +105,20 @@ class QuantizableLayer(base_layer.BaseLayer):
   - qtanh
   - qsigmoid
   - qsoftmax
+  - qrelu6
+  - qrandom_uniform
 
   Dynamic range functions:
 
   - qadd
+  - qsubtract
   - qmultiply
   - qmatmul (defers to `.py_utils.Matmul` and only accepts rank-2 tensors)
   - qbatchmatmul (defers to `tf.matmul` directly)
+  - qconv1d
+  - qlog
+  - qlogsoftmax
+  - qrelu
   """
 
   @classmethod
@@ -466,6 +473,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     WrapOp('qtanh', tf.tanh, default_qmin=-1.0, default_qmax=1.0)
     WrapOp('qsigmoid', tf.sigmoid, default_qmin=0.0, default_qmax=1.0)
     WrapOp('qsoftmax', tf.nn.softmax, default_qmin=0.0, default_qmax=1.0)
+    WrapOp('qlog', tf.math.log)
     WrapOp('qlogsoftmax', tf.nn.log_softmax)
     WrapOp('qrelu', tf.nn.relu)
     WrapOp('qrelu6', tf.nn.relu6, default_qmin=0.0, default_qmax=6.0)
