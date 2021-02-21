@@ -467,7 +467,9 @@ output = inputs + drop_output</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
-<li><p><strong>inputs</strong> – [batch, time, dim].</p></li>
+<li><p><strong>inputs</strong> – [batch, time, dim] or [batch, time, g, dim/g]. If the latter, the
+input is from some upstream component that applied the reshape trick to
+improve performance on tpu.</p></li>
 <li><p><strong>paddings</strong> – [batch, time]</p></li>
 </ul>
 </dd>

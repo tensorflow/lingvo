@@ -4339,6 +4339,9 @@
         <span class="s1">&#39;the number of partitions the stack is sliced into. layer_i is placed &#39;</span>
         <span class="s1">&#39;on the kth partition (0-based) where split[k] &lt; i &lt;= split[k+1].&#39;</span><span class="p">)</span>
     <span class="c1"># MOE related params.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;moe_layer_tpl&#39;</span><span class="p">,</span>
+             <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerShardedMoeLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Template configuration for the moe feedforward layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_experts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of experts.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_groups&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Num of groups for dispatching.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;moe_layers&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;The list of MoE layer indices, e.g. [0, 2, 4].&#39;</span><span class="p">)</span>
@@ -4372,10 +4375,10 @@
       <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">ff_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
                         <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerFeedForwardLayer</span><span class="p">)</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_experts</span> <span class="o">&gt;</span> <span class="mi">0</span>
-      <span class="n">moe_p</span> <span class="o">=</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerShardedMoeLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">moe_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_layer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="c1"># Copy over the base params.</span>
       <span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="o">.</span><span class="n">CopyBaseParams</span><span class="p">(</span><span class="n">ff_p</span><span class="p">,</span> <span class="n">moe_p</span><span class="p">)</span>
-      <span class="c1"># Copy over other params.</span>
+      <span class="c1"># Set other params.</span>
       <span class="n">moe_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">ff_p</span><span class="o">.</span><span class="n">name</span>
       <span class="n">moe_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">ff_p</span><span class="o">.</span><span class="n">input_dim</span>
       <span class="n">moe_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">ff_p</span><span class="o">.</span><span class="n">output_dim</span>
@@ -4386,8 +4389,8 @@
       <span class="n">moe_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">ff_p</span><span class="o">.</span><span class="n">residual_dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">moe_p</span><span class="o">.</span><span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
       <span class="n">moe_p</span><span class="o">.</span><span class="n">num_experts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_experts</span>
-      <span class="c1"># Set weight_split_dims_mapping</span>
-      <span class="c1"># Set activation_split_dims_mapping</span>
+      <span class="c1"># weight_split_dims_mapping and activation_split_dims_mapping should have</span>
+      <span class="c1"># been set through p.moe_layer_tpl params.</span>
       <span class="k">return</span> <span class="n">moe_p</span>
 
     <span class="k">def</span> <span class="nf">_LayerParams</span><span class="p">(</span><span class="n">ii</span><span class="p">):</span>

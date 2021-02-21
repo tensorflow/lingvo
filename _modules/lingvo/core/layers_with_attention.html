@@ -933,7 +933,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
-<span class="sd">      inputs: [batch, time, dim].</span>
+<span class="sd">      inputs: [batch, time, dim] or [batch, time, g, dim/g]. If the latter, the</span>
+<span class="sd">        input is from some upstream component that applied the reshape trick to</span>
+<span class="sd">        improve performance on tpu.</span>
 <span class="sd">      paddings: [batch, time]</span>
 
 <span class="sd">    Returns:</span>
@@ -941,6 +943,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">ap</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
+
+    <span class="k">assert</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">()</span>
+    <span class="n">orig_shape</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">orig_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">orig_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">orig_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">orig_shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
@@ -1027,6 +1035,9 @@
       <span class="n">after_residual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span>
                                                    <span class="n">combined_output</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">after_residual</span>
+
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">orig_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">orig_shape</span><span class="p">)</span>
 
       <span class="c1"># Add loss to a global collection. We don&#39;t return the loss to the caller</span>
       <span class="c1"># to avoid the change of the api here.</span>
