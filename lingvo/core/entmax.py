@@ -47,6 +47,7 @@ def entmax_support(inputs: tf.Tensor,
 
       alpha_shape[axis] = 1
       alpha = tf.fill(alpha_shape, alpha)
+      alpha = tf.cast(alpha, dtype=inputs.dtype)
 
       d = inputs.get_shape().as_list()[axis]
       alpha_m1 = alpha - 1.0
@@ -54,8 +55,10 @@ def entmax_support(inputs: tf.Tensor,
       inputs = inputs * alpha_m1
 
       max_val = tf.math.reduce_max(inputs, axis=axis, keepdims=True)
-      tau_lo = max_val - tf.ones(alpha.get_shape().as_list(), dtype=alpha.dtype)
-      tau_hi = max_val - tf.math.pow((1.0 / d), alpha_m1)
+      tau_lo = max_val - tf.ones(
+          alpha.get_shape().as_list(), dtype=inputs.dtype)
+      tau_hi = max_val - tf.math.pow(
+          tf.cast((1.0 / d), dtype=inputs.dtype), alpha_m1)
 
       f_lo = tf.math.reduce_sum(
           _calculate_probability(tf.math.subtract(inputs, tau_lo), alpha),
@@ -106,7 +109,7 @@ def entmax_loss(labels: tf.Tensor,
       loss = (1.0 - tf.math.reduce_sum(tf.math.pow(p_star, alpha), axis=-1)) / (
           alpha * (alpha - 1))
 
-      p_star -= labels
+      p_star -= tf.cast(labels, dtype=inputs.dtype)
       loss += tf.einsum("...IJ,...IJ->...I", p_star, inputs)
 
     def grad_fn(d_outputs):

@@ -31,11 +31,12 @@ class EntmaxTest(test_utils.TestCase):
       self.assertAllClose(expected_prob, output)
 
   def test_entmax_loss_generate_right_loss(self):
-    inputs = tf.constant([[[0.5, 1.0, 2.0]] * 3])
+    inputs = tf.constant([[[0.5, 1.0, 2.0]] * 3], dtype='bfloat16')
     labels = tf.constant([[0, 1, 2]])
     # Convert to the matrix with given depth, e.g. the vocabulary size.
     labels = tf.one_hot(labels, depth=3)
-    expected_loss = tf.constant([[1.5642307, 1.0642307, 0.06423065]])
+    expected_loss = tf.constant([[1.5642307, 1.0642307, 0.06423065]],
+                                dtype='bfloat16')
     entmax_loss_val = entmax.entmax_loss(labels, inputs, alpha=1.5)
     with self.session(use_gpu=False) as sess:
       output = sess.run(entmax_loss_val)
