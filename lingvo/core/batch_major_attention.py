@@ -4187,6 +4187,9 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         'the number of partitions the stack is sliced into. layer_i is placed '
         'on the kth partition (0-based) where split[k] < i <= split[k+1].')
     # MOE related params.
+    p.Define('moe_layer_tpl',
+             layers_with_attention.TransformerShardedMoeLayer.Params(),
+             'Template configuration for the moe feedforward layer.')
     p.Define('num_experts', 0, 'Total number of experts.')
     p.Define('num_groups', 1, 'Num of groups for dispatching.')
     p.Define('moe_layers', [], 'The list of MoE layer indices, e.g. [0, 2, 4].')
@@ -4220,10 +4223,10 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       assert issubclass(ff_p.cls,
                         layers_with_attention.TransformerFeedForwardLayer)
       assert p.num_experts > 0
-      moe_p = layers_with_attention.TransformerShardedMoeLayer.Params()
+      moe_p = p.moe_layer_tpl.Copy()
       # Copy over the base params.
       base_layer.BaseLayer.CopyBaseParams(ff_p, moe_p)
-      # Copy over other params.
+      # Set other params.
       moe_p.name = ff_p.name
       moe_p.input_dim = ff_p.input_dim
       moe_p.output_dim = ff_p.output_dim
@@ -4234,8 +4237,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       moe_p.dropout_tpl = ff_p.residual_dropout_tpl.Copy()
       moe_p.num_groups = p.num_groups
       moe_p.num_experts = p.num_experts
-      # Set weight_split_dims_mapping
-      # Set activation_split_dims_mapping
+      # weight_split_dims_mapping and activation_split_dims_mapping should have
+      # been set through p.moe_layer_tpl params.
       return moe_p
 
     def _LayerParams(ii):

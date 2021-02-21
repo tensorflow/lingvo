@@ -781,7 +781,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      inputs: [batch, time, dim].
+      inputs: [batch, time, dim] or [batch, time, g, dim/g]. If the latter, the
+        input is from some upstream component that applied the reshape trick to
+        improve performance on tpu.
       paddings: [batch, time]
 
     Returns:
@@ -789,6 +791,12 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     """
     p = self.params
     ap = p.activation_split_dims_mapping
+
+    assert inputs.shape.is_fully_defined()
+    orig_shape = inputs.shape.as_list()
+    assert len(orig_shape) == 3 or len(orig_shape) == 4
+    if len(orig_shape) == 4:
+      inputs = tf.reshape(inputs, orig_shape[:2] + [-1])
 
     with tf.name_scope(p.name):
       inputs = self._CastToFPropDtype(inputs)
@@ -875,6 +883,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       after_residual = self.residual_dropout.FProp(theta.residual_dropout,
                                                    combined_output)
       out = inputs + after_residual
+
+      if len(orig_shape) == 4:
+        out = tf.reshape(out, orig_shape)
 
       # Add loss to a global collection. We don't return the loss to the caller
       # to avoid the change of the api here.
