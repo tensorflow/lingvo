@@ -27,7 +27,7 @@ from lingvo.core import early_stop
 from lingvo.core import py_utils
 
 
-tf.flags.DEFINE_bool('disable_tf2_summary', False,
+tf.flags.DEFINE_bool('disable_tf2_summary', True,
                      'If True, disables TF2 summary writing.')
 
 FLAGS = tf.flags.FLAGS
