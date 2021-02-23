@@ -195,6 +195,10 @@ class MoEBuilder(builder.Base):
 
     p.Define('attention_extra_logit', None,
              'Extra logit for attention softmax.')
+    p.Define(
+        'attention_logits_dtype', None,
+        'Using float32 for attention logits with fprop_dtype=bfloat16 '
+        'generally makes training giant models more stable.')
     return p
 
   @property
@@ -657,14 +661,14 @@ class MoEBuilder(builder.Base):
     """
     p = self.params
 
-    def _AddBias(logits, bias):
+    def _AddBiasF32(logits, bias):
       # logits: BLHM [batch, length, heads, memory_length]
       # bias: BLHM [batch, length, heads, memory_length]
       #       (in case of attention with relative bias) OR
       #
       #       BLM  [batch, length, memory_length]
       #       (default masking bias with very negative logits).
-
+      bias = tf.cast(bias, logits.dtype)
       if bias.shape.ndims == 3:
         # Expanding the 'heads' dimension
         retval = logits + tf.expand_dims(bias, 2)
@@ -679,7 +683,7 @@ class MoEBuilder(builder.Base):
 
       extra_logit = p.attention_extra_logit
       if extra_logit is not None:
-        extra_logit = tf.convert_to_tensor(extra_logit, p.fprop_dtype)
+        extra_logit = tf.convert_to_tensor(extra_logit, max_logit.dtype)
         max_logit = tf.math.maximum(max_logit, extra_logit)
       x -= max_logit
       exp_x = tf.math.exp(x)
@@ -691,10 +695,22 @@ class MoEBuilder(builder.Base):
     def _LogSoftmax(x):
       return x - _ReduceLogsumexp(x)
 
-    def _Softmax(x):
+    def _LogitsFnF32(q, k):
+      # logits.dtype == tf.float32 leads to better training stability
+      if p.attention_logits_dtype is not None:
+        q = tf.cast(q, p.attention_logits_dtype)
+        k = tf.cast(k, p.attention_logits_dtype)
+      return tf.einsum('BLHD,BMHD->BLHM', q, k)
+
+    def _SoftmaxF32(x):
+      # expecting x.dtype == tf.float32
+      #
+      # TODO(lepikhin): consider
       # if p.attention_extra_logit is None:
       #   return tf.nn.softmax(x)
-      return tf.math.exp(_LogSoftmax(x))
+      softmax = tf.math.exp(_LogSoftmax(x))
+      softmax = tf.cast(softmax, py_utils.FPropDtype(self.params))
+      return softmax
 
     return self._Graph(
         name,
@@ -703,11 +719,9 @@ class MoEBuilder(builder.Base):
         ('_q->q', self.Split('_q')),
         ('_k->k', self.Split('_k')),
         ('_v->v', self.Split('_v')),
-        ('q,k->l',
-         self._Fn('logits',
-                  fn=lambda q, k: tf.einsum('BLHD,BMHD->BLHM', q, k))),
-        ('l,bias->logits', self._Fn('bias', fn=_AddBias)),
-        ('logits->w', self._Fn('weights', _Softmax)),
+        ('q,k->l', self._Fn('logits', fn=_LogitsFnF32)),
+        ('l,bias->logits', self._Fn('bias', fn=_AddBiasF32)),
+        ('logits->w', self._Fn('weights', _SoftmaxF32)),
         ('w->weights',
          self._Dropout('dropout', 1 - self.params.attention_dropout_prob)),
         ('weights,v->outputs',
@@ -1840,14 +1854,16 @@ class DenseBuilder(MoEBuilder):
     """Attention with multiple attention heads."""
     p = self.params
 
-    def _AddBias(logits, bias):
+    def _AddBiasF32(logits, bias):
       # logits: BLHM [batch, length, heads, memory_length]
+      # expecting logits.dtype == tf.float32
+      #
       # bias: BLHM [batch, length, heads, memory_length]
       #       (in case of attention with relative bias) OR
       #
       #       BLM  [batch, length, memory_length]
       #       (default masking bias with very negative logits).
-
+      bias = tf.cast(bias, logits.dtype)
       if bias.shape.ndims == 3:
         # Expanding the 'heads' dimension
         retval = logits + tf.expand_dims(bias, 2)
@@ -1861,7 +1877,7 @@ class DenseBuilder(MoEBuilder):
           tf.stop_gradient(x), axis=-1, keepdims=True)
       extra_logit = p.attention_extra_logit
       if extra_logit is not None:
-        extra_logit = tf.convert_to_tensor(extra_logit, p.fprop_dtype)
+        extra_logit = tf.convert_to_tensor(extra_logit, max_logit.dtype)
         max_logit = tf.math.maximum(max_logit, extra_logit)
       x -= max_logit
       exp_x = tf.math.exp(x)
@@ -1873,18 +1889,26 @@ class DenseBuilder(MoEBuilder):
     def _LogSoftmax(x):
       return x - _ReduceLogsumexp(x)
 
-    def _Softmax(x):
+    def _SoftmaxF32(x):
+      # expecting x.dtype == tf.float32
+      #
       # TODO(lepikhin): consider
       # if p.attention_extra_logit is None:
       #   return tf.nn.softmax(x)
-      return tf.math.exp(_LogSoftmax(x))
+      softmax = tf.math.exp(_LogSoftmax(x))
+      softmax = tf.cast(softmax, py_utils.FPropDtype(self.params))
+      return softmax
 
     # p.attention_num_memory_heads == 1 special case is simple, we omit the
     # "heads" dimension H from the projection matrices wk and wv.
     #
     # Then remove the heads dimension H of wk, vv, k, or v in any einsum
     # formula in which it appears.
-    def _LogitsFn(q, k):
+    def _LogitsFnF32(q, k):
+      # logits.dtype == tf.float32 leads to better training stability
+      if p.attention_logits_dtype is not None:
+        q = tf.cast(q, p.attention_logits_dtype)
+        k = tf.cast(k, p.attention_logits_dtype)
       if p.attention_num_memory_heads == 1:
         return tf.einsum('BLHD,BMD->BLHM', q, tf.squeeze(k, -2))
       assert p.attention_num_memory_heads is None, p.attention_num_memory_heads
@@ -1905,9 +1929,9 @@ class DenseBuilder(MoEBuilder):
         ('_q->q', self.MeshSplit('_q', p.qkv_split)),
         ('_k->k', self.MeshSplit('_k', kv_split)),
         ('_v->v', self.MeshSplit('_v', kv_split)),
-        ('q,k->l', self._Fn('logits', fn=_LogitsFn)),
-        ('l,bias->logits', self._Fn('bias', fn=_AddBias)),
-        ('logits->w', self._Fn('weights', _Softmax)),
+        ('q,k->l', self._Fn('logits', fn=_LogitsFnF32)),
+        ('l,bias->logits', self._Fn('bias', fn=_AddBiasF32)),
+        ('logits->w', self._Fn('weights', _SoftmaxF32)),
         ('w->weights',
          self._Dropout('dropout', 1 - self.params.attention_dropout_prob)),
         ('weights->weights_split', self.MeshSplit('_wsplit', p.qkv_split)),
@@ -2810,7 +2834,7 @@ class UniTransformer(base_model.BaseTask):
           'aux_loss': (p.aux_loss_coef * aux_loss, 1.0),
           'avg_z_loss_increment': (avg_z_loss_increment, 1.0),
       }
-      eval_metrics.update(py_utils.GetTpuSummaryTensors())
+      # TpuSummaries are in now propagated in _BPropGenTrainOps
       return eval_metrics, per_step_loss
 
   def FilterPerExampleTensors(self, per_step):
