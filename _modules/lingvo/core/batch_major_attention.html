@@ -3190,19 +3190,23 @@
         <span class="s1">&#39;dropout_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;Residual dropout params template. keep_prop will be reset to &#39;</span>
         <span class="s1">&#39;(1.0 - residual_dropout_prob).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_droppath_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+             <span class="s1">&#39;Probability at which we drop the entire residual path.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TransformerAttentionLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
-                   <span class="n">input_dim</span><span class="p">,</span>
-                   <span class="n">num_heads</span><span class="p">,</span>
-                   <span class="n">is_masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                   <span class="n">use_relative_atten</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                   <span class="n">relative_pos_emb_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">local_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">left_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">right_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span>
+      <span class="bp">cls</span><span class="p">,</span>
+      <span class="n">input_dim</span><span class="p">,</span>
+      <span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">is_masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">use_relative_atten</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">relative_pos_emb_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">local_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">left_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">right_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+  <span class="p">):</span>
     <span class="c1"># pylint: disable=g-doc-args</span>
     <span class="sd">&quot;&quot;&quot;Returns a hyperparam for the most representative cases.</span>
 
@@ -3337,6 +3341,12 @@
     <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;residual_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
+    <span class="c1"># Initialize droppath layer if needed.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_droppath_prob</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">droppath_p</span> <span class="o">=</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">StochasticResidualLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;residual_droppath&#39;</span><span class="p">,</span>
+          <span class="n">survival_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_droppath_prob</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;residual_droppath&#39;</span><span class="p">,</span> <span class="n">droppath_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerAttentionLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">theta</span><span class="p">,</span>
@@ -3424,7 +3434,14 @@
     <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
-      <span class="n">ctx_vec</span> <span class="o">+=</span> <span class="n">input_to_add</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_droppath_prob</span><span class="p">:</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_droppath</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">residual_droppath</span><span class="p">,</span>
+            <span class="n">input_to_add</span><span class="p">,</span>
+            <span class="n">ctx_vec</span><span class="p">,</span>
+        <span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">ctx_vec</span> <span class="o">+=</span> <span class="n">input_to_add</span>
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="TransformerAttentionLayer.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
@@ -4780,59 +4797,6 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,))</span></div></div>
 
 
-<div class="viewcode-block" id="StochasticResidualLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StochasticResidualLayer">[docs]</a><span class="k">class</span> <span class="nc">StochasticResidualLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Stocahstic residual layer that randomly drop the residual branch.</span>
-
-<span class="sd">  Originally proposed in &quot;Deep Networks with Stochastic Depth&quot; for ConvNets,</span>
-<span class="sd">  https://arxiv.org/pdf/1603.09382.pdf</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="StochasticResidualLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StochasticResidualLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Params for `StochasticResidualLayer`.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Residual weight.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;survival_prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
-             <span class="s1">&#39;Survival probability of the residual branch.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-<div class="viewcode-block" id="StochasticResidualLayer._DropConnect"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StochasticResidualLayer._DropConnect">[docs]</a>  <span class="k">def</span> <span class="nf">_DropConnect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Drop the entire residual layer with given survival probability.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span>
-
-    <span class="c1"># Compute tensor.</span>
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">random_tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">survival_prob</span>
-    <span class="n">random_tensor</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-      <span class="n">random_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">random_tensor</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">binary_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">random_tensor</span><span class="p">)</span>
-    <span class="c1"># Unlike conventional way that multiply survival_prob at test time, here we</span>
-    <span class="c1"># divide survival_prob at training time, such that no addition compute is</span>
-    <span class="c1"># needed at test time.</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">survival_prob</span> <span class="o">*</span> <span class="n">binary_tensor</span>
-    <span class="k">return</span> <span class="n">output</span></div>
-
-<div class="viewcode-block" id="StochasticResidualLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StochasticResidualLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return combined inputs.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: weights defined in this layer.</span>
-<span class="sd">      x: input tensor.</span>
-<span class="sd">      y: input tensor to apply weight to.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Added tensors.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">residual_weight</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DropConnect</span><span class="p">(</span><span class="n">y</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="StochasticResidualLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StochasticResidualLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">x</span><span class="p">,))</span></div></div>
-
-
 <div class="viewcode-block" id="PaddingLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PaddingLayer">[docs]</a><span class="k">class</span> <span class="nc">PaddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A layer that applies paddings to the inputs.&quot;&quot;&quot;</span>
 
@@ -5342,7 +5306,7 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">survival_prob</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">apply_residual</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;survival_prob &lt; 1.0 is not compatible with &#39;</span>
                               <span class="s1">&#39;apply_residual = False&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">StochasticResidualLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="k">return</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">StochasticResidualLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
           <span class="n">residual_weight</span><span class="o">=</span><span class="n">residual_weight</span><span class="p">,</span>
           <span class="n">survival_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">survival_prob</span><span class="p">)</span>
