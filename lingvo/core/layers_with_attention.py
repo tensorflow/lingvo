@@ -26,6 +26,59 @@ from lingvo.core import py_utils
 from lingvo.core import symbolic
 
 
+class StochasticResidualLayer(base_layer.BaseLayer):
+  """Stocahstic residual layer that randomly drop the residual branch.
+
+  Originally proposed in "Deep Networks with Stochastic Depth" for ConvNets,
+  https://arxiv.org/pdf/1603.09382.pdf
+  """
+
+  @classmethod
+  def Params(cls):
+    """Params for `StochasticResidualLayer`."""
+    p = super().Params()
+    p.Define('residual_weight', 1.0, 'Residual weight.')
+    p.Define('survival_prob', 1.0,
+             'Survival probability of the residual branch.')
+    return p
+
+  def _DropConnect(self, x):
+    """Drop the entire residual layer with given survival probability."""
+    if self.do_eval:
+      return x
+
+    # Compute tensor.
+    batch_size = tf.shape(x)[0]
+    random_tensor = self.params.survival_prob
+    random_tensor += tf.random.uniform([batch_size], dtype=x.dtype)
+    for _ in range(x.shape.rank - 1):
+      random_tensor = tf.expand_dims(random_tensor, axis=-1)
+    binary_tensor = tf.floor(random_tensor)
+    # Unlike conventional way that multiply survival_prob at test time, here we
+    # divide survival_prob at training time, such that no addition compute is
+    # needed at test time.
+    output = x / self.params.survival_prob * binary_tensor
+    return output
+
+  def FProp(self, theta, x, y):
+    """Return combined inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      x: input tensor.
+      y: input tensor to apply weight to.
+
+    Returns:
+      Added tensors.
+    """
+    return x + self.params.residual_weight * self._DropConnect(y)
+
+  @classmethod
+  def FPropMeta(cls, p, x, y):
+    py_utils.CheckShapes((x, y))
+    return py_utils.NestedMap(flops=x.num_elements() * 6, out_shapes=(x,))
+
+
 class TransformerAttentionLayer(base_layer.BaseLayer):
   """Multi-headed attention, add and norm used by 'Attention Is All You Need'.
 
@@ -502,6 +555,8 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('add_skip_connection', True,
              'If True, add skip_connection from input to output.')
     p.Define('pre_layer_norm', True, 'Pre or post layer norm')
+    p.Define('residual_droppath_prob', 0.0,
+             'Probability at which we drop the entire residual path.')
     return p
 
   @classmethod
@@ -550,6 +605,13 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
     self.CreateChild('residual_dropout', dropout_tpl)
 
+    if p.residual_droppath_prob > 0:
+      assert p.add_skip_connection
+      droppath_p = StochasticResidualLayer.Params().Set(
+          name='residual_droppath',
+          survival_prob=1.0 - p.residual_droppath_prob)
+      self.CreateChild('residual_droppath', droppath_p)
+
   @property
   def output_dim(self):
     """Returns output dimension of the transformer layer."""
@@ -585,7 +647,14 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
           self.fflayer.FProp(theta.fflayer, inputs_normalized,
                              tf.expand_dims(paddings, -1)))
       if self.params.add_skip_connection:
-        h = inputs + h * self.params.residual_weight
+        if p.residual_droppath_prob:
+          h = self.residual_droppath.FProp(
+              theta.residual_droppath,
+              inputs,
+              h,
+          )
+        else:
+          h = inputs + h * self.params.residual_weight
       if not self.params.pre_layer_norm:
         h = self.layer_norm.FProp(theta.layer_norm, h)
       return h
