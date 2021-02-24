@@ -235,11 +235,14 @@
     <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span> <span class="o">=</span> <span class="n">pruning</span><span class="o">.</span><span class="n">Pruning</span><span class="p">(</span>
         <span class="n">spec</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">global_step</span><span class="p">)</span></div>
 
+  <span class="c1"># pylint:disable=unused-argument</span>
 <div class="viewcode-block" id="PruningOp.ApplyPruning"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.ApplyPruning">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">ApplyPruning</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">lstmobj</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">scope</span><span class="p">):</span>  <span class="c1"># pylint:disable=unused-argument</span>
+  <span class="k">def</span> <span class="nf">ApplyPruning</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">lstmobj</span><span class="p">,</span> <span class="n">weight_name</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span>
+                   <span class="n">dtype</span><span class="p">,</span> <span class="n">scope</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="p">:</span>
       <span class="bp">cls</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
     <span class="k">return</span> <span class="kc">None</span></div>
+  <span class="c1"># pylint:enable=unused-argument</span>
 
 <div class="viewcode-block" id="PruningOp.GetMixResult"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.GetMixResult">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetMixResult</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">concat</span><span class="p">,</span> <span class="n">lstmobj</span><span class="p">):</span>  <span class="c1"># pylint:disable=unused-argument</span>
