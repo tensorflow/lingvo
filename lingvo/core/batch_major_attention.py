@@ -40,12 +40,10 @@ from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import repeat_layer
+from lingvo.core import scatter_update
 from lingvo.core import symbolic
 from lingvo.core import tshape
 import numpy as np
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.ops import inplace_ops
-# pylint: enable=g-direct-tensorflow-import
 
 
 def CausalSegmentMask(segment_ids, dtype):
@@ -717,14 +715,13 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         ot = tf.reshape(
             tf.reduce_sum(tf.reshape(tf.gather(k, ts), [-1, n, h]) * q, -1),
             [-1])
-        return inplace_ops.alias_inplace_update(o, ts, ot), k, q, ts + 1
+        return scatter_update.Update(o, ts, ot), k, q, ts + 1
 
       logits, _, _, _ = tf.while_loop(
           lambda _o, _k, _q, ts: ts <= time_step,
           _AttenStep,
-          loop_vars=(inplace_ops.empty([s, b * n], query.dtype,
-                                       init=True), key, query,
-                     tf.zeros([], tf.int32)))
+          loop_vars=(tf.Empty([s, b * n], query.dtype,
+                              init=True), key, query, tf.zeros([], tf.int32)))
 
       padded_logits = tf.where(pad > 0.0, very_negative_logits, logits)
       probs = py_utils.Softmax(
@@ -840,12 +837,12 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     # TODO(shafey): Determine if we want to make the cached shape 128 to
     # avoid padding and more efficient interpolation in beamsearch.
     return py_utils.NestedMap(
-        key=inplace_ops.empty(
+        key=tf.Empty(
             shape=(target_max_length, target_batch_size, num_heads,
                    dim_per_head),
             dtype=dtype,
             init=True),
-        value=inplace_ops.empty(
+        value=tf.Empty(
             shape=(target_max_length, target_batch_size, num_heads,
                    dim_per_head),
             dtype=dtype,
@@ -910,18 +907,17 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         tf.reshape(new_value_proj, [b, n, h]), dtype=cached_states.value.dtype)
     if synced_time_step:
       # The extended_key and extended_value have shape [T, B, N, H].
-      extended_key = inplace_ops.alias_inplace_update(cached_states.key,
-                                                      time_step, new_key_proj)
-      extended_value = inplace_ops.alias_inplace_update(cached_states.value,
-                                                        time_step,
-                                                        new_value_proj)
+      extended_key = scatter_update.Update(cached_states.key, time_step,
+                                           new_key_proj)
+      extended_value = scatter_update.Update(cached_states.value, time_step,
+                                             new_value_proj)
     else:
       # The extended_key and extended_value have shape [T, B, N, H].
       selected_indices = tf.range(b) + time_step * b
-      extended_key = inplace_ops.alias_inplace_update(
+      extended_key = scatter_update.Update(
           tf.reshape(cached_states.key, [-1, n, h]), selected_indices,
           new_key_proj)
-      extended_value = inplace_ops.alias_inplace_update(
+      extended_value = scatter_update.Update(
           tf.reshape(cached_states.value, [-1, n, h]), selected_indices,
           new_value_proj)
       extended_key = tf.reshape(extended_key, [t, b, n, h])
@@ -2447,7 +2443,7 @@ class RoutingAttention(MultiHeadedAttention):
     """Initialize 'states' with .key, .value, and .key_dists."""
     p = self.params
     states = super().InitStates(theta, target_batch_size, target_max_length)
-    states.key_dists = inplace_ops.empty(
+    states.key_dists = tf.Empty(
         shape=(target_max_length, target_batch_size, p.num_heads,
                p.num_clusters),
         dtype=py_utils.FPropDtype(p),
@@ -2521,12 +2517,12 @@ class RoutingAttention(MultiHeadedAttention):
     k_dists, _ = self.clustering.FProp(theta.clustering, key_proj)
 
     # The updated_key and extended_value have shape [T, B, N, H].
-    updated_key = inplace_ops.alias_inplace_update(
-        cached_states.key, time_step, tf.reshape(key_proj, [b, n, h]))
-    updated_value = inplace_ops.alias_inplace_update(
-        cached_states.value, time_step, tf.reshape(value_proj, [b, n, h]))
+    updated_key = scatter_update.Update(cached_states.key, time_step,
+                                        tf.reshape(key_proj, [b, n, h]))
+    updated_value = scatter_update.Update(cached_states.value, time_step,
+                                          tf.reshape(value_proj, [b, n, h]))
     # Shape [T, B, N, K]
-    updated_key_dists = inplace_ops.alias_inplace_update(
+    updated_key_dists = scatter_update.Update(
         cached_states.key_dists, time_step,
         tf.reshape(k_dists, [b, n, p.num_clusters]))
     updated_states = py_utils.NestedMap(

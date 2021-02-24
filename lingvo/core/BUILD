@@ -100,6 +100,7 @@ py_library(
         ":layers_with_attention",
         ":py_utils",
         ":repeat_layer",
+        ":scatter_update",
         ":symbolic",
         ":tshape",
         # Implicit absl.logging dependency.
@@ -2435,6 +2436,17 @@ py_library(
         ":base_layer",
         ":py_utils",
         ":recurrent",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "scatter_update",
+    srcs = ["scatter_update.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":py_utils",
+        ":thread_local_utils",
         "//lingvo:compat",
     ],
 )
