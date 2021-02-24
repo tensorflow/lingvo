@@ -326,6 +326,9 @@
     <span class="c1"># Merged TF scalar summaries for training related input data stats.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="kc">None</span>
 
+    <span class="c1"># Tensorboard layout for charts displaying input data stats.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_data_summary_layout</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
@@ -837,6 +840,10 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">merged_input_data_summary_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">input_data_summary_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_data_summary_layout</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.SplitInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.SplitInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">SplitInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Splits the current InputBatch into num_splits ways.</span>
