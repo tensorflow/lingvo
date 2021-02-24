@@ -172,8 +172,63 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-models-test-helper-module">
-<h1>lingvo.models_test_helper module<a class="headerlink" href="#lingvo-models-test-helper-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.models_test_helper">
+<span id="lingvo-models-test-helper-module"></span><h1>lingvo.models_test_helper module<a class="headerlink" href="#module-lingvo.models_test_helper" title="Permalink to this headline">¶</a></h1>
+<p>Helper for models_test.</p>
+<dl class="py function">
+<dt id="lingvo.models_test_helper._StubOutCreateVariable">
+<code class="sig-prename descclassname"><span class="pre">lingvo.models_test_helper.</span></code><code class="sig-name descname"><span class="pre">_StubOutCreateVariable</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_cache</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/models_test_helper.html#_StubOutCreateVariable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.models_test_helper._StubOutCreateVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stub out py_utils.CreateVariable to not spend time creating variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>variable_cache</strong> – a dict from unique shapes to a dummy tensor of that shape.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.models_test_helper.TraverseLayer">
+<code class="sig-prename descclassname"><span class="pre">lingvo.models_test_helper.</span></code><code class="sig-name descname"><span class="pre">TraverseLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/models_test_helper.html#TraverseLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.models_test_helper.TraverseLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverses the layer tree and invokes fn(node) on each node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer</strong> – a BaseLayer.</p></li>
+<li><p><strong>fn</strong> – a function of (layer, layer_theta) -&gt; None.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.models_test_helper.BaseModelsTest">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.models_test_helper.</span></code><code class="sig-name descname"><span class="pre">BaseModelsTest</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">methodName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'runTest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/models_test_helper.html#BaseModelsTest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.models_test_helper.BaseModelsTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase" title="lingvo.core.test_utils.TestCase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.test_utils.TestCase</span></code></a></p>
+<p>Base model test class which does not define any test methods of its own.</p>
+<dl class="py method">
+<dt id="lingvo.models_test_helper.BaseModelsTest.setUp">
+<code class="sig-name descname"><span class="pre">setUp</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/models_test_helper.html#BaseModelsTest.setUp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.models_test_helper.BaseModelsTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook method for setting up the test fixture before exercising it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.models_test_helper.BaseModelsTest._ValidateEMA">
+<code class="sig-name descname"><span class="pre">_ValidateEMA</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mdl</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/models_test_helper.html#BaseModelsTest._ValidateEMA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.models_test_helper.BaseModelsTest._ValidateEMA" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.models_test_helper.BaseModelsTest._testOneModelParams">
+<code class="sig-name descname"><span class="pre">_testOneModelParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/models_test_helper.html#BaseModelsTest._testOneModelParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.models_test_helper.BaseModelsTest._testOneModelParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.models_test_helper.BaseModelsTest.CreateTestMethodsForAllRegisteredModels">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">CreateTestMethodsForAllRegisteredModels</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">registry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_prefix_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_prefixes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/models_test_helper.html#BaseModelsTest.CreateTestMethodsForAllRegisteredModels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.models_test_helper.BaseModelsTest.CreateTestMethodsForAllRegisteredModels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Programmatically defines test methods for each registered model.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
