@@ -26,7 +26,12 @@ FLAGS = tf.flags.FLAGS
 
 
 def _ModelTuples(model_classes):
-  return [(model_class.__name__, model_class) for model_class in model_classes]
+  model_tuples = []
+  for model_class in model_classes:
+    module_name = model_class.__module__.split('.')[-1]
+    class_name = model_class.__name__
+    model_tuples.append((f'{module_name}.{class_name}', model_class))
+  return model_tuples
 
 
 def MakeModelValidatorTestCase(model_classes):
