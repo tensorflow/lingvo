@@ -83,11 +83,14 @@ class PruningOp(object):
     cls._pruning_obj = pruning.Pruning(
         spec=cls._pruning_hparams, global_step=global_step)
 
+  # pylint:disable=unused-argument
   @classmethod
-  def ApplyPruning(cls, pruning_hparams_dict, lstmobj, wm_pc, dtype, scope):  # pylint:disable=unused-argument
+  def ApplyPruning(cls, pruning_hparams_dict, lstmobj, weight_name, wm_pc,
+                   dtype, scope):
     if not cls._pruning_obj:
       cls.Setup(pruning_hparams_dict, global_step=py_utils.GetGlobalStep())
     return None
+  # pylint:enable=unused-argument
 
   @classmethod
   def GetMixResult(cls, theta, concat, lstmobj):  # pylint:disable=unused-argument

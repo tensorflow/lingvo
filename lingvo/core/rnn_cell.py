@@ -311,8 +311,8 @@ class LSTMCellSimple(RNNCell):
         collections=self._VariableCollections())
     self.CreateVariable('wm', wm_pc, self.AddVN)
     if not p.apply_pruning and p.pruning_hparams_dict:
-      pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, wm_pc,
-                                           p.dtype, p.name)
+      pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
+                                           wm_pc, p.dtype, p.name)
     if p.apply_pruning:
       mask_pc = py_utils.WeightParams(wm_pc.shape,
                                       py_utils.WeightInit.Constant(1.0),
