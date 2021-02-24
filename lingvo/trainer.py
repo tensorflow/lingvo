@@ -517,6 +517,11 @@ class TrainerTpu(base_runner.BaseRunner):
                       len(self.enqueue_ops))
 
     self._summary_writer = self._CreateSummaryWriter(self._train_dir)
+    if (self._task.input.input_data_summary_layout is not None and
+        self._write_train_input_stats):
+      self._summary_writer.add_summary(
+          self._task.input.input_data_summary_layout)
+
     if FLAGS.checkpoint_in_trainer_tpu:
       self._model_analysis, self._total_num_params = (
           summary_utils.ModelAnalysis(self._model))

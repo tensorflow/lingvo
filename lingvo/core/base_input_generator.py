@@ -174,6 +174,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # Merged TF scalar summaries for training related input data stats.
     self._merged_input_data_summary_op = None
 
+    # Tensorboard layout for charts displaying input data stats.
+    self._input_data_summary_layout = None
+
   def CommonInputOpArgs(self):
     """Common input params."""
     return {}
@@ -685,6 +688,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
   @property
   def merged_input_data_summary_op(self):
     return self._merged_input_data_summary_op
+
+  @property
+  def input_data_summary_layout(self):
+    return self._input_data_summary_layout
 
   def SplitInputBatch(self, num_splits):
     """Splits the current InputBatch into num_splits ways.
