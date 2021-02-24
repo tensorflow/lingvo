@@ -130,11 +130,11 @@ class Predictor:
 
   @property
   def fetch_keys(self):
-    return list(self._fetches.keys())
+    return sorted(list(self._fetches.keys()))
 
   @property
   def feed_keys(self):
-    return list(self._feeds.keys())
+    return sorted(list(self._feeds.keys()))
 
   @property
   def feed_shapes(self):
