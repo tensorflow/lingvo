@@ -505,7 +505,9 @@
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
       <span class="c1"># Hide global_step tensor from being captured by dataset function.</span>
       <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDataset</span><span class="p">()</span>
-    <span class="n">ds</span><span class="o">.</span><span class="n">options</span><span class="p">()</span><span class="o">.</span><span class="n">experimental_deterministic</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Options</span><span class="p">()</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">experimental_deterministic</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">with_options</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span>
     <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
       <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
