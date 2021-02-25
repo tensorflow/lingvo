@@ -2927,6 +2927,11 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.Builder.GatedFeedforward">
+<code class="sig-name descname"><span class="pre">GatedFeedforward</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name</span></em>, <em class="sig-param"><span class="pre">is_causal=False</span></em>, <em class="sig-param"><span class="pre">ff_hidden_dim=None</span></em>, <em class="sig-param"><span class="pre">activation_fn=&lt;function</span> <span class="pre">relu&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.GatedFeedforward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.GatedFeedforward" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder.Feedforward">
 <code class="sig-name descname"><span class="pre">Feedforward</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_causal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.Feedforward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.Feedforward" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -3092,7 +3097,7 @@ token is used.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder.FunnelEncoderLayer">
-<code class="sig-name descname"><span class="pre">FunnelEncoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stride</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gated_gelu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_ffns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.FunnelEncoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.FunnelEncoderLayer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">FunnelEncoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stride</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_gated_fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_ffns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.FunnelEncoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.FunnelEncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>(inputs, paddings) -&gt; (encoded, paddings).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -3111,7 +3116,9 @@ used.</p></li>
 this will override p.ff_hidden_dim.</p></li>
 <li><p><strong>num_heads</strong> – The number of heads for the multi-head attention module. If
 specified, this will override p.num_heads.</p></li>
-<li><p><strong>gated_gelu</strong> – Use gated_gelu feedforward layer nor not.</p></li>
+<li><p><strong>ff_gated_fn</strong> – Activation function for gated feedforward layer, if None, use
+standard feedforward layer. Current supported options: None, ‘silu’,
+‘gelu’, and callable.</p></li>
 <li><p><strong>num_ffns</strong> – number of ffn layers.</p></li>
 </ul>
 </dd>
