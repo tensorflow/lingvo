@@ -181,8 +181,8 @@ class GradDrop(base_layer.BaseLayer):
 
       transformed_grad_norm = tf.sqrt(tf.reduce_sum(transformed_grad**2))
       original_grad_norm = tf.sqrt(tf.reduce_sum(original_grad**2))
-      return transformed_grad * transformed_grad_norm / (
-          original_grad_norm + p.epsilon)
+      return transformed_grad * original_grad_norm / (
+          transformed_grad_norm + p.epsilon)
 
     output_tensor = py_utils.CallDefun(tf.identity, input_tensor, _Gradient)
     self._output_tensor = tf.identity(output_tensor)
