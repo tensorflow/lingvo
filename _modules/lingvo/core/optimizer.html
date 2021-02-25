@@ -178,7 +178,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
 
 
 <div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -812,7 +811,6 @@
       <span class="n">min_dim_size_to_factor</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
       <span class="n">use_locking</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
       <span class="n">cond_is_finite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># cl/295761665 and reduce_rms change</span>
-      <span class="n">add_clipping_summaries</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Adafactor&#39;</span><span class="p">,</span>
   <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct a new Adafactor optimizer.</span>
@@ -833,8 +831,6 @@
 <span class="sd">        are at least this size.</span>
 <span class="sd">      use_locking: No clue what this does.</span>
 <span class="sd">      cond_is_finite: Check if Adafactor sufficient stats are finite on update.</span>
-<span class="sd">      add_clipping_summaries: Set to add clipping summaries to ensure rms and</span>
-<span class="sd">        update scaling are appropriate.</span>
 <span class="sd">      name: optimizer name.</span>
 
 <span class="sd">    Raises:</span>
@@ -854,7 +850,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon2</span> <span class="o">=</span> <span class="n">epsilon2</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_min_dim_size_to_factor</span> <span class="o">=</span> <span class="n">min_dim_size_to_factor</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cond_is_finite</span> <span class="o">=</span> <span class="n">cond_is_finite</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_add_clipping_summaries</span> <span class="o">=</span> <span class="n">add_clipping_summaries</span>
 
 <div class="viewcode-block" id="XLAShardingAdafactorOptimizer._factored_dims"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._factored_dims">[docs]</a>  <span class="k">def</span> <span class="nf">_factored_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Should we use a factored second moment estimator.</span>
@@ -1088,21 +1083,9 @@
         <span class="n">updates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v_update</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">new_v</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">rms</span> <span class="o">=</span> <span class="n">_ReduceRms</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">clipping_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">),</span>
-            <span class="n">rms</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">))</span>
-
-        <span class="k">def</span> <span class="nf">_AddClippingSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
-          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_clipping_summaries</span><span class="p">:</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-            <span class="n">tpu_summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">while_loop_reduce</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
-
-        <span class="n">_AddClippingSummary</span><span class="p">(</span><span class="s1">&#39;adafactor_clipping_denom/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                            <span class="n">clipping_denom</span><span class="p">)</span>
-        <span class="n">_AddClippingSummary</span><span class="p">(</span><span class="s1">&#39;adafactor_rms/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">rms</span><span class="p">)</span>
-        <span class="n">_AddClippingSummary</span><span class="p">(</span><span class="s1">&#39;adafactor_rms_is_finite/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_finite</span><span class="p">(</span><span class="n">rms</span><span class="p">)))</span>
+            <span class="n">_ReduceRms</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">))</span>
         <span class="n">x</span> <span class="o">/=</span> <span class="n">clipping_denom</span>
       <span class="n">subtrahend</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">update_scale</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beta1</span><span class="p">:</span>
@@ -1149,10 +1132,6 @@
     <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;cond_is_finite&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Condition Adafactor update on sufficient stats being finite.&#39;</span><span class="p">)</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;add_clipping_summaries&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Set to add clipping summaries to ensure rms and update &#39;</span>
-        <span class="s1">&#39;scaling are appropriate.&#39;</span><span class="p">)</span>
     <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Adafactor&#39;</span>
     <span class="k">return</span> <span class="n">params</span></div>
 
@@ -1172,7 +1151,6 @@
         <span class="n">beta1</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">beta1</span><span class="p">,</span>
         <span class="n">min_dim_size_to_factor</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">min_dim_size_to_factor</span><span class="p">,</span>
         <span class="n">cond_is_finite</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">cond_is_finite</span><span class="p">,</span>
-        <span class="n">add_clipping_summaries</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">add_clipping_summaries</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cached_opt</span> <span class="o">=</span> <span class="n">opt</span>
     <span class="k">return</span> <span class="n">opt</span></div>
