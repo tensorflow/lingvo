@@ -353,7 +353,9 @@ class TFDatasetSource(DataSource):
     with py_utils.GlobalStepContext(None):
       # Hide global_step tensor from being captured by dataset function.
       ds = self.GetDataset()
-    ds.options().experimental_deterministic = False
+    options = tf.data.Options()
+    options.experimental_deterministic = False
+    ds = ds.with_options(options)
     self._dataset[self.host_id] = ds
     if tf.executing_eagerly():
       it = iter(ds)
