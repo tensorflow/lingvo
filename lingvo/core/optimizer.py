@@ -26,7 +26,6 @@ from lingvo.core import distributed_shampoo
 from lingvo.core import gshard_utils
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
-from lingvo.core import tpu_summary
 
 
 class Base(base_layer.BaseLayer):
@@ -660,7 +659,6 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
       min_dim_size_to_factor=128,
       use_locking=False,
       cond_is_finite=False,  # cl/295761665 and reduce_rms change
-      add_clipping_summaries=False,
       name='Adafactor',
   ):
     """Construct a new Adafactor optimizer.
@@ -681,8 +679,6 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
         are at least this size.
       use_locking: No clue what this does.
       cond_is_finite: Check if Adafactor sufficient stats are finite on update.
-      add_clipping_summaries: Set to add clipping summaries to ensure rms and
-        update scaling are appropriate.
       name: optimizer name.
 
     Raises:
@@ -702,7 +698,6 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
     self._epsilon2 = epsilon2
     self._min_dim_size_to_factor = min_dim_size_to_factor
     self._cond_is_finite = cond_is_finite
-    self._add_clipping_summaries = add_clipping_summaries
 
   def _factored_dims(self, shape):
     """Should we use a factored second moment estimator.
@@ -936,21 +931,9 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
         updates.append(v_update)
         x = grad * tf.math.rsqrt(new_v)
       if self._clipping_threshold is not None:
-        rms = _ReduceRms(x)
         clipping_denom = tf.maximum(
             tf.constant(1.0, grad_dtype),
-            rms / tf.constant(self._clipping_threshold, grad_dtype))
-
-        def _AddClippingSummary(name, val):
-          if self._add_clipping_summaries:
-            py_utils.AddTpuSummaryTensor(name, val)
-            tpu_summary.scalar(name, val, while_loop_reduce='mean')
-
-        _AddClippingSummary('adafactor_clipping_denom/%s' % var.name,
-                            clipping_denom)
-        _AddClippingSummary('adafactor_rms/%s' % var.name, rms)
-        _AddClippingSummary('adafactor_rms_is_finite/%s' % var.name,
-                            tf.reduce_all(tf.math.is_finite(rms)))
+            _ReduceRms(x) / tf.constant(self._clipping_threshold, grad_dtype))
         x /= clipping_denom
       subtrahend = x * update_scale
       if self._beta1:
@@ -997,10 +980,6 @@ class XLAShardingAdafactor(Base):
     params.Define(
         'cond_is_finite', False,
         'Condition Adafactor update on sufficient stats being finite.')
-    params.Define(
-        'add_clipping_summaries', False,
-        'Set to add clipping summaries to ensure rms and update '
-        'scaling are appropriate.')
     params.name = 'Adafactor'
     return params
 
@@ -1020,7 +999,6 @@ class XLAShardingAdafactor(Base):
         beta1=params.beta1,
         min_dim_size_to_factor=params.min_dim_size_to_factor,
         cond_is_finite=params.cond_is_finite,
-        add_clipping_summaries=params.add_clipping_summaries,
         name=params.name)
     self._cached_opt = opt
     return opt
