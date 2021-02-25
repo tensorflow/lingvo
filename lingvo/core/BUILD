@@ -1150,6 +1150,7 @@ py_library(
         ":distributed_shampoo",
         ":py_utils",
         ":summary_utils",
+        ":tpu_summary",
         "//lingvo:compat",
     ],
 )
