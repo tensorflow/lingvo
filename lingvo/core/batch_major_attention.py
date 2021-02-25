@@ -4870,7 +4870,7 @@ class FunnelPoolingLayer(StrideLayer):
     if (paddings is not None and p.pooling_type == 'AVG' and
         p.exclude_pad_effect):
       # Count the fraction of non-padding elements inside each pooling window.
-      in_mask = 1.0 - paddings
+      in_mask = tf.cast(1.0 - paddings, dtype=pooled_tensor.dtype)
       non_padding_ratio = tf.nn.pool(
           in_mask[:, :, tf.newaxis],
           window_shape=[pool_window],
@@ -4897,7 +4897,8 @@ class FunnelPoolingLayer(StrideLayer):
     # Set padding values to 0. If not set, in the case of max pooling, padded
     # values will be dtype.min, which can cause numerical instability.
     if pooled_paddings is not None:
-      pooled_tensor *= tf.expand_dims(1.0 - pooled_paddings, -1)
+      pooled_tensor *= tf.cast(
+          tf.expand_dims(1.0 - pooled_paddings, -1), pooled_tensor.dtype)
 
     return pooled_tensor, pooled_paddings
 
@@ -5231,13 +5232,19 @@ class Builder(builder.Base):
     return atten_p
 
   def GatedGeluFeedforward(self, name, is_causal=False, ff_hidden_dim=None):
+    return self.GatedFeedforward(
+        name, is_causal, ff_hidden_dim,
+        activation_fn=lambda x: tf.nn.gelu(x, approximate=True))
+
+  def GatedFeedforward(self, name, is_causal=False, ff_hidden_dim=None,
+                       activation_fn=tf.nn.relu):
     del is_causal
     p = self.params
     if ff_hidden_dim is None:
       ff_hidden_dim = p.ff_hidden_dim
 
-    def GatedGelu(x, y):
-      return tf.math.multiply(tf.nn.gelu(x, approximate=True), y)
+    def GatedFn(x, y):
+      return tf.math.multiply(activation_fn(x), y)
 
     sub_list = [
         ('i.vec->after_gelu', self._Graph(
@@ -5245,7 +5252,7 @@ class Builder(builder.Base):
             ('x->x1', self._DefaultLN('ln')),
             ('x1->h0', self._Linear('wi0', p.model_dim, ff_hidden_dim)),
             ('x1->h1', self._Linear('wi1', p.model_dim, ff_hidden_dim)),
-            ('h0,h1->h', self._Fn('gelu', fn=GatedGelu)),
+            ('h0,h1->h', self._Fn('gelu', fn=GatedFn)),
             ('h->h_dropout', self._Dropout('dropout', p.relu_dropout_prob)),
             ('h_dropout->y', self._Linear('wo', ff_hidden_dim, p.model_dim)))),
         ('after_gelu->y', self._Dropout('dropout', p.residual_dropout_prob)),
@@ -5639,7 +5646,7 @@ class Builder(builder.Base):
 
   def FunnelEncoderLayer(self, name, stride=1, first_n=None,
                          ff_hidden_dim=None, num_heads=None,
-                         gated_gelu=False,
+                         ff_gated_fn=None,
                          num_ffns=1):
     """(inputs, paddings) -> (encoded, paddings).
 
@@ -5658,7 +5665,9 @@ class Builder(builder.Base):
         this will override p.ff_hidden_dim.
       num_heads: The number of heads for the multi-head attention module. If
         specified, this will override p.num_heads.
-      gated_gelu: Use gated_gelu feedforward layer nor not.
+      ff_gated_fn: Activation function for gated feedforward layer, if None, use
+        standard feedforward layer. Current supported options: None, 'silu',
+        'gelu', and callable.
       num_ffns: number of ffn layers.
 
     Returns:
@@ -5670,13 +5679,25 @@ class Builder(builder.Base):
     if num_heads is None:
       num_heads = p.num_heads
 
-    ff_class = self.GatedGeluFeedforward if gated_gelu else self.Feedforward
+    if ff_gated_fn is None:
+      ff_layer = self.Feedforward('ff', ff_hidden_dim=ff_hidden_dim)
+    elif ff_gated_fn == 'silu':
+      ff_layer = self.GatedFeedforward('ff', ff_hidden_dim=ff_hidden_dim,
+                                       activation_fn=tf.nn.silu)
+    elif ff_gated_fn == 'gelu':
+      ff_layer = self.GatedGeluFeedforward('ff', ff_hidden_dim=ff_hidden_dim)
+    elif callable(ff_gated_fn):
+      ff_layer = self.GatedFeedforward('ff', ff_hidden_dim=ff_hidden_dim,
+                                       activation_fn=ff_gated_fn)
+    else:
+      raise ValueError('Unsupported ff_gated_fn {}.'.format(ff_gated_fn))
+
     s_layers = [self._FunnelAttention('self_atten', stride=stride,
                                       first_n=first_n, num_heads=num_heads),
-                ff_class('ff', ff_hidden_dim=ff_hidden_dim)]
+                ff_layer]
     if num_ffns > 1:
       for ffn_id in range(1, num_ffns):
-        s_layers.append(ff_class('ff%d' % ffn_id, ff_hidden_dim=ff_hidden_dim))
+        s_layers.append(ff_layer.Copy().Set(name='ff%d' % ffn_id))
     return self._Seq(name, self._Seq('block', *s_layers))
 
   def TransformerEncoderLayer(self, name, stride=1, first_n=None,
