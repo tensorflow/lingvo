@@ -328,7 +328,8 @@ class ApplyPackingOpTest(test_utils.TestCase):
                                 [[1, 1, 0], [0, 0, 0]],
                                 [[2, 3, 99], [0, 1, 99]])
     for dtype in [
-        tf.int32, tf.int64, tf.float32, tf.float64, tf.uint32, tf.uint64
+        tf.int32, tf.int64, tf.float32, tf.float64, tf.uint32, tf.uint64,
+        tf.bfloat16
     ]:
       with self.session():
         output = ops.apply_packing(

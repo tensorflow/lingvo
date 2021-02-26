@@ -567,6 +567,7 @@ class ApplyPackingOp<::tensorflow::tstring> : public OpKernel {
 
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
+TF_CALL_bfloat16(REGISTER);
 TF_CALL_int32(REGISTER);
 TF_CALL_int64(REGISTER);
 TF_CALL_uint32(REGISTER);
