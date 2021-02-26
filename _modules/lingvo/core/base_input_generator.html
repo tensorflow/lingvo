@@ -630,8 +630,6 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_ops_list </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_ops_list</span><span class="p">)</span>
     <span class="n">grouped_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">input_ops_list</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">(</span>
-        <span class="n">key</span><span class="o">=</span><span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grouped_infeed_op</span><span class="p">)</span></div>
 
