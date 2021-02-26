@@ -55,6 +55,14 @@ class TpuSummaryScalar:
   while_loop_reduce = None
 
 
+class PwTpuSummaryTensor:
+  """A summary tensor with the first dim being the batch."""
+  name = None
+  value = None
+  name_scope = None
+  # TODO(yonghui): Deal with while_loop context.
+
+
 class TpuSummaryContext:
   """Non-reentrant context that holds the list of summary tensors."""
 
@@ -185,6 +193,18 @@ def tensor(name, value):
   ctx.summary_tensors.append(x)
 
 
+def pw_tensor(name, value):
+  """Adds summary tensor."""
+  ctx = TpuSummaryContext.current()
+  if ctx is None:
+    return
+  x = PwTpuSummaryTensor()
+  x.name = str(name)
+  x.value = tf.convert_to_tensor(value)
+  x.name_scope = tf.get_default_graph().get_name_scope()
+  ctx.summary_tensors.append(x)
+
+
 def merge_all():
   """Returns all summary tensors as a dict of {name: tensor}.
 
@@ -203,6 +223,29 @@ def merge_all():
       raise ValueError('Tensor %r %r is not an element of this graph.' %
                        (x.name, x.value))
     ret['%s/%s' % (x.name, x.name_scope)] = x.value
+  return ret
+
+
+def merge_all_pw_tensor():
+  """Returns all summary tensors as a dict of {name: tensor}.
+
+  Note this function only returns summary tensors of type PwTpuSummaryTensor.
+
+  Outside of tpu_summary.context() returns {}
+  """
+  ctx = TpuSummaryContext.current()
+  if ctx is None:
+    return {}
+  g = tf.get_default_graph()
+  ret = {}
+  for x in ctx.summary_tensors:
+    if isinstance(x, PwTpuSummaryTensor):
+      # Only keep summaries of the desired type.
+      if x.value.graph is not g:
+        raise ValueError('Tensor %r %r is not an element of this graph.' %
+                         (x.name, x.value))
+      name = ('%s/%s' % (x.name_scope, x.name)).replace('/', '__')
+      ret[name] = x.value
   return ret
 
 
