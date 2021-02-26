@@ -478,8 +478,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('input_ops_list %s', input_ops_list)
     grouped_infeed_op = tf.group(*input_ops_list)
     self._tpu_infeed_op = []
-    self._merged_input_data_summary_op = tf.summary.merge_all(
-        key=INPUT_DATA_STATS_SUMMARIES_COLLECTION)
     for _ in range(p.tpu_infeed_parallelism):
       self._tpu_infeed_op.append(grouped_infeed_op)
 

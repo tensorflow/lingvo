@@ -845,6 +845,10 @@ class Evaler(base_runner.BaseRunner):
       assert not self.enqueue_ops
       self.checkpointer = self._CreateCheckpointer(self._train_dir, self._model)
 
+      self._input_stats_summary_interval_steps = (
+          self._task.input.params.input_stats_summary_interval_steps)
+      self._write_train_input_stats = FLAGS.add_summary
+
     # Saves the graph def.
     self._WriteToLog(self.params.ToText(), self._eval_dir, 'params.txt')
     if self.params.cluster.task == 0:
@@ -1005,6 +1009,13 @@ class Evaler(base_runner.BaseRunner):
         summaries,
         text_filename=os.path.join(self._eval_dir,
                                    'score-{:08d}.txt'.format(global_step)))
+
+    # Get merged summaries for input data stats logged by the tasks's input
+    # generator and write summaries for the stats.
+    if self._task.input.merged_input_data_summary_op is not None:
+      input_stats_summary_str = sess.run(
+          self._task.input.merged_input_data_summary_op)
+      self._WriteInputDataStatSummaries(input_stats_summary_str, global_step)
 
     should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:
