@@ -207,6 +207,14 @@
   <span class="n">while_loop_reduce</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
+<div class="viewcode-block" id="PwTpuSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.PwTpuSummaryTensor">[docs]</a><span class="k">class</span> <span class="nc">PwTpuSummaryTensor</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;A summary tensor with the first dim being the batch.&quot;&quot;&quot;</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">name_scope</span> <span class="o">=</span> <span class="kc">None</span></div>
+  <span class="c1"># TODO(yonghui): Deal with while_loop context.</span>
+
+
 <div class="viewcode-block" id="TpuSummaryContext"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.TpuSummaryContext">[docs]</a><span class="k">class</span> <span class="nc">TpuSummaryContext</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Non-reentrant context that holds the list of summary tensors.&quot;&quot;&quot;</span>
 
@@ -337,6 +345,18 @@
   <span class="n">ctx</span><span class="o">.</span><span class="n">summary_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="pw_tensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.pw_tensor">[docs]</a><span class="k">def</span> <span class="nf">pw_tensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adds summary tensor.&quot;&quot;&quot;</span>
+  <span class="n">ctx</span> <span class="o">=</span> <span class="n">TpuSummaryContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">ctx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">PwTpuSummaryTensor</span><span class="p">()</span>
+  <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+  <span class="n">x</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+  <span class="n">x</span><span class="o">.</span><span class="n">name_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">get_name_scope</span><span class="p">()</span>
+  <span class="n">ctx</span><span class="o">.</span><span class="n">summary_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="merge_all"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.merge_all">[docs]</a><span class="k">def</span> <span class="nf">merge_all</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Returns all summary tensors as a dict of {name: tensor}.</span>
 
@@ -355,6 +375,29 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Tensor </span><span class="si">%r</span><span class="s1"> </span><span class="si">%r</span><span class="s1"> is not an element of this graph.&#39;</span> <span class="o">%</span>
                        <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
     <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">name_scope</span><span class="p">)]</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="merge_all_pw_tensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.merge_all_pw_tensor">[docs]</a><span class="k">def</span> <span class="nf">merge_all_pw_tensor</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Returns all summary tensors as a dict of {name: tensor}.</span>
+
+<span class="sd">  Note this function only returns summary tensors of type PwTpuSummaryTensor.</span>
+
+<span class="sd">  Outside of tpu_summary.context() returns {}</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">ctx</span> <span class="o">=</span> <span class="n">TpuSummaryContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">ctx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">{}</span>
+  <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">summary_tensors</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">PwTpuSummaryTensor</span><span class="p">):</span>
+      <span class="c1"># Only keep summaries of the desired type.</span>
+      <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">graph</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">g</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Tensor </span><span class="si">%r</span><span class="s1"> </span><span class="si">%r</span><span class="s1"> is not an element of this graph.&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name_scope</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">))</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;__&#39;</span><span class="p">)</span>
+      <span class="n">ret</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
   <span class="k">return</span> <span class="n">ret</span></div>
 
 

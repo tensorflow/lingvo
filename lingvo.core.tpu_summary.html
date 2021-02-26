@@ -225,6 +225,28 @@ and what to do next.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.tpu_summary.PwTpuSummaryTensor">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_summary.</span></code><code class="sig-name descname"><span class="pre">PwTpuSummaryTensor</span></code><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#PwTpuSummaryTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_summary.PwTpuSummaryTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A summary tensor with the first dim being the batch.</p>
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.PwTpuSummaryTensor.name">
+<code class="sig-name descname"><span class="pre">name</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#lingvo.core.tpu_summary.PwTpuSummaryTensor.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.PwTpuSummaryTensor.value">
+<code class="sig-name descname"><span class="pre">value</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#lingvo.core.tpu_summary.PwTpuSummaryTensor.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.PwTpuSummaryTensor.name_scope">
+<code class="sig-name descname"><span class="pre">name_scope</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#lingvo.core.tpu_summary.PwTpuSummaryTensor.name_scope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.tpu_summary.TpuSummaryContext">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_summary.</span></code><code class="sig-name descname"><span class="pre">TpuSummaryContext</span></code><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#TpuSummaryContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -279,11 +301,25 @@ summary appears inside a tf.while_loop. Can be ‘mean’ or ‘sum’.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.tpu_summary.pw_tensor">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_summary.</span></code><code class="sig-name descname"><span class="pre">pw_tensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#pw_tensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_summary.pw_tensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds summary tensor.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.tpu_summary.merge_all">
 <code class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_summary.</span></code><code class="sig-name descname"><span class="pre">merge_all</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#merge_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_summary.merge_all" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns all summary tensors as a dict of {name: tensor}.</p>
 <p>Note that this is not the same return type as tf.summary.merge_all
 which returns a serialized proto string.</p>
+<p>Outside of tpu_summary.context() returns {}</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.tpu_summary.merge_all_pw_tensor">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_summary.</span></code><code class="sig-name descname"><span class="pre">merge_all_pw_tensor</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#merge_all_pw_tensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_summary.merge_all_pw_tensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all summary tensors as a dict of {name: tensor}.</p>
+<p>Note this function only returns summary tensors of type PwTpuSummaryTensor.</p>
 <p>Outside of tpu_summary.context() returns {}</p>
 </dd></dl>
 
