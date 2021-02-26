@@ -811,6 +811,9 @@ class Evaler(base_runner.BaseRunner):
     super().__init__(*args, **kwargs)
     self._job_name = 'evaler_' + eval_type
     self._output_name = 'eval_' + eval_type
+    self._export = eval_type == 'train'
+    if not self._export:
+      tf.logging.info(f'Job {self._job_name} will not export the model.')
     self.params.cluster.do_eval = True
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._eval_dir = os.path.join(self._logdir, self._output_name)
@@ -945,7 +948,8 @@ class Evaler(base_runner.BaseRunner):
 
     global_step = sess.run(py_utils.GetGlobalStep())
     # Save any additional information to disk before evaluation.
-    self._task.Export(path)
+    if self._export:
+      self._task.Export(path)
 
     # Check after how many steps checkpoint got saved.
     # And decide whether to run an evaluation.
