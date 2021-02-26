@@ -3675,7 +3675,10 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TransformerLayer.SetCanonicalShardingParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">SetCanonicalShardingParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">reshape_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">SetCanonicalShardingParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                                 <span class="n">params</span><span class="p">,</span>
+                                 <span class="n">reshape_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">shard_atten_w</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set up canonical SPMD sharding params.</span>
 
 <span class="sd">    The topology is required to written as 2D. For 1D sharding, the topology is</span>
@@ -3695,9 +3698,12 @@
 <span class="sd">    Args:</span>
 <span class="sd">      params: params of TransformerLayer.</span>
 <span class="sd">      reshape_dim: A bool, whether to reshape model dim.</span>
+<span class="sd">      shard_atten_w: A bool, whether to shard attention weight.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Weights</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="p">]</span> <span class="k">if</span> <span class="n">shard_atten_w</span> <span class="k">else</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">weight_split_dims_mapping_list</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
                                                                         <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
     <span class="c1"># Activations</span>

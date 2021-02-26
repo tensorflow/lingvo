@@ -1958,7 +1958,7 @@ to encoder outputs and other sources.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">SetCanonicalShardingParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reshape_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.SetCanonicalShardingParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">SetCanonicalShardingParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reshape_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shard_atten_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.SetCanonicalShardingParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.SetCanonicalShardingParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set up canonical SPMD sharding params.</p>
 <p>The topology is required to written as 2D. For 1D sharding, the topology is
 expected to be written as [1, num_partitions]. The split_dims_mappings
@@ -1978,6 +1978,7 @@ formatting overheads, the bld sharding annotation needs to be adpated as
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>params</strong> – params of TransformerLayer.</p></li>
 <li><p><strong>reshape_dim</strong> – A bool, whether to reshape model dim.</p></li>
+<li><p><strong>shard_atten_w</strong> – A bool, whether to shard attention weight.</p></li>
 </ul>
 </dd>
 </dl>
