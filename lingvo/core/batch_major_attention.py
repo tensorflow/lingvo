@@ -3523,7 +3523,10 @@ class TransformerLayer(base_layer.BaseLayer):
     return p
 
   @classmethod
-  def SetCanonicalShardingParams(cls, params, reshape_dim=False):
+  def SetCanonicalShardingParams(cls,
+                                 params,
+                                 reshape_dim=False,
+                                 shard_atten_w=True):
     """Set up canonical SPMD sharding params.
 
     The topology is required to written as 2D. For 1D sharding, the topology is
@@ -3543,9 +3546,12 @@ class TransformerLayer(base_layer.BaseLayer):
     Args:
       params: params of TransformerLayer.
       reshape_dim: A bool, whether to reshape model dim.
+      shard_atten_w: A bool, whether to shard attention weight.
     """
     # Weights
-    params.tr_atten_tpl.atten_tpl.weight_split_dims_mapping = [0, 1, -1]
+    params.tr_atten_tpl.atten_tpl.weight_split_dims_mapping = [
+        0, 1, -1
+    ] if shard_atten_w else [-1, -1, -1]
     params.tr_fflayer_tpl.fflayer_tpl.weight_split_dims_mapping_list = [[0, 1],
                                                                         [1, 0]]
     # Activations

@@ -5589,6 +5589,12 @@ def ComputationShape(split_size, topology=None):
     computation_shape = topology_info.mesh_shape
   elif split_size == 1:
     computation_shape = [1, 1, 1, 1]
+  elif topology and topology_info.mesh_shape[
+      -1] == 1 and split_size in topology_info.mesh_shape:
+    # For Megacore, if we find exact match on mesh shape, map split_size to it
+    computation_shape = [1, 1, 1, 1]
+    computation_shape[topology_info.mesh_shape.tolist().index(
+        split_size)] = split_size
   elif split_size == 2:
     computation_shape = [1, 1, 1, 2]
   elif split_size == 4:
