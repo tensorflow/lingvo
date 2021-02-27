@@ -2403,27 +2403,34 @@
   <span class="k">return</span> <span class="n">copy</span></div>
 
 
-<div class="viewcode-block" id="_GetVarsToLoad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._GetVarsToLoad">[docs]</a><span class="k">def</span> <span class="nf">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
+<div class="viewcode-block" id="_GetVarsToLoad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._GetVarsToLoad">[docs]</a><span class="k">def</span> <span class="nf">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">,</span>
+                   <span class="n">ckpt_path</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Determines variables to load and their names in checkpoint.&quot;&quot;&quot;</span>
   <span class="c1"># This list contains mappings from var names as they appear in the checkpoint</span>
   <span class="c1"># to the vars in our model they correspond to.</span>
   <span class="n">vars_to_load</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">model_var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
+    <span class="n">loaded</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">for</span> <span class="n">regexp</span><span class="p">,</span> <span class="n">name_format</span> <span class="ow">in</span> <span class="n">variable_loading_rules</span><span class="p">:</span>
       <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regexp</span><span class="p">,</span> <span class="n">model_var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
       <span class="c1"># Skip if var doesn&#39;t match the loading rules, or if it should be ignored.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading rules do not match </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Loading rules do not match </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="p">)</span>
         <span class="k">continue</span>
       <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">model_var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Ignoring </span><span class="si">%s</span><span class="s1"> from loading.&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Ignoring </span><span class="si">%s</span><span class="s1"> from loading.&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="p">)</span>
         <span class="k">continue</span>
       <span class="n">checkpoint_var_name</span> <span class="o">=</span> <span class="n">name_format</span> <span class="o">%</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">checkpoint_var_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;:0&#39;</span><span class="p">):</span>
         <span class="n">checkpoint_var_name</span> <span class="o">=</span> <span class="n">checkpoint_var_name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading </span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="p">,</span> <span class="n">checkpoint_var_name</span><span class="p">)</span>
       <span class="n">vars_to_load</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">checkpoint_var_name</span><span class="p">,</span> <span class="n">model_var</span><span class="p">))</span>
+      <span class="n">loaded</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="k">break</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">loaded</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;Not loading model variable </span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1"> as it does not match any rules&#39;</span>
+          <span class="s1">&#39; or matches ignored&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">vars_to_load</span></div>
 
 
@@ -2446,7 +2453,7 @@
 <span class="sd">    from the provided checkpoint.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span>
-                                <span class="n">var_ignore_rules</span><span class="p">)</span>
+                                <span class="n">var_ignore_rules</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">vars_to_load</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">((</span><span class="s1">&#39;Variable loading rules did not match any vars. &#39;</span>
                       <span class="s1">&#39;All known: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">])</span>
@@ -2517,14 +2524,10 @@
                        <span class="n">ckpt_path</span><span class="p">)</span>
 
     <span class="c1"># Filter the model variables to be overridden.</span>
-    <span class="n">var_refs_to_override</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">experimental_ref</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="p">]</span>
-    <span class="n">var_names_to_override</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
-        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="p">]</span>
+    <span class="n">to_load_vars</span> <span class="o">=</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">loading_rules</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                  <span class="n">ckpt_path</span><span class="p">)</span>
+    <span class="n">var_refs_to_override</span> <span class="o">=</span> <span class="p">[</span><span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">experimental_ref</span><span class="p">()</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">to_load_vars</span><span class="p">]</span>
+    <span class="n">var_names_to_override</span> <span class="o">=</span> <span class="p">[</span><span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">to_load_vars</span><span class="p">]</span>
 
     <span class="n">overlap_refs</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">var_refs_overridden</span><span class="p">,</span> <span class="n">var_refs_to_override</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">overlap_refs</span><span class="p">:</span>
