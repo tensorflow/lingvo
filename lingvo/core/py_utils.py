@@ -2251,27 +2251,34 @@ def CreateLocalTheta(theta, device_list=None, label=None):
   return copy
 
 
-def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules):
+def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
+                   ckpt_path):
   """Determines variables to load and their names in checkpoint."""
   # This list contains mappings from var names as they appear in the checkpoint
   # to the vars in our model they correspond to.
   vars_to_load = []
   for model_var in all_vars:
+    loaded = False
     for regexp, name_format in variable_loading_rules:
       match = re.match(regexp, model_var.name)
       # Skip if var doesn't match the loading rules, or if it should be ignored.
       if not match:
-        tf.logging.info('Loading rules do not match %s.', model_var)
+        tf.logging.debug('Loading rules do not match %s.', model_var)
         continue
       elif any(re.match(r, model_var.name) for r in var_ignore_rules):
-        tf.logging.info('Ignoring %s from loading.', model_var)
+        tf.logging.debug('Ignoring %s from loading.', model_var)
         continue
       checkpoint_var_name = name_format % match.groups()
       if checkpoint_var_name.endswith(':0'):
         checkpoint_var_name = checkpoint_var_name[:-2]
       tf.logging.info('Loading %s from %s', model_var, checkpoint_var_name)
       vars_to_load.append((checkpoint_var_name, model_var))
+      loaded = True
       break
+    if not loaded:
+      tf.logging.info(
+          'Not loading model variable %s from %s as it does not match any rules'
+          ' or matches ignored', model_var, ckpt_path)
   return vars_to_load
 
 
@@ -2294,7 +2301,7 @@ def OverrideVarsFromCheckpoint(all_vars, checkpoint_path,
     from the provided checkpoint.
   """
   vars_to_load = _GetVarsToLoad(all_vars, variable_loading_rules,
-                                var_ignore_rules)
+                                var_ignore_rules, checkpoint_path)
   if not vars_to_load:
     raise ValueError(('Variable loading rules did not match any vars. '
                       'All known: %r') % [v.name for v in all_vars])
@@ -2365,14 +2372,10 @@ def OverrideVarsFromCheckpoints(all_vars, ckpts_loading_rules):
                        ckpt_path)
 
     # Filter the model variables to be overridden.
-    var_refs_to_override = [
-        var[1].experimental_ref()
-        for var in _GetVarsToLoad(all_vars, loading_rules[0], loading_rules[1])
-    ]
-    var_names_to_override = [
-        var[1].name
-        for var in _GetVarsToLoad(all_vars, loading_rules[0], loading_rules[1])
-    ]
+    to_load_vars = _GetVarsToLoad(all_vars, loading_rules[0], loading_rules[1],
+                                  ckpt_path)
+    var_refs_to_override = [var[1].experimental_ref() for var in to_load_vars]
+    var_names_to_override = [var[1].name for var in to_load_vars]
 
     overlap_refs = set.intersection(var_refs_overridden, var_refs_to_override)
     if overlap_refs:
