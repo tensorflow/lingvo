@@ -1413,8 +1413,6 @@
 
     <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CustomTFDatasetTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;TakeEvalSamples&#39;</span><span class="p">)</span>
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CustomTFDatasetTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;ProcessDataset&#39;</span><span class="p">)</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetBatchBySequenceLength</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
         <span class="n">seqlen_fn</span><span class="o">=</span><span class="s1">&#39;GetSequenceLength&#39;</span><span class="p">,</span>
@@ -1466,7 +1464,9 @@
             <span class="s1">&#39;Only p.use_within_batch_mixing is supported with multiple &#39;</span>
             <span class="s1">&#39;file_patterns.&#39;</span><span class="p">)</span>
       <span class="n">ds</span> <span class="o">=</span> <span class="p">[</span><span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetMixer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)]</span>
-    <span class="k">return</span> <span class="n">ds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CustomTFDatasetTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;ProcessDataset&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
 
 <div class="viewcode-block" id="TFDataSequenceInputGenerator.Reset"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
