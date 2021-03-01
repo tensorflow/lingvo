@@ -2472,16 +2472,20 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
 
   def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
     """DecoderLayerStack with self attention and feedforward in parallel."""
+    p = self.params
     stack = [
-        ('inputs->inputs_split', self.Split('inputs_split')),
-        ('segment_id->segment_id_split', self.Split('segment_id_split')),
-        ('segment_pos->segment_pos_split', self.Split('segment_pos_split')),
+        ('inputs->inputs_split', self.MeshSplit('inputs_split',
+                                                p.blm_split[:2])),
+        ('segment_id->segment_id_split',
+         self.MeshSplit('segment_id_split', p.blm_split[:2])),
+        ('segment_pos->segment_pos_split',
+         self.MeshSplit('segment_pos_split', p.blm_split[:2])),
         ('encoder_output->encoder_output_split',
-         self.Split('encoder_output_split')),
+         self.MeshSplit('encoder_output_split', self.params.blm_split)),
         ('encoder_segment_id->encoder_segment_id_split',
-         self.Split('encoder_segment_id_split')),
+         self.MeshSplit('encoder_segment_id_split', p.blm_split[:2])),
         ('encoder_segment_pos->encoder_segment_pos_split',
-         self.Split('encoder_segment_pos_split')),
+         self.MeshSplit('encoder_segment_pos_split', p.blm_split[:2])),
         ('inputs->input_dropout',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
         ('input_dropout,segment_id_split,segment_pos_split->'
