@@ -1261,8 +1261,6 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
 
     ds = datasource.CustomTFDatasetTransform.Params().Set(
         sub=ds, fn='TakeEvalSamples')
-    ds = datasource.CustomTFDatasetTransform.Params().Set(
-        sub=ds, fn='ProcessDataset')
     ds = datasource.TFDatasetBatchBySequenceLength.Params().Set(
         sub=ds,
         seqlen_fn='GetSequenceLength',
@@ -1314,7 +1312,9 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
             'Only p.use_within_batch_mixing is supported with multiple '
             'file_patterns.')
       ds = [datasource.TFDatasetMixer.Params().Set(sub=ds, weights=weights)]
-    return ds[0]
+    ds = datasource.CustomTFDatasetTransform.Params().Set(
+        sub=ds[0], fn='ProcessDataset')
+    return ds
 
   def Reset(self, sess):
     self.datasource.Reset(sess)
