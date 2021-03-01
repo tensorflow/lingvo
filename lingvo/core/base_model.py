@@ -887,11 +887,12 @@ class BaseTask(base_layer.BaseLayer):
       assert isinstance(tp.pruning_hparams_dict, dict)
       pruning_hparams = pruning.get_pruning_hparams().override_from_dict(
           tp.pruning_hparams_dict)
-      pruning_obj = pruning.Pruning(
-          pruning_hparams, global_step=py_utils.GetGlobalStep())
-      if self.cluster.add_summary:
-        pruning_obj.add_pruning_summaries()
-      mask_update_op = pruning_obj.conditional_mask_update_op()
+      if not pruning_utils.UsePruningInterface(tp.pruning_hparams_dict):
+        pruning_obj = pruning.Pruning(
+            pruning_hparams, global_step=py_utils.GetGlobalStep())
+        if self.cluster.add_summary:
+          pruning_obj.add_pruning_summaries()
+        mask_update_op = pruning_obj.conditional_mask_update_op()
 
       if (pruning_utils.UsePruningInterface(tp.pruning_hparams_dict) and
           pruning_utils.PruningOp.ApplyTensorflowUpdate()):
