@@ -199,6 +199,11 @@ class MoEBuilder(builder.Base):
         'attention_logits_dtype', None,
         'Using float32 for attention logits with fprop_dtype=bfloat16 '
         'generally makes training giant models more stable.')
+    p.Define(
+        'mask_dtype', None,
+        'Using bfloat16 for fprop_dtype could be problematic for '
+        'mask tensors, mask_dtype is a special dtype for such tensors.')
+
     return p
 
   @property
@@ -217,6 +222,8 @@ class MoEBuilder(builder.Base):
   def _Var(self, name, weights, shared_var_collection_suffix=None):
     return gshard_layers.VarLayer.Params().Set(
         name=name,
+        dtype=self.params.dtype,
+        fprop_dtype=self.params.fprop_dtype,
         weights=weights,
         shared_var_collection_suffix=shared_var_collection_suffix)
 
@@ -238,7 +245,11 @@ class MoEBuilder(builder.Base):
       return self._Var(name=name, weights=weights)
     else:
       return gshard_layers.ShardedVarLayer.Params().Set(
-          name=name, weights=weights, device_mesh=device_mesh)
+          name=name,
+          dtype=self.params.dtype,
+          fprop_dtype=self.params.fprop_dtype,
+          weights=weights,
+          device_mesh=device_mesh)
 
   def _ShardedVarOn1DDeviceArray(self, name, weights):
     """Variables sharded along dimension 0.
@@ -1361,6 +1372,7 @@ class MoEBuilder(builder.Base):
           expert_capacity_dim=p.c_dim,
           local_dispatch=True,
           fprop_dtype=py_utils.FPropDtype(p),
+          mask_dtype=p.mask_dtype,
           # We rely on sharding propagation here, Top2Gating is done
           # independently for each group and inputs are typically sharded by
           # group dimension.

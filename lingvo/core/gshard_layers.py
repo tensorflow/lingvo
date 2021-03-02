@@ -550,7 +550,8 @@ def Top2GatingOnLogits(inputs,
                        second_expert_threshold=0.0,
                        legacy_mtf_behavior=True,
                        capacity_factor=None,
-                       importance=None):
+                       importance=None,
+                       mask_dtype=None):
   """Computes Top-2 gating for Mixture-of-Experts.
 
   There are two expected usages of this function:
@@ -606,6 +607,8 @@ def Top2GatingOnLogits(inputs,
       where `group_size` is the size of G dimension of `inputs`. If the
       value of expert_capacity_dim is already big enough no change is made.
     importance: input importance weights for routing (G`S Tensor or None).
+    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
+      tensors, mask_dtype is a special dtype for such tensors.
 
   TODO(lepikhin): get rid of the legacy_mtf_behavior flag.
 
@@ -617,6 +620,8 @@ def Top2GatingOnLogits(inputs,
     - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
       experts.
   """
+  if mask_dtype is None:
+    mask_dtype = fprop_dtype
   if use_xla_sharding:
     tf.logging.warning('Sharding propagation should be sufficient and Splits '
                        'within Top2GatingOnLogits are generally redundant.')
@@ -650,12 +655,11 @@ def Top2GatingOnLogits(inputs,
 
   def _CreateOverCapacityRatioSummary(mask, position_in_expert, capacity, name):
     with tf.name_scope('over_capacity'):
-      over_capacity = tf.reduce_sum(
-          tf.cast(
-              tf.greater_equal(mask * position_in_expert, capacity),
-              mask.dtype))
+      ge_capacity = tf.greater_equal(mask * position_in_expert, capacity)
+      over_capacity = tf.reduce_sum(tf.cast(ge_capacity, tf.float32))
       over_capacity_ratio = over_capacity / tf.maximum(
-          tf.constant(1.0, dtype=mask.dtype), tf.reduce_sum(mask))
+          tf.constant(1.0, dtype=tf.float32),
+          tf.cast(tf.reduce_sum(mask), tf.float32))
       py_utils.AddTpuSummaryTensor(name, over_capacity_ratio)
       tpu_summary.scalar(name, over_capacity_ratio, while_loop_reduce='mean')
 
@@ -676,26 +680,30 @@ def Top2GatingOnLogits(inputs,
   tpu_summary.tensor('index_1', index_1)
 
   # GSE
-  mask_1 = tf.one_hot(index_1, experts_dim, dtype=fprop_dtype)
+  mask_1 = tf.one_hot(index_1, experts_dim, dtype=mask_dtype)
   mask_1 = _MaybeSplit(mask_1)
   density_1_proxy = raw_gates
 
   if importance is not None:
-    importance_is_one = tf.cast(tf.equal(importance, 1.0), importance.dtype)
-    mask_1 *= tf.expand_dims(importance_is_one, -1)
-    density_1_proxy *= tf.expand_dims(importance_is_one, -1)
+    importance_is_one = tf.equal(importance, 1.0)
+    mask_1 *= tf.expand_dims(tf.cast(importance_is_one, mask_1.dtype), -1)
+    density_1_proxy *= tf.expand_dims(
+        tf.cast(importance_is_one, density_1_proxy.dtype), -1)
   else:
     if len(mask_1.shape) == 3:
       importance = tf.ones_like(mask_1[:, :, 0])
     else:
       importance = tf.ones_like(mask_1[:, :, :, 0])
     if paddings is not None:
-      importance = 1.0 - paddings
-      mask_1 *= tf.expand_dims(importance, -1)
-      density_1_proxy *= tf.expand_dims(importance, -1)
+      nonpaddings = 1.0 - paddings
+      mask_1 *= tf.expand_dims(tf.cast(nonpaddings, mask_1.dtype), -1)
+      density_1_proxy *= tf.expand_dims(
+          tf.cast(nonpaddings, density_1_proxy.dtype), -1)
+      importance = nonpaddings
 
-  gate_1 = tf.einsum('...GSE,...GSE->...GS', raw_gates, mask_1)
-  gates_without_top_1 = raw_gates * (1.0 - mask_1)
+  gate_1 = tf.einsum('...GSE,...GSE->...GS', raw_gates,
+                     tf.cast(mask_1, raw_gates.dtype))
+  gates_without_top_1 = raw_gates * (1.0 - tf.cast(mask_1, raw_gates.dtype))
 
   if second_expert_policy == 'sampling':
     # We directly sample the 2nd expert index from the softmax over of the 2nd
@@ -721,14 +729,13 @@ def Top2GatingOnLogits(inputs,
     index_2 = tf.math.argmax(gates_without_top_1, axis=-1, output_type=tf.int32)
 
   index_2 = _MaybeSplit(index_2)
-
-  mask_2 = tf.one_hot(index_2, experts_dim, dtype=fprop_dtype)
+  mask_2 = tf.one_hot(index_2, experts_dim, dtype=mask_dtype)
   mask_2 = _MaybeSplit(mask_2)
   if paddings is not None:
-    importance_is_nonzero = tf.cast(
-        tf.greater(importance, 0.0), importance.dtype)
-    mask_2 *= tf.expand_dims(importance_is_nonzero, -1)
-  gate_2 = tf.einsum('...GSE,...GSE->...GS', gates_without_top_1, mask_2)
+    importance_is_nonzero = tf.greater(importance, 0.0)
+    mask_2 *= tf.expand_dims(tf.cast(importance_is_nonzero, mask_2.dtype), -1)
+  gate_2 = tf.einsum('...GSE,...GSE->...GS', gates_without_top_1,
+                     tf.cast(mask_2, gates_without_top_1.dtype))
 
   if legacy_mtf_behavior:
     # cl/298510175 moved this branch for gate_{1,2} denom calculation here.
@@ -797,13 +804,16 @@ def Top2GatingOnLogits(inputs,
   # GE Tensor (reducing S out of GSE tensor mask_1)
   # density_1[:, e] represents assignment ratio (num assigned / total) to
   # expert e as top_1 expert without taking capacity into account.
+  assert importance.dtype == fprop_dtype
   if legacy_mtf_behavior:
     density_denom = 1.0
   else:
     density_denom = tf.reduce_mean(importance, axis=(1))[:, tf.newaxis] + 1e-6
-  density_1 = tf.reduce_mean(mask_1, axis=-2) / density_denom
+  density_1 = tf.reduce_mean(
+      tf.cast(mask_1, fprop_dtype), axis=-2) / density_denom
   # density_1_proxy[:, e] represents mean of raw_gates for expert e, including
   # those of examples not assigned to e with top_k.
+  assert density_1_proxy.dtype == fprop_dtype
   density_1_proxy = tf.reduce_mean(density_1_proxy, axis=-2) / density_denom
 
   with tf.name_scope('aux_loss'):
@@ -825,6 +835,8 @@ def Top2GatingOnLogits(inputs,
   mask_1_count = tf.einsum('...GSE->...GE', mask_1)
   # [batch, group] - mostly ones, but zeros where something didn't fit
   mask_1_flat = tf.einsum('...GSE->...GS', mask_1)
+  assert mask_1_count.dtype == mask_dtype
+  assert mask_1_flat.dtype == mask_dtype
 
   if second_expert_policy == 'all' or second_expert_policy == 'sampling':
     pass
@@ -866,8 +878,8 @@ def Top2GatingOnLogits(inputs,
   # position_in_expert_2 = tf.reduce_sum(
   #     position_in_expert_2, axis=-1, name='position_in_expert_2')
 
-  gate_1 *= mask_1_flat
-  gate_2 *= mask_2_flat
+  gate_1 *= tf.cast(mask_1_flat, gate_1.dtype)
+  gate_2 *= tf.cast(mask_2_flat, gate_2.dtype)
 
   if not legacy_mtf_behavior:
     denom = gate_1 + gate_2
@@ -877,27 +889,31 @@ def Top2GatingOnLogits(inputs,
     gate_2 /= denom
 
   # GSC Tensor
+  assert position_in_expert_1.dtype == mask_dtype  # could be float32 in tests
   b = tf.one_hot(
       tf.cast(position_in_expert_1, dtype=tf.int32),
       expert_capacity_dim,
       dtype=fprop_dtype,
       name='one_hot_b_0')
   # GSE Tensor
-  a = tf.expand_dims(gate_1 * mask_1_flat, -1) * tf.one_hot(
-      index_1, experts_dim, dtype=fprop_dtype)
+  a = tf.expand_dims(gate_1 * tf.cast(mask_1_flat, fprop_dtype),
+                     -1) * tf.one_hot(
+                         index_1, experts_dim, dtype=fprop_dtype)
   # GSEC Tensor
   first_part_of_combine_tensor = tf.einsum(
       '...GSE,...GSC->...GSEC', a, b, name='first_part_of_combine_tensor')
 
   # GSC Tensor
+  assert position_in_expert_2.dtype == mask_dtype  # could be float32 in tests
   b = tf.one_hot(
       tf.cast(position_in_expert_2, dtype=tf.int32),
       expert_capacity_dim,
       dtype=fprop_dtype,
       name='one_hot_b_1')
   # GSE Tensor
-  a = tf.expand_dims(gate_2 * mask_2_flat, -1) * tf.one_hot(
-      index_2, experts_dim, dtype=fprop_dtype)
+  a = tf.expand_dims(gate_2 * tf.cast(mask_2_flat, fprop_dtype),
+                     -1) * tf.one_hot(
+                         index_2, experts_dim, dtype=fprop_dtype)
   second_part_of_combine_tensor = tf.einsum(
       '...GSE,...GSC->...GSEC', a, b, name='second_part_of_combine_tensor')
 
@@ -929,7 +945,8 @@ def Top2Gating(w,
                second_expert_policy='all',
                second_expert_threshold=0.0,
                legacy_mtf_behavior=True,
-               capacity_factor=None):
+               capacity_factor=None,
+               mask_dtype=None):
   """Computes Top-2 gating for Mixture-of-Experts.
 
   See Top2GatingOnLogits for more details.
@@ -961,6 +978,8 @@ def Top2Gating(w,
       `(group_size * capacity_factor) / experts_dim`
       where `group_size` is the size of G dimension of `inputs`. If the
       value of expert_capacity_dim is already big enough no change is made.
+    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
+      tensors, mask_dtype is a special dtype for such tensors.
 
   Returns:
     A tuple (dispatch_tensor, combine_tensor, aux_loss).
@@ -986,7 +1005,8 @@ def Top2Gating(w,
   aux_loss, combine_tensor, dispatch_tensor = Top2GatingOnLogits(
       inputs, paddings, logits, num_devices, experts_dim, expert_capacity_dim,
       fprop_dtype, use_xla_sharding, second_expert_policy,
-      second_expert_threshold, legacy_mtf_behavior, capacity_factor)
+      second_expert_threshold, legacy_mtf_behavior, capacity_factor, None,
+      mask_dtype)
 
   if not local_dispatch:
     dispatch_tensor = tf.reshape(
@@ -1059,13 +1079,16 @@ def FeedForwardNetworksApplyGating(gating,
 
   def _NewOrHistoricSplit(t, t_split):
     if device_mesh is not None:
+      tf.logging.info('MeshSplit %s %s %s', t, device_mesh.shape, t_split)
       return gshard_utils.MeshSplit(t, device_mesh, t_split)
     return gshard_utils.Split(t, 0, num_devices)
 
   # dispatch_tensor: G`SEC
   expert_inputs = tf.einsum(
-      'GSEC,GSM->EGCM', _NewOrHistoricSplit(gating.dispatch_tensor, gsec_split),
-      _NewOrHistoricSplit(reshaped_inputs, gsm_split))
+      'GSEC,GSM->EGCM',
+      _NewOrHistoricSplit(gating.dispatch_tensor, gsec_split),
+      _NewOrHistoricSplit(reshaped_inputs, gsm_split),
+      name='expert_inputs_egcm')
   expert_inputs = _NewOrHistoricSplit(expert_inputs, egcm_split)
 
   M = py_utils.GetShape(reshaped_inputs)[-1]  # pylint: disable=invalid-name
@@ -1085,11 +1108,12 @@ def FeedForwardNetworksApplyGating(gating,
   # with E=512, G=1024
   #
   # (512, 1024, 4, 1024) => (512, 4096, 1024)
-  expert_inputs = tf.reshape(expert_inputs,
-                             [py_utils.GetShape(expert_inputs)[0], A, M])
+  expert_inputs = tf.reshape(
+      expert_inputs, [py_utils.GetShape(expert_inputs)[0], A, M],
+      name='expert_inputs_eam')
   expert_inputs = _NewOrHistoricSplit(expert_inputs, eam_split)
 
-  h = tf.einsum('EAM,EMH->EAH', expert_inputs, wi_split)
+  h = tf.einsum('EAM,EMH->EAH', expert_inputs, wi_split, name='h_eah')
   h = _NewOrHistoricSplit(h, eah_split)
   if bi_split is not None:
     h += Split(bi_split, 0, num_devices)
@@ -1101,7 +1125,8 @@ def FeedForwardNetworksApplyGating(gating,
     # large uint32 tensor broadcast (per dehao@ study)
     h = tf.nn.dropout(h, dropout_rate)
 
-  expert_outputs = tf.einsum('EAH,EHM->EAM', h, wo_split)
+  expert_outputs = tf.einsum(
+      'EAH,EHM->EAM', h, wo_split, name='expert_outputs_eam')
   expert_outputs = _NewOrHistoricSplit(expert_outputs, eam_split)
 
   if bo_split is not None:
@@ -1115,8 +1140,10 @@ def FeedForwardNetworksApplyGating(gating,
       'EGCM->GECM', expert_outputs, name='expert_outputs_gecm')
 
   combined_outputs = tf.einsum(
-      'GSEC,GECM->GSM', _NewOrHistoricSplit(gating.combine_tensor, gsec_split),
-      _NewOrHistoricSplit(expert_outputs, gecm_split))
+      'GSEC,GECM->GSM',
+      _NewOrHistoricSplit(gating.combine_tensor, gsec_split),
+      _NewOrHistoricSplit(expert_outputs, gecm_split),
+      name='combined_outputs_gsm')
   outputs = _NewOrHistoricSplit(
       tf.reshape(combined_outputs, py_utils.GetShape(inputs)), gsm_split)
   aux_loss = gating.aux_loss
