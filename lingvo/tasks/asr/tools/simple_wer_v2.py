@@ -240,7 +240,7 @@ class SimpleWER:
     ref_words = reference.split()
     distmat = ComputeEditDistanceMatrix(hyp_words, ref_words)
 
-    # Back trace, to distinguish different erroref_words: ins, del, sub.
+    # Back trace, to distinguish different errors: ins, del, sub.
     pos_hyp, pos_ref = len(hyp_words), len(ref_words)
     wer_info = {'sub': 0, 'ins': 0, 'del': 0, 'nw': len(ref_words)}
     aligned_html = ''
@@ -314,7 +314,7 @@ class SimpleWER:
         self.matched_keyphrase_counts[w] += matched_ref.count(w)
 
   def GetWER(self):
-    """Compute Word Error Rate (WER) to summarize word erroref_words.
+    """Compute Word Error Rate (WER).
 
     Note WER can be larger than 100.0, esp when there are many insertion errors.
 
@@ -326,6 +326,22 @@ class SimpleWER:
     total_error = self.wer_info['ins'] \
         + self.wer_info['del'] + self.wer_info['sub']
     return total_error * 100.0 / nref
+
+  def GetBreakdownWER(self):
+    """Compute breakdown WER.
+
+
+    Returns:
+      A dictionary with del/ins/sub as key, and the error rates in percentage
+      number as value.
+    """
+    nref = self.wer_info['nw']
+    nref = max(1, nref)  # non_zero value for division
+    wer_breakdown = dict()
+    wer_breakdown['ins'] = self.wer_info['ins'] * 100.0 / nref
+    wer_breakdown['del'] = self.wer_info['del'] * 100.0 / nref
+    wer_breakdown['sub'] = self.wer_info['sub'] * 100.0 / nref
+    return wer_breakdown
 
   def GetKeyPhraseStats(self):
     """Measure the Jaccard similarity of key phrases between hyps and refs.
@@ -427,6 +443,7 @@ Or you can use this file as a library, and call class SimpleWER
   .AddHypRef(hyp, ref): add one pair of hypothesis/reference. You can call this
     function multiple times.
   .GetWER(): get the Word Error Rate (WER).
+  .GetBreakdownWER(): get the del/ins/sub breakdown WER.
   .GetKeyPhraseStats():   get stats for key phrases. The first value is Jaccard
     Similarity of key phrases.
   .GetSummaries(): generate strings to summarize word error and
