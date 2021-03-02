@@ -2838,6 +2838,17 @@ class UniTransformer(base_model.BaseTask):
           'aux_loss': (p.aux_loss_coef * aux_loss, 1.0),
           'avg_z_loss_increment': (avg_z_loss_increment, 1.0),
       }
+      if 'word_count' in input_batch.tgt:
+        # +input_batch.num_sentences to account for the end of sequence symbol.
+        num_words = tf.cast(
+            tf.reduce_sum(
+                input_batch.tgt.word_count +
+                tf.cast(input_batch.tgt.num_sentences, dtype=tf.int32)),
+            py_utils.FPropDtype(p))
+        eval_metrics['num_words'] = (num_words, 1.0)
+        eval_metrics['log_pplx_per_word'] = (
+            tf.reduce_sum(entropy * non_padding) / num_words, num_words)
+
       # TpuSummaries are in now propagated in _BPropGenTrainOps
       return eval_metrics, per_step_loss
 
