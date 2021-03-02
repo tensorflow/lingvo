@@ -392,7 +392,7 @@
     <span class="n">ref_words</span> <span class="o">=</span> <span class="n">reference</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
     <span class="n">distmat</span> <span class="o">=</span> <span class="n">ComputeEditDistanceMatrix</span><span class="p">(</span><span class="n">hyp_words</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">)</span>
 
-    <span class="c1"># Back trace, to distinguish different erroref_words: ins, del, sub.</span>
+    <span class="c1"># Back trace, to distinguish different errors: ins, del, sub.</span>
     <span class="n">pos_hyp</span><span class="p">,</span> <span class="n">pos_ref</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyp_words</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_words</span><span class="p">)</span>
     <span class="n">wer_info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sub&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;ins&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;del&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;nw&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_words</span><span class="p">)}</span>
     <span class="n">aligned_html</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
@@ -466,7 +466,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">matched_keyphrase_counts</span><span class="p">[</span><span class="n">w</span><span class="p">]</span> <span class="o">+=</span> <span class="n">matched_ref</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">w</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleWER.GetWER"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer_v2.html#lingvo.tasks.asr.tools.simple_wer_v2.SimpleWER.GetWER">[docs]</a>  <span class="k">def</span> <span class="nf">GetWER</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute Word Error Rate (WER) to summarize word erroref_words.</span>
+    <span class="sd">&quot;&quot;&quot;Compute Word Error Rate (WER).</span>
 
 <span class="sd">    Note WER can be larger than 100.0, esp when there are many insertion errors.</span>
 
@@ -478,6 +478,22 @@
     <span class="n">total_error</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wer_info</span><span class="p">[</span><span class="s1">&#39;ins&#39;</span><span class="p">]</span> \
         <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">wer_info</span><span class="p">[</span><span class="s1">&#39;del&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">wer_info</span><span class="p">[</span><span class="s1">&#39;sub&#39;</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">total_error</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span></div>
+
+<div class="viewcode-block" id="SimpleWER.GetBreakdownWER"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer_v2.html#lingvo.tasks.asr.tools.simple_wer_v2.SimpleWER.GetBreakdownWER">[docs]</a>  <span class="k">def</span> <span class="nf">GetBreakdownWER</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute breakdown WER.</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dictionary with del/ins/sub as key, and the error rates in percentage</span>
+<span class="sd">      number as value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wer_info</span><span class="p">[</span><span class="s1">&#39;nw&#39;</span><span class="p">]</span>
+    <span class="n">nref</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nref</span><span class="p">)</span>  <span class="c1"># non_zero value for division</span>
+    <span class="n">wer_breakdown</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">wer_breakdown</span><span class="p">[</span><span class="s1">&#39;ins&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wer_info</span><span class="p">[</span><span class="s1">&#39;ins&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span>
+    <span class="n">wer_breakdown</span><span class="p">[</span><span class="s1">&#39;del&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wer_info</span><span class="p">[</span><span class="s1">&#39;del&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span>
+    <span class="n">wer_breakdown</span><span class="p">[</span><span class="s1">&#39;sub&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wer_info</span><span class="p">[</span><span class="s1">&#39;sub&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span>
+    <span class="k">return</span> <span class="n">wer_breakdown</span></div>
 
 <div class="viewcode-block" id="SimpleWER.GetKeyPhraseStats"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer_v2.html#lingvo.tasks.asr.tools.simple_wer_v2.SimpleWER.GetKeyPhraseStats">[docs]</a>  <span class="k">def</span> <span class="nf">GetKeyPhraseStats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Measure the Jaccard similarity of key phrases between hyps and refs.</span>
@@ -579,6 +595,7 @@
 <span class="s2">  .AddHypRef(hyp, ref): add one pair of hypothesis/reference. You can call this</span>
 <span class="s2">    function multiple times.</span>
 <span class="s2">  .GetWER(): get the Word Error Rate (WER).</span>
+<span class="s2">  .GetBreakdownWER(): get the del/ins/sub breakdown WER.</span>
 <span class="s2">  .GetKeyPhraseStats():   get stats for key phrases. The first value is Jaccard</span>
 <span class="s2">    Similarity of key phrases.</span>
 <span class="s2">  .GetSummaries(): generate strings to summarize word error and</span>
