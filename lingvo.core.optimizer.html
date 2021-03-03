@@ -676,6 +676,30 @@ as initializers do.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer._resource_apply_sparse">
+<code class="sig-name descname"><span class="pre">_resource_apply_sparse</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer._resource_apply_sparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._resource_apply_sparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add ops to apply sparse gradients to the variable <code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>.</p>
+<p>Similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_sparse</span></code>, the <code class="xref py py-obj docutils literal notranslate"><span class="pre">indices</span></code> argument to this method has been
+de-duplicated. Optimizers which deal correctly with non-unique indices may
+instead override <code class="xref py py-obj docutils literal notranslate"><span class="pre">_resource_apply_sparse_duplicate_indices</span></code> to avoid this
+overhead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> representing the gradient for the affected indices.</p></li>
+<li><p><strong>handle</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of dtype <a class="reference external" href="https://docs.python.org/3.7/library/resource.html#module-resource" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource</span></code></a> which points to the variable
+to be updated.</p></li>
+<li><p><strong>indices</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of integral type representing the indices for
+which the gradient is nonzero. Indices are unique.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code> which updates the value of the variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.optimizer.XLAShardingAdafactorOptimizer._apply_dense">
 <code class="sig-name descname"><span class="pre">_apply_dense</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#XLAShardingAdafactorOptimizer._apply_dense"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._apply_dense" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add ops to apply dense gradients to <code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code>.</p>
