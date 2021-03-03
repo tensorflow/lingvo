@@ -167,15 +167,18 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # Set to true in GetPreprocessedInputBatch() (and thus _InputBatch())
     self._in_get_processed_input_batch = False
 
-    if self.params.file_datasource:
-      self.CreateChild('datasource', self.params.file_datasource)
-      self.datasource.SetInputGenerator(self)
-
     # Merged TF scalar summaries for training related input data stats.
     self._merged_input_data_summary_op = None
 
     # Tensorboard layout for charts displaying input data stats.
     self._input_data_summary_layout = None
+
+    self.CreateDatasource()
+
+  def CreateDatasource(self):
+    if self.params.file_datasource:
+      self.CreateChild('datasource', self.params.file_datasource)
+      self.datasource.SetInputGenerator(self)
 
   def CommonInputOpArgs(self):
     """Common input params."""
@@ -783,11 +786,7 @@ def FilePatternToDataSource(p):
         sub=ds, bucket_upper_bound=bucket_upper_bound)
     ds = datasource.TFDatasetPrefetch.Params().Set(sub=ds)
 
-  p = p.Copy()
-  p.file_datasource = ds
-  # TODO(b/139345706) remove file_pattern parameter
-  # p.file_pattern = ''
-  return p
+  return ds
 
 
 class BaseInputGeneratorFromFiles(BaseInputGenerator):
@@ -862,14 +861,20 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       raise ValueError('file_random_seed needs to be 0 when '
                        'use_per_host_infeed == True.')
 
+    super().__init__(params)
+
+  def CreateDatasource(self):
+    p = self.params
     assert not (
-        params.file_pattern and params.file_datasource
+        p.file_pattern and p.file_datasource
     ), 'Only one of file_pattern and file_datasource can be specified'
 
-    # TODO(b/139345706) remove support for file_pattern
-    if not params.file_datasource:
-      params = FilePatternToDataSource(params)
-    super().__init__(params)
+    if not p.file_datasource:
+      p.file_datasource = FilePatternToDataSource(p)
+      # TODO(b/139345706) remove support for file_pattern
+      # p.file_pattern = ''
+
+    super().CreateDatasource()
 
   def CommonInputOpArgs(self):
     """Common input params."""
@@ -1250,14 +1255,14 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
     p.resettable = True
     return p
 
-  def __init__(self, params):
-    """Constructor."""
-    params = params.Copy()
-    if not params.file_datasource:
+  def CreateDatasource(self):
+    p = self.params
+    if not p.file_datasource:
       # Convert p.file_pattern into p.file_datasource.
-      ds = self.ConvertFilePatternToDataSource(params, params.file_pattern)
+      ds = self.ConvertFilePatternToDataSource(p, p.file_pattern)
+      p.file_pattern = ''
     else:
-      ds = params.file_datasource
+      ds = p.file_datasource
 
     ds = datasource.CustomTFDatasetTransform.Params().Set(
         sub=ds, fn='TakeEvalSamples')
@@ -1266,22 +1271,20 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
         seqlen_fn='GetSequenceLength',
         input_shape_fn='_InputShape',
         input_padding_fn='_InputPaddingValue',
-        bucket_upper_bound=params.bucket_upper_bound,
-        bucket_batch_limit=params.bucket_batch_limit,
-        require_sequential_order=params.require_sequential_order)
+        bucket_upper_bound=p.bucket_upper_bound,
+        bucket_batch_limit=p.bucket_batch_limit,
+        require_sequential_order=p.require_sequential_order)
     if self.cluster.tf_data_service_address:
       ds = datasource.TFDataServiceSource.Params().Set(
-          sub=ds, bucket_upper_bound=params.bucket_upper_bound)
+          sub=ds, bucket_upper_bound=p.bucket_upper_bound)
     ds = datasource.TFDatasetPrefetch.Params().Set(
-        sub=ds, buffer_size=params.prefetch_buffer_size)
+        sub=ds, buffer_size=p.prefetch_buffer_size)
 
-    params.file_datasource = ds
-    params.file_pattern = ''
-
-    super().__init__(params)
+    p.file_datasource = ds
+    super().CreateDatasource()
 
   @classmethod
-  def ConvertFilePatternToDataSource(cls, params, file_pattern):
+  def ConvertFilePatternToDataSource(cls, p, file_pattern):
     if isinstance(file_pattern, str):
       file_patterns = file_pattern.split(',')
       weights = None
@@ -1304,10 +1307,10 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
       ds.append(datasource.TFDatasetFnInput.Params().Set(
           load_fn='LoadDataset',
           kwargs=dict(file_pattern=fp),
-          shuffle_buffer_size=params.file_buffer_size,
-          require_sequential_order=params.require_sequential_order))
+          shuffle_buffer_size=p.file_buffer_size,
+          require_sequential_order=p.require_sequential_order))
     if len(ds) > 1:
-      if not params.use_within_batch_mixing:
+      if not p.use_within_batch_mixing:
         raise ValueError(
             'Only p.use_within_batch_mixing is supported with multiple '
             'file_patterns.')
