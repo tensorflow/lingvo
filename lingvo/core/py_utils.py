@@ -4326,7 +4326,7 @@ def StatefulRandomOpsInDefun(func, graph=None):
     assert isinstance(node, node_def_pb2.NodeDef), node
 
     if node.op in _STATEFUL_RANDOM_OPS:
-      stateful_ops.append(node.op)
+      stateful_ops.append(node.name)
       continue
 
     def _AddDefunNodes(func_name):

@@ -2716,11 +2716,10 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
 
     @WrapFunction()
     def FunctionWithStatefulOp():
-      return tf.random.uniform([100], maxval=10, dtype=tf.int32)
+      return tf.random.uniform([100], maxval=10, dtype=tf.int32, name='rand_10')
 
     self.assertAllEqual(
-        ['RandomUniformInt'],
-        py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulOp))
+        ['rand_10'], py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulOp))
 
   def testFunctionWithStatelessFunctionCall(self):
 
@@ -2740,14 +2739,15 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
 
     @WrapFunction()
     def FunctionWithStatefulOp():
-      return tf.random.uniform([100], maxval=10, dtype=tf.int32)
+      return tf.random.uniform([100], maxval=10, dtype=tf.int32, name='rand_10')
 
     @WrapFunction()
     def FunctionWithStatefulFunctionCall():
-      return FunctionWithStatefulOp()
+      with tf.name_scope('func'):
+        return FunctionWithStatefulOp()
 
     self.assertAllEqual(
-        ['RandomUniformInt'],
+        ['rand_10'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionCall))
 
   def testFunctionWithStatefulFunctionalWhile(self):
@@ -2762,12 +2762,17 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
 
       @WrapFunction(tf.float32, tf.int32)
       def Body(result, i):
-        return (result + tf.random.uniform(tf.shape(result)), i + 1)
+        with tf.name_scope('body'):
+          return (result + tf.random.uniform(tf.shape(result), name='rand'),
+                  i + 1)
 
-      return functional_ops.While([tf.zeros([2, 2]), 0], cond=Cond, body=Body)
+      return functional_ops.While([tf.zeros([2, 2]), 0],
+                                  cond=Cond,
+                                  body=Body,
+                                  name='while')
 
     self.assertAllEqual(
-        ['RandomUniform'],
+        ['body/rand/RandomUniform'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalWhile))
 
   def testFunctionWithStatefulFunctionalIf(self):
@@ -2781,13 +2786,14 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
 
       @WrapFunction(tf.float32)
       def ElseFn(x):
-        return tf.random.uniform(tf.shape(x))
+        with tf.name_scope('else'):
+          return tf.random.uniform(tf.shape(x), name='rand')
 
       return functional_ops.If(
           tf.greater(tf.eye(2), 0.5), [tf.eye(2)], ThenFn, ElseFn)
 
     self.assertAllEqual(
-        ['RandomUniform'],
+        ['else/rand/RandomUniform'],
         py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalIf))
 
   def testFunctionWithStatefulFunctionalFor(self):
@@ -2797,15 +2803,21 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
 
       @WrapFunction(tf.float32)
       def Body(result):
-        return [
-            result + tf.random.uniform(tf.shape(result)) +
-            tf.random.poisson(shape=tf.shape(result), lam=[0.5, 1.5])
-        ]
+        with tf.name_scope('body'):
+          return [
+              result +
+              tf.random.uniform(tf.shape(result), name='rand_uniform') +
+              tf.random.poisson(
+                  shape=tf.shape(result), lam=[0.5, 1.5], name='rand_poisson')
+          ]
 
       return functional_ops.For(
-          start=0, limit=4, delta=1, inputs=[tf.eye(2)], body=Body)
+          start=0, limit=4, delta=1, inputs=[tf.eye(2)], body=Body, name='for')
 
-    self.assertAllEqual(['RandomPoissonV2', 'RandomUniform'],
+    self.assertAllEqual([
+        'body/rand_poisson/RandomPoissonV2',
+        'body/rand_uniform/RandomUniform',
+    ],
                         sorted(
                             py_utils.StatefulRandomOpsInDefun(
                                 FunctionWithStatefulFunctionalFor)))
