@@ -319,15 +319,18 @@
     <span class="c1"># Set to true in GetPreprocessedInputBatch() (and thus _InputBatch())</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_in_get_processed_input_batch</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;datasource&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">SetInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-
     <span class="c1"># Merged TF scalar summaries for training related input data stats.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># Tensorboard layout for charts displaying input data stats.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_input_data_summary_layout</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateDatasource</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BaseInputGenerator.CreateDatasource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateDatasource">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDatasource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;datasource&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">SetInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
@@ -935,11 +938,7 @@
         <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">bucket_upper_bound</span><span class="o">=</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetPrefetch</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">)</span>
 
-  <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">ds</span>
-  <span class="c1"># TODO(b/139345706) remove file_pattern parameter</span>
-  <span class="c1"># p.file_pattern = &#39;&#39;</span>
-  <span class="k">return</span> <span class="n">p</span></div>
+  <span class="k">return</span> <span class="n">ds</span></div>
 
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGeneratorFromFiles</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
@@ -1014,14 +1013,20 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;file_random_seed needs to be 0 when &#39;</span>
                        <span class="s1">&#39;use_per_host_infeed == True.&#39;</span><span class="p">)</span>
 
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles.CreateDatasource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.CreateDatasource">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDatasource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span> <span class="ow">and</span> <span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span>
     <span class="p">),</span> <span class="s1">&#39;Only one of file_pattern and file_datasource can be specified&#39;</span>
 
-    <span class="c1"># TODO(b/139345706) remove support for file_pattern</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">FilePatternToDataSource</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">FilePatternToDataSource</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="c1"># TODO(b/139345706) remove support for file_pattern</span>
+      <span class="c1"># p.file_pattern = &#39;&#39;</span>
+
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">CreateDatasource</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
@@ -1402,14 +1407,14 @@
     <span class="n">p</span><span class="o">.</span><span class="n">resettable</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Constructor.&quot;&quot;&quot;</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
+<div class="viewcode-block" id="TFDataSequenceInputGenerator.CreateDatasource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.CreateDatasource">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDatasource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">:</span>
       <span class="c1"># Convert p.file_pattern into p.file_datasource.</span>
-      <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ConvertFilePatternToDataSource</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ConvertFilePatternToDataSource</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">ds</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span>
 
     <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CustomTFDatasetTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;TakeEvalSamples&#39;</span><span class="p">)</span>
@@ -1418,22 +1423,20 @@
         <span class="n">seqlen_fn</span><span class="o">=</span><span class="s1">&#39;GetSequenceLength&#39;</span><span class="p">,</span>
         <span class="n">input_shape_fn</span><span class="o">=</span><span class="s1">&#39;_InputShape&#39;</span><span class="p">,</span>
         <span class="n">input_padding_fn</span><span class="o">=</span><span class="s1">&#39;_InputPaddingValue&#39;</span><span class="p">,</span>
-        <span class="n">bucket_upper_bound</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span>
-        <span class="n">bucket_batch_limit</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">,</span>
-        <span class="n">require_sequential_order</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">)</span>
+        <span class="n">bucket_upper_bound</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span>
+        <span class="n">bucket_batch_limit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">,</span>
+        <span class="n">require_sequential_order</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">:</span>
       <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDataServiceSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">bucket_upper_bound</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
+          <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">bucket_upper_bound</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetPrefetch</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">prefetch_buffer_size</span><span class="p">)</span>
+        <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">prefetch_buffer_size</span><span class="p">)</span>
 
-    <span class="n">params</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">ds</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">ds</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">CreateDatasource</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TFDataSequenceInputGenerator.ConvertFilePatternToDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.TFDataSequenceInputGenerator.ConvertFilePatternToDataSource">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">ConvertFilePatternToDataSource</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">ConvertFilePatternToDataSource</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
       <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">file_pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
       <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1456,10 +1459,10 @@
       <span class="n">ds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetFnInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">load_fn</span><span class="o">=</span><span class="s1">&#39;LoadDataset&#39;</span><span class="p">,</span>
           <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">file_pattern</span><span class="o">=</span><span class="n">fp</span><span class="p">),</span>
-          <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
-          <span class="n">require_sequential_order</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">))</span>
+          <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
+          <span class="n">require_sequential_order</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">))</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s1">&#39;Only p.use_within_batch_mixing is supported with multiple &#39;</span>
             <span class="s1">&#39;file_patterns.&#39;</span><span class="p">)</span>
