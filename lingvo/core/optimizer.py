@@ -763,6 +763,11 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
         v_val = tf.zeros(var.shape, dtype=grad_dtype)
         self._get_or_make_slot(var, v_val, 'v', self._name)
 
+  def _resource_apply_sparse(self, grad, handle, indices):
+    return self._resource_apply_dense(
+        tf.convert_to_tensor(tf.IndexedSlices(grad, indices, tf.shape(handle))),
+        handle)
+
   def _apply_dense(self, grad, var):
     return self._resource_apply_dense(grad, var)
 
