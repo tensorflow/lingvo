@@ -4478,7 +4478,7 @@
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">node_def_pb2</span><span class="o">.</span><span class="n">NodeDef</span><span class="p">),</span> <span class="n">node</span>
 
     <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">op</span> <span class="ow">in</span> <span class="n">_STATEFUL_RANDOM_OPS</span><span class="p">:</span>
-      <span class="n">stateful_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">op</span><span class="p">)</span>
+      <span class="n">stateful_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
       <span class="k">continue</span>
 
     <span class="k">def</span> <span class="nf">_AddDefunNodes</span><span class="p">(</span><span class="n">func_name</span><span class="p">):</span>
