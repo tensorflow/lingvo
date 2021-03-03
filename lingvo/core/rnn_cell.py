@@ -296,6 +296,8 @@ class LSTMCellSimple(RNNCell):
     assert p.cell_value_cap is None or p.qdomain.default is None
 
     self._timestep = -1
+    if p.pruning_hparams_dict:
+      self.compression_op = None
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -313,6 +315,7 @@ class LSTMCellSimple(RNNCell):
     if not p.apply_pruning and p.pruning_hparams_dict:
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
                                            wm_pc, p.dtype, p.name)
+      self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
     if p.apply_pruning:
       mask_pc = py_utils.WeightParams(wm_pc.shape,
                                       py_utils.WeightInit.Constant(1.0),

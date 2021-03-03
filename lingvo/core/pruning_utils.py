@@ -51,6 +51,11 @@ def UsePruningInterface(pruning_hparams_dict):
   return prune_option == 'compression'
 
 
+def ApplyCompression(params):
+  """Returns a bool indicating whether compression library is to be used."""
+  return not params.apply_pruning and params.pruning_hparams_dict is not None
+
+
 class PruningOp(object):
   """A pruning op object.
 

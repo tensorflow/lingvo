@@ -869,6 +869,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('apply_pruning', False,
              'Whether to prune the weights while training')
     p.Define(
+        'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
+        'with hyperparameter: value pairs. See google-research.model_pruning.')
+    p.Define(
         'use_einsum', True, 'Whether to use tf.einsum for optimizing '
         'computations. When this is set to False, this causes an increase in '
         'TPU memory usage (b/158336491).  When this is set to True, it might '
@@ -929,6 +932,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     self.CreateAqtWeight(
         'projection_aqt', shape=[p.input_dim, p.output_dim], feature_axis=-1)
 
+    if p.pruning_hparams_dict:
+      self.compression_op = None
+    # only apply compression on tall matrices (input_dim > output_dim)
+    self.apply_compression = pruning_utils.ApplyCompression(p) and (
+        p.input_dim > p.output_dim)
+
   def _GetBlockedMatMulInputOutputMultipliers(self):
     """Get number of input and output blocks."""
     p = self.params
@@ -943,7 +952,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     return w_im, w_om
 
   def _GetBlockedWeightMatrix(self, w):
-    """Returns a 3D weight matrix for blocked matmul."""
     p = self.params
     # w is 3D Tensor of shape [i * o, block_dim, block_dim] such that
     # i * block_dim = num_inputs (modulo padding).
@@ -1028,6 +1036,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     else:
       self.CreateVariable(weights_var_name, w_pc)
 
+    if pruning_utils.ApplyCompression(p):
+      pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self,
+                                           weights_var_name, w_pc, p.dtype,
+                                           p.name)
+      self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
+
     if p.has_bias:
       self.CreateVariable('b', b_pc)
     if p.weight_norm:
@@ -1092,6 +1106,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
             dtype=inputs.dtype)
       w, b = self._GetWeights(theta, inputs, paddings)
+      if pruning_utils.ApplyCompression(p):
+        if p.pruning_hparams_dict[
+            'compression_option'] == 9 and self.apply_compression:
+          # compression_option 9 corresponds to input compression
+          # redirect w to point to c
+          w = theta.c_matrix_tfvar
       w = self.QWeight(w)
 
       if p.affine_last:
@@ -1212,7 +1232,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if not p.use_blocked_matmul:
       w = self.ToAqtWeight('projection_aqt', w, feature_axis=-1)
       if p.use_einsum:
-        out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
+        if self.apply_compression:
+          out = pruning_utils.PruningOp.GetProjectLastDim(
+              inputs, w, p.input_dim, p.output_dim, self)
+        else:
+          out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
       else:
         out = py_utils.Matmul(
             tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
@@ -2828,6 +2852,10 @@ class SimpleFullSoftmax(SoftmaxLayer):
     p.Define('apply_pruning', False,
              'Whether to prune the weights while training')
     p.Define(
+        'pruning_hparams_dict', None,
+        'Pruning related hyperparameters. A dict with hyperparameter: value'
+        'pairs. See google-research.model_pruning.')
+    p.Define(
         'use_num_classes_major_weight', False,
         'Whether to use num_classes as major dimension for weight params. '
         'This shows performance benefit especially when sharing embedding '
@@ -2855,6 +2883,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
     if p.num_shards == 1:
       self.CreateAqtWeight(
           'softmax_aqt', shape=[p.input_dim, p.num_classes], feature_axis=-1)
+    self.compression_ops = []
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -2916,6 +2945,13 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
       else:
         self.CreateVariable(weights_var_name, pc, self.AddVN)
+        if pruning_utils.ApplyCompression(p):
+          # matrix compression path. call ApplyPruning to setup compression op
+          pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self,
+                                               weights_var_name, pc, p.dtype,
+                                               p.name)
+          self.compression_ops.append(
+              pruning_utils.PruningOp.GetLastCompressionOp())
 
     pc = py_utils.WeightParams(
         shape=[num_classes_per_shard],
@@ -2973,8 +3009,14 @@ class SimpleFullSoftmax(SoftmaxLayer):
       else:
         wm = self.ToAqtWeight('softmax_aqt', wm, feature_axis=-1)
 
-      logits = py_utils.Matmul(
-          inputs, wm, transpose_b=self._transpose_weight_params)
+      if pruning_utils.ApplyCompression(p):
+        # compression path. call GetMatmulResult.
+        # inputs and wm are both rank 2. using GetMatmulResult
+        logits = pruning_utils.PruningOp.GetMatmulResult(
+            inputs, wm, self, transpose_b=self._transpose_weight_params)
+      else:
+        logits = py_utils.Matmul(
+            inputs, wm, transpose_b=self._transpose_weight_params)
 
       # We used weight's output_dimension, i.e. p.num_classes as feature axis
       # while quantizing weight.
