@@ -753,9 +753,7 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">bucket_by_sequence_length</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">bucket_keys</span><span class="p">,</span>
             <span class="c1"># Upper-bound for bucket_by_sequence_length is exclusive, so add 1</span>
-            <span class="c1"># TODO(jeffreyzhao): There is a off-by-one bug with the upper bound</span>
-            <span class="c1"># boundary check, so add 2 instead. Remove when fixed.</span>
-            <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">],</span>
             <span class="n">bucket_batch_limit</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
             <span class="n">padded_shapes</span><span class="o">=</span><span class="n">padded_shapes</span><span class="p">,</span>
             <span class="n">padding_values</span><span class="o">=</span><span class="n">padding_values</span><span class="p">,</span>
