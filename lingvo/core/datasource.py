@@ -601,9 +601,7 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
         tf.data.experimental.bucket_by_sequence_length(
             lambda x: x.bucket_keys,
             # Upper-bound for bucket_by_sequence_length is exclusive, so add 1
-            # TODO(jeffreyzhao): There is a off-by-one bug with the upper bound
-            # boundary check, so add 2 instead. Remove when fixed.
-            [x + 2 for x in p.bucket_upper_bound],
+            [x + 1 for x in p.bucket_upper_bound],
             bucket_batch_limit + [1],
             padded_shapes=padded_shapes,
             padding_values=padding_values,
