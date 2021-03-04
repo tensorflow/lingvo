@@ -378,12 +378,12 @@ class LConvLayer(base_layer.BaseLayer):
     return inputs
 
   def StreamStep(self, theta, inputs, paddings, state0):
-    """Runs single step.
+    """Streams t steps.
 
     Args:
       theta: A NestedMap of layer params.
-      inputs: [b, 1, d].
-      paddings: A 0/1 valued tensor of shape [b, 1].
+      inputs: [b, t, d].
+      paddings: A 0/1 valued tensor of shape [b, t].
       state0: A NestedMap of tensors of the same struct as returned by
         zero_state().
 
@@ -869,17 +869,17 @@ class ConformerLayer(base_layer.BaseLayer):
       return py_utils.NestedMap()
 
   def StreamStep(self, theta, inputs, paddings, state0):
-    """Runs single step.
+    """Streams t steps.
 
     Args:
       theta: A NestedMap of read-only layer params.
-      inputs: A tensor of shape [b, 1, d].
-      paddings: A 0/1 valued tensor of shape [b, 1].
+      inputs: A tensor of shape [b, t, d].
+      paddings: A 0/1 valued tensor of shape [b, t].
       state0: A NestedMap of tensors of the same struct as returned by
         zero_state().
 
     Returns:
-      outputs:A tensor of shape [b, 1, d].
+      outputs:A tensor of shape [b, t, d].
       padding: the same as input paddings.
       state1: A NestedMap of tensors of the same struct as state0.
     """

@@ -486,17 +486,50 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(p.Get(param_name), param_val)
 
   @parameterized.named_parameters(
-      ('Basic',),
-      ('BasicGN', False, 'gn'),
-      ('BasicGNG1', False, 'gn', 1),
-      ('BasicGNG8', False, 'gn', 8),
-      ('SkipNorm', True),
-      ('SkipNormGN', True),
+      {
+          'testcase_name': 'Basic',
+      },
+      {
+          'testcase_name': 'BasicGN',
+          'norm_type': 'gn'
+      },
+      {
+          'testcase_name': 'BasicGN1',
+          'norm_type': 'gn',
+          'num_groups': 1
+      },
+      {
+          'testcase_name': 'BasicGN8',
+          'norm_type': 'gn',
+          'num_groups': 8
+      },
+      {
+          'testcase_name': 'SkipNorm',
+          'testonly_skip_norm_layers': True
+      },
+      {
+          'testcase_name': 'SkipNormGN',
+          'testonly_skip_norm_layers': True,
+          'norm_type': 'gn'
+      },
+      {
+          'testcase_name': 'SkipNormGNStride2',
+          'testonly_skip_norm_layers': True,
+          'norm_type': 'gn',
+          'stride': 2
+      },
+      {
+          'testcase_name': 'SkipNormGNStride4',
+          'testonly_skip_norm_layers': True,
+          'norm_type': 'gn',
+          'stride': 4
+      },
   )
   def testStreamStep(self,
                      testonly_skip_norm_layers=False,
                      norm_type='ln',
-                     num_groups=2):
+                     num_groups=2,
+                     stride=1):
     assert norm_type in ('ln', 'gn'), norm_type
     with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
                             ), cluster_factory.SetEval(True):
@@ -541,9 +574,9 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       outputs = []
       state = l.zero_state(batch)
-      for i in range(max_seqlen):
-        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + 1), :],
-                                        paddings[:, i:(i + 1)], state)
+      for i in range(0, max_seqlen, stride):
+        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + stride), :],
+                                        paddings[:, i:(i + stride)], state)
         outputs.append(output)
       # [b, t, d]
       outputs = tf.concat(outputs, axis=1)
