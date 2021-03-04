@@ -301,6 +301,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;immediately_instantiate_variables&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether to create variables immediately.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;require_sequential_input_order&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Whether the input needs to be in sequential order. &#39;</span>
+        <span class="s1">&#39;This is used for eval mode jobs and unit tests.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If set to non-None, &#39;</span>
         <span class="s1">&#39;this value is used instead of FLAGS.xla_device &#39;</span>
         <span class="s1">&#39;for running multiple runners in the same process, &#39;</span>
@@ -665,6 +669,13 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">immediately_instantiate_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">immediately_instantiate_variables</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">require_sequential_input_order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">require_sequential_input_order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">require_sequential_input_order</span>
+    <span class="c1"># By default require sequential order when in eval mode.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">do_eval</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">worker_cluster_def</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
