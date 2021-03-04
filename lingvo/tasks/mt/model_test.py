@@ -202,9 +202,9 @@ class TransformerModelTest(test_utils.TestCase):
         vals += [self.evaluate((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
-      self.assertAllClose(vals, [[233.57518, 10.381119], [236.10052, 10.378047],
-                                 [217.99896, 10.380901], [217.94647, 10.378406],
-                                 [159.5997, 10.380468]])
+      self.assertAllClose(vals, [[226.99771, 10.377038], [243.92978, 10.379991],
+                                 [260.7751, 10.379107], [201.10846, 10.379791],
+                                 [272.22006, 10.370288]])
 
   def testFPropEvalMode(self):
     with self.session(), self.SetEval(True):
@@ -219,13 +219,9 @@ class TransformerModelTest(test_utils.TestCase):
       for _ in range(5):
         vals += [self.evaluate((loss, logp))]
       print('actual vals = ', vals)
-      self.assertAllClose(vals, [
-          [233.57518, 10.381119],
-          [236.10052, 10.378047],
-          [217.99896, 10.380901],
-          [217.94647, 10.378406],
-          [159.5997, 10.380468],
-      ])
+      self.assertAllClose(vals, [(226.99771, 10.377038), (243.92978, 10.379991),
+                                 (260.7751, 10.379107), (201.10846, 10.379791),
+                                 (272.22006, 10.370288)])
 
   def testBProp(self):
     with self.session():
@@ -242,13 +238,9 @@ class TransformerModelTest(test_utils.TestCase):
       for _ in range(5):
         vals += [self.evaluate((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
-      expected_vals = [
-          [233.57518, 10.381119],
-          [236.05138, 10.375884],
-          [217.9087, 10.376605],
-          [217.77725, 10.370345],
-          [159.43497, 10.369753],
-      ]
+      expected_vals = [(226.99771, 10.377038), (243.87854, 10.3778105),
+                       (260.66788, 10.374841), (200.94312, 10.371258),
+                       (271.9328, 10.3593445)]
       self.assertAllClose(vals, expected_vals)
 
   def testBPropWithAccumComparison(self):
@@ -444,13 +436,10 @@ class RNMTModelTest(test_utils.TestCase):
       vals = []
       for _ in range(5):
         vals += [self.evaluate((loss, logp))]
-      self.assertAllClose(vals, [
-          [233.403564, 10.373495],
-          [235.996948, 10.373494],
-          [217.843338, 10.373493],
-          [217.843338, 10.373491],
-          [159.492432, 10.373494],
-      ])
+      print('actual vals = %s' % np.array_repr(np.array(vals)))
+      self.assertAllClose(vals, [[226.92014, 10.373492], [243.77704, 10.373491],
+                                 [260.63403, 10.373494], [200.98639, 10.373491],
+                                 [272.30417, 10.373492]])
 
   def testFPropEvalMode(self):
     with self.session(), self.SetEval(True):
@@ -464,13 +453,10 @@ class RNMTModelTest(test_utils.TestCase):
       vals = []
       for _ in range(5):
         vals += [self.evaluate((loss, logp))]
-      self.assertAllClose(vals, [
-          [233.403564, 10.373495],
-          [235.996948, 10.373494],
-          [217.843338, 10.373493],
-          [217.843338, 10.373491],
-          [159.492432, 10.373494],
-      ])
+      print('actual vals = %s' % np.array_repr(np.array(vals)))
+      self.assertAllClose(vals, [[226.92014, 10.373492], [243.77704, 10.373491],
+                                 [260.63403, 10.373494], [200.98639, 10.373491],
+                                 [272.30417, 10.373492]])
 
   def testBProp(self):
     with self.session():
@@ -486,12 +472,13 @@ class RNMTModelTest(test_utils.TestCase):
       vals = []
       for _ in range(5):
         vals += [self.evaluate((loss, logp, mdl.train_op))[:2]]
+      print('bprop actual vals = %s' % np.array_repr(np.array(vals)))
       expected_vals = [
-          [233.403564, 10.373495],
-          [219.442184, 9.645809],
-          [181.665314, 8.650729],
-          [185.266647, 8.822222],
-          [157.343857, 10.233747],
+          [226.92014, 10.373492],
+          [225.25146, 9.585169],
+          [248.49757, 9.8904505],
+          [212.02884, 10.943424],
+          [314.57098, 11.983657],
       ]
       self.assertAllClose(vals, expected_vals, atol=1e-3)
 

@@ -97,6 +97,7 @@ py_library(
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:bn_layers",
+        "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
     ],

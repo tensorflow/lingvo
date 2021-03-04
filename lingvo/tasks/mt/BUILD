@@ -185,7 +185,6 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":data_augmenter",
         ":input_generator",
         "//lingvo:compat",
         "//lingvo/core:py_utils",

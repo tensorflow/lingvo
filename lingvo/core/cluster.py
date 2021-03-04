@@ -149,6 +149,10 @@ class _Cluster:
     p.Define('immediately_instantiate_variables', True,
              'Whether to create variables immediately.')
     p.Define(
+        'require_sequential_input_order', None,
+        'Whether the input needs to be in sequential order. '
+        'This is used for eval mode jobs and unit tests.')
+    p.Define(
         'xla_device', None, 'If set to non-None, '
         'this value is used instead of FLAGS.xla_device '
         'for running multiple runners in the same process, '
@@ -513,6 +517,13 @@ class _Cluster:
   @property
   def immediately_instantiate_variables(self):
     return self.params.immediately_instantiate_variables
+
+  @property
+  def require_sequential_input_order(self):
+    if self.params.require_sequential_input_order is not None:
+      return self.params.require_sequential_input_order
+    # By default require sequential order when in eval mode.
+    return self.params.do_eval
 
   @property
   def worker_cluster_def(self):

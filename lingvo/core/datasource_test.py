@@ -21,6 +21,7 @@ import random
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
+from lingvo.core import cluster_factory
 from lingvo.core import datasource
 from lingvo.core import generic_input
 from lingvo.core import py_utils
@@ -438,7 +439,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
     files = []
-    with self.session():
+    with self.session(), cluster_factory.SetRequireSequentialInputOrder(False):
       batch = ds.GetNext()
       for _ in range(len(self.files) * 5):
         file, source_id = self.evaluate([batch.data, batch.source_id])
@@ -460,24 +461,29 @@ class TFDatasetSourceTest(test_utils.TestCase):
       ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
       ds.GetNext()
 
-    with self.assertRaisesRegex(ValueError, 'shuffle_buffer_size must be set.'):
-      CreateDatasource()
+    with cluster_factory.SetRequireSequentialInputOrder(False):
+      with self.assertRaisesRegex(ValueError,
+                                  'shuffle_buffer_size must be set.'):
+        CreateDatasource()
 
     # Setting shuffle_buffer_size works.
-    CreateDatasource(shuffle_buffer_size=1)
+    with cluster_factory.SetRequireSequentialInputOrder(False):
+      CreateDatasource(shuffle_buffer_size=1)
 
-    # Setting require_sequential_order works.
-    CreateDatasource(require_sequential_order=True)
+    # Setting require_sequential_input_order works.
+    with cluster_factory.SetRequireSequentialInputOrder(True):
+      CreateDatasource()
 
     # Sanity check that params are not persisting between calls.
-    with self.assertRaisesRegex(ValueError, 'shuffle_buffer_size must be set.'):
-      CreateDatasource()
+    with cluster_factory.SetRequireSequentialInputOrder(False):
+      with self.assertRaisesRegex(ValueError,
+                                  'shuffle_buffer_size must be set.'):
+        CreateDatasource()
 
   def testTFDatasetFnInput_RequireSequentialOrder(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
-        require_sequential_order=True)
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')))
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
     with self.session() as sess:
@@ -499,8 +505,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
   def testCustomTFDatasetTransform(self):
     ds_params = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
-        require_sequential_order=True)
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')))
     ds_params = datasource.CustomTFDatasetTransform.Params().Set(
         sub=ds_params, fn='SequenceLengthTransform')
     ds = ds_params.Instantiate()
@@ -547,7 +552,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
         bucket_batch_limit=[8, 8])
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
-    with self.session():
+    with self.session(), cluster_factory.SetRequireSequentialInputOrder(False):
       batch = ds.GetNext()
       seen = set()
       for _ in range(20):
@@ -571,8 +576,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
 
     ds2 = datasource.TFDatasetFnInput.Params().Set(
         load_fn='LoadDataset',
-        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')),
-        require_sequential_order=True)
+        kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')))
 
     with self.subTest(name='DS1Only'), self.session(graph=tf.Graph()):
       ds_params = datasource.TFDatasetMixer.Params().Set(
@@ -656,10 +660,7 @@ class TFDSInputTest(test_utils.TestCase):
 
   def testTFDSInput(self):
     ds_params = datasource.TFDSInput.Params().Set(
-        dataset='mnist',
-        split='train[:10]',
-        load_fn='LoadTFDSDataset',
-        require_sequential_order=True)
+        dataset='mnist', split='train[:10]', load_fn='LoadTFDSDataset')
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TFDSMnistInputGenerator.Params().Instantiate())
     with self.session():

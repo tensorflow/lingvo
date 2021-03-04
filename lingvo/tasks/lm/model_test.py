@@ -74,9 +74,9 @@ class ModelTest(test_utils.TestCase):
 
       loss, logp, logp_per_word, accuracy = self.evaluate(
           [loss, logp, logp_per_word, accuracy])
-      test_utils.CompareToGoldenSingleFloat(self, 4.160992, loss)
-      test_utils.CompareToGoldenSingleFloat(self, 4.160992, logp)
-      test_utils.CompareToGoldenSingleFloat(self, 5.944274, logp_per_word)
+      test_utils.CompareToGoldenSingleFloat(self, 4.159217, loss)
+      test_utils.CompareToGoldenSingleFloat(self, 4.159217, logp)
+      test_utils.CompareToGoldenSingleFloat(self, 7.538581, logp_per_word)
       test_utils.CompareToGoldenSingleFloat(self, 0.000000, accuracy)
 
   def testLmTrain(self):

@@ -459,17 +459,13 @@ class TFDatasetFnInput(TFDatasetSource):
              'A dict with keyword arguments to pass to load_fn.')
     p.Define('shuffle_buffer_size', None,
              'Number of records buffered for random shuffling.')
-    p.Define(
-        'require_sequential_order', False,
-        'Whether elements need to be produced in sequential order. '
-        'Disables randomization.')
     return p
 
   def __init__(self, params):
     super().__init__(params)
 
     if (not self.params.shuffle_buffer_size and
-        not self.params.require_sequential_order):
+        not self.cluster.require_sequential_input_order):
       raise ValueError('shuffle_buffer_size must be set.')
 
   def GetDataset(self):
@@ -478,8 +474,7 @@ class TFDatasetFnInput(TFDatasetSource):
     kwargs = p.kwargs or {}
     dataset = fn(**kwargs)
 
-    require_sequential_order = p.require_sequential_order or self.do_eval
-    if not require_sequential_order:
+    if not self.cluster.require_sequential_input_order:
       dataset = dataset.shuffle(
           p.shuffle_buffer_size, reshuffle_each_iteration=True)
       dataset = dataset.repeat()
@@ -502,10 +497,6 @@ class TFDSInput(TFDatasetSource):
         '(info, features_dict) and return a NestedMap.')
     p.Define('shuffle_buffer_size', 10000,
              'Number of records buffered for random shuffling.')
-    p.Define(
-        'require_sequential_order', False,
-        'Whether elements need to be produced in sequential order. '
-        'Disables randomization.')
     return p
 
   def GetDataset(self):
@@ -513,20 +504,19 @@ class TFDSInput(TFDatasetSource):
     if not p.dataset or not p.split:
       raise ValueError('A dataset and split must be specified.')
 
-    require_sequential_order = p.require_sequential_order or self.do_eval
     dataset, info = tfds.load(
         p.dataset,
         split=p.split,
         download=True,  # download dataset locally.
-        shuffle_files=not require_sequential_order,
+        shuffle_files=not self.cluster.require_sequential_input_order,
         with_info=True)
 
     dataset = dataset.map(
         functools.partial(getattr(self._input_generator, p.load_fn), info),
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
-        deterministic=require_sequential_order)
+        deterministic=self.cluster.require_sequential_input_order)
 
-    if not require_sequential_order:
+    if not self.cluster.require_sequential_input_order:
       dataset = dataset.shuffle(p.shuffle_buffer_size)
       dataset = dataset.repeat()
     return dataset
@@ -555,17 +545,12 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
     p.Define(
         'bucket_batch_limit', [], 'Desired per-split batch size per bucket. '
         'Must be the same length as bucket_upper_bound.')
-    p.Define(
-        'require_sequential_order', False,
-        'Whether elements need to be produced in sequential order. '
-        'Disables randomization.')
     return p
 
   def Transform(self, dataset):
     """Batches a dataset containing NestedMaps of tensors."""
     p = self.params
 
-    require_sequential_order = p.require_sequential_order or self.do_eval
     seqlen_fn = getattr(self._input_generator, p.seqlen_fn)
 
     def SetBucketKeys(example):
@@ -575,7 +560,7 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
     dataset = dataset.map(
         SetBucketKeys,
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
-        deterministic=require_sequential_order)
+        deterministic=self.cluster.require_sequential_input_order)
 
     dataset = dataset.filter(
         lambda x: x.bucket_keys <= p.bucket_upper_bound[-1])
@@ -623,7 +608,7 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
         dataset = dataset.map(
             SetShape,
             num_parallel_calls=tf.data.experimental.AUTOTUNE,
-            deterministic=require_sequential_order)
+            deterministic=self.cluster.require_sequential_input_order)
 
     return dataset
 

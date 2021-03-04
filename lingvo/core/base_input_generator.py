@@ -834,17 +834,10 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p.Define('num_batcher_threads', 1, 'Number of threads to use for input '
              'record batcher.')
     p.Define(
-        'require_sequential_order', False,
-        'If true, the input op is required to process the file glob as '
-        'well as the contents of each file in a deterministic sequential order.'
-        ' This is intended for unit tests. Setting this automatically disables '
-        'file_random_seed, file_buffer_size, file_parallelism, '
-        'num_batcher_threads, and requires a single file_pattern.')
-    p.Define(
         'repeat_count', -1,
         'Number of repetitions of a dataset before throwing OutOfRange error '
-        'when using require_sequential_order. Must only be set if '
-        'require_sequential_order is True.')
+        'when using require_sequential_input_order. Must only be set if '
+        'cluster.require_sequential_input_order is True.')
     # TODO(b/139345706) when file_pattern is deleted use_within_batch_mixing
     # will be specified by setting weights in SimpleDataSource in
     # p.file_datasource and this param should be deleted as well.
@@ -889,6 +882,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       input_replica_id = infeed_context.infeed_host_index
       tf.logging.info('input_replica_id=%s/%s', input_replica_id,
                       num_input_replicas)
+    # Legacy behavior for Lingvo input ops: require_sequential_order defaults to
+    # False for eval jobs. Note that this value is different from
+    # self.cluster.require_sequential_input_order.
+    require_sequential_order = bool(
+        self.cluster.params.require_sequential_input_order)
     args.update({
         'file_random_seed': p.file_random_seed,
         'file_buffer_size': p.file_buffer_size,
@@ -896,7 +894,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'file_buffer_size_in_seconds': p.file_buffer_size_in_seconds,
         'flush_every_n': p.flush_every_n,
         'num_threads': p.num_batcher_threads,
-        'require_sequential_order': p.require_sequential_order,
+        'require_sequential_order': require_sequential_order,
         'repeat_count': p.repeat_count,
         'num_input_replicas': num_input_replicas,
         'input_replica_id': input_replica_id,
@@ -1272,8 +1270,7 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
         input_shape_fn='_InputShape',
         input_padding_fn='_InputPaddingValue',
         bucket_upper_bound=p.bucket_upper_bound,
-        bucket_batch_limit=p.bucket_batch_limit,
-        require_sequential_order=p.require_sequential_order)
+        bucket_batch_limit=p.bucket_batch_limit)
     if self.cluster.tf_data_service_address:
       ds = datasource.TFDataServiceSource.Params().Set(
           sub=ds, bucket_upper_bound=p.bucket_upper_bound)
@@ -1307,8 +1304,7 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
       ds.append(datasource.TFDatasetFnInput.Params().Set(
           load_fn='LoadDataset',
           kwargs=dict(file_pattern=fp),
-          shuffle_buffer_size=p.file_buffer_size,
-          require_sequential_order=p.require_sequential_order))
+          shuffle_buffer_size=p.file_buffer_size))
     if len(ds) > 1:
       if not p.use_within_batch_mixing:
         raise ValueError(
@@ -1390,11 +1386,9 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
   @property
   def _map_args(self):
     """Default args for tf.data.DataSet.map()."""
-    p = self.params
-    require_sequential_order = p.require_sequential_order or self.do_eval
     return dict(
         num_parallel_calls=tf.data.experimental.AUTOTUNE,
-        deterministic=require_sequential_order)
+        deterministic=self.cluster.require_sequential_input_order)
 
 
 class BaseDataExampleInputGenerator(BaseInputGenerator):
@@ -1581,7 +1575,7 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
     p.Define('args', hyperparams.Params(), 'Parameter list of the pipeline.')
     inspect_utils.DefineParams(func, p.args, actual_ignore_args)
     ds = datasource.TFDatasetFnInput.Params().Set(
-        load_fn='GetDataset', require_sequential_order=True)
+        load_fn='GetDataset', shuffle_buffer_size=1)
     if cluster_factory.Current().tf_data_service_address:
       ds = datasource.TFDataServiceSource.Params().Set(sub=ds)
       ds = datasource.TFDatasetPrefetch.Params().Set(sub=ds)

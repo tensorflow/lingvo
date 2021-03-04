@@ -65,6 +65,5 @@ py_test(
         "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
-        # Implicit numpy dependency.
     ],
 )

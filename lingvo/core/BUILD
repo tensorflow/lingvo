@@ -620,12 +620,12 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":base_input_generator",
+        ":cluster_factory",
         ":datasource",
         ":generic_input",
         ":py_utils",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit numpy dependency.
     ],
 )
 

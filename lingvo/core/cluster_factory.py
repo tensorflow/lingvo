@@ -115,6 +115,20 @@ def SetImmediatelyInstantiateVariables(mode):
   return ret
 
 
+def SetRequireSequentialInputOrder(mode):
+  """Returns a cluster with require_sequential_input_order option set.
+
+  Args:
+    mode: True, False or None.
+
+  Returns:
+    A new Cluster instance.
+  """
+  ret = copy.deepcopy(Current())
+  ret.params.require_sequential_input_order = mode
+  return ret
+
+
 def SetModelSplit(split_id):
   """Returns the current cluster with the model split id set.
 

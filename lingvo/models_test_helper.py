@@ -19,6 +19,7 @@ import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import bn_layers
+from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
@@ -92,6 +93,7 @@ class BaseModelsTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()
+    cluster_factory.SetRequireSequentialInputOrder(False).__enter__()
     self._variable_cache = {}
     _StubOutCreateVariable(self._variable_cache)
 

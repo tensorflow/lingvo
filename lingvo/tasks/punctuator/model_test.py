@@ -20,7 +20,6 @@ from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.punctuator import input_generator
 from lingvo.tasks.punctuator import model
-import numpy as np
 
 _TF_RANDOM_SEED = 93820986
 
@@ -99,12 +98,8 @@ class PunctuatorModelTest(test_utils.TestCase):
       for _ in range(3):
         vals += [self.evaluate((loss, logp))]
 
-      print('actual vals = %s' % np.array_repr(np.array(vals)))
-      expected_vals = [
-          [326.765106, 10.373495],
-          [306.018066, 10.373494],
-          [280.08429, 10.373492],
-      ]
+      expected_vals = [[316.3916, 10.37349], [339.73196, 10.37349],
+                       [272.30417, 10.373489]]
       self.assertAllClose(vals, expected_vals)
 
   def testBProp(self):
@@ -121,12 +116,8 @@ class PunctuatorModelTest(test_utils.TestCase):
       vals = []
       for _ in range(3):
         vals += [self.evaluate((loss, logp, mdl.train_op))[:2]]
-      print('BProp actual vals = ', vals)
-      expected_vals = [
-          [326.765106, 10.373495],
-          [306.013123, 10.373326],
-          [280.07666, 10.37321],
-      ]
+      expected_vals = [[316.3916, 10.37349], [339.72772, 10.373363],
+                       [272.29706, 10.37322]]
       self.assertAllClose(vals, expected_vals)
 
   def testFPropEvalMode(self):
@@ -141,12 +132,8 @@ class PunctuatorModelTest(test_utils.TestCase):
       vals = []
       for _ in range(3):
         vals += [self.evaluate((loss, logp))]
-      print('actual vals = ', vals)
-      expected_vals = [
-          [326.765106, 10.373495],
-          [306.018066, 10.373494],
-          [280.08429, 10.373492],
-      ]
+      expected_vals = [[316.3916, 10.37349], [339.73196, 10.37349],
+                       [272.30417, 10.373489]]
       self.assertAllClose(vals, expected_vals)
 
   def testInference(self):

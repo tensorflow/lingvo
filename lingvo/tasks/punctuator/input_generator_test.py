@@ -63,8 +63,10 @@ class InputGeneratorTest(test_utils.TestCase):
       tgt_ids = fetched.tgt.ids
       tgt_labels = fetched.tgt.labels
 
-      expected_ref = (b'His approach was inquisitive , a meeting of artful '
-                      b'hesitation with fluid technique .')
+      expected_ref = (
+          b'Elk calling -- a skill that hunters perfected long ago to lure '
+          b'game with the promise of a little romance -- is now its own sport .'
+      )
 
       normalized_ref = expected_ref.lower().translate(
           None, string.punctuation.encode('utf-8'))
