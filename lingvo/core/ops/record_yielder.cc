@@ -22,6 +22,7 @@ limitations under the License.
 #include <unordered_map>
 
 #include "absl/strings/escaping.h"
+#include "absl/strings/match.h"
 #include "absl/synchronization/mutex.h"
 #include "lingvo/core/ops/versioned_file_set.pb.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -212,6 +213,12 @@ string RecordIterator::StripPrefixFromFilePattern(string* file_pattern) {
   return prefix;
 }
 
+bool HasFilePattern(StringPiece str) {
+  return absl::StrContains(str, "*") || absl::StrContains(str, "?") ||
+         absl::StrContains(str, "@") || absl::StrContains(str, "[") ||
+         absl::StrContains(str, "]");
+}
+
 Status RecordIterator::ParsePattern(
     const string& type_name, const string& file_pattern_list,
     const RecordIterator::ParserOptions& options,
@@ -229,11 +236,15 @@ Status RecordIterator::ParsePattern(
     return parser_method(file_pattern_list, options, filenames);
   }
   for (const auto& file_pattern : str_util::Split(file_pattern_list, ',')) {
-    std::vector<string> files_per_glob;
-    TF_RETURN_IF_ERROR(
-        MatchParallelFilePattern(file_pattern, &files_per_glob));
-    filenames->insert(filenames->end(), files_per_glob.begin(),
-                      files_per_glob.end());
+    if (HasFilePattern(file_pattern)) {
+      std::vector<string> files_per_glob;
+      TF_RETURN_IF_ERROR(
+          MatchParallelFilePattern(file_pattern, &files_per_glob));
+      filenames->insert(filenames->end(), files_per_glob.begin(),
+                        files_per_glob.end());
+    } else {
+      filenames->push_back(file_pattern);
+    }
   }
   return Status::OK();
 }
