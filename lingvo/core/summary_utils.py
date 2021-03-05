@@ -15,6 +15,7 @@
 # ==============================================================================
 """Common utility functions for generating summaries."""
 
+import re
 import time
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -198,7 +199,6 @@ def AddAttentionSummaryBatchMajor(name,
       sequence.
     max_outputs: Integer maximum number of elements of the batch to plot.
   """
-
   def VerifyLen(paddings):
     length = len(paddings) if isinstance(paddings, list) else 1
     if length != 1 and length != len(attention_tensors):
@@ -206,6 +206,19 @@ def AddAttentionSummaryBatchMajor(name,
 
   VerifyLen(src_paddings)
   VerifyLen(tgt_paddings)
+
+  # Verify shapes.
+  for i, attention_tensor in enumerate(attention_tensors):
+    src, tgt = src_paddings, tgt_paddings
+    src = src[0 if len(src) == 1 else i] if isinstance(src, list) else src
+    tgt = tgt[0 if len(tgt) == 1 else i] if isinstance(tgt, list) else tgt
+    tgt_shape = py_utils.GetShape(tgt)
+    attention_tensors[i] = tf.identity(
+        py_utils.with_dependencies([
+            py_utils.assert_equal(
+                py_utils.GetShape(attention_tensor),
+                tgt_shape[:2] + [py_utils.GetShape(src)[1]] + tgt_shape[2:])
+        ], attention_tensor), re.sub(':.*$', '', attention_tensor.name))
 
   if not _ShouldAddSummary():
     return
