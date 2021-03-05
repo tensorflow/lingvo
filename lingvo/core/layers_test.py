@@ -3006,6 +3006,57 @@ class EmbeddingLayerTest(test_utils.TestCase):
       self.assertAllClose(s_outs, o_outs)
       self.assertAllClose(s_grad, o_grad)
 
+  def testCompareMatMulEmbeddingLayers(self):
+    classes = 8000
+    dims = 128
+    g = tf.Graph()
+    with g.as_default():
+      ids = tf.placeholder(tf.int32)
+
+      def CreateSimpleMatMul():
+        tf.random.set_seed(398847392)
+        p = layers.SimpleEmbeddingLayer.Params()
+        p.name = 's_emb'
+        p.dtype = tf.float32
+        p.vocab_size = classes
+        p.embedding_dim = dims
+        p.fprop_mode = 'matmul'
+        p.params_init = py_utils.WeightInit.Gaussian(0.01)
+        p.vn.global_vn = False
+        p.vn.per_step_vn = False
+        return layers.SimpleEmbeddingLayer(p)
+
+      simple = CreateSimpleMatMul()
+      simple_outs = simple.EmbLookupDefaultTheta(ids)
+      simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
+
+      def CreateEinsum():
+        tf.random.set_seed(398847392)
+        p = layers.EinsumEmbeddingLayer.Params()
+        p.name = 'e_emb'
+        p.dtype = tf.float32
+        p.vocab_size = classes
+        p.embedding_dim = dims
+        p.params_init = py_utils.WeightInit.Gaussian(0.01)
+        p.vn.global_vn = False
+        p.vn.per_step_vn = False
+        return p.Instantiate()
+
+      einsum = CreateEinsum()
+      weight = tf.identity(simple.vars.wm)
+      einsum_outs = einsum.EmbLookup(py_utils.NestedMap(wm=weight), ids)
+      einsum_grad = tf.gradients(einsum_outs, weight)[0]
+      tf.logging.info('simple_grad=%s einsum_grad=%s', simple_grad, einsum_grad)
+
+    ids_val = np.random.randint(0, high=classes, size=(4000,))
+    with self.session(graph=g) as sess:
+      self.evaluate(tf.global_variables_initializer())
+      s_outs, s_grad, e_outs, e_grad = sess.run(
+          [simple_outs, simple_grad, einsum_outs, einsum_grad],
+          feed_dict={ids: ids_val})
+      self.assertAllClose(s_outs, e_outs)
+      self.assertAllClose(s_grad, e_grad)
+
   def testPositionalEmbeddingLayer(self):
     with self.session(use_gpu=False):
       p = layers.PositionalEmbeddingLayer.Params()

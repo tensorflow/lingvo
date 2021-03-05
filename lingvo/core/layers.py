@@ -2113,7 +2113,8 @@ class EmbeddingLayer(base_layer.BaseLayer):
     embs = tf.nn.embedding_lookup(theta.wm, tf.reshape(ids, [-1]))
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
-    embs = py_utils.AddVN(p, embs)
+    with tf.name_scope('vn'):
+      embs = py_utils.AddVN(p, embs)
     out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
     return tf.reshape(embs, out_shape)
 
@@ -2397,7 +2398,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     embs_result = self._FpropImpl(wm, flat_ids)
 
     embs_result = self.FromAqtWeight('emb_aqt', embs_result, feature_axis=-1)
-    embs_result = py_utils.AddVN(p, embs_result)
+    with tf.name_scope('vn'):
+      embs_result = py_utils.AddVN(p, embs_result)
 
     if p.scale_sqrt_depth:
       embs_result *= p.embedding_dim**0.5
@@ -2419,6 +2421,70 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     out_shape = tf.concat(
         [tf.shape(ids), [symbolic.ToStatic(self.params.embedding_dim)]], 0)
     embs_result = tf.reshape(embs_result, out_shape)
+    embs_result = gshard_utils.MeshSplit(embs_result, p.device_mesh,
+                                         p.activation_split_dims_mapping)
+    return embs_result
+
+
+class EinsumEmbeddingLayer(base_layer.BaseLayer):
+  """An embedding layer that uses einsum to avoid reshaping."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('vocab_size', 0,
+             'Depth of the input. I.e., the number of classes.')
+    p.Define('embedding_dim', 0, 'Depth of the output.')
+    p.Define(
+        'scale_sqrt_depth', False, 'If set True, activations are scaled'
+        ' with sqrt(embedding_dim) in EmbLookup.')
+    p.params_init = py_utils.WeightInit.Uniform(1.)
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.vocab_size > 0
+    assert symbolic.ToStatic(p.embedding_dim) > 0
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+
+    # Define weights
+    pc = py_utils.WeightParams(
+        shape=[p.vocab_size, symbolic.ToStatic(p.embedding_dim)],
+        init=p.params_init,
+        dtype=p.dtype,
+        tensor_split_dims_mapping=p.weight_split_dims_mapping,
+        collections=[self.__class__.__name__ + '_vars'])
+    # Apply VN on theta.wm so that this layer can be used within a recurrent
+    # loop.
+    self.CreateVariable('wm', pc, theta_fn=self.AddVN)
+
+  def EmbLookup(self, theta, ids):
+    return self.FProp(theta, ids)
+
+  def FProp(self, theta, ids):
+    """Lookups embedding vectors for ids.
+
+    Args:
+      theta: Named tuple collection of weights for the layer.
+      ids: A rank-N int32 tensor.
+
+    Returns:
+      A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
+    """
+    p = self.params
+    # Emulate tf.nn.embedding_lookup(theta.wm, ids) with tf.einsum.
+    embs_result = py_utils.ProjectLastDim(
+        tf.one_hot(ids, p.vocab_size),
+        theta.wm,
+        input_dim=p.vocab_size,
+        output_dim=p.embedding_dim)
+    if p.scale_sqrt_depth:
+      embs_result *= p.embedding_dim**0.5
     embs_result = gshard_utils.MeshSplit(embs_result, p.device_mesh,
                                          p.activation_split_dims_mapping)
     return embs_result
