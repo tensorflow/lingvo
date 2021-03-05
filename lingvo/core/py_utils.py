@@ -336,7 +336,9 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
 
     name = tensor.name if not tf.executing_eagerly() else '[eager]'
     info = '{}{} {}'.format(header, caller_var, name)
-    return tf.Print(tensor, tensors, info, summarize=summarize)
+    return tf.identity(
+        tf.Print(tensor, tensors, info, summarize=summarize),
+        re.sub(':.*$', '', name))
 
   return tensor
 
