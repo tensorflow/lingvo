@@ -40,7 +40,6 @@ from tensorflow.python.ops import gen_dataset_ops
 from tensorflow.python.ops import gen_io_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import math_ops
-from tensorflow.python.platform import app
 from tensorflow.python.tf2 import enabled as tf2_enabled
 from tensorflow.python.util import module_wrapper as _module_wrapper
 # For determining if we are running with --define=tf_api_version=1 or 2.
@@ -285,6 +284,7 @@ add_to_collection = tf1.add_to_collection
 all_variables = tf1.global_variables
 # The following asserts can be directly replaced with TF2 `tf.debugging.*`
 # after TF2/eager is enabled.
+app = tf1.app
 assert_integer = tf1.assert_integer
 assert_positive = tf1.assert_positive
 assert_type = tf1.assert_type
