@@ -488,7 +488,9 @@
 
     <span class="n">name</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;[eager]&#39;</span>
     <span class="n">info</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">caller_var</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Print</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensors</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="n">summarize</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">Print</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensors</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="n">summarize</span><span class="p">),</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;:.*$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">tensor</span></div>
 
