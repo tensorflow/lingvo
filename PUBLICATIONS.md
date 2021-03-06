@@ -632,7 +632,8 @@ T.&nbsp;N. Sainath, R.&nbsp;Pang, D.&nbsp;Rybach, Y.&nbsp;He, R.&nbsp;Prabhavalk
 C.-C. Chiu, W.&nbsp;Han, Y.&nbsp;Zhang, R.&nbsp;Pang, S.&nbsp;Kishchenko, P.&nbsp;Nguyen, A.&nbsp;Narayanan,
   H.&nbsp;Liao, S.&nbsp;Zhang, A.&nbsp;Kannan, R.&nbsp;Prabhavalkar, Z.&nbsp;Chen, T.&nbsp;Sainath, and
   Y.&nbsp;Wu, &ldquo;A comparison of end-to-end models for long-form speech
-  recognition,&rdquo; 2019.
+  recognition,&rdquo; in <em>Proc. IEEE Automatic Speech Recognition and
+  Understanding Workshop (ASRU)</em>, 2019.
 [&nbsp;<a href="https://arxiv.org/pdf/1911.02242">pdf</a>&nbsp;]
 
 </td>
@@ -645,7 +646,9 @@ C.-C. Chiu, W.&nbsp;Han, Y.&nbsp;Zhang, R.&nbsp;Pang, S.&nbsp;Kishchenko, P.&nbs
 </td>
 <td class="bibtexitem">
 A.&nbsp;Narayanan, R.&nbsp;Prabhavalkar, C.&nbsp;Chiu, D.&nbsp;Rybach, T.&nbsp;Sainath, and T.&nbsp;Strohman,
-  &ldquo;Recognizing long-form speech using streaming end-to-end models,&rdquo; 2019.
+  &ldquo;Recognizing long-form speech using streaming end-to-end models,&rdquo; in <em>
+  Proc. IEEE Automatic Speech Recognition and Understanding Workshop
+  (ASRU)</em>, 2019.
 [&nbsp;<a href="https://arxiv.org/pdf/1910.11455">pdf</a>&nbsp;]
 
 </td>
@@ -762,6 +765,114 @@ D.&nbsp;S. Park, Y.&nbsp;Zhang, Y.&nbsp;Jia, W.&nbsp;Han, C.-C. Chiu, B.&nbsp;Li
   &ldquo;Improved noisy student training for automatic speech recognition,&rdquo; in <em>
   Proc. Interspeech</em>, 2020.
 [&nbsp;<a href="https://arxiv.org/abs/2005.09629">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="sas2020">39</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Zhang, J.&nbsp;Qin, D.&nbsp;S. Park, W.&nbsp;Han, C.-C. Chiu, R.&nbsp;Pang, Q.&nbsp;V. Le, and Y.&nbsp;Wu,
+  &ldquo;Pushing the limits of semi-supervised learning for automatic speech
+  recognition,&rdquo; in <em>NeurIPS 2020 Workshop on Self-Supervised Learning for
+  Speech and Audio Processing</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/2010.10504">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="longform2020">40</a>]
+</td>
+<td class="bibtexitem">
+C.-C. Chiu, A.&nbsp;Narayanan, W.&nbsp;Han, R.&nbsp;Prabhavalkar, Y.&nbsp;Zhang, N.&nbsp;Jaitly,
+  R.&nbsp;Pang, T.&nbsp;N. Sainath, P.&nbsp;Nguyen, L.&nbsp;Cao, and Y.&nbsp;Wu, &ldquo;Rnn-t models fail to
+  generalize to out-of-domain audio: Causes and solutions,&rdquo; in <em>Proc.
+  IEEE Spoken Language Technology Workshop (SLT)</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/2005.03271">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="panchapagesan2021">41</a>]
+</td>
+<td class="bibtexitem">
+S.&nbsp;Panchapagesan, D.&nbsp;S. Park, C.-C. Chiu, Y.&nbsp;Shangguan, Q.&nbsp;Liang, and
+  A.&nbsp;Gruenstein, &ldquo;Efficient knowledge distillation for rnn-transducer
+  models,&rdquo; in <em>Proc. IEEE International Conference on Acoustics, Speech,
+  and Signal Processing (ICASSP)</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2011.06110">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="cascaded2021">42</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Narayanan, T.&nbsp;N. Sainath, R.&nbsp;Pang, J.&nbsp;Yu, C.-C. Chiu, R.&nbsp;Prabhavalkar,
+  E.&nbsp;Variani, and T.&nbsp;Strohman, &ldquo;Cascaded encoders for unifying streaming and
+  non-streaming asr,&rdquo; in <em>Proc. IEEE International Conference on
+  Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2010.14606">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="betterfaster2021">43</a>]
+</td>
+<td class="bibtexitem">
+B.&nbsp;Li, A.&nbsp;Gulati, J.&nbsp;Yu, T.&nbsp;N. Sainath, C.-C. Chiu, A.&nbsp;Narayanan, S.-Y. Chang,
+  R.&nbsp;Pang, Y.&nbsp;He, J.&nbsp;Qin, W.&nbsp;Han, Q.&nbsp;Liang, Y.&nbsp;Zhang, T.&nbsp;Strohman, and Y.&nbsp;Wu,
+  &ldquo;A better and faster end-to-end model for streaming asr,&rdquo; in <em>Proc.
+  IEEE International Conference on Acoustics, Speech, and Signal Processing
+  (ICASSP)</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2011.10798">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="doutre2021">44</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;Doutre, W.&nbsp;Han, M.&nbsp;Ma, Z.&nbsp;Lu, C.-C. Chiu, R.&nbsp;Pang, A.&nbsp;Narayanan, A.&nbsp;Misra,
+  Y.&nbsp;Zhang, and L.&nbsp;Cao, &ldquo;Improving streaming automatic speech recognition with
+  non-streaming model distillation on unsupervised data,&rdquo; in <em>Proc. IEEE
+  International Conference on Acoustics, Speech, and Signal Processing
+  (ICASSP)</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2010.12096">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="fastemit2021">45</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Yu, C.-C. Chiu, B.&nbsp;Li, S.&nbsp;yiin Chang, T.&nbsp;N. Sainath, Y.&nbsp;He, A.&nbsp;Narayanan,
+  W.&nbsp;Han, A.&nbsp;Gulati, Y.&nbsp;Wu, and R.&nbsp;Pang, &ldquo;Fastemit: Low-latency streaming asr
+  with sequence-level emission regularization,&rdquo; in <em>Proc. IEEE
+  International Conference on Acoustics, Speech, and Signal Processing
+  (ICASSP)</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2010.11148">pdf</a>&nbsp;]
 
 </td>
 </tr>
