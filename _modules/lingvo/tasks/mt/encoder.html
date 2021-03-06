@@ -500,6 +500,7 @@
     <span class="sd">&quot;&quot;&quot;Configs for `MTEncoderBiRNN`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Embedding layer params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Embedding shared with decoder.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lstm_tpl&#39;</span><span class="p">,</span>
              <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs template for the RNN layer.&#39;</span><span class="p">)</span>
@@ -548,7 +549,12 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
+      <span class="c1"># Naming this &#39;softmax&#39; to match the name of the same component in the</span>
+      <span class="c1"># decoder. Variable names need to be the same in order to be reused.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
 
     <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -610,10 +616,19 @@
       <span class="k">return</span> <span class="n">x</span></div>
 
 <div class="viewcode-block" id="MTEncoderBiRNN._ComputeInputs"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN._ComputeInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
     <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
     <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">xs</span></div>
+
+<div class="viewcode-block" id="MTEncoderBiRNN._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MTEncoderBiRNN.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
