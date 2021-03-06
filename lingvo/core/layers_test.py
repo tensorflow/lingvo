@@ -2487,15 +2487,26 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
                        input_dims[:-1] + [params.output_dim])
 
 
-class StackingOverTimeLayerTest(test_utils.TestCase):
+class StackingOverTimeLayerTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testStackingOverTimeFProp(self):
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'pad_with_left_frame',
+          'pad_with_left_frame': True
+      },
+      {
+          'testcase_name': 'pad_with_zeros',
+          'pad_with_left_frame': False
+      },
+  )
+  def testStackingOverTimeFProp(self, pad_with_left_frame):
     with self.session(use_gpu=True):
       params = layers.StackingOverTime.Params()
       params.name = 'stackingOverTime'
       params.left_context = 2
       params.right_context = 0
       params.stride = 2
+      params.pad_with_left_frame = pad_with_left_frame
 
       stacker = layers.StackingOverTime(params)
       self.assertEqual(stacker.window_size, 3)
@@ -2510,11 +2521,17 @@ class StackingOverTimeLayerTest(test_utils.TestCase):
       outputs, output_paddings = stacker.FProp(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
       print([np.array_repr(outputs.eval())])
+      if pad_with_left_frame:
+        expected_outputs = [
+            [[1, 1, 1, 1, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
+            [[7, 7, 7, 7, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
+        ]
+      else:
+        expected_outputs = [
+            [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
+            [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
+        ]
 
-      expected_outputs = [
-          [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
-          [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
-      ]
       self.assertAllClose(expected_outputs, outputs.eval())
 
       expected_output_paddings = [[[0], [0], [0]], [[0], [0], [1]]]

@@ -1543,6 +1543,8 @@ class StackingOverTime(base_layer.BaseLayer):
     p.Define('right_context', 0,
              'Number of time steps to stack on the right to the central step.')
     p.Define('stride', 1, 'The stride for emitting the stacked output.')
+    p.Define('pad_with_left_frame', False,
+             'Whether to use the left frame for padding instead of 0s.')
     return p
 
   def __init__(self, params):
@@ -1580,10 +1582,17 @@ class StackingOverTime(base_layer.BaseLayer):
       out = inputs
     else:
       inputs_max_len = py_utils.GetShape(inputs, 3)[1]
-      # Add zero paddings to the left and right of the input sequence.
-      inputs = tf.pad(
-          inputs, [[0, 0], [p.left_context, p.right_context], [0, 0]],
-          constant_values=pad_value)
+      if p.pad_with_left_frame:
+        left_pad = tf.repeat(inputs[:, :1, :], repeats=p.left_context, axis=1)
+        inputs = tf.concat([left_pad, inputs], axis=1)
+        inputs = tf.pad(
+            inputs, [[0, 0], [0, p.right_context], [0, 0]],
+            constant_values=pad_value)
+      else:
+        # Add zero paddings to the left and right of the input sequence.
+        inputs = tf.pad(
+            inputs, [[0, 0], [p.left_context, p.right_context], [0, 0]],
+            constant_values=pad_value)
 
       # Make window_size() copies of the padded sequence with the original
       # sequence length, where each copy is offset by 1 time step.
