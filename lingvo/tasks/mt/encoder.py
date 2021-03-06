@@ -348,6 +348,7 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
     """Configs for `MTEncoderBiRNN`."""
     p = super().Params()
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
+    p.Define('shared_emb', None, 'Embedding shared with decoder.')
     p.Define('lstm_tpl',
              rnn_cell.LSTMCellSimple.Params(),
              'Configs template for the RNN layer.')
@@ -396,7 +397,12 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
     else:
       self.CreateChild('cc_schedule', p.cc_schedule)
 
-    self.CreateChild('emb', p.emb)
+    if p.shared_emb:
+      # Naming this 'softmax' to match the name of the same component in the
+      # decoder. Variable names need to be the same in order to be reused.
+      self.CreateChild('softmax', p.shared_emb)
+    else:
+      self.CreateChild('emb', p.emb)
 
     rnn_layers_params = []
 
@@ -458,10 +464,19 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
       return x
 
   def _ComputeInputs(self, theta, xs, input_batch):
-    xs = self.emb.EmbLookup(theta.emb, xs)
+    if self.params.shared_emb:
+      xs = self.softmax.EmbLookup(theta.softmax, xs)
+    else:
+      xs = self.emb.EmbLookup(theta.emb, xs)
     xs = self.ApplyClipping(theta, xs)
     xs = self.dropout.FProp(theta.dropout, xs)
     return xs
+
+  def _CreateChildrenVariables(self):
+    if self.params.shared_emb:
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.softmax.InstantiateVariables()
+    super()._CreateChildrenVariables()
 
   def FProp(self, theta, input_batch):
     p = self.params
