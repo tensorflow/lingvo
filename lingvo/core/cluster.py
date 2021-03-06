@@ -145,6 +145,7 @@ class _Cluster:
         'add_summary', None, 'Whether to add summaries. If None, '
         'decides based on the job type.')
     p.Define('do_eval', None, 'Whether to do eval.')
+    p.Define('in_unit_test', None, 'Whether this is running in a unit test.')
     p.Define('split_id', 0, 'Split id for the model.')
     p.Define('immediately_instantiate_variables', True,
              'Whether to create variables immediately.')
@@ -513,6 +514,10 @@ class _Cluster:
   @property
   def do_eval(self):
     return self.params.do_eval
+
+  @property
+  def in_unit_test(self):
+    return self.params.in_unit_test
 
   @property
   def immediately_instantiate_variables(self):

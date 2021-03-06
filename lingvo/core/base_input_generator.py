@@ -1386,9 +1386,12 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
   @property
   def _map_args(self):
     """Default args for tf.data.DataSet.map()."""
-    return dict(
-        num_parallel_calls=tf.data.experimental.AUTOTUNE,
-        deterministic=self.cluster.require_sequential_input_order)
+    return {
+        'num_parallel_calls':
+            1 if self.cluster.in_unit_test else tf.data.experimental.AUTOTUNE,
+        'deterministic':
+            self.cluster.require_sequential_input_order
+    }
 
 
 class BaseDataExampleInputGenerator(BaseInputGenerator):

@@ -41,7 +41,9 @@ class TestCase(tf.test.TestCase):
     super().setUp()
     # Ensure the global_step variable is created in the default graph.
     py_utils.GetOrCreateGlobalStepVar()
-    cluster_factory.SetRequireSequentialInputOrder(True).__enter__()
+    cluster = cluster_factory.SetRequireSequentialInputOrder(True)
+    cluster.params.in_unit_test = True
+    cluster.__enter__()
 
   def _create_session(self, *args, **kwargs):
     sess = super()._create_session(*args, **kwargs)

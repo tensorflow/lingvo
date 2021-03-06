@@ -342,6 +342,16 @@ class TFDatasetSource(DataSource):
       return cluster.GetInfeedContext().infeed_host_index
     return 0
 
+  @property
+  def _map_args(self):
+    """Arguments for calls to dataset.map() or similar functions."""
+    return {
+        'num_parallel_calls':
+            1 if self.cluster.in_unit_test else tf.data.experimental.AUTOTUNE,
+        'deterministic':
+            self.cluster.require_sequential_input_order
+    }
+
   def GetDataset(self):
     """Override to return a tf.data.Dataset containing a NestedMap."""
     raise NotImplementedError()
@@ -513,8 +523,7 @@ class TFDSInput(TFDatasetSource):
 
     dataset = dataset.map(
         functools.partial(getattr(self._input_generator, p.load_fn), info),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE,
-        deterministic=self.cluster.require_sequential_input_order)
+        **self._map_args)
 
     if not self.cluster.require_sequential_input_order:
       dataset = dataset.shuffle(p.shuffle_buffer_size)
@@ -557,10 +566,7 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
       example.bucket_keys = seqlen_fn(example)
       return example
 
-    dataset = dataset.map(
-        SetBucketKeys,
-        num_parallel_calls=tf.data.experimental.AUTOTUNE,
-        deterministic=self.cluster.require_sequential_input_order)
+    dataset = dataset.map(SetBucketKeys, **self._map_args)
 
     dataset = dataset.filter(
         lambda x: x.bucket_keys <= p.bucket_upper_bound[-1])
@@ -606,10 +612,7 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
           t.set_shape((b,) + t.shape[1:])
         return element
 
-      dataset = dataset.map(
-          SetShape,
-          num_parallel_calls=tf.data.experimental.AUTOTUNE,
-          deterministic=self.cluster.require_sequential_input_order)
+      dataset = dataset.map(SetShape, **self._map_args)
     elif py_utils.use_tpu():
       raise ValueError('TPU requires constant batch sizes.')
 
