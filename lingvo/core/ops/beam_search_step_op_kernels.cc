@@ -806,7 +806,7 @@ class TopKTerminatedHypsOp : public OpKernel {
 
   float NormalizedScore(const Hypothesis& hypothesis,
                         const int src_size) const {
-    int length = hypothesis.atten_vecs_size();
+    int length = hypothesis.scores_size();
     Tensor cumulative_atten_prob(DT_FLOAT, {src_size});
     auto cumulative_atten_prob_vec = cumulative_atten_prob.vec<float>();
     cumulative_atten_prob_vec.setZero();
