@@ -501,6 +501,14 @@ class MultiHeadedAttention(base_layer.BaseLayer):
                  per_step_padding=None):
     """Compute attention probability.
 
+    Note: We can currently pass a mask through both `segment_mask` and
+    `per_step_padding`. `segment_mask` was initially added to deal with packed
+    inputs, while `per_step_padding` was added to deal with causal or
+    non-uniform padding. Ideally, we should merge these two arguments into a
+    single `mask`-like argument, which can be used simultaneously for both
+    purposes. This requires to propagate the changes accordingly in all
+    downstream methods and layers.
+
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
@@ -4316,6 +4324,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
             paddings,
             aux_vec=None,
             aux_paddings=None,
+            per_step_padding_override=None,
             segment_mask=None,
             aux_segment_mask=None):
     """Stacked Transformer layer.
@@ -4327,6 +4336,9 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       paddings:       [batch, target_time].
       aux_vec:        [batch, source_time, dim].
       aux_paddings:   [batch, source_time].
+      per_step_padding_override: A mask used by decoder self-attention to
+        prevent information flow from future (causal padding). It has shape
+        [batch, target_time, target_time] if not None.
       segment_mask:     [batch, 1, target_time, target_time]
       aux_segment_mask: [batch, 1, target_time, source_time]
 
@@ -4347,6 +4359,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
               paddings,
               aux_vec,
               aux_paddings,
+              per_step_padding_override=per_step_padding_override,
               segment_mask=segment_mask,
               aux_segment_mask=aux_segment_mask)
     if p.final_layer_norm:
