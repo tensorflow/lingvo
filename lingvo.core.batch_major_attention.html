@@ -461,6 +461,13 @@ its children layers.</p></li>
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttention.AttenProbs">
 <code class="sig-name descname"><span class="pre">AttenProbs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_step_padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention.AttenProbs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention.AttenProbs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute attention probability.</p>
+<p>Note: We can currently pass a mask through both <code class="xref py py-obj docutils literal notranslate"><span class="pre">segment_mask</span></code> and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">per_step_padding</span></code>. <code class="xref py py-obj docutils literal notranslate"><span class="pre">segment_mask</span></code> was initially added to deal with packed
+inputs, while <code class="xref py py-obj docutils literal notranslate"><span class="pre">per_step_padding</span></code> was added to deal with causal or
+non-uniform padding. Ideally, we should merge these two arguments into a
+single <code class="xref py py-obj docutils literal notranslate"><span class="pre">mask</span></code>-like argument, which can be used simultaneously for both
+purposes. This requires to propagate the changes accordingly in all
+downstream methods and layers.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -2303,7 +2310,7 @@ layer and its children layers.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.StackedTransformerLayers.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#StackedTransformerLayers.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.StackedTransformerLayers.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_step_padding_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#StackedTransformerLayers.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.StackedTransformerLayers.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stacked Transformer layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2314,6 +2321,9 @@ its children layers.</p></li>
 <li><p><strong>paddings</strong> – [batch, target_time].</p></li>
 <li><p><strong>aux_vec</strong> – [batch, source_time, dim].</p></li>
 <li><p><strong>aux_paddings</strong> – [batch, source_time].</p></li>
+<li><p><strong>per_step_padding_override</strong> – A mask used by decoder self-attention to
+prevent information flow from future (causal padding). It has shape
+[batch, target_time, target_time] if not None.</p></li>
 <li><p><strong>segment_mask</strong> – [batch, 1, target_time, target_time]</p></li>
 <li><p><strong>aux_segment_mask</strong> – [batch, 1, target_time, source_time]</p></li>
 </ul>

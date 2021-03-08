@@ -653,6 +653,14 @@
                  <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute attention probability.</span>
 
+<span class="sd">    Note: We can currently pass a mask through both `segment_mask` and</span>
+<span class="sd">    `per_step_padding`. `segment_mask` was initially added to deal with packed</span>
+<span class="sd">    inputs, while `per_step_padding` was added to deal with causal or</span>
+<span class="sd">    non-uniform padding. Ideally, we should merge these two arguments into a</span>
+<span class="sd">    single `mask`-like argument, which can be used simultaneously for both</span>
+<span class="sd">    purposes. This requires to propagate the changes accordingly in all</span>
+<span class="sd">    downstream methods and layers.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
@@ -4468,6 +4476,7 @@
             <span class="n">paddings</span><span class="p">,</span>
             <span class="n">aux_vec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">per_step_padding_override</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">aux_segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Stacked Transformer layer.</span>
@@ -4479,6 +4488,9 @@
 <span class="sd">      paddings:       [batch, target_time].</span>
 <span class="sd">      aux_vec:        [batch, source_time, dim].</span>
 <span class="sd">      aux_paddings:   [batch, source_time].</span>
+<span class="sd">      per_step_padding_override: A mask used by decoder self-attention to</span>
+<span class="sd">        prevent information flow from future (causal padding). It has shape</span>
+<span class="sd">        [batch, target_time, target_time] if not None.</span>
 <span class="sd">      segment_mask:     [batch, 1, target_time, target_time]</span>
 <span class="sd">      aux_segment_mask: [batch, 1, target_time, source_time]</span>
 
@@ -4499,6 +4511,7 @@
               <span class="n">paddings</span><span class="p">,</span>
               <span class="n">aux_vec</span><span class="p">,</span>
               <span class="n">aux_paddings</span><span class="p">,</span>
+              <span class="n">per_step_padding_override</span><span class="o">=</span><span class="n">per_step_padding_override</span><span class="p">,</span>
               <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
               <span class="n">aux_segment_mask</span><span class="o">=</span><span class="n">aux_segment_mask</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">:</span>
