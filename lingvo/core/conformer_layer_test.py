@@ -117,8 +117,8 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
 
 class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
-  def setUp(self):
-    super().setUp()
+  def __init__(self, *args):
+    super().__init__(*args)
     self.batch = 2
     self.maxlen = 32
     self.dim = 4
@@ -164,11 +164,20 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('Base',),
       ('Reordered', 'conv_before_mhsa'),
+      ('NoLConv', 'mhsa', False),
+      ('NoFFStart', 'mhsa_before_conv', True, False),
+      ('Transformer', 'mhsa', False, False),
   )
-  def testBasic(self, layer_order='mhsa_before_conv'):
-
+  def testBasic(self,
+                layer_order='mhsa_before_conv',
+                has_lconv=True,
+                has_fflayer_start=True):
     p = self._GetParams()
     p.layer_order = layer_order
+    if not has_lconv:
+      p.lconv_tpl = None
+    if not has_fflayer_start:
+      p.fflayer_start_tpl = None
 
     l = p.Instantiate()
     inputs, paddings = self._GetInputs()
@@ -391,27 +400,35 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.assertAllClose(v1, v2, msg=k)
 
   @parameterized.named_parameters(
-      ('Basic', 8, 'SWISH'),
-      ('BasicReLU', 16, 'RELU'),
+      ('Basic', 8, 'SWISH', 0.5),
+      ('BasicReLU', 16, 'RELU', 1.),
   )
-  def testFFlayerParams(self, fflayer_hidden_dim=None, fflayer_activation=None):
+  def testFFlayerParams(self,
+                        fflayer_hidden_dim=None,
+                        fflayer_activation=None,
+                        fflayer_residual_weight=0.5):
 
     p = self._GetParams()
     p.fflayer_hidden_dim = fflayer_hidden_dim
     p.fflayer_activation = fflayer_activation
+    p.fflayer_residual_weight = fflayer_residual_weight
     layer = p.Instantiate()
 
     start_fflayer = layer.fflayer_start
     actual_start_hidden_dim = start_fflayer.params.hidden_dim
     actual_start_activation = start_fflayer.params.activation
+    actual_start_residual_weight = start_fflayer.params.residual_weight
     end_fflayer = layer.fflayer_end
     actual_end_hidden_dim = end_fflayer.params.hidden_dim
     actual_end_activation = end_fflayer.params.activation
+    actual_end_residual_weight = end_fflayer.params.residual_weight
 
     self.assertEqual(fflayer_hidden_dim, actual_start_hidden_dim)
     self.assertEqual(fflayer_activation, actual_start_activation)
+    self.assertEqual(fflayer_residual_weight, actual_start_residual_weight)
     self.assertEqual(fflayer_hidden_dim, actual_end_hidden_dim)
     self.assertEqual(fflayer_activation, actual_end_activation)
+    self.assertEqual(fflayer_residual_weight, actual_end_residual_weight)
 
   def testCommonParamsAbuse(self):
     """Checks CommonParams() is not called in __init__()."""
@@ -524,16 +541,41 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'norm_type': 'gn',
           'stride': 4
       },
+      {
+          'testcase_name': 'Reordered',
+          'layer_order': 'mhsa_before_conv'
+      },
+      {
+          'testcase_name': 'NoLConv',
+          'layer_order': 'mhsa',
+          'has_lconv': False
+      },
+      {
+          'testcase_name': 'NoFFStart',
+          'layer_order': 'conv_before_mhsa',
+          'has_fflayer_start': False
+      },
+      {
+          'testcase_name': 'Transformer',
+          'layer_order': 'mhsa',
+          'has_lconv': False,
+          'has_fflayer_start': False
+      },
   )
   def testStreamStep(self,
                      testonly_skip_norm_layers=False,
                      norm_type='ln',
                      num_groups=2,
-                     stride=1):
+                     stride=1,
+                     layer_order='conv_before_mhsa',
+                     has_lconv=True,
+                     has_fflayer_start=True):
     assert norm_type in ('ln', 'gn'), norm_type
     with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
                             ), cluster_factory.SetEval(True):
       batch, max_seqlen, input_dim, kernel = 2, 16, 8, 3
+      if layer_order == 'mhsa':
+        kernel = None
       num_heads, left_context, ffn_dim = 2, 3, 4
       p = conformer_layer.ConformerLayer.CommonParams(
           input_dim=input_dim,
@@ -544,12 +586,16 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           use_relative_atten=False,
           fflayer_hidden_dim=ffn_dim,
           kernel_size=kernel,
-          layer_order='conv_before_mhsa')
+          layer_order=layer_order)
       if norm_type == 'ln':
         p.lconv_tpl.conv_norm_layer_tpl = layers.LayerNorm.Params()
       else:
         p.lconv_tpl.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
             num_groups=num_groups, cumulative=True)
+      if not has_lconv:
+        p.lconv_tpl = None
+      if not has_fflayer_start:
+        p.fflayer_start_tpl = None
       p.name = 'conformer'
 
       l = p.Instantiate()

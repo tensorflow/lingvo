@@ -480,7 +480,7 @@ class ConformerLayer(base_layer.BaseLayer):
         'If use_relative_atten, sets the relative pos embedding dim.'
         'Default is the same as input_dim.')
     p.Define('layer_order', 'mhsa_before_conv',
-             'Only mhsa_before_conv or conv_before_mhsa are supported.')
+             'Only mhsa, mhsa_before_conv or conv_before_mhsa are supported.')
 
     # lconv layer
     p.Define('kernel_size', None, 'Kernel size of 1d lightweight conv.')
@@ -498,11 +498,13 @@ class ConformerLayer(base_layer.BaseLayer):
         layers_with_attention.TransformerFeedForwardLayer.Params(),
         'Layer params for Feed forward layer at the beginning. Supports '
         'using gshard_builder.MoEBuilder.Params() as well wherein the '
-        'MoE() will be used.')
+        'MoE() will be used. If set to None, this layer is excluded.')
     p.Define('trans_atten_tpl',
              attention_lib.TransformerAttentionLayer.Params(),
              'Self attention layer params.')
-    p.Define('lconv_tpl', LConvLayer.Params(), 'Convolution module params.')
+    p.Define(
+        'lconv_tpl', LConvLayer.Params(),
+        'Convolution module params. If set to None, this layer is excluded.')
     p.Define(
         'fflayer_end_tpl',
         layers_with_attention.TransformerFeedForwardLayer.Params(),
@@ -528,6 +530,7 @@ class ConformerLayer(base_layer.BaseLayer):
                    kernel_size=None,
                    fflayer_hidden_dim=None,
                    fflayer_activation='SWISH',
+                   fflayer_residual_weight=0.5,
                    layer_order='mhsa_before_conv',
                    dropout_prob=0.,
                    conv_norm_layer_tpl=None,
@@ -542,7 +545,11 @@ class ConformerLayer(base_layer.BaseLayer):
                    fflayer_end_tpl=None,
                    trans_atten_tpl=None,
                    lconv_tpl=None):
-    assert all([input_dim, atten_num_heads, kernel_size, fflayer_hidden_dim])
+    assert all([input_dim, atten_num_heads, fflayer_hidden_dim])
+    if layer_order == 'mhsa':
+      assert not any([kernel_size, conv_norm_layer_tpl, lconv_tpl])
+    else:
+      assert kernel_size
 
     if _AttenCtxIsSet(atten_local_context):
       assert not _AttenCtxIsSet(atten_left_context) and not _AttenCtxIsSet(
@@ -560,6 +567,7 @@ class ConformerLayer(base_layer.BaseLayer):
         use_relative_atten=use_relative_atten,
         fflayer_hidden_dim=fflayer_hidden_dim,
         fflayer_activation=fflayer_activation,
+        fflayer_residual_weight=fflayer_residual_weight,
         kernel_size=kernel_size,
         is_causal=is_causal,
         layer_order=layer_order,
@@ -592,7 +600,8 @@ class ConformerLayer(base_layer.BaseLayer):
     p.fprop_dtype = fprop_dtype
     for sub_p in (p.lconv_tpl, p.trans_atten_tpl, p.fflayer_start_tpl,
                   p.fflayer_end_tpl):
-      sub_p.cls.SetFPropDtype(sub_p, fprop_dtype)
+      if sub_p is not None:
+        sub_p.cls.SetFPropDtype(sub_p, fprop_dtype)
     return p
 
   @classmethod
@@ -614,19 +623,22 @@ class ConformerLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    assert p.layer_order in ['mhsa_before_conv', 'conv_before_mhsa']
+    assert p.layer_order in ['mhsa', 'mhsa_before_conv', 'conv_before_mhsa']
     if p.is_causal:
       # None is different from 0, the former is 'infinite'.
       assert p.atten_right_context is not None, (
           'is_causal is not compatible with infinite atten_right_context '
           '(None).')
+    if p.layer_order == 'mhsa':
+      assert not self.has_lconv, 'mhsa must not have a lconv block.'
 
-    fflayer_start_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
-        p.fflayer_start_tpl, 'fflayer_start')
-    if is_moe_layer:
-      self.CreateChild('fflayer_start_moe', fflayer_start_p)
-    else:
-      self.CreateChild('fflayer_start', fflayer_start_p)
+    if self.has_fflayer_start:
+      fflayer_start_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
+          p.fflayer_start_tpl, 'fflayer_start')
+      if is_moe_layer:
+        self.CreateChild('fflayer_start_moe', fflayer_start_p)
+      else:
+        self.CreateChild('fflayer_start', fflayer_start_p)
 
     fflayer_end_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
         p.fflayer_end_tpl, 'fflayer_end')
@@ -646,12 +658,25 @@ class ConformerLayer(base_layer.BaseLayer):
     self._ConfigSelfAttenParams(trans_atten_p)
     self.CreateChild('trans_atten', trans_atten_p)
 
-    lconv_p = p.lconv_tpl.Copy().Set(
-        input_dim=p.input_dim, kernel_size=p.kernel_size, is_causal=p.is_causal)
-    self.CreateChild('lconv', lconv_p)
+    if self.has_lconv:
+      lconv_p = p.lconv_tpl.Copy().Set(
+          input_dim=p.input_dim,
+          kernel_size=p.kernel_size,
+          is_causal=p.is_causal)
+      self.CreateChild('lconv', lconv_p)
 
     ln_p = p.final_ln_tpl.Copy().Set(name='final_ln', input_dim=p.input_dim)
     self.CreateChild('final_ln', ln_p)
+
+  # lconv and fflayer_start have the special treatment, which can be absent,
+  # because Transformer doesn't have those.
+  @property
+  def has_lconv(self):
+    return bool(self.params.lconv_tpl)
+
+  @property
+  def has_fflayer_start(self):
+    return bool(self.params.fflayer_start_tpl)
 
   def _ConfigSelfAttenParams(self, trans_atten_p):
     p = self.params
@@ -756,6 +781,8 @@ class ConformerLayer(base_layer.BaseLayer):
     return inputs, paddings
 
   def _LConv(self, theta, inputs, paddings):
+    assert self.has_lconv and self.params.layer_order != 'mhsa', (
+        'mhsa does not have a lconv block.')
     inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
     return inputs, paddings
 
@@ -817,9 +844,12 @@ class ConformerLayer(base_layer.BaseLayer):
       paddings = in_nmap.paddings
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap = py_utils.NestedMap()
-      in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
+      if self.has_fflayer_start:
+        in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
       inputs = in_nmap.features
-      if p.layer_order == 'mhsa_before_conv':
+      if p.layer_order == 'mhsa':
+        inputs, paddings = self._SelfAtten(theta, inputs, paddings)
+      elif p.layer_order == 'mhsa_before_conv':
         inputs, paddings = self._SelfAtten(theta, inputs, paddings)
         inputs, paddings = self._LConv(theta, inputs, paddings)
       else:
@@ -859,8 +889,10 @@ class ConformerLayer(base_layer.BaseLayer):
 
   def zero_state(self, batch_size):
     if self.params.is_causal:
-      with tf.name_scope('lconv'):
-        lconv_state = self.lconv.zero_state(batch_size)
+      lconv_state = py_utils.NestedMap()
+      if self.has_lconv:
+        with tf.name_scope('lconv'):
+          lconv_state = self.lconv.zero_state(batch_size)
       with tf.name_scope('atten'):
         atten_state = self.trans_atten.zero_state(batch_size)
       return py_utils.NestedMap(
@@ -885,26 +917,36 @@ class ConformerLayer(base_layer.BaseLayer):
     """
     p = self.params
     assert p.is_causal
-    assert p.layer_order == 'conv_before_mhsa'
     assert not p.remat
 
     with tf.name_scope(f'{p.name}/StreamStep'):
       in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
-      output_map = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
-      outputs = output_map.features
-      # lconv
-      outputs, paddings, lconv_state1 = self.lconv.StreamStep(
-          theta.lconv, outputs, paddings, state0.lconv_state)
+      if self.has_fflayer_start:
+        in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
+      inputs = in_nmap.features
 
-      # atten
-      outputs, paddings, atten_state1 = self.trans_atten.StreamStep(
-          theta.trans_atten, outputs, paddings, state0.atten_state)
+      if p.layer_order == 'mhsa':
+        inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
+            theta.trans_atten, inputs, paddings, state0.atten_state)
+      elif p.layer_order == 'mhsa_before_conv':
+        inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
+            theta.trans_atten, inputs, paddings, state0.atten_state)
+        inputs, paddings, lconv_state1 = self.lconv.StreamStep(
+            theta.lconv, inputs, paddings, state0.lconv_state)
+      else:
+        assert p.layer_order == 'conv_before_mhsa'
+        inputs, paddings, lconv_state1 = self.lconv.StreamStep(
+            theta.lconv, inputs, paddings, state0.lconv_state)
+        inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
+            theta.trans_atten, inputs, paddings, state0.atten_state)
+      if not self.has_lconv:
+        lconv_state1 = py_utils.NestedMap()
 
-      in_nmap.features = outputs
+      in_nmap.features = inputs
       in_nmap.paddings = paddings
-      output_map = self._MoeOrFFLayer(theta, 'fflayer_end', in_nmap)
-      outputs = output_map.features
-      outputs = self.final_ln.FProp(theta.final_ln, outputs)
+      in_nmap = self._MoeOrFFLayer(theta, 'fflayer_end', in_nmap)
+      inputs = in_nmap.features
+      outputs = self.final_ln.FProp(theta.final_ln, inputs)
 
       state1 = py_utils.NestedMap(
           lconv_state=lconv_state1, atten_state=atten_state1)
