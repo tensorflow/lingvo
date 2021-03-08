@@ -120,6 +120,13 @@ class BaseProgram:
     # implementation without creating a default FileWriter in the constructor.
     if self._summary_writer_obj is None:
       self._summary_writer_obj = tf.summary.FileWriter(self._program_dir)
+      # Apply a custom Tensorboard layout for input data stats if writing
+      # TF summaries for input data stats is enabled and a custom layout is
+      # defined by the input generator.
+      if (self._task.input.input_data_summary_layout is not None and
+          self._write_train_input_stats):
+        self._summary_writer_obj.add_summary(
+            self._task.input.input_data_summary_layout)
     return self._summary_writer_obj
 
   def _SummarizeValue(self, steps, tag, value):
