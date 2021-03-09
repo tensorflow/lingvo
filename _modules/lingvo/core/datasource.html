@@ -791,6 +791,15 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of TFDatasetSource to mix.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of weights for each datasource.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;broadcast_dataset_structures&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Attempt to make the output dataset structures compatible. &#39;</span>
+        <span class="s1">&#39;For example, if one of the datasources has a key none of the &#39;</span>
+        <span class="s1">&#39;other datasources have, add that key to the other datasources &#39;</span>
+        <span class="s1">&#39;with tf.zeros() with a compatible shape. If a fully defined &#39;</span>
+        <span class="s1">&#39;shape cannot be determined, unknown dimensions will have size 1, &#39;</span>
+        <span class="s1">&#39;with the assumption that this will be consolidated later, e.g. &#39;</span>
+        <span class="s1">&#39;with a call to dataset.padded_batch().&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -809,6 +818,41 @@
       <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
           <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">SetSourceId</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
           <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">broadcast_dataset_structures</span><span class="p">:</span>
+      <span class="n">expected_structure</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;broadcast_dataset_structures only supports flat structures.&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">expected_structure</span><span class="p">:</span>
+            <span class="n">expected_structure</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">expected_structure</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">is_compatible_with</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+              <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Incompatible dataset specs for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">: &#39;</span>
+                               <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">expected_structure</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s1"> vs </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+            <span class="n">expected_structure</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">expected_structure</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">most_specific_compatible_type</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;broadcast_dataset_structures: expected_structure&#39;</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">expected_structure</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">BroadcastStructure</span><span class="p">(</span><span class="n">element</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">expected_structure</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">element</span><span class="p">:</span>
+            <span class="c1"># Replace None dims with 1 and hope it will be broadcasted correctly</span>
+            <span class="c1"># (eg. via padded_batch()) later -- it should lead to an error later</span>
+            <span class="c1"># on in the pipeline if this assumption is incorrect.</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()]</span>
+            <span class="n">element</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">element</span>
+
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)):</span>
+        <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="n">BroadcastStructure</span><span class="p">,</span>
+            <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">sample_from_datasets</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
                                                      <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span></div></div>
