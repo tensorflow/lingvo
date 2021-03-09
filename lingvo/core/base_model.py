@@ -257,7 +257,6 @@ class BaseTask(base_layer.BaseLayer):
     self._decoder = None
 
     self._loss = None
-    self._num_predictions = None
     self._train_op = None
     self._post_train_ops = []
     self._eval_metrics = {}
@@ -530,7 +529,7 @@ class BaseTask(base_layer.BaseLayer):
   def _FPropResult(self, metrics, per_example):
     # Adds stats about the input batch.
     p = self._params
-    if p.input is not None:
+    if p.input is not None and 'num_samples_in_batch' not in metrics:
       metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
           self.input_generator.GlobalBatchSize()), tf.constant(1.0))
     # Generates summaries.
@@ -540,10 +539,11 @@ class BaseTask(base_layer.BaseLayer):
     for name, value in per_example.items():
       self.AddPerExampleTensor(name, value)
     # Loss.
-    self._loss, self._num_predictions = metrics['loss']
+    self._loss, num_predictions = metrics['loss']
     self._loss = py_utils.CheckNumerics(self._loss)
     self._metrics = metrics
-    summary_utils.scalar('num_predictions', self._num_predictions)
+    if 'num_predictions' not in metrics:
+      summary_utils.scalar('num_predictions', num_predictions)
 
   def GetInputBatch(self):
     """Gets an input batch."""
