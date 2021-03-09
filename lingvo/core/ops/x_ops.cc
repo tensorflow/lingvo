@@ -247,8 +247,8 @@ REGISTER_OP("TopKTerminatedHyps")
     .Attr("length_normalization: float")
     .Attr("coverage_penalty: float")
     .Attr("target_seq_length_ratio: float=1.0")
-    .Attr("eoc_id: int=-1")
-    .Attr("merge_paths: bool = false")
+    .Attr("eoc_id: int=-1")  // unused and deprecated
+    .Attr("merge_paths: bool = false")  // unused and deprecated
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       auto batch_size = c->Dim(c->input(1), 0);
       int k;
@@ -281,12 +281,6 @@ length_normalization: The length normalization ratio.
 coverage_penalty: The alpha value for coverage penalty.
 target_seq_length_ratio: Ratio of the average target sequence length
     over the average source sequence length.
-eoc_id: Token id of the special end of chunk or blank (epsilon) token. -1 means
-    this model does not use epsilon.
-merge_paths: If true, hyps which are identical when epsilons are removed will
-    be combined into a single hyp. The probability for that combined hyp will
-    be the sum of the probabilities of the component hyps. This can only be
-    applied for epsilon-emitting models (RNN-T and NT).
 )doc");
 
 REGISTER_OP("UnpackHyp")
@@ -726,7 +720,6 @@ keys: A list of keys indicating the name of preconditioners.
 sync: Boolean indicating whether to run preconditioning in synchronous mode.
 num_tensors: Number of tensor inputs.
 )doc");
-
 
 REGISTER_OP("GetPreconditioners")
     .Input("shapes: num_tensors * Tshape")

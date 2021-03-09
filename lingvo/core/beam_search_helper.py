@@ -528,9 +528,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
         num_hyps_per_beam=num_hyps_per_beam,
         length_normalization=p.length_normalization,
         coverage_penalty=p.coverage_penalty,
-        target_seq_length_ratio=p.target_seq_length_ratio,
-        eoc_id=p.target_eoc_id,
-        merge_paths=p.merge_paths)
+        target_seq_length_ratio=p.target_seq_length_ratio)
     # [num_beams * num_hyps_per_beam, ...].
     max_seq_length = 0 if isinstance(max_steps, tf.Tensor) else max_steps
     topk_ids, topk_lens, topk_scores = ops.unpack_hyp(

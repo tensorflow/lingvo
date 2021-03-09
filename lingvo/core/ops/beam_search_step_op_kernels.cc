@@ -733,9 +733,6 @@ class TopKTerminatedHypsOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("coverage_penalty", &coverage_penalty_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("target_seq_length_ratio",
                                      &target_seq_length_ratio_));
-    // TODO(anjuli): Remove eoc_id_ which is no longer used.
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("eoc_id", &eoc_id_));
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("merge_paths", &merge_paths_));
     CHECK_GE(length_normalization_, 0.0);
     CHECK_GE(target_seq_length_ratio_, 0.0);
     CHECK_GE(coverage_penalty_, 0);
@@ -880,8 +877,6 @@ class TopKTerminatedHypsOp : public OpKernel {
   float coverage_penalty_;
   float target_seq_length_ratio_;
   int32 k_;
-  int32 eoc_id_;
-  bool merge_paths_ = false;
 };
 
 REGISTER_KERNEL_BUILDER(Name("TopKTerminatedHyps").Device(DEVICE_CPU),
