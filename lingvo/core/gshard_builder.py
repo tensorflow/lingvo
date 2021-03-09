@@ -1641,7 +1641,8 @@ class DenseBuilder(MoEBuilder):
       num_devices = np.product(p.device_mesh_shape)
       device_mesh = np.reshape(np.arange(0, num_devices), p.device_mesh_shape)
     elif p.device_mesh_shape is not None:
-      assert p.device_mesh_shape == list(device_mesh.shape)
+      assert p.device_mesh_shape == list(
+          device_mesh.shape), (p.device_mesh_shape, list(device_mesh.shape))
     return device_mesh
 
   def _MeshSplit(self, x, tensor_split_dims_mapping):
