@@ -50,12 +50,13 @@ def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
     A DecoderTopK instance.
   """
   hyps = decoder_outs.topk_hyps
-  ids = tf.identity(decoder_outs.topk_ids, name='TopKLabelIds' + tag)
+  ids = decoder_outs.topk_ids
   lens = tf.identity(decoder_outs.topk_lens, name='TopKLabelLengths' + tag)
   scores = decoder_outs.topk_scores
   decoded = decoder_outs.topk_decoded
 
-  if ids is not None:
+  if decoder_outs.topk_ids is not None:
+    ids = tf.identity(ids, name='TopKLabelIds' + tag)
     decoded = ids_to_strings_fn(ids, lens - 1)
     decoded = tf.identity(decoded, name='top_k_decoded%s' % tag)
     decoded = tf.reshape(decoded, tf.shape(hyps))

@@ -127,9 +127,12 @@ class BaseBeamSearchDecoder(BaseDecoder):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    p.beam_search.target_seq_len = p.target_seq_len
-    p.beam_search.target_sos_id = p.target_sos_id
-    p.beam_search.target_eos_id = p.target_eos_id
+    if hasattr(p.beam_search, 'target_seq_len'):
+      p.beam_search.target_seq_len = p.target_seq_len
+    if hasattr(p.beam_search, 'target_sos_id'):
+      p.beam_search.target_sos_id = p.target_sos_id
+    if hasattr(p.beam_search, 'target_eos_id'):
+      p.beam_search.target_eos_id = p.target_eos_id
     self.CreateChild('beam_search', p.beam_search)
     p.greedy_search.target_seq_len = p.target_seq_len
     p.greedy_search.target_sos_id = p.target_sos_id
