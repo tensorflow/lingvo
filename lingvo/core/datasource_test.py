@@ -113,6 +113,18 @@ class TestFileInputGenerator(base_input_generator.BaseInputGeneratorFromFiles):
     return inputs
 
 
+class ConstantTFDatasetSource(datasource.TFDatasetSource):
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('output', py_utils.NestedMap(), 'The output.')
+    return p
+
+  def GetDataset(self):
+    return tf.data.Dataset.from_tensors(self.params.output).repeat()
+
+
 class DatasourceTest(test_utils.TestCase):
 
   @classmethod
@@ -646,6 +658,65 @@ class TFDatasetSourceTest(test_utils.TestCase):
       self.assertAllEqual(sorted(files), sorted(self.files * 2))
       with self.assertRaises(tf.errors.OutOfRangeError):
         self.evaluate(batch)
+
+  def testTFDatasetMixerBroadcast(self):
+    a = tf.zeros([1], dtype=tf.float32)
+    b = tf.zeros([2], dtype=tf.int32)
+    c = tf.zeros([3], dtype=tf.string)
+    ds1 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(a=a, b=b))
+    ds2 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(a=a, c=c))
+    ds3 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(b=b, c=c))
+
+    ds_params = datasource.TFDatasetMixer.Params().Set(
+        sub=[ds1, ds2, ds3], broadcast_dataset_structures=True)
+
+    with self.session():
+      ds = ds_params.Instantiate()
+      batch = self.evaluate(ds.GetNext())
+
+    for key in ['a', 'b', 'c']:
+      self.assertIn(key, batch.keys())
+
+  def testTFDatasetMixerBroadcast_ShapeMismatch(self):
+    a = tf.zeros([1], dtype=tf.float32)
+    b = tf.zeros([2], dtype=tf.int32)
+    c = tf.zeros([3], dtype=tf.string)
+    ds1 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(a=a, b=b))
+    ds2 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(a=tf.zeros([1, 1], dtype=tf.float32), c=c))
+    ds3 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(b=b, c=c))
+
+    ds_params = datasource.TFDatasetMixer.Params().Set(
+        sub=[ds1, ds2, ds3], broadcast_dataset_structures=True)
+
+    with self.session():
+      ds = ds_params.Instantiate()
+      with self.assertRaisesRegex(ValueError, 'Incompatible dataset specs'):
+        self.evaluate(ds.GetNext())
+
+  def testTFDatasetMixerBroadcast_DTypeMismatch(self):
+    a = tf.zeros([1], dtype=tf.float32)
+    b = tf.zeros([2], dtype=tf.int32)
+    c = tf.zeros([3], dtype=tf.string)
+    ds1 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(a=a, b=b))
+    ds2 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(a=tf.zeros([1], dtype=tf.float64), c=c))
+    ds3 = ConstantTFDatasetSource.Params().Set(
+        output=py_utils.NestedMap(b=b, c=c))
+
+    ds_params = datasource.TFDatasetMixer.Params().Set(
+        sub=[ds1, ds2, ds3], broadcast_dataset_structures=True)
+
+    with self.session():
+      ds = ds_params.Instantiate()
+      with self.assertRaisesRegex(ValueError, 'Incompatible dataset specs'):
+        self.evaluate(ds.GetNext())
 
 
 class TFDSMnistInputGenerator(base_input_generator.BaseInputGenerator):

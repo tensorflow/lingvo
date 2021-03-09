@@ -639,6 +639,15 @@ class TFDatasetMixer(TFDatasetSource):
     p = super().Params()
     p.Define('sub', None, 'A list of TFDatasetSource to mix.')
     p.Define('weights', None, 'A list of weights for each datasource.')
+    p.Define(
+        'broadcast_dataset_structures', False,
+        'Attempt to make the output dataset structures compatible. '
+        'For example, if one of the datasources has a key none of the '
+        'other datasources have, add that key to the other datasources '
+        'with tf.zeros() with a compatible shape. If a fully defined '
+        'shape cannot be determined, unknown dimensions will have size 1, '
+        'with the assumption that this will be consolidated later, e.g. '
+        'with a call to dataset.padded_batch().')
     return p
 
   def __init__(self, params):
@@ -657,6 +666,41 @@ class TFDatasetMixer(TFDatasetSource):
       datasets[i] = datasets[i].map(
           functools.partial(SetSourceId, i),
           num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    if p.broadcast_dataset_structures:
+      expected_structure = {}
+      for dataset in datasets:
+        for key, value in tf.data.experimental.get_structure(dataset).items():
+          if not isinstance(value, tf.TensorSpec):
+            raise ValueError(
+                'broadcast_dataset_structures only supports flat structures.')
+          if key not in expected_structure:
+            expected_structure[key] = value
+          else:
+            if not expected_structure[key].is_compatible_with(value):
+              raise ValueError(f'Incompatible dataset specs for key {key}: '
+                               f'{expected_structure[key]} vs {value}.')
+            expected_structure[key] = (
+                expected_structure[key].most_specific_compatible_type(value))
+
+      tf.logging.info('broadcast_dataset_structures: expected_structure')
+      for key, value in expected_structure.items():
+        tf.logging.info(f'{key}: {value}')
+
+      def BroadcastStructure(element):
+        for key, value in expected_structure.items():
+          if key not in element:
+            # Replace None dims with 1 and hope it will be broadcasted correctly
+            # (eg. via padded_batch()) later -- it should lead to an error later
+            # on in the pipeline if this assumption is incorrect.
+            shape = [1 if x is None else x for x in value.shape.as_list()]
+            element[key] = tf.zeros(shape, dtype=value.dtype)
+        return element
+
+      for i in range(len(datasets)):
+        datasets[i] = datasets[i].map(
+            BroadcastStructure,
+            num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     return tf.data.experimental.sample_from_datasets(datasets, p.weights,
                                                      p.random_seed or None)
