@@ -937,6 +937,8 @@ Boolean indicating whether to run preconditioning in synchronous mode.</p></li>
 <code class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></code><code class="sig-name descname"><span class="pre">pack_sequences</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_actual_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt_actual_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed_batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed_src_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed_tgt_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.pack_sequences" title="Permalink to this definition">¶</a></dt>
 <dd><p>Produces a packing pattern for the (src, tgt) input pair with the provided</p>
 <p>lengths, according to the given packed shape.</p>
+<p>If only a single input sequence is used and a fixed output batch size is not
+required, consider using the simpler PackSingleSequence op.</p>
 <p>For example, the following input:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">src_actual_seq_len</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="n">tgt_actual_seq_len</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
@@ -972,6 +974,8 @@ the following input:</p>
 <span class="n">tgt_indices_in_input</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="p">]</span>
 </pre></div>
 </div>
+<p>If packed_batch_size is set to 0, output will be of variable batch
+size, determined by the number of row needed to pack all given inputs.</p>
 <p>If there are too few input sequences to pack into <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>, the op pads
 the remaining elements in the output.</p>
 <p>If there are too many input sequences to pack into <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>, the op drops
@@ -1041,11 +1045,52 @@ When needed, use <code class="xref py py-obj docutils literal notranslate"><span
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.ops.pack_single_sequence">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></code><code class="sig-name descname"><span class="pre">pack_single_sequence</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_packed_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_sequential_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.pack_single_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces a packing pattern with the provided <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_lengths</span></code>.</p>
+<p>Examples are packed into sequences not exceeding max_packed_length. The number
+of sequences in the output is dynamic. No examples are dropped.</p>
+<p>If x and y are packed together, and if x comes before y in <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_lengths</span></code>, it
+is guaranteed that x will come before y in the packed sequence. That is,
+it is guaranteed that each row of <code class="xref py py-obj docutils literal notranslate"><span class="pre">indices_in_input</span></code> is non-descending.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [batch_size], containing actual lengths for the
+input examples. All input lengths must be no larger than <code class="xref py py-obj docutils literal notranslate"><span class="pre">max_packed_length</span></code>.</p></li>
+<li><p><strong>max_packed_length</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+A scalar. The maximum length of a packed sequence. The output
+will have the length dimension padded to this value.</p></li>
+<li><p><strong>require_sequential_order</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+A boolean. If true, the input will be packed in order
+(fill the first output before moving to the next one). If false, the input
+examples can be reordered for better packing.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (segment_ids, indices_in_input).</p>
+<dl class="simple">
+<dt>segment_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, max_packed_length]. Incrementing from 1
+to indicate segments in the packed output. Zero indicates padding at the end.</p>
+</dd>
+<dt>indices_in_input: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, max_packed_length]. For each segment in
+the packed output, it contains the original (zero-based) index of each input
+segment.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.ops.apply_packing">
 <code class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></code><code class="sig-name descname"><span class="pre">apply_packing</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices_in_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.apply_packing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies a packing pattern on the input to obtain a packed output.</p>
-<p>The input can be either a matrix, in which case the output is also a (shorter)
-matrix, where the elements are rearranged according to the packing pattern;
+<p>The input can be either a matrix or higher dimension, in which case the output
+is shorter and the elements are rearranged according to the packing pattern;
 or the input can be a vector, in which case the output is a shorter vector,
 where each position is the sum of the elements packed on that same row.</p>
 <p>When T is tf.string type, only the vector input is supported and the output
@@ -1059,8 +1104,8 @@ processed together within the same op.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>.
-A tensor of shape [N, seq_len] or [N]. The input to apply the packing to.
-For tf.string typed input, only a vector of shape [N] is supported.</p></li>
+A tensor of shape [N, seq_len, …] or [N]. The input to apply the
+packing to. For tf.string typed input only a vector of shape [N] is supported.</p></li>
 <li><p><strong>padding</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#input" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></a>.
 A scalar to indicate the padding value. This is typically the zero
 value of T, but may not always be the case, e.g. when the input is a paddings
@@ -1068,17 +1113,17 @@ tensor, in which case caller should set padding=1.
 For tf.string typed input, padding is used as a separator to join all the
 strings on the same row in the output.</p></li>
 <li><p><strong>segment_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
-A rank 2 tensor of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>.</p></li>
+A rank 2 tensor of shape [M, packed_seq_len].</p></li>
 <li><p><strong>indices_in_input</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
-A rank 2 tensor of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>.</p></li>
+A rank 2 tensor of shape [M, packed_seq_len].</p></li>
 <li><p><strong>name</strong> – A name for the operation (optional).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Has the same type as <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#input" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></a>.
-A tensor of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>. For tf.string typed input, the output
-is a vector of strings where its length is the same as the number of rows in
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>.</p>
+A tensor of shape [M, packed_seq_len, …], where the later dimensions match
+those of <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#input" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></a>. For tf.string typed input, the output is a vector of strings
+of shape [M].</p>
 </dd>
 </dl>
 </dd></dl>
