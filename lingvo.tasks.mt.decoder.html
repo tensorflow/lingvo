@@ -576,6 +576,26 @@ aligned output in terms of number of sentences.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.MTDecoderV1._UpdateLogitsForSingleTokenFastDecode">
+<code class="sig-name descname"><span class="pre">_UpdateLogitsForSingleTokenFastDecode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_single_token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._UpdateLogitsForSingleTokenFastDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._UpdateLogitsForSingleTokenFastDecode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update ‘log_probs’ to enable fast decode for single token inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log_probs</strong> – encoder’s log_probs output, shape [tgt_batch, vocab_size].</p></li>
+<li><p><strong>is_single_token</strong> – [src_batch], whether the input contains only a single
+token.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – int, num_hyps_per_beam * src_batch = tgt_batch.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The updated log_probs (score used for beam search) which ensures
+fast decoding when input has a single token.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">

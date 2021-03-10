@@ -594,6 +594,13 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;sentence_boundary_token_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;None, or an int. The token id that separates different sentences.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(b/181916643): ensure this works with TPU beam search, which it does</span>
+    <span class="c1"># not currently for unknown reasons.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;single_token_fast_decode&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;bool. When enabled, for input of length 1, decoding completes in 1 &#39;</span>
+        <span class="s1">&#39;step. This reserves a special sentinel input with fast beam search. &#39;</span>
+        <span class="s1">&#39;It can be used to pad inputs to a fixed batch size.&#39;</span><span class="p">)</span>
 
     <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mf">0.04</span><span class="p">)</span>
@@ -1104,6 +1111,18 @@
       <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ForceAlignment</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">source_num_sentences</span><span class="p">,</span>
                                        <span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">])</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">single_token_fast_decode</span><span class="p">:</span>
+      <span class="n">input_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">is_single_token</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">input_lengths</span><span class="p">,</span>
+                                           <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_lengths</span><span class="p">))</span>
+      <span class="n">any_single_token</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">is_single_token</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">_NewLogProbs</span><span class="p">():</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateLogitsForSingleTokenFastDecode</span><span class="p">(</span>
+            <span class="n">log_probs</span><span class="p">,</span> <span class="n">is_single_token</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+
+      <span class="n">log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">any_single_token</span><span class="p">,</span> <span class="n">_NewLogProbs</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">log_probs</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_prev_atten_ctx</span><span class="p">:</span>
       <span class="n">cur_atten_probs</span> <span class="o">=</span> <span class="n">prev_atten_probs</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1177,7 +1196,35 @@
         <span class="n">new_log_probs</span><span class="p">[:,</span> <span class="n">boundary_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
     <span class="p">],</span>
                               <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">new_log_probs</span></div></div>
+    <span class="k">return</span> <span class="n">new_log_probs</span></div>
+
+<div class="viewcode-block" id="MTDecoderV1._UpdateLogitsForSingleTokenFastDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._UpdateLogitsForSingleTokenFastDecode">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateLogitsForSingleTokenFastDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">,</span> <span class="n">is_single_token</span><span class="p">,</span>
+                                            <span class="n">num_hyps_per_beam</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update &#39;log_probs&#39; to enable fast decode for single token inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      log_probs: encoder&#39;s log_probs output, shape [tgt_batch, vocab_size].</span>
+<span class="sd">      is_single_token: [src_batch], whether the input contains only a single</span>
+<span class="sd">        token.</span>
+<span class="sd">      num_hyps_per_beam: int, num_hyps_per_beam * src_batch = tgt_batch.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The updated log_probs (score used for beam search) which ensures</span>
+<span class="sd">      fast decoding when input has a single token.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">is_single_token</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">is_single_token</span><span class="p">,</span> <span class="n">multiples</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">])</span>
+    <span class="c1"># Shape [tgt_batch, vocab_size]</span>
+    <span class="n">is_single_token_2d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">is_single_token</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">v</span><span class="p">])</span>
+    <span class="c1"># Updated log_probs concentrates on eos_id entirely.</span>
+    <span class="n">eos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">target_eos_id</span>
+    <span class="n">is_eos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="o">*</span> <span class="n">eos_id</span><span class="p">)</span>
+    <span class="n">is_eos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">is_eos</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">large_neg_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
+    <span class="n">new_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_eos</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">large_neg_probs</span><span class="p">),</span>
+                             <span class="n">large_neg_probs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_single_token_2d</span><span class="p">,</span> <span class="n">new_log_probs</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerDecoder"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">TransformerDecoder</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">):</span>
