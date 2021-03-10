@@ -548,6 +548,11 @@
 <div class="viewcode-block" id="MTDecoderV1"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1">[docs]</a><span class="k">class</span> <span class="nc">MTDecoderV1</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;MT decoder v1.&quot;&quot;&quot;</span>
 
+  <span class="c1"># We scale a float&#39;s dtype.max by this amount to stand in for a</span>
+  <span class="c1"># sufficiently large number. This is chosen such that for log_prob values,</span>
+  <span class="c1"># accumulating it over beam search steps will not cause numerical issues.</span>
+  <span class="n">_FLOAT_DTYPE_MAX_SCALER</span> <span class="o">=</span> <span class="mf">0.00001</span>
+
 <div class="viewcode-block" id="MTDecoderV1.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -594,8 +599,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;sentence_boundary_token_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;None, or an int. The token id that separates different sentences.&#39;</span><span class="p">)</span>
-    <span class="c1"># TODO(b/181916643): ensure this works with TPU beam search, which it does</span>
-    <span class="c1"># not currently for unknown reasons.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;single_token_fast_decode&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;bool. When enabled, for input of length 1, decoding completes in 1 &#39;</span>
@@ -1178,7 +1181,8 @@
     <span class="c1"># the current hyp contains fewer sentences than expected to disallow</span>
     <span class="c1"># eos in such misaligned cases.</span>
     <span class="n">large_negative_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">log_probs</span><span class="p">[:,</span> <span class="n">eos_id</span><span class="p">])</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
-        <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
+        <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_FLOAT_DTYPE_MAX_SCALER</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
     <span class="n">eos_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">source_num_sentences</span><span class="p">,</span> <span class="n">hyp_num_sentences</span><span class="p">),</span>
         <span class="n">large_negative_value</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">[:,</span> <span class="n">eos_id</span><span class="p">])</span>
@@ -1221,7 +1225,8 @@
     <span class="n">is_eos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="o">*</span> <span class="n">eos_id</span><span class="p">)</span>
     <span class="n">is_eos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">is_eos</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="n">large_neg_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">log_probs</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
-        <span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
+        <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_FLOAT_DTYPE_MAX_SCALER</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
     <span class="n">new_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_eos</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">large_neg_probs</span><span class="p">),</span>
                              <span class="n">large_neg_probs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_single_token_2d</span><span class="p">,</span> <span class="n">new_log_probs</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">)</span></div></div>
