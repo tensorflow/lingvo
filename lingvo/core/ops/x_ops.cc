@@ -17,6 +17,7 @@ limitations under the License.
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/types.pb.h"
+#include "tensorflow/core/lib/core/errors.h"
 #include "x_ops_helper.h"
 
 namespace tensorflow {
@@ -809,6 +810,9 @@ REGISTER_OP("PackSequences")
 Produces a packing pattern for the (src, tgt) input pair with the provided
 lengths, according to the given packed shape.
 
+If only a single input sequence is used and a fixed output batch size is not
+required, consider using the simpler PackSingleSequence op.
+
 For example, the following input::
 
   src_actual_seq_len = [3, 2, 1]
@@ -843,6 +847,9 @@ will result in::
   tgt_segment_ids = [ [1, 1, 1, 1, 0, 0], [1, 2, 2, 2, 2, 2] ]
   tgt_segment_pos = [ [0, 1, 2, 3, 0, 0], [0, 0, 1, 2, 3, 4] ]
   tgt_indices_in_input = [ [0, 0, 0, 0, 0, 0], [1, 2, 2, 2, 2, 2] ]
+
+If packed_batch_size is set to 0, output will be of variable batch
+size, determined by the number of row needed to pack all given inputs.
 
 If there are too few input sequences to pack into `output_shape`, the op pads
 the remaining elements in the output.
@@ -895,6 +902,46 @@ seed: Seed for random number generator, which is used when we need to drop
   excessive input sequences. If seed is zero, use completely random seed.
 )doc");
 
+REGISTER_OP("PackSingleSequence")
+    .Input("input_lengths: int32")
+    .Attr("max_packed_length: int")
+    .Attr("require_sequential_order: bool = false")
+    .Output("segment_ids: int32")
+    .Output("indices_in_input: int32")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      shape_inference::DimensionHandle batch_dim = c->UnknownDim();
+      int max_packed_length;
+      TF_RETURN_IF_ERROR(c->GetAttr("max_packed_length", &max_packed_length));
+      c->set_output(0, c->Matrix(batch_dim, max_packed_length));
+      c->set_output(1, c->Matrix(batch_dim, max_packed_length));
+      return Status::OK();
+    })
+    .Doc(R"doc(
+Produces a packing pattern with the provided `input_lengths`.
+
+Examples are packed into sequences not exceeding max_packed_length. The number
+of sequences in the output is dynamic. No examples are dropped.
+
+If x and y are packed together, and if x comes before y in `input_lengths`, it
+is guaranteed that x will come before y in the packed sequence. That is,
+it is guaranteed that each row of `indices_in_input` is non-descending.
+
+input_lengths: A tensor of shape [batch_size], containing actual lengths for the
+  input examples. All input lengths must be no larger than `max_packed_length`.
+max_packed_length: A scalar. The maximum length of a packed sequence. The output
+  will have the length dimension padded to this value.
+require_sequential_order: A boolean. If true, the input will be packed in order
+  (fill the first output before moving to the next one). If false, the input
+  examples can be reordered for better packing.
+segment_ids:
+  A tensor of shape [packed_batch_size, max_packed_length]. Incrementing from 1
+  to indicate segments in the packed output. Zero indicates padding at the end.
+indices_in_input:
+  A tensor of shape [packed_batch_size, max_packed_length]. For each segment in
+  the packed output, it contains the original (zero-based) index of each input
+  segment.
+)doc");
+
 REGISTER_OP("ApplyPacking")
     .Input("input: T")
     .Input("padding: T")
@@ -904,13 +951,36 @@ REGISTER_OP("ApplyPacking")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       DataType dtype;
       TF_RETURN_IF_ERROR(c->GetAttr("T", &dtype));
+
+      if (c->Rank(c->input(1)) != 0) {
+        return errors::InvalidArgument(
+            "padding must be a scalar, got padding shape: ",
+            c->DebugString(c->input(1)));
+      }
+
+      if (c->Rank(c->input(2)) != 2 || c->Rank(c->input(3)) != 2 ||
+          c->Value(c->Dim(c->input(2), 0)) !=
+              c->Value(c->Dim(c->input(3), 0)) ||
+          c->Value(c->Dim(c->input(2), 1)) !=
+              c->Value(c->Dim(c->input(3), 1))) {
+        return errors::InvalidArgument(
+            "segment_ids and indices_in_input must be "
+            "matrices of the same shape, got: ",
+            c->DebugString(c->input(2)), " vs. ", c->DebugString(c->input(3)));
+      }
+
+      const auto batch_size = c->Dim(c->input(2), 0);
+      const auto output_length = c->Dim(c->input(2), 1);
       if (c->Rank(c->input(0)) == 1 || dtype == DT_STRING) {
-        const auto batch_size = c->Dim(c->input(2), 0);
         c->set_output(0, c->Vector(batch_size));
-      } else if (c->Rank(c->input(0)) == 2) {
-        c->set_output(0, c->input(2));
       } else {
-        return shape_inference::UnknownShape(c);
+        const shape_inference::ShapeHandle& input_shape = c->input(0);
+        shape_inference::ShapeHandle output_shape;
+        TF_RETURN_IF_ERROR(
+            c->ReplaceDim(input_shape, 0, batch_size, &output_shape));
+        TF_RETURN_IF_ERROR(
+            c->ReplaceDim(output_shape, 1, output_length, &output_shape));
+        c->set_output(0, output_shape);
       }
       return Status::OK();
     })
@@ -918,8 +988,8 @@ REGISTER_OP("ApplyPacking")
     .Doc(R"doc(
 Applies a packing pattern on the input to obtain a packed output.
 
-The input can be either a matrix, in which case the output is also a (shorter)
-matrix, where the elements are rearranged according to the packing pattern;
+The input can be either a matrix or higher dimension, in which case the output
+is shorter and the elements are rearranged according to the packing pattern;
 or the input can be a vector, in which case the output is a shorter vector,
 where each position is the sum of the elements packed on that same row.
 
@@ -933,20 +1003,20 @@ Note that ApplyPacking is done on a per column basis (either on the src or on
 the tgt), as opposed to in PackSequences, when both src and tgt columns must be
 processed together within the same op.
 
-input: A tensor of shape [N, seq_len] or [N]. The input to apply the packing to.
-  For tf.string typed input, only a vector of shape [N] is supported.
+input: A tensor of shape [N, seq_len, ...] or [N]. The input to apply the
+  packing to. For tf.string typed input only a vector of shape [N] is supported.
 padding: A scalar to indicate the padding value. This is typically the zero
   value of T, but may not always be the case, e.g. when the input is a paddings
   tensor, in which case caller should set padding=1.
   For tf.string typed input, padding is used as a separator to join all the
   strings on the same row in the output.
-segment_ids: A rank 2 tensor of shape `output_shape`.
-indices_in_input: A rank 2 tensor of shape `output_shape`.
+segment_ids: A rank 2 tensor of shape [M, packed_seq_len].
+indices_in_input: A rank 2 tensor of shape [M, packed_seq_len].
 
 output:
-  A tensor of shape `output_shape`. For tf.string typed input, the output
-  is a vector of strings where its length is the same as the number of rows in
-  `output_shape`.
+  A tensor of shape [M, packed_seq_len, ...], where the later dimensions match
+  those of `input`. For tf.string typed input, the output is a vector of strings
+  of shape [M].
 )doc");
 
 REGISTER_OP("Mass")

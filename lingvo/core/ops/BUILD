@@ -453,10 +453,10 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":ops",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 

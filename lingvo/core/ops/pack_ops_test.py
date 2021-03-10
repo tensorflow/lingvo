@@ -17,6 +17,7 @@
 
 import collections
 
+from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
@@ -131,7 +132,7 @@ class PackSequencesOpTest(test_utils.TestCase):
                                     [8, 9, 9, 9, 9], [10, 10, 10, 0, 0]])
     }
     for name, test in test_cases.items():
-      with self.session() as sess:
+      with self.subTest(name=name), self.session() as sess:
         r = sess.run(
             ops.pack_sequences(
                 tf.constant(test.src_actual_seq_len, tf.int32),
@@ -265,7 +266,90 @@ class PackSequencesOpTest(test_utils.TestCase):
               idx, counts))
 
 
-class ApplyPackingOpTest(test_utils.TestCase):
+class PackSingleSequenceOpTest(test_utils.TestCase, parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      # Output with batch size 1 containing all 3 inputs.
+      ('Ex1Sequential', [1, 2, 1], 5, True, [[0, 1, 2]]),
+      # The 1 is not combined with the final 4 because of sequential order.
+      ('Ex2Sequential', [5, 4, 3, 2, 1, 5, 4], 5, True, [[0], [1], [2, 3], [4],
+                                                         [5], [6]]),
+      # Output with batch size 1 containing all 3 inputs.
+      ('Ex1', [1, 2, 1], 5, False, [[0, 1, 2]]),
+      # [0] [5] [1] [6] [2] open new buckets, the rest fit into existing ones.
+      ('Ex2', [5, 4, 3, 2, 1, 5, 4], 5, False, [[0], [5], [1, 4], [6], [2, 3]]),
+      ('Ex3', [5, 4, 3, 2, 1, 5, 4], 10, False, [[0, 5], [1, 3, 6], [2, 4]]),
+  )
+  def testPackSingleSequence(self, input_lengths, max_packed_length,
+                             require_sequential_order, expected_packed_idxs):
+    with self.session() as sess:
+      np.random.seed(12345)
+      segment_ids, indices_in_input = sess.run(
+          ops.pack_single_sequence(
+              input_lengths=input_lengths,
+              max_packed_length=max_packed_length,
+              require_sequential_order=require_sequential_order))
+      self.assertLen(expected_packed_idxs, segment_ids.shape[0])
+
+      # Test the output is compatible with apply_packing.
+      inputs = []
+      for i, length in enumerate(input_lengths):
+        inputs.append(
+            np.random.randint(100000, size=[length, 2, 2], dtype=np.int32))
+      outputs = sess.run(
+          ops.apply_packing(
+              input=tf.stack([
+                  tf.pad(x,
+                         [[0, max_packed_length - x.shape[0]], [0, 0], [0, 0]])
+                  for x in inputs
+              ]),
+              padding=0,
+              segment_ids=segment_ids,
+              indices_in_input=indices_in_input))
+
+      for segment_id, idxs, output, expected_idxs in zip(
+          segment_ids, indices_in_input, outputs, expected_packed_idxs):
+        # Build the expected results from the provided expected_packed_idxs.
+        expected_segment_ids = []
+        expected_idxs_vec = []
+        expected_outputs = []
+        for i, idx in enumerate(expected_idxs):
+          expected_segment_ids += [i + 1] * input_lengths[idx]
+          expected_idxs_vec += [idx] * input_lengths[idx]
+          expected_outputs.append(inputs[idx])
+        expected_outputs = np.concatenate(expected_outputs)
+        expected_packed_length = len(expected_outputs)
+        self.assertLessEqual(expected_packed_length, max_packed_length)
+        self.assertLen(expected_segment_ids, expected_packed_length)
+        self.assertLen(expected_idxs_vec, expected_packed_length)
+
+        # Check indices_in_input is non-decreasing.
+        if expected_packed_length > 1:
+          self.assertAllGreaterEqual(
+              idxs[1:expected_packed_length] -
+              idxs[:expected_packed_length - 1], 0)
+
+        # Pad to max_packed_length.
+        pad_len = max_packed_length - expected_packed_length
+        expected_segment_ids += [0] * pad_len
+        expected_idxs_vec += [-1] * pad_len
+        expected_outputs = np.pad(
+            expected_outputs, [(0, pad_len), (0, 0), (0, 0)], mode='constant')
+
+        self.assertAllEqual(expected_idxs_vec, idxs)
+        self.assertAllEqual(expected_segment_ids, segment_id)
+        self.assertAllEqual(expected_outputs, output)
+
+  def testInputLengthTooLong(self):
+    with self.session() as sess:
+      sess.run(
+          ops.pack_single_sequence(input_lengths=[10], max_packed_length=10))
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'too long'):
+        sess.run(
+            ops.pack_single_sequence(input_lengths=[10], max_packed_length=5))
+
+
+class ApplyPackingOpTest(test_utils.TestCase, parameterized.TestCase):
 
   def testApplyPacking(self):
     test_cases = {
@@ -401,31 +485,29 @@ class ApplyPackingOpTest(test_utils.TestCase):
           expected = tf.constant(test.output, dtype).eval()
           self.assertAllEqual(output, expected, f'{name} {dtype}')
 
-  def testApplyPackingErrors(self):
-    test_cases = {
-        'out of bound':
-            ApplyPackingTestCase([[0, 1], [2, 3]], 0, [[1, 1, 1], [1, 0, 0]],
-                                 [[1, 1, 1], [0, 0, 0]]),
-        'out of bound ':
-            ApplyPackingTestCase([[0, 1], [2, 3]], 0, [[1, 1], [1, 0]],
-                                 [[0, 0], [2, 0]]),
-        'out of bound.':
-            ApplyPackingTestCase(['a', 'b'], ',', [[1, 2]], [[1, 2]]),
-        'segment_ids and indices_in_input must be matrices':
-            ApplyPackingTestCase([[0, 1], [2, 3]], 0, [1, 1], [0, 0]),
-        'segment_ids and indices_in_input must be matrices of the same shape':
-            ApplyPackingTestCase([[0, 1], [2, 3]], 0, [[1, 1], [1, 0]],
-                                 [[0, 0], [0, 0], [0, 0]]),
-        'input must be a matrix or vector':
-            ApplyPackingTestCase([[[0, 1]]], 0, [[1]], [[0]]),
-        'padding must be a scalar':
-            ApplyPackingTestCase([[0, 1], [2, 3]], [-1], [[1]], [[0]]),
-    }
-    for name, test in test_cases.items():
-      with self.assertRaisesRegex(tf.errors.InvalidArgumentError, name):
-        with self.session():
-          ops.apply_packing(test.input, test.padding, test.segment_ids,
-                            test.indices_in_input).eval()
+  @parameterized.named_parameters(
+      ('Test1', tf.errors.InvalidArgumentError, 'out of bound',
+       ApplyPackingTestCase([[0, 1], [2, 3]], 0, [[1, 1, 1], [1, 0, 0]],
+                            [[1, 1, 1], [0, 0, 0]])),
+      ('Test2', tf.errors.InvalidArgumentError, 'out of bound ',
+       ApplyPackingTestCase([[0, 1], [2, 3]], 0, [[1, 1], [1, 0]],
+                            [[0, 0], [2, 0]])),
+      ('Test3', tf.errors.InvalidArgumentError, 'out of bound.',
+       ApplyPackingTestCase(['a', 'b'], ',', [[1, 2]], [[1, 2]])),
+      ('Test4', ValueError, 'segment_ids and indices_in_input must be matrices',
+       ApplyPackingTestCase([[0, 1], [2, 3]], 0, [1, 1], [0, 0])),
+      ('Test5', ValueError,
+       'segment_ids and indices_in_input must be matrices of the same shape',
+       ApplyPackingTestCase([[0, 1], [2, 3]], 0, [[1, 1], [1, 0]],
+                            [[0, 0], [0, 0], [0, 0]])),
+      ('Test6', ValueError, 'padding must be a scalar',
+       ApplyPackingTestCase([[0, 1], [2, 3]], [-1], [[1]], [[0]])),
+  )
+  def testApplyPackingErrors(self, expected_error_type, expected_error, test):
+    with self.assertRaisesRegex(expected_error_type, expected_error):
+      with self.session():
+        ops.apply_packing(test.input, test.padding, test.segment_ids,
+                          test.indices_in_input).eval()
 
 
 if __name__ == '__main__':

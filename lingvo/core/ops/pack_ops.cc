@@ -37,6 +37,10 @@ namespace tensorflow {
 namespace lingvo {
 
 namespace {
+
+template <int N>
+using DSize = Eigen::DSizes<Eigen::DenseIndex, N>;
+
 struct PackSequencesOutputs {
   Tensor* src_segment_ids = nullptr;
   Tensor* src_segment_pos = nullptr;
@@ -328,6 +332,141 @@ void PackSequencesOp::WriteOutputs(
 REGISTER_KERNEL_BUILDER(Name("PackSequences").Device(DEVICE_CPU),
                         PackSequencesOp);
 
+// Pack a sequence into a smaller batch given a max length constraint.
+// The output batch size is dynamic. No examples are dropped.
+class PackSingleSequenceOp : public OpKernel {
+ public:
+  explicit PackSingleSequenceOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("max_packed_length", &max_packed_length_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("require_sequential_order",
+                                     &require_sequential_order_));
+  }
+
+  void Compute(OpKernelContext* ctx) override {
+    const Tensor& input_lengths_t = ctx->input(0);
+    const auto& input_lengths = input_lengths_t.vec<int32>();
+    const int batch_size = input_lengths.dimension(0);
+
+    for (int i = 0; i < batch_size; ++i) {
+      OP_REQUIRES(
+          ctx,
+          tensorflow::FastBoundsCheck(input_lengths(i), max_packed_length_ + 1),
+          errors::InvalidArgument(
+              "Input length at index ", i, " is too long: ", input_lengths(i),
+              " vs max_packed_length ", max_packed_length_));
+    }
+
+    // The index of the output to write to.
+    std::vector<int32> output_index;
+    int packed_batch_size = ComputeOutputIndex(input_lengths_t, &output_index);
+
+    Tensor* segment_ids_t = nullptr;
+    Tensor* indices_in_input_t = nullptr;
+
+    OP_REQUIRES_OK(
+        ctx, ctx->allocate_output(0, {packed_batch_size, max_packed_length_},
+                                  &segment_ids_t));
+    OP_REQUIRES_OK(
+        ctx, ctx->allocate_output(1, {packed_batch_size, max_packed_length_},
+                                  &indices_in_input_t));
+
+    auto segment_ids = segment_ids_t->matrix<int32>();
+    segment_ids.setZero();
+    auto indices_in_input = indices_in_input_t->matrix<int32>();
+    indices_in_input.setConstant(-1);
+
+    // Current lengths for each packed sequence.
+    std::vector<int32> current_lengths(packed_batch_size, 0);
+    // Current segment id for each packed sequence.
+    std::vector<int32> current_segment_id(packed_batch_size, 1);
+
+    for (int i = 0; i < batch_size; ++i) {
+      int idx = output_index[i];
+      segment_ids
+          .slice(DSize<2>{idx, current_lengths[idx]},
+                 DSize<2>{1, input_lengths(i)})
+          .setConstant(current_segment_id[idx]);
+      indices_in_input
+          .slice(DSize<2>{idx, current_lengths[idx]},
+                 DSize<2>{1, input_lengths(i)})
+          .setConstant(i);
+      current_lengths[idx] += input_lengths(i);
+      current_segment_id[idx]++;
+    }
+  }
+
+ private:
+  int max_packed_length_;
+  bool require_sequential_order_;
+
+  // Populates output_index with the index that each input example should be
+  // placed into, and returns the total number of bins used.
+  int ComputeOutputIndex(const Tensor& input_lengths_t,
+                         std::vector<int32>* output_index);
+
+  TF_DISALLOW_COPY_AND_ASSIGN(PackSingleSequenceOp);
+};
+
+int PackSingleSequenceOp::ComputeOutputIndex(const Tensor& input_lengths_t,
+                                             std::vector<int32>* output_index) {
+  const auto& input_lengths = input_lengths_t.vec<int32>();
+  const int batch_size = input_lengths.dimension(0);
+  output_index->resize(batch_size);
+
+  // Current lengths for each packed sequence.
+  std::vector<int32> current_lengths;
+
+  if (require_sequential_order_) {
+    // Append each input in sequence to the last element.
+    for (int i = 0; i < batch_size; ++i) {
+      if (current_lengths.empty() ||
+          current_lengths.back() + input_lengths(i) > max_packed_length_) {
+        // Start a new bin.
+        current_lengths.push_back(0);
+      }
+      // Add this input to the last bin.
+      output_index->at(i) = current_lengths.size() - 1;
+      current_lengths.back() += input_lengths(i);
+    }
+  } else {
+    std::vector<int> idx(batch_size);
+    for (int i = 0; i < batch_size; ++i) {
+      idx[i] = i;
+    }
+    // Sort by lengths descending.
+    std::sort(idx.begin(), idx.end(), [&](int i, int j) {
+      return std::make_pair(input_lengths(i), -i) >
+             std::make_pair(input_lengths(j), -j);
+    });
+    // Best Fit Decreasing as it is easiest to implement in nlogn.
+    // Maintain a Binary Search Tree of (remaining_space, bin_id).
+    std::multiset<std::pair<int32, int32>> lookup;
+    for (int i = 0; i < batch_size; ++i) {
+      // First element with remaining_space >= input_length.
+      auto it = lookup.lower_bound(std::make_pair(input_lengths(idx[i]), -1));
+      if (it == lookup.end()) {
+        // Start a new bin.
+        current_lengths.push_back(0);
+        it = lookup.insert(
+            std::make_pair(max_packed_length_, current_lengths.size() - 1));
+      }
+
+      // Add to the bin.
+      int bin_id = it->second;
+      output_index->at(idx[i]) = bin_id;
+
+      lookup.erase(it);
+      current_lengths[bin_id] += input_lengths(idx[i]);
+      lookup.insert(
+          std::make_pair(max_packed_length_ - current_lengths[bin_id], bin_id));
+    }
+  }
+  return current_lengths.size();
+}
+
+REGISTER_KERNEL_BUILDER(Name("PackSingleSequence").Device(DEVICE_CPU),
+                        PackSingleSequenceOp);
+
 // An op that applies a packing pattern on an input data.
 template <typename T>
 class ApplyPackingOp : public OpKernel {
@@ -337,26 +476,28 @@ class ApplyPackingOp : public OpKernel {
   ~ApplyPackingOp() override {}
 
   void Compute(OpKernelContext* ctx) override {
-    ValidateInputs(ctx);
     if (!ctx->status().ok()) {
       return;
     }
     const Tensor& input = ctx->input(0);
-    if (TensorShapeUtils::IsMatrix(input.shape())) {
-      // Input is a matrix. We apply the packing pattern by returning a denser,
-      // shorter matrix where the elements are re-arranged.
+    if (TensorShapeUtils::IsMatrixOrHigher(input.shape())) {
+      // Input is a matrix. We apply the packing pattern by returning a
+      // denser, shorter matrix where the elements are re-arranged.
       Tensor* output = nullptr;
       // Allocates output and initializes with padding.
       const Tensor& segment_ids = ctx->input(2);
-      OP_REQUIRES_OK(ctx,
-                     ctx->allocate_output(0, segment_ids.shape(), &output));
+      auto output_dim_sizes = input.shape().dim_sizes();
+      output_dim_sizes[0] = segment_ids.shape().dim_size(0);
+      output_dim_sizes[1] = segment_ids.shape().dim_size(1);
+      OP_REQUIRES_OK(
+          ctx, ctx->allocate_output(0, TensorShape(output_dim_sizes), &output));
       const T padding = ctx->input(1).scalar<T>()();
-      output->matrix<T>().setConstant(padding);
+      output->flat<T>().setConstant(padding);
       ApplyMatrix(ctx, output);
       return;
     }
-    // Input is a vector. We apply the packing patterning by returning a shorter
-    // vector where the elements are summed.
+    // Input is a vector. We apply the packing patterning by returning a
+    // shorter vector where the elements are summed.
     Tensor* output = nullptr;
     TensorShape output_shape({ctx->input(3).shape().dim_size(0)});
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output));
@@ -364,44 +505,19 @@ class ApplyPackingOp : public OpKernel {
   }
 
  private:
-  // Validates the shapes and types of inputs.
-  void ValidateInputs(OpKernelContext* ctx) {
-    const Tensor& input = ctx->input(0);
-    OP_REQUIRES(ctx,
-                TensorShapeUtils::IsMatrix(input.shape()) ||
-                    TensorShapeUtils::IsVector(input.shape()),
-                errors::InvalidArgument(
-                    "input must be a matrix or vector, got input shape: ",
-                    input.shape().DebugString()));
-
-    const Tensor& padding = ctx->input(1);
-    OP_REQUIRES(
-        ctx, TensorShapeUtils::IsScalar(padding.shape()),
-        errors::InvalidArgument("padding must be a scalar, got padding shape: ",
-                                padding.shape().DebugString()));
-
-    const Tensor& segment_ids = ctx->input(2);
-    const Tensor& indices_in_input = ctx->input(3);
-    OP_REQUIRES(
-        ctx,
-        segment_ids.shape() == indices_in_input.shape() &&
-            TensorShapeUtils::IsMatrix(segment_ids.shape()),
-        errors::InvalidArgument("segment_ids and indices_in_input must be "
-                                "matrices of the same shape, got: ",
-                                segment_ids.shape().DebugString(), " vs. ",
-                                indices_in_input.shape().DebugString()));
-  }
-
   void ApplyMatrix(OpKernelContext* ctx, Tensor* output) {
-    const auto& input = ctx->input(0).matrix<T>();
-    const auto input_rows = ctx->input(0).dim_size(0);
-    const auto input_columns = ctx->input(0).dim_size(1);
+    if (ctx->input(0).NumElements() == 0) return;
+    const auto& input = ctx->input(0).flat_outer_dims<T, 3>();
+    const auto input_rows = input.dimension(0);
+    const auto input_columns = input.dimension(1);
+    const auto input_dim = input.dimension(2);
     const auto& segment_ids = ctx->input(2).matrix<int32>();
     const auto& indices_in_input = ctx->input(3).matrix<int32>();
-    auto output_matrix = output->matrix<T>();
+    auto output_3d = output->flat_outer_dims<T, 3>();
     const int64 rows = output->dim_size(0);
     const int64 columns = output->dim_size(1);
-    // The CPU cost per each row is linear in the number of elements in that row
+    // The CPU cost per each row is linear in the number of elements in that
+    // row
     // (`columns`). We need to read segment_ids to discern each segment, and
     // copy from input to output, plus a few extra cycles (e.g. checking
     // bounds). The constant is guesstimated to be 4.
@@ -411,9 +527,9 @@ class ApplyPackingOp : public OpKernel {
           for (int i = begin; i < end; ++i) {
             for (int j = 0; j < columns; ++j) {
               if (segment_ids(i, j) <= 0) {
-                // We do not skip the rest of the row because we cannot assume 0
-                // segment ids only occur at end of row. For example, it might
-                // occur due to alignment requirements during packing.
+                // We do not skip the rest of the row because we cannot assume
+                // 0 segment ids only occur at end of row. For example, it
+                // might occur due to alignment requirements during packing.
                 continue;
               }
               const int start = j;
@@ -436,8 +552,10 @@ class ApplyPackingOp : public OpKernel {
                       ") for input index ", index_in_input, " with length ",
                       actual_seq_len, " where input shape is ",
                       ctx->input(0).shape().DebugString()));
-              std::memcpy(&output_matrix(i, start), &input(index_in_input, 0),
-                          actual_seq_len * sizeof(T));
+              output_3d.slice(DSize<3>{i, start, 0},
+                              DSize<3>{1, actual_seq_len, input_dim}) =
+                  input.slice(DSize<3>{index_in_input, 0, 0},
+                              DSize<3>{1, actual_seq_len, input_dim});
             }
           }
         });
