@@ -14,6 +14,7 @@
 # limitations under the License.
 """Tests for mt.decoder."""
 
+import random
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -538,6 +539,64 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
                           [2, 0, 0, 0, 0], [5, 2, 0, 0, 0], [3, 2, 0, 0, 0]]
     self.assertAllEqual(expected_topk_ids3, actual_decoded_disallow2.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decoded_disallow2.topk_lens)
+
+  def testSingleTokenFastDecode(self):
+    """Test p.single_token_fast_decode."""
+    # We randomly select a subset of rows to "pad" with single token inputs.
+    # And for the test we assert that only the padded rows output single
+    # token output hyps.
+    batch_size = 6
+    single_token_rows = []
+    for i in range(batch_size):
+      if random.randint(0, 1):
+        single_token_rows.append(i)
+    with self.session(use_gpu=True), self.SetEval(True), tf.variable_scope(
+        'test', reuse=tf.AUTO_REUSE):
+      p = self._DecoderParams(dtype=tf.float32)
+      p.emb.vocab_size = 5
+      p.softmax.num_classes = 5
+      p.beam_search.num_hyps_per_beam = 4
+      p.target_seq_len = 8
+      p.single_token_fast_decode = True
+      dec = p.Instantiate()
+
+      encoder_outputs = py_utils.NestedMap()
+      encoder_outputs.encoded = tf.constant(
+          np.random.normal(size=[5, batch_size, 4]), dtype=tf.float32)
+      paddings = np.zeros([5, batch_size], dtype=np.float32)
+      for i in single_token_rows:
+        paddings[1:, i] = 1.0
+      encoder_outputs.padding = tf.constant(paddings, dtype=tf.float32)
+      decode = dec.BeamSearchDecode(encoder_outputs)
+
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # self.evaluate(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+      self.evaluate(tf.global_variables_initializer())
+      actual_decoded = self.evaluate(decode)
+
+    # For rows contain single token inputs only.
+    expected_eos_ids = np.zeros(
+        [p.beam_search.num_hyps_per_beam, p.target_seq_len], dtype=np.int32)
+    expected_eos_ids[0, 0] = 2  # first hyp is EOS
+    expected_eos_lens = np.zeros([p.beam_search.num_hyps_per_beam],
+                                 dtype=np.int32)
+    expected_eos_lens[0] = 1
+    for i in range(batch_size):
+      # We assert that only padded rows return one hyp with EOS.
+      if i in single_token_rows:
+        fn = self.assertAllEqual
+      else:
+        fn = self.assertNotAllEqual
+
+      fn(
+          expected_eos_ids,
+          actual_decoded.topk_ids[i * p.beam_search.num_hyps_per_beam:(i + 1) *
+                                  p.beam_search.num_hyps_per_beam, :])
+      fn(
+          expected_eos_lens,
+          actual_decoded.topk_lens[i * p.beam_search.num_hyps_per_beam:(i + 1) *
+                                   p.beam_search.num_hyps_per_beam])
 
   def testSampleTargetSequences(self, dtype=tf.float32):
     with self.session(use_gpu=True), self.SetEval(True):

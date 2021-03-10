@@ -442,6 +442,13 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p.Define(
         'sentence_boundary_token_id', None,
         'None, or an int. The token id that separates different sentences.')
+    # TODO(b/181916643): ensure this works with TPU beam search, which it does
+    # not currently for unknown reasons.
+    p.Define(
+        'single_token_fast_decode', False,
+        'bool. When enabled, for input of length 1, decoding completes in 1 '
+        'step. This reserves a special sentinel input with fast beam search. '
+        'It can be used to pad inputs to a fixed batch size.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -952,6 +959,18 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       log_probs = self._ForceAlignment(log_probs, source_num_sentences,
                                        states['num_sentences'])
 
+    if p.single_token_fast_decode:
+      input_lengths = tf.math.reduce_sum(1.0 - encoder_outputs.padding, 0)
+      is_single_token = tf.math.less_equal(input_lengths,
+                                           tf.ones_like(input_lengths))
+      any_single_token = tf.math.reduce_any(is_single_token)
+
+      def _NewLogProbs():
+        return self._UpdateLogitsForSingleTokenFastDecode(
+            log_probs, is_single_token, num_hyps_per_beam)
+
+      log_probs = tf.cond(any_single_token, _NewLogProbs, lambda: log_probs)
+
     if p.use_prev_atten_ctx:
       cur_atten_probs = prev_atten_probs
     else:
@@ -1026,6 +1045,34 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     ],
                               axis=1)
     return new_log_probs
+
+  def _UpdateLogitsForSingleTokenFastDecode(self, log_probs, is_single_token,
+                                            num_hyps_per_beam):
+    """Update 'log_probs' to enable fast decode for single token inputs.
+
+    Args:
+      log_probs: encoder's log_probs output, shape [tgt_batch, vocab_size].
+      is_single_token: [src_batch], whether the input contains only a single
+        token.
+      num_hyps_per_beam: int, num_hyps_per_beam * src_batch = tgt_batch.
+
+    Returns:
+      The updated log_probs (score used for beam search) which ensures
+      fast decoding when input has a single token.
+    """
+    b, v = py_utils.GetShape(log_probs, 2)
+    is_single_token = tf.tile(is_single_token, multiples=[num_hyps_per_beam])
+    # Shape [tgt_batch, vocab_size]
+    is_single_token_2d = tf.tile(tf.expand_dims(is_single_token, 1), [1, v])
+    # Updated log_probs concentrates on eos_id entirely.
+    eos_id = self.params.target_eos_id
+    is_eos = tf.math.equal(tf.range(v), tf.ones_like(tf.range(v)) * eos_id)
+    is_eos = tf.tile(tf.expand_dims(is_eos, 0), [b, 1])
+    large_neg_probs = tf.ones_like(log_probs) * tf.constant(
+        -0.1, dtype=log_probs.dtype) * log_probs.dtype.max
+    new_log_probs = tf.where(is_eos, tf.zeros_like(large_neg_probs),
+                             large_neg_probs)
+    return tf.where(is_single_token_2d, new_log_probs, log_probs)
 
 
 class TransformerDecoder(MTBaseDecoder):
