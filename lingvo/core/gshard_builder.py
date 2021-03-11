@@ -203,7 +203,11 @@ class MoEBuilder(builder.Base):
         'mask_dtype', None,
         'Using bfloat16 for fprop_dtype could be problematic for '
         'mask tensors, mask_dtype is a special dtype for such tensors.')
-
+    p.Define(
+        'conv_vars_reshape', False, 'Boolean, whether or not to '
+        'change the shape of conv variables. For checkpoint backward '
+        'compatibility only, deprecated soon. If True, the variable shape '
+        'of _LNConv will be based on model_dim_reshape_segment')
     return p
 
   @property
@@ -1140,14 +1144,15 @@ class MoEBuilder(builder.Base):
     Returns:
       A layer params that computes DepthwiseConvAutoregressive.
     """
+    p = self.params
+    var_shape = model_dims or [p.model_dim]
 
     def _GetScaleVar(shift_distance):
       init_const = 0.5 if shift_distance == 0 else 0.5 / kernel_size
-      var_shape = model_dims or [self.params.model_dim]
       scale_var_weight_params = py_utils.WeightParams(
           init=py_utils.WeightInit.Constant(init_const),
           dtype=self.params.dtype,
-          shape=var_shape)
+          shape=var_shape if p.conv_vars_reshape else [np.prod(var_shape)])
       return self._Var(
           name='w_%d' % shift_distance,
           weights=[('scale', scale_var_weight_params)])
@@ -1163,14 +1168,17 @@ class MoEBuilder(builder.Base):
     # ...
     # Y_{d+1} = Y_d + W[d] * X_d = Y_d + W[d] * _Shift(X_{d-1})
     sub_params = [('->w_0', _GetScaleVar(0)),
-                  ('x_0,w_0->y_1', self._Fn('mul0', lambda x, w: x * w))]
+                  ('x_0,w_0->y_1',
+                   self._Fn('mul0', lambda x, w: x * tf.reshape(w, var_shape)))]
 
     for d in range(1, kernel_size):
-      sub_params += [('x_%d->x_%d' % (d - 1, d),
-                      self._Fn('shift_%d' % d, _Shift)),
-                     ('->w_%d' % d, _GetScaleVar(d)),
-                     ('y_%d,x_%d,w_%d->y_%d' % (d, d, d, d + 1),
-                      self._Fn('scale_%d' % d, lambda x, x2, w: x + x2 * w))]
+      sub_params += [
+          ('x_%d->x_%d' % (d - 1, d), self._Fn('shift_%d' % d, _Shift)),
+          ('->w_%d' % d, _GetScaleVar(d)),
+          ('y_%d,x_%d,w_%d->y_%d' % (d, d, d, d + 1),
+           self._Fn('scale_%d' % d,
+                    lambda x, x2, w: x + x2 * tf.reshape(w, var_shape)))
+      ]
 
     return self._Graph(name, ['x_0'], ['y_%d' % kernel_size], *sub_params)
 
