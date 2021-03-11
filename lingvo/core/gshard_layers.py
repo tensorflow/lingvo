@@ -120,11 +120,11 @@ class ShardedVarLayer(VarLayer):
              'Whether to cast variables to fprop_dtype')
     return p
 
-  def FProp(self, theta, *args, **kwargs):
+  def InstantiateVariables(self):
+    super().InstantiateVariables()
     p = self.params
 
-    # TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.
-    def MaybeWeightSplitAndCastToFPropDtype(k, v):
+    def MaybeWeightSplit(k, v):
       # In-place annotate the variable (no sharding op). This makes sure that
       # in some backend implementation, even if the following sharding is
       # optimized away, the backend can still infer the variable sharding.
@@ -136,6 +136,15 @@ class ShardedVarLayer(VarLayer):
         split_dims = [-1] * shape_prefix_len + split_dims
       gshard_utils.MeshSplit(
           self.vars[k], p.device_mesh, split_dims, use_sharding_op=False)
+
+    for k, v in p.weights:
+      MaybeWeightSplit(k, v)
+
+  def FProp(self, theta, *args, **kwargs):
+    p = self.params
+
+    # TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.
+    def MaybeWeightSplitAndCastToFPropDtype(k, v):
       x = theta[k]
       if isinstance(x, tf.Variable):
         x = x.read_value()
