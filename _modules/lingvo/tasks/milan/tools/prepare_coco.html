@@ -1,0 +1,428 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.tools.prepare_coco &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.tools.prepare_coco</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.tools.prepare_coco</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Downloads, builds, and preprocesses the COCO captions dataset.</span>
+
+<span class="sd">The tool generates an augmented version of COCO captions in which each example</span>
+<span class="sd">stores precomputed BERT embeddings of the caption text. This augmented dataset</span>
+<span class="sd">can be used with Milan &quot;BERT adapter&quot; models like the Crisscrossed Captions dual</span>
+<span class="sd">encoder (see cxc.py).</span>
+
+<span class="sd">NOTE: This tool downloads data and models from the web (via</span>
+<span class="sd">`tensorflow_datasets` and `tensorflow_hub`) and altogether may consume 50+ GB of</span>
+<span class="sd">storage. Users can set the `TFDS_DATA_DIR` and `TFHUB_CACHE_DIR` environment</span>
+<span class="sd">variables to control where the intermediate data is stored and/or to reuse</span>
+<span class="sd">cached copies.</span>
+
+<span class="sd">Example usage:</span>
+<span class="sd">$ prepare_coco --splits=train,dev,test --output_dir=/my/output/directory</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">app</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">flags</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
+<span class="kn">import</span> <span class="nn">apache_beam</span> <span class="k">as</span> <span class="nn">beam</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow_datasets</span> <span class="k">as</span> <span class="nn">tfds</span>
+<span class="kn">import</span> <span class="nn">tensorflow_hub</span> <span class="k">as</span> <span class="nn">hub</span>
+<span class="kn">import</span> <span class="nn">tensorflow_text</span>  <span class="c1"># pylint: disable=unused-import</span>
+
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_list</span><span class="p">(</span><span class="s1">&#39;splits&#39;</span><span class="p">,</span> <span class="s1">&#39;train,dev,test&#39;</span><span class="p">,</span> <span class="s1">&#39;Data splits to prepare.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;output_dir&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Output directory.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;num_output_shards&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="s1">&#39;Number of ways to shard the output tfrecords (per split).&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;num_workers&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span>
+                     <span class="s1">&#39;Number of parallel worker threads to use.&#39;</span><span class="p">)</span>
+
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;bert_tfhub_model&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;URL/path of the tf-hub BERT model.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;bert_tfhub_preprocessor&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;URL/path of the tf-hub BERT preprocessor.&#39;</span><span class="p">)</span>
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;bert_max_length&#39;</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span>
+                     <span class="s1">&#39;Max token length of extracted BERT embeddings.&#39;</span><span class="p">)</span>
+
+<span class="n">flags</span><span class="o">.</span><span class="n">mark_flag_as_required</span><span class="p">(</span><span class="s1">&#39;output_dir&#39;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="log"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.log">[docs]</a><span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+  <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TfHubBertEncoder"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.TfHubBertEncoder">[docs]</a><span class="k">class</span> <span class="nc">TfHubBertEncoder</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Encodes text inputs using a pretrained BERT model from TF-hub.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TfHubBertEncoder.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.TfHubBertEncoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;preprocessor&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;URL/path of the tf-hub BERT preprocessor.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;URL/path of the tf-hub BERT model.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_seq_len&#39;</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span>
+             <span class="s1">&#39;Maximum encoded sequence length (including CLS and SEP).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bert_encoder&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Initializing BERT preprocessor </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessor</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    <span class="n">preprocessor</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">KerasLayer</span><span class="p">(</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">tokenize</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_packer</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">KerasLayer</span><span class="p">(</span>
+        <span class="n">preprocessor</span><span class="o">.</span><span class="n">bert_pack_inputs</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">seq_length</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">))</span>
+    <span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Initializing BERT model </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">KerasLayer</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TfHubBertEncoder.FProp"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.TfHubBertEncoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">input_strings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tokenizes and encodes the given strings.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_strings: Text strings to encode.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple (padded_features, num_tokens) where</span>
+<span class="sd">        * padded_features is a float Tensor of token-level embeddings, shape</span>
+<span class="sd">          [batch_size, max_seq_len, bert_feature_dim]. (The features are</span>
+<span class="sd">          zero-padded out to max_seq_len tokens.)</span>
+<span class="sd">        * lengths is an int Tensor holding the token length of each input.</span>
+<span class="sd">          Slice `padded_features[i, :lengths[i], :]` holds the actual token</span>
+<span class="sd">          embeddings for the i&#39;th input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bert_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_packer</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="p">(</span><span class="n">input_strings</span><span class="p">)])</span>
+    <span class="n">sequence_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span><span class="n">bert_inputs</span><span class="p">)[</span><span class="s1">&#39;sequence_output&#39;</span><span class="p">]</span>
+    <span class="n">sequence_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">bert_inputs</span><span class="p">[</span><span class="s1">&#39;input_mask&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sequence_features</span><span class="p">,</span> <span class="n">sequence_lengths</span></div></div>
+
+
+<span class="n">ExampleDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="dict_to_example_proto"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.dict_to_example_proto">[docs]</a><span class="k">def</span> <span class="nf">dict_to_example_proto</span><span class="p">(</span><span class="n">example_dict</span><span class="p">:</span> <span class="n">ExampleDict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Converts a `dict`-format example to a `tf.train.Example` proto.&quot;&quot;&quot;</span>
+  <span class="n">example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">()</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">example_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Find the type-specific value list where this feature should be stored.</span>
+    <span class="n">dest_feature</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">as_dtype</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
+      <span class="n">dest_feature</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">is_integer</span><span class="p">:</span>
+      <span class="n">dest_feature</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">:</span>
+      <span class="c1"># In Python3 strings must be explicitly encoded into bytes.</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">each</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span> <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+      <span class="n">dest_feature</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported feature dtype </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dtype</span><span class="p">))</span>
+
+  <span class="k">return</span> <span class="n">example</span></div>
+
+
+<div class="viewcode-block" id="ReadCocoFromTfdsFn"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.ReadCocoFromTfdsFn">[docs]</a><span class="k">class</span> <span class="nc">ReadCocoFromTfdsFn</span><span class="p">(</span><span class="n">beam</span><span class="o">.</span><span class="n">DoFn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads splits of the &#39;coco_captions&#39; dataset via `tensorflow_datasets`.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ReadCocoFromTfdsFn.process"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.ReadCocoFromTfdsFn.process">[docs]</a>  <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">split</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ExampleDict</span><span class="p">]:</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tfds</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+        <span class="s1">&#39;coco_captions&#39;</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
+        <span class="n">decoders</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">tfds</span><span class="o">.</span><span class="n">decode</span><span class="o">.</span><span class="n">SkipDecoding</span><span class="p">()})</span>
+    <span class="k">for</span> <span class="n">example</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">as_numpy_iterator</span><span class="p">():</span>
+      <span class="k">yield</span> <span class="p">{</span>
+          <span class="s1">&#39;image/encoded&#39;</span><span class="p">:</span> <span class="n">example</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">],</span>
+          <span class="s1">&#39;image/id&#39;</span><span class="p">:</span> <span class="n">example</span><span class="p">[</span><span class="s1">&#39;image/id&#39;</span><span class="p">],</span>
+          <span class="s1">&#39;text/captions&#39;</span><span class="p">:</span> <span class="n">example</span><span class="p">[</span><span class="s1">&#39;captions&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">],</span>
+          <span class="s1">&#39;text/id&#39;</span><span class="p">:</span> <span class="n">example</span><span class="p">[</span><span class="s1">&#39;captions&#39;</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>
+      <span class="p">}</span></div></div>
+
+
+<div class="viewcode-block" id="EncodeCaptionsFn"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.EncodeCaptionsFn">[docs]</a><span class="k">class</span> <span class="nc">EncodeCaptionsFn</span><span class="p">(</span><span class="n">beam</span><span class="o">.</span><span class="n">DoFn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generates encodings of text captions.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_params</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_encoder_params</span> <span class="o">=</span> <span class="n">encoder_params</span>
+
+<div class="viewcode-block" id="EncodeCaptionsFn.setup"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.EncodeCaptionsFn.setup">[docs]</a>  <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_encoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encoder_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="EncodeCaptionsFn.process"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.EncodeCaptionsFn.process">[docs]</a>  <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">example</span><span class="p">:</span> <span class="n">ExampleDict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">ExampleDict</span><span class="p">]:</span>
+    <span class="n">captions</span> <span class="o">=</span> <span class="n">example</span><span class="p">[</span><span class="s1">&#39;text/captions&#39;</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">captions</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">features</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encoder</span><span class="p">(</span><span class="n">captions</span><span class="p">)</span>
+
+    <span class="c1"># Flatten each N-caption example to N single-caption examples.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">output_example</span> <span class="o">=</span> <span class="n">example</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+      <span class="n">output_example</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+          <span class="s1">&#39;text/bert/token_features&#39;</span><span class="p">:</span> <span class="n">features</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="s1">&#39;text/bert/lengths&#39;</span><span class="p">:</span> <span class="n">lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="p">})</span>
+      <span class="k">yield</span> <span class="n">output_example</span></div></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.tools.prepare_coco.html#lingvo.tasks.milan.tools.prepare_coco.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+  <span class="n">log</span><span class="p">(</span><span class="s1">&#39;Loading &quot;coco_captions&quot; from tfds. This will build a copy of &#39;</span>
+      <span class="s1">&#39;the dataset under TFDS_DATA_DIR if one doesn</span><span class="se">\&#39;</span><span class="s1">t already exist.&#39;</span><span class="p">)</span>
+  <span class="n">tfds</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;coco_captions&#39;</span><span class="p">)</span>
+
+  <span class="c1"># Milan split name =&gt; constituent tfds subsplits. (Subsplitting enables the</span>
+  <span class="c1"># tfds data to be processed in parallel.)</span>
+  <span class="n">split_to_coco_subsplits</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+      <span class="n">train</span><span class="o">=</span><span class="n">tfds</span><span class="o">.</span><span class="n">even_splits</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span> <span class="o">+</span> <span class="n">tfds</span><span class="o">.</span><span class="n">even_splits</span><span class="p">(</span><span class="s1">&#39;restval&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+      <span class="n">dev</span><span class="o">=</span><span class="n">tfds</span><span class="o">.</span><span class="n">even_splits</span><span class="p">(</span><span class="s1">&#39;val&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span>
+      <span class="n">test</span><span class="o">=</span><span class="n">tfds</span><span class="o">.</span><span class="n">even_splits</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
+
+  <span class="n">encoder_params</span> <span class="o">=</span> <span class="n">TfHubBertEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">preprocessor</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">bert_tfhub_preprocessor</span><span class="p">,</span>
+      <span class="n">model</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">bert_tfhub_model</span><span class="p">,</span>
+      <span class="n">max_seq_len</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">bert_max_length</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">pipeline</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">split</span> <span class="ow">in</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">splits</span><span class="p">:</span>
+      <span class="n">subsplits</span> <span class="o">=</span> <span class="n">split_to_coco_subsplits</span><span class="p">[</span><span class="n">split</span><span class="p">]</span>
+      <span class="n">_</span> <span class="o">=</span> <span class="n">root</span> <span class="o">|</span> <span class="n">split</span><span class="o">.</span><span class="n">title</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="p">(</span>
+          <span class="s1">&#39;Create&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">subsplits</span><span class="p">)</span>
+          <span class="o">|</span> <span class="s1">&#39;Read&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">ParDo</span><span class="p">(</span><span class="n">ReadCocoFromTfdsFn</span><span class="p">())</span>
+          <span class="o">|</span> <span class="s1">&#39;Encode&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">ParDo</span><span class="p">(</span><span class="n">EncodeCaptionsFn</span><span class="p">(</span><span class="n">encoder_params</span><span class="p">))</span>
+          <span class="o">|</span> <span class="s1">&#39;ToProto&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span><span class="n">dict_to_example_proto</span><span class="p">)</span>
+          <span class="o">|</span> <span class="s1">&#39;Shuffle&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">Reshuffle</span><span class="p">()</span>
+          <span class="o">|</span> <span class="s1">&#39;Write&#39;</span> <span class="o">&gt;&gt;</span> <span class="n">beam</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">tfrecordio</span><span class="o">.</span><span class="n">WriteToTFRecord</span><span class="p">(</span>
+              <span class="n">file_path_prefix</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">split</span><span class="p">),</span>
+              <span class="n">coder</span><span class="o">=</span><span class="n">beam</span><span class="o">.</span><span class="n">coders</span><span class="o">.</span><span class="n">ProtoCoder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">),</span>
+              <span class="n">num_shards</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">num_output_shards</span><span class="p">))</span>
+
+  <span class="n">pipeline_options</span> <span class="o">=</span> <span class="n">beam</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">pipeline_options</span><span class="o">.</span><span class="n">PipelineOptions</span><span class="p">()</span>
+  <span class="n">pipeline_options</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">beam</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">pipeline_options</span><span class="o">.</span><span class="n">DirectOptions</span>
+                          <span class="p">)</span><span class="o">.</span><span class="n">direct_num_workers</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">num_workers</span>
+  <span class="k">with</span> <span class="n">beam</span><span class="o">.</span><span class="n">Pipeline</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="n">pipeline_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">pipeline</span><span class="p">(</span><span class="n">root</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

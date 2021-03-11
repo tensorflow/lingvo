@@ -1,0 +1,539 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.dual_encoder &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.dual_encoder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.dual_encoder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Template for a multi-modal dual encoder model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span> <span class="k">as</span> <span class="n">lingvo_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span> <span class="k">as</span> <span class="n">metrics_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">labels</span> <span class="k">as</span> <span class="n">label_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">score_functions</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">tpu_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">utils</span>
+
+
+<div class="viewcode-block" id="_EncodeBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder._EncodeBatch">[docs]</a><span class="k">def</span> <span class="nf">_EncodeBatch</span><span class="p">(</span><span class="n">encoder</span><span class="p">:</span> <span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
+                 <span class="n">batch_shape</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Runs `encoder` on `inputs` with an arbitrary number of batch dimensions.&quot;&quot;&quot;</span>
+  <span class="c1"># Flatten inputs so they have a single batch dimension, run the encoder,</span>
+  <span class="c1"># and restore the batch dims of the output.</span>
+  <span class="n">batch_adapter</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">BatchFlattener</span><span class="p">(</span><span class="n">batch_shape</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">batch_adapter</span><span class="o">.</span><span class="n">Unflatten</span><span class="p">(</span><span class="n">encoder</span><span class="p">(</span><span class="o">*</span><span class="n">batch_adapter</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="EncoderConfig"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.EncoderConfig">[docs]</a><span class="k">def</span> <span class="nf">EncoderConfig</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Returns Params for configuring one `DualEncoder` modality.&quot;&quot;&quot;</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;input_features&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;Feature(s) from the input batch to feed to the encoder. The structure &#39;</span>
+      <span class="s1">&#39;of this field determines the number and structure of the encoder &#39;</span>
+      <span class="s1">&#39;arguments. Examples: If set to &quot;feature_name&quot;, the encoder is called &#39;</span>
+      <span class="s1">&#39;with a single argument `input_batch[&quot;feature_name&quot;]`; if set to an &#39;</span>
+      <span class="s1">&#39;N-element tuple, it is called with N arguments. See `Selector` class &#39;</span>
+      <span class="s1">&#39;for more details.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;id_feature&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Name of id feature to use for loss masking.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;encoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+      <span class="s1">&#39;Params of a layer that encodes input_features. The layer should &#39;</span>
+      <span class="s1">&#39;accept the output of Selector(input_features) as arguments.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+           <span class="s1">&#39;Dimension of the embeddings produced by `encoder`.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder_scope&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;Optional variable scope name to create the encoder in.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;projection_scope&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;Optional variable scope in which to create the projection layer.&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="DualEncoder"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.DualEncoder">[docs]</a><span class="k">class</span> <span class="nc">DualEncoder</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Implements a dual encoder trained with in-batch softmax loss.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DualEncoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.DualEncoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder_configs&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;Modality name =&gt; EncoderConfig params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;score_function&#39;</span><span class="p">,</span> <span class="n">score_functions</span><span class="o">.</span><span class="n">DotProductScoreFunction</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Layer that computes similarity score.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;joint_embedding_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;Dimension to project x and y encoders</span><span class="se">\&#39;</span><span class="s1"> outputs. Defaults to &#39;</span>
+        <span class="s1">&#39;max(x_encoder.output_dim, y_encoder.output_dim).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;regularization_loss_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+             <span class="s1">&#39;Weight of regularization loss.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;loss_weights&#39;</span><span class="p">,</span> <span class="p">{},</span>
+        <span class="s1">&#39;Weights of retrieval losses. Keys should be modality pair tuples and &#39;</span>
+        <span class="s1">&#39;values should be floats &gt;= 0.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;label_fn&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Label function to call to label batches during &#39;</span>
+        <span class="s1">&#39;training. Has signature ExamplePairs -&gt; tf.Tensor.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">label_fn</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Required param label_fn not set.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_weights</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Required param loss_weights not set.&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">modality_pair</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_weights</span><span class="p">:</span>
+      <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">modality_pair</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">modality_pair</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span>
+          <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">modality_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span>
+          <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">modality_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">str</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;loss_weights: Keys should be tuples of modality names; got &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">modality_pair</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">modality</span> <span class="ow">in</span> <span class="n">modality_pair</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">modality</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_configs</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;loss_weights: Unknown modality &quot;</span><span class="si">{</span><span class="n">modality</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">modality_name</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_configs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;input_features&#39;</span><span class="p">,</span> <span class="s1">&#39;id_feature&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">param_name</span><span class="p">):</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Required param </span><span class="si">{</span><span class="n">param_name</span><span class="si">}</span><span class="s1"> not set&#39;</span><span class="p">)</span>
+
+      <span class="c1"># Set default scope names if not configured.</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">encoder_scope</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">encoder_scope</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">modality_name</span><span class="si">}</span><span class="s1">_encoder&#39;</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">projection_scope</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">projection_scope</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">modality_name</span><span class="si">}</span><span class="s1">_projection&#39;</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">encoder_scope</span>
+
+    <span class="c1"># Infer joint_embedding_dim if not provided.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">joint_embedding_dim</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">joint_embedding_dim</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+          <span class="n">config</span><span class="o">.</span><span class="n">output_dim</span> <span class="k">for</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_configs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Defaulting DualEncoder joint_embedding_dim to </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">p</span><span class="o">.</span><span class="n">joint_embedding_dim</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span>
+        <span class="s1">&#39;encoders&#39;</span><span class="p">,</span>
+        <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">encoder</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_configs</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+
+    <span class="c1"># Where necessary, create layers to project the encoders&#39; output to the</span>
+    <span class="c1"># joint space.</span>
+    <span class="n">base_projection_params</span> <span class="o">=</span> <span class="n">lingvo_layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">joint_embedding_dim</span><span class="p">,</span>
+        <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
+        <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">projections</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">modality</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_configs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">joint_embedding_dim</span><span class="p">:</span>
+        <span class="n">projections</span><span class="p">[</span><span class="n">modality</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">base_projection_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">projection_scope</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">output_dim</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;projections&#39;</span><span class="p">,</span> <span class="n">projections</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;score_function&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">score_function</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DualEncoder._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.DualEncoder._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">modality</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_configs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">encoder_scope</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">[</span><span class="n">modality</span><span class="p">]</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DualEncoder.EncodeModality"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.DualEncoder.EncodeModality">[docs]</a>  <span class="k">def</span> <span class="nf">EncodeModality</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modality</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">batch_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs `inputs` through `modality`&#39;s encoder and optional projection.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      modality: Name of the modality to encode.</span>
+<span class="sd">      inputs: Tensor(s) of input to the encoder, e.g. a batch of decoded images.</span>
+<span class="sd">      batch_shape: TensorShape describing the batch structure of the inputs.</span>
+<span class="sd">        Defaults to `[None]`, which means `inputs` have a single batch</span>
+<span class="sd">        dimension. Set to (e.g.) `[None, 5]` if each example in the batch</span>
+<span class="sd">        contains 5 encodable items.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A float32 Tensor of the encoded items, shape</span>
+<span class="sd">      `batch_shape + [joint_embedding_dim]`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">batch_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">batch_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span><span class="p">,)</span>
+
+    <span class="n">encodings</span> <span class="o">=</span> <span class="n">_EncodeBatch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">[</span><span class="n">modality</span><span class="p">],</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">batch_shape</span><span class="o">=</span><span class="n">batch_shape</span><span class="p">)</span>
+
+    <span class="c1"># If necessary, project outputs to joint_embedding_dim.</span>
+    <span class="k">if</span> <span class="n">modality</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projections</span><span class="p">[</span><span class="n">modality</span><span class="p">](</span><span class="n">encodings</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">encodings</span></div>
+
+  <span class="c1"># NB: ComputePredictions and ComputeLoss methods below mimic the interface of</span>
+  <span class="c1"># a BaseTask.</span>
+
+<div class="viewcode-block" id="DualEncoder.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Encodes the examples in `input_batch` with respect to each modality.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: `NestedMap` containing variable values of this task.</span>
+<span class="sd">      input_batch: `NestedMap` of input tensors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `NestedMap` of encodings in all configured modalities. Maps modality</span>
+<span class="sd">      name to a `NestedMap` with</span>
+
+<span class="sd">        - &#39;ids&#39;: int32 ids Tensor, shape `[batch_size, ...]`</span>
+<span class="sd">        - &#39;encodings&#39;: float32 encodings Tensor, shape</span>
+<span class="sd">          `ids_shape + [joint_embedding_dim]`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">theta</span>  <span class="c1"># Unused</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">input_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">modality</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_configs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">Selector</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">input_features</span><span class="p">)(</span><span class="n">input_batch</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span><span class="p">,)</span>
+      <span class="n">ids</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">GetFromNestedMapOrDie</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">id_feature</span><span class="p">)</span>
+      <span class="n">outputs</span><span class="p">[</span><span class="n">modality</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">encodings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EncodeModality</span><span class="p">(</span>
+              <span class="n">modality</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">batch_shape</span><span class="o">=</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+          <span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outputs</span></div>
+
+<div class="viewcode-block" id="DualEncoder.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes loss and other metrics for the given predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      predictions: The output of `ComputePredictions`.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple (metrics, per_example_tensors), where</span>
+<span class="sd">        - `metrics` is a dict of str keys to (metric, weight) values</span>
+<span class="sd">        - `per_example_tensors` is a dict of str keys to tensors describing each</span>
+<span class="sd">          training example, where the first dimension of each tensor is the</span>
+<span class="sd">          batch index.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># During TPU training, collect the encodings and ids from all TPUs so the</span>
+    <span class="c1"># loss can be computed over all query-result pairs in the global batch.</span>
+    <span class="c1"># To avoid duplicating work, each TPU operates on a non-overlapping</span>
+    <span class="c1"># slice of these pairs. Specifically, each TPU uses queries drawn from its</span>
+    <span class="c1"># local batch and results from the global batch.</span>
+
+    <span class="c1"># Encodings of the local and global examples, keyed by modality.</span>
+    <span class="n">local_flat_encodings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="n">modality</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="n">modality</span><span class="p">]</span><span class="o">.</span><span class="n">encodings</span><span class="p">,</span>
+                             <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">joint_embedding_dim</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">modality</span> <span class="ow">in</span> <span class="n">predictions</span>
+    <span class="p">})</span>
+    <span class="n">global_flat_encodings</span> <span class="o">=</span> <span class="n">tpu_utils</span><span class="o">.</span><span class="n">ConcatenateAcrossReplicas</span><span class="p">(</span>
+        <span class="n">local_flat_encodings</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ComputePerQueryLoss</span><span class="p">(</span><span class="n">query_modality</span><span class="p">,</span> <span class="n">result_modality</span><span class="p">):</span>
+      <span class="n">labeler_inputs</span> <span class="o">=</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">ExamplePairs</span><span class="o">.</span><span class="n">BetweenLocalAndGlobalBatches</span><span class="p">(</span>
+          <span class="n">input_batch</span><span class="p">,</span>
+          <span class="n">query_modality</span><span class="o">=</span><span class="n">query_modality</span><span class="p">,</span>
+          <span class="n">result_modality</span><span class="o">=</span><span class="n">result_modality</span><span class="p">)</span>
+      <span class="n">labels</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">label_fn</span><span class="p">(</span><span class="n">labeler_inputs</span><span class="p">)</span>
+
+      <span class="c1"># [num_queries, num_results]</span>
+      <span class="n">flat_similarities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_function</span><span class="p">(</span>
+          <span class="n">local_flat_encodings</span><span class="p">[</span><span class="n">query_modality</span><span class="p">],</span>
+          <span class="n">global_flat_encodings</span><span class="p">[</span><span class="n">result_modality</span><span class="p">])</span>
+
+      <span class="n">flat_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">flat_similarities</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="c1"># [num_queries]</span>
+      <span class="k">return</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">MultiLabelContrastiveLoss</span><span class="p">(</span>
+          <span class="n">labels</span><span class="o">=</span><span class="n">flat_labels</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">flat_similarities</span><span class="p">)</span>
+
+    <span class="n">loss_terms</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">direction</span><span class="p">,</span> <span class="n">loss_weight</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_weights</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">query_modality</span><span class="p">,</span> <span class="n">result_modality</span> <span class="o">=</span> <span class="n">direction</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">loss_weight</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">%s</span><span class="s1"> retrieval&#39;</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+        <span class="k">continue</span>
+      <span class="n">per_query_losses</span> <span class="o">=</span> <span class="n">_ComputePerQueryLoss</span><span class="p">(</span><span class="n">query_modality</span><span class="p">,</span> <span class="n">result_modality</span><span class="p">)</span>
+      <span class="n">mean_per_query_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">per_query_losses</span><span class="p">)</span>
+      <span class="n">loss_terms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_weight</span> <span class="o">*</span> <span class="n">mean_per_query_loss</span><span class="p">)</span>
+      <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss_</span><span class="si">{}</span><span class="s1">_to_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">query_modality</span><span class="p">,</span>
+                                     <span class="n">result_modality</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">mean_per_query_loss</span><span class="p">,</span>
+                                                          <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">regularization_losses</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">CollectRegularizationLosses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">regularization_loss_weight</span> <span class="ow">and</span> <span class="n">regularization_losses</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding TF1 regularization loss: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">regularization_losses</span><span class="p">)</span>
+      <span class="n">total_reg_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">regularization_losses</span><span class="p">)</span>
+      <span class="n">loss_terms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">regularization_loss_weight</span> <span class="o">*</span> <span class="n">total_reg_loss</span><span class="p">)</span>
+      <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss_regularization&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">total_reg_loss</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">loss_terms</span><span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="p">{}</span></div></div>
+
+
+<div class="viewcode-block" id="MilanTask"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.MilanTask">[docs]</a><span class="k">class</span> <span class="nc">MilanTask</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Task that runs a `DualEncoder`.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MilanTask.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.MilanTask.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dual_encoder&#39;</span><span class="p">,</span> <span class="n">DualEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Configuration of the DualEncoder to train.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;milan&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;params.name not set.&#39;</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Construct the model.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dual_encoder&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dual_encoder</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MilanTask.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dual_encoder</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dual_encoder</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MilanTask.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.MilanTask.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dual_encoder</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dual_encoder</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span>
+                                         <span class="n">input_batch</span><span class="p">)</span></div>
+
+  <span class="c1"># Methods below implement parts of `BaseTask` that get called by lingvo</span>
+  <span class="c1"># &#39;decoder&#39; jobs. The current minimal implementation just causes summaries to</span>
+  <span class="c1"># be generated.</span>
+
+<div class="viewcode-block" id="MilanTask.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.MilanTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">preds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+    <span class="c1"># Add summary ops to the graph.</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">preds</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">preds</span></div>
+
+<div class="viewcode-block" id="MilanTask.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dual_encoder.html#lingvo.tasks.milan.dual_encoder.MilanTask.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics_lib</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+    <span class="p">}</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

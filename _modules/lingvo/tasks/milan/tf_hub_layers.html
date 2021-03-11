@@ -1,0 +1,456 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.tf_hub_layers &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.tf_hub_layers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.tf_hub_layers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Milan layers.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">import</span> <span class="nn">tensorflow_hub</span> <span class="k">as</span> <span class="nn">hub</span>
+
+
+<div class="viewcode-block" id="_WrapNonLingvoVars"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers._WrapNonLingvoVars">[docs]</a><span class="k">def</span> <span class="nf">_WrapNonLingvoVars</span><span class="p">(</span><span class="n">dest_layer</span><span class="p">:</span> <span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">,</span>
+                       <span class="n">variables</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">],</span>
+                       <span class="n">trainable_variables</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">]</span> <span class="o">=</span> <span class="p">()):</span>
+  <span class="sd">&quot;&quot;&quot;Adds variables to the given lingvo layer and appropriate graph collections.</span>
+
+<span class="sd">  This function helps wrap variables created outside of lingvo so they are</span>
+<span class="sd">  correctly handled by lingvo&#39;s trainer and checkpointer. It does the following:</span>
+
+<span class="sd">    - makes all `variables` trackable through `dest_layer.vars`;</span>
+<span class="sd">    - ensures `variables` are in the `tf.global_variables()` graph collection so</span>
+<span class="sd">      the trainer can initialize them;</span>
+<span class="sd">    - adds the `trainable_variables` subset to the `tf.trainable_variables()`</span>
+<span class="sd">      graph collection, so they are visible to the learner (i.e. can be</span>
+<span class="sd">      trained).</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    dest_layer: Lingvo layer to add the `variables` to.</span>
+<span class="sd">    variables: The non-lingvo variables to wrap.</span>
+<span class="sd">    trainable_variables: The subset of `variables` to ensure are trainable.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">global_collection</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
+  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">global_collection</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># pylint: disable=protected-access</span>
+    <span class="n">dest_layer</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+      <span class="n">dest_layer</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="c1"># pylint: enable=protected-access</span>
+
+  <span class="n">trainable_collection</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span>
+  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">trainable_variables</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">trainable_collection</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;Wrapped var </span><span class="si">%s</span><span class="s1"> not in trainable collection; adding it.&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">TRAINABLE_VARIABLES</span><span class="p">,</span>
+                                     <span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_AddUpdateOpsToSignature"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers._AddUpdateOpsToSignature">[docs]</a><span class="k">def</span> <span class="nf">_AddUpdateOpsToSignature</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a copy of a TF1 module signature that triggers stateful update ops.</span>
+
+<span class="sd">  This helper is intended for TF1-style hub modules (i.e. those loaded via</span>
+<span class="sd">  `hub.load()`) that are to be fine-tuned.  It creates a copy of</span>
+<span class="sd">  `module.signatures[signature]` that is functionally equivalent except that it</span>
+<span class="sd">  also runs update ops (e.g. updates to batch norm statistics) as a side effect.</span>
+
+<span class="sd">  (The signatures of TF1 hub modules typically don&#39;t run such ops: they&#39;re often</span>
+<span class="sd">  not dependencies of the signature outputs, and are therefore pruned when the</span>
+<span class="sd">  module is loaded.)</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    module: A TF1-style hub module, in the format returned by `hub.load()`.</span>
+<span class="sd">    signature: Name of the signature of `module` to wrap.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A callable with the same interface as `module.signatures[signature]`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">fn</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">signatures</span><span class="p">[</span><span class="n">signature</span><span class="p">]</span>
+  <span class="c1"># Determine names of the function&#39;s input and output Tensors, plus those of</span>
+  <span class="c1"># any update ops that were in the graph prior to pruning but now only exist in</span>
+  <span class="c1"># the parent graph (module.graph). Then construct a new `WrappedFunction` that</span>
+  <span class="c1"># computes the same outputs from the same inputs, but also runs the update ops</span>
+  <span class="c1"># as a side effect.</span>
+  <span class="n">captured_input_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">}</span>
+  <span class="n">input_names</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="n">inputs</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">captured_input_names</span>
+  <span class="p">]</span>
+  <span class="n">structured_output_names</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span>
+      <span class="n">fn</span><span class="o">.</span><span class="n">structured_outputs</span><span class="p">,</span>
+      <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="n">structured_outputs</span><span class="p">)])</span>
+  <span class="n">update_op_names</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">op</span><span class="o">.</span><span class="n">name</span>
+      <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">UPDATE_OPS</span><span class="p">)</span>
+  <span class="p">]</span>
+  <span class="n">fn_with_update_ops</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">prune</span><span class="p">(</span><span class="n">input_names</span><span class="p">,</span>
+                                    <span class="p">(</span><span class="n">structured_output_names</span><span class="p">,</span> <span class="n">update_op_names</span><span class="p">))</span>
+
+  <span class="k">def</span> <span class="nf">_CallAndDropUpdateOpOutputs</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">outputs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fn_with_update_ops</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">outputs</span>
+
+  <span class="k">return</span> <span class="n">_CallAndDropUpdateOpOutputs</span></div>
+
+
+<div class="viewcode-block" id="ImageModule"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.ImageModule">[docs]</a><span class="k">class</span> <span class="nc">ImageModule</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wraps a TF-hub image module, allowing it to be fine-tuned.</span>
+
+<span class="sd">  NOTE: Input images are assumed to be [0, 1] normalized as per TF-hub standard</span>
+<span class="sd">  (see https://www.tensorflow.org/hub/common_signatures/images).</span>
+
+
+<span class="sd">  Example usage::</span>
+
+<span class="sd">    inception_model = ImageModule.Params().Set(</span>
+<span class="sd">        name=&#39;inception_v3&#39;,</span>
+<span class="sd">        module_path=(</span>
+<span class="sd">            &#39;https://tfhub.dev/google/imagenet/inception_v3/feature_vector/4&#39;),</span>
+<span class="sd">        update_batch_norm=True).Instantiate()</span>
+<span class="sd">    images = tf.random.uniform([2, 299, 299, 3], minval=0.0, maxval=1.0)</span>
+<span class="sd">    features = inception_model(images)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ImageModule.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.ImageModule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;module_path&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Path / handle of tf-hub module to load.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;signature&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;Module signature to run.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;training_graph_tags&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;train&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;Tags of the module graph to use for training. Conventionally &#39;</span>
+        <span class="s1">&#39;the &quot;train&quot;-tagged graph runs components like batch norm and &#39;</span>
+        <span class="s1">&#39;dropout in training mode, and has extra ops to update batch norm &#39;</span>
+        <span class="s1">&#39;moving averages, etc.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;eval_graph_tags&#39;</span><span class="p">,</span> <span class="nb">set</span><span class="p">(),</span>
+             <span class="s1">&#39;Tags of the module graph to use for evaluation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;run_update_ops&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Run update ops (e.g. to update batch-norm statistics) during &#39;</span>
+        <span class="s1">&#39;fine-tuning?&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">module_path</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Required param &quot;module_path&quot; not set.&#39;</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ImageModule._CreateLayerVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.ImageModule._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># In TF1 modules the convention is that the &#39;train&#39;-tagged graph runs</span>
+    <span class="c1"># batch norm (if in use) in &quot;training&quot; mode, and adds additional</span>
+    <span class="c1"># UPDATE_OPS to the graph to update the moving averages.</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_graph_tags</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">training_graph_tags</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading module with tags </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">tags</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_module</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">module_path</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">)</span>
+
+    <span class="c1"># Extract the signature, and create a variant that also runs update ops in</span>
+    <span class="c1"># the graph.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fwd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">signatures</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">signature</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_with_update_ops</span> <span class="o">=</span> <span class="n">_AddUpdateOpsToSignature</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">signature</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_reg_losses_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">prune</span><span class="p">(</span>
+        <span class="p">[],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;regularization_losses&#39;</span><span class="p">))</span>
+    <span class="n">_WrapNonLingvoVars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">losses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reg_losses_fn</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ImageModule.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.ImageModule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">images</span><span class="p">):</span>
+    <span class="n">images</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_has_rank</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">run_update_ops</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Running module in training mode with update ops.&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_with_update_ops</span><span class="p">(</span><span class="n">images</span><span class="p">)[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd</span><span class="p">(</span><span class="n">images</span><span class="p">)[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="ImageModuleV2"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2">[docs]</a><span class="k">class</span> <span class="nc">ImageModuleV2</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wraps a TF2 hub image module, allowing it to be fine-tuned.</span>
+
+<span class="sd">  Any regularization losses attached to the hub module are accessible through</span>
+<span class="sd">  this object&#39;s `losses` property.</span>
+
+<span class="sd">  NOTE: Input images are assumed to be [0, 1] normalized as per TF-hub standard</span>
+<span class="sd">  (see https://www.tensorflow.org/hub/common_signatures/images).</span>
+
+<span class="sd">  Example usage::</span>
+
+<span class="sd">    params = ImageModuleV2.Params().Set(</span>
+<span class="sd">        name=&#39;efficientnet_b4&#39;,</span>
+<span class="sd">        module_path=(</span>
+<span class="sd">            &#39;https://tfhub.dev/tensorflow/efficientnet/b4/feature-vector/1&#39;))</span>
+<span class="sd">    model = params.Instantiate()</span>
+<span class="sd">    images = tf.random.uniform([2, 380, 380, 3], minval=0.0, maxval=1.0)</span>
+<span class="sd">    features = model(images)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ImageModuleV2.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;image_module_v2&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;module_path&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Path/handle of tf-hub module to load.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_training_mode&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Iff True, the module is run in &quot;training&quot; mode when being fine-tuned. &#39;</span>
+        <span class="s1">&#39;This typically turns on dropout-like regularization methods and &#39;</span>
+        <span class="s1">&#39;causes batch norm statistics to be updated during fine-tuning.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">for</span> <span class="n">required_param_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;module_path&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">required_param_name</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Must set </span><span class="si">{</span><span class="n">required_param_name</span><span class="si">}</span><span class="s1"> param.&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># NB: `trainable` merely controls whether the model *can* be run in</span>
+      <span class="c1"># training mode.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_module</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">KerasLayer</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">module_path</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">_WrapNonLingvoVars</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">variables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span>
+        <span class="n">trainable_variables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">)</span>
+
+    <span class="c1"># Functionalize the module&#39;s __call__ so train-mode update ops run eagerly.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_hub_module_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">images</span><span class="p">,</span> <span class="n">training</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">))</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">losses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">losses</span>
+
+<div class="viewcode-block" id="ImageModuleV2.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">images</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hub_module_fn</span><span class="p">(</span>
+        <span class="n">images</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_training_mode</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span></div></div>
+
+
+<span class="n">EFFICIENTNET_B4_INPUT_SHAPE</span> <span class="o">=</span> <span class="p">(</span><span class="mi">380</span><span class="p">,</span> <span class="mi">380</span><span class="p">)</span>
+<span class="n">EFFICIENTNET_B4_OUTPUT_FEATURE_DIM</span> <span class="o">=</span> <span class="mi">1792</span>
+
+
+<div class="viewcode-block" id="EfficientNetB4Params"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.tf_hub_layers.html#lingvo.tasks.milan.tf_hub_layers.EfficientNetB4Params">[docs]</a><span class="k">def</span> <span class="nf">EfficientNetB4Params</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Sets up params for loading EfficientNet-B4 from tf-hub.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">ImageModuleV2</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;efficientnet_b4&#39;</span><span class="p">,</span>
+      <span class="n">module_path</span><span class="o">=</span><span class="p">(</span>
+          <span class="s1">&#39;https://tfhub.dev/tensorflow/efficientnet/b4/feature-vector/1&#39;</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -178,7 +178,12 @@
 
 
 <div class="viewcode-block" id="_ModelTuples"><a class="viewcode-back" href="../../../lingvo.core.test_trainer_utils.html#lingvo.core.test_trainer_utils._ModelTuples">[docs]</a><span class="k">def</span> <span class="nf">_ModelTuples</span><span class="p">(</span><span class="n">model_classes</span><span class="p">):</span>
-  <span class="k">return</span> <span class="p">[(</span><span class="n">model_class</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">model_class</span><span class="p">)</span> <span class="k">for</span> <span class="n">model_class</span> <span class="ow">in</span> <span class="n">model_classes</span><span class="p">]</span></div>
+  <span class="n">model_tuples</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">model_class</span> <span class="ow">in</span> <span class="n">model_classes</span><span class="p">:</span>
+    <span class="n">module_name</span> <span class="o">=</span> <span class="n">model_class</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">class_name</span> <span class="o">=</span> <span class="n">model_class</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="n">model_tuples</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">module_name</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_class</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">model_tuples</span></div>
 
 
 <div class="viewcode-block" id="MakeModelValidatorTestCase"><a class="viewcode-back" href="../../../lingvo.core.test_trainer_utils.html#lingvo.core.test_trainer_utils.MakeModelValidatorTestCase">[docs]</a><span class="k">def</span> <span class="nf">MakeModelValidatorTestCase</span><span class="p">(</span><span class="n">model_classes</span><span class="p">):</span>

@@ -1,0 +1,420 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.tf_hub_layers module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.milan.tpu_utils module" href="lingvo.tasks.milan.tpu_utils.html" />
+    <link rel="prev" title="lingvo.tasks.milan.score_functions module" href="lingvo.tasks.milan.score_functions.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.milan.html">lingvo.tasks.milan namespace</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.tf_hub_layers module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/lingvo.tasks.milan.tf_hub_layers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.milan.tf_hub_layers">
+<span id="lingvo-tasks-milan-tf-hub-layers-module"></span><h1>lingvo.tasks.milan.tf_hub_layers module<a class="headerlink" href="#module-lingvo.tasks.milan.tf_hub_layers" title="Permalink to this headline">¶</a></h1>
+<p>Milan layers.</p>
+<dl class="py function">
+<dt id="lingvo.tasks.milan.tf_hub_layers._WrapNonLingvoVars">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.tf_hub_layers.</span></code><code class="sig-name descname"><span class="pre">_WrapNonLingvoVars</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dest_layer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><span class="pre">lingvo.core.base_layer.BaseLayer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Collection</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.ops.variables.VariableV1</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainable_variables</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Collection</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.ops.variables.VariableV1</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#_WrapNonLingvoVars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers._WrapNonLingvoVars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds variables to the given lingvo layer and appropriate graph collections.</p>
+<p>This function helps wrap variables created outside of lingvo so they are
+correctly handled by lingvo’s trainer and checkpointer. It does the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>makes all <code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code> trackable through <code class="xref py py-obj docutils literal notranslate"><span class="pre">dest_layer.vars</span></code>;</p></li>
+<li><p>ensures <code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code> are in the <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.global_variables()</span></code> graph collection so
+the trainer can initialize them;</p></li>
+<li><p>adds the <code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable_variables</span></code> subset to the <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.trainable_variables()</span></code>
+graph collection, so they are visible to the learner (i.e. can be
+trained).</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dest_layer</strong> – Lingvo layer to add the <code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code> to.</p></li>
+<li><p><strong>variables</strong> – The non-lingvo variables to wrap.</p></li>
+<li><p><strong>trainable_variables</strong> – The subset of <code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code> to ensure are trainable.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.milan.tf_hub_layers._AddUpdateOpsToSignature">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.tf_hub_layers.</span></code><code class="sig-name descname"><span class="pre">_AddUpdateOpsToSignature</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#_AddUpdateOpsToSignature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers._AddUpdateOpsToSignature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a copy of a TF1 module signature that triggers stateful update ops.</p>
+<p>This helper is intended for TF1-style hub modules (i.e. those loaded via
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">hub.load()</span></code>) that are to be fine-tuned.  It creates a copy of
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">module.signatures[signature]</span></code> that is functionally equivalent except that it
+also runs update ops (e.g. updates to batch norm statistics) as a side effect.</p>
+<p>(The signatures of TF1 hub modules typically don’t run such ops: they’re often
+not dependencies of the signature outputs, and are therefore pruned when the
+module is loaded.)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module</strong> – A TF1-style hub module, in the format returned by <code class="xref py py-obj docutils literal notranslate"><span class="pre">hub.load()</span></code>.</p></li>
+<li><p><strong>signature</strong> – Name of the signature of <code class="xref py py-obj docutils literal notranslate"><span class="pre">module</span></code> to wrap.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A callable with the same interface as <code class="xref py py-obj docutils literal notranslate"><span class="pre">module.signatures[signature]</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModule">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.tf_hub_layers.</span></code><code class="sig-name descname"><span class="pre">ImageModule</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#ImageModule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Wraps a TF-hub image module, allowing it to be fine-tuned.</p>
+<p>NOTE: Input images are assumed to be [0, 1] normalized as per TF-hub standard
+(see <a class="reference external" href="https://www.tensorflow.org/hub/common_signatures/images">https://www.tensorflow.org/hub/common_signatures/images</a>).</p>
+<p>Example usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inception_model</span> <span class="o">=</span> <span class="n">ImageModule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;inception_v3&#39;</span><span class="p">,</span>
+    <span class="n">module_path</span><span class="o">=</span><span class="p">(</span>
+        <span class="s1">&#39;https://tfhub.dev/google/imagenet/inception_v3/feature_vector/4&#39;</span><span class="p">),</span>
+    <span class="n">update_batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+<span class="n">images</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">299</span><span class="p">,</span> <span class="mi">299</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">features</span> <span class="o">=</span> <span class="n">inception_model</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModule.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#ImageModule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModule.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModule._CreateLayerVariables">
+<code class="sig-name descname"><span class="pre">_CreateLayerVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#ImageModule._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModule._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModule.losses">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">losses</span></code><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModule.losses" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModule.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#ImageModule.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModule.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.tasks.milan.tf_hub_layers.ImageModule.FProp" title="lingvo.tasks.milan.tf_hub_layers.ImageModule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.tasks.milan.tf_hub_layers.ImageModule.FProp" title="lingvo.tasks.milan.tf_hub_layers.ImageModule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModuleV2">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.tf_hub_layers.</span></code><code class="sig-name descname"><span class="pre">ImageModuleV2</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#ImageModuleV2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Wraps a TF2 hub image module, allowing it to be fine-tuned.</p>
+<p>Any regularization losses attached to the hub module are accessible through
+this object’s <a class="reference internal" href="#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.losses" title="lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.losses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">losses</span></code></a> property.</p>
+<p>NOTE: Input images are assumed to be [0, 1] normalized as per TF-hub standard
+(see <a class="reference external" href="https://www.tensorflow.org/hub/common_signatures/images">https://www.tensorflow.org/hub/common_signatures/images</a>).</p>
+<p>Example usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="n">ImageModuleV2</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;efficientnet_b4&#39;</span><span class="p">,</span>
+    <span class="n">module_path</span><span class="o">=</span><span class="p">(</span>
+        <span class="s1">&#39;https://tfhub.dev/tensorflow/efficientnet/b4/feature-vector/1&#39;</span><span class="p">))</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+<span class="n">images</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">380</span><span class="p">,</span> <span class="mi">380</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">features</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#ImageModuleV2.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.losses">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">losses</span></code><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.losses" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#ImageModuleV2.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.FProp" title="lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.FProp" title="lingvo.tasks.milan.tf_hub_layers.ImageModuleV2.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.milan.tf_hub_layers.EfficientNetB4Params">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.tf_hub_layers.</span></code><code class="sig-name descname"><span class="pre">EfficientNetB4Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/tf_hub_layers.html#EfficientNetB4Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.tf_hub_layers.EfficientNetB4Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up params for loading EfficientNet-B4 from tf-hub.</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="lingvo.tasks.milan.tpu_utils.html" class="btn btn-neutral float-right" title="lingvo.tasks.milan.tpu_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="lingvo.tasks.milan.score_functions.html" class="btn btn-neutral float-left" title="lingvo.tasks.milan.score_functions module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

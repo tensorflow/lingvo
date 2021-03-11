@@ -1,0 +1,417 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.dataset_spec &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.dataset_spec</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.dataset_spec</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Base classes for defining datasets.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
+<span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">labels</span> <span class="k">as</span> <span class="n">label_lib</span>
+
+<span class="n">_default_items_per_example</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">constants</span><span class="o">.</span><span class="n">Modality</span><span class="o">.</span><span class="n">AUDIO</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">constants</span><span class="o">.</span><span class="n">Modality</span><span class="o">.</span><span class="n">IMAGE</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">constants</span><span class="o">.</span><span class="n">Modality</span><span class="o">.</span><span class="n">TEXT</span><span class="p">:</span> <span class="mi">1</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="Metadata"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.Metadata">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">Metadata</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Describes the `tf.data.Dataset`s that a `DatasetSpec` instance produces.&quot;&quot;&quot;</span>
+
+  <span class="c1"># Names, shapes, and dtypes of features in the resulting dataset.</span>
+  <span class="c1"># Shapes reflect those of a single, unbatched example.</span>
+  <span class="n">features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">]]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+  <span class="n">items_per_example</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">factory</span><span class="o">=</span><span class="n">_default_items_per_example</span><span class="o">.</span><span class="n">copy</span><span class="p">)</span>
+  <span class="c1"># Map of modality name to batch shape.</span>
+  <span class="n">modality_batch_shapes</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Metadata._InferDefaultBatchShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.Metadata._InferDefaultBatchShapes">[docs]</a>  <span class="nd">@modality_batch_shapes</span><span class="o">.</span><span class="n">default</span>
+  <span class="k">def</span> <span class="nf">_InferDefaultBatchShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">modality</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">]</span> <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">modality</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items_per_example</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="p">}</span></div></div>
+
+
+<div class="viewcode-block" id="DatasetSpec"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.DatasetSpec">[docs]</a><span class="k">class</span> <span class="nc">DatasetSpec</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Abstract base class for dataset definitions.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DatasetSpec.Read"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.DatasetSpec.Read">[docs]</a>  <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+  <span class="k">def</span> <span class="nf">Read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+           <span class="n">split</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+           <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+           <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Reads the specified split of the dataset as a `tf.data.Dataset`.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="DatasetSpec.Label"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.DatasetSpec.Label">[docs]</a>  <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+  <span class="k">def</span> <span class="nf">Label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pairs</span><span class="p">:</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">ExamplePairs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Computes labels for the given query-result pairs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      pairs: The examples containing the queries and results to label.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A Tensor containing a label for every query-result pair.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+  <span class="nd">@property</span>
+  <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+  <span class="k">def</span> <span class="nf">meta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Metadata</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns `Metadata` describing the features in this dataset.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<span class="c1"># Pytype alias.</span>
+<span class="n">Schema</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenSequenceFeature</span><span class="p">]]</span>
+
+<span class="c1"># Size of TFRecord reader buffer, per file. (The TFRecordDataset default, 256KB,</span>
+<span class="c1"># is too small and makes TPU trainers input-bound.)</span>
+<span class="n">_TFRECORD_READER_BUFFER_SIZE_BYTES</span> <span class="o">=</span> <span class="mi">64</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span><span class="p">)</span>  <span class="c1"># 64 MiB</span>
+
+
+<div class="viewcode-block" id="TFRecordDatasetSpec"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.TFRecordDatasetSpec">[docs]</a><span class="k">class</span> <span class="nc">TFRecordDatasetSpec</span><span class="p">(</span><span class="n">DatasetSpec</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generic template for datasets stored in TFRecord files.</span>
+
+<span class="sd">  `Read()` implements a typical tf.data pipeline that</span>
+<span class="sd">    - loads serialized TF examples from disk,</span>
+<span class="sd">    - extracts features from them using `tf.io.parse_example`, and</span>
+<span class="sd">    - applies an example-level transformation, e.g. to rename or reshape</span>
+<span class="sd">      features.</span>
+
+<span class="sd">  Constructor arguments specify where the tfrecords are located (`split_paths`),</span>
+<span class="sd">  what features to extract (`schema`), and how to transform the resulting</span>
+<span class="sd">  examples (`transform`).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="o">*</span><span class="p">,</span>
+               <span class="n">split_paths</span><span class="p">,</span>
+               <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+               <span class="n">transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">label_fn</span><span class="p">:</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">LabelFnType</span><span class="p">,</span>
+               <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Metadata</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates an instance that reads examples from tfrecords at `split_paths`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      split_paths: Paths of the tfrecord files for each split, keyed by split</span>
+<span class="sd">        name. Each split can be specified as a file pattern or list of file</span>
+<span class="sd">        patterns (e.g. &#39;/foo/ba*&#39; or [&#39;/foo/bar-*&#39;, &#39;/foo/baz*&#39;]).</span>
+<span class="sd">      schema: Feature definitions for the `tf.train.Example`s in this dataset,</span>
+<span class="sd">        in the format expected by `tf.io.parse_example`.</span>
+<span class="sd">      transform: Optional transformation to apply to the parsed examples. If</span>
+<span class="sd">        given, should be a function Dict[str, Tensor] -&gt; Dict[str, Tensor].</span>
+<span class="sd">      label_fn: Function that generates pairwise labels between batches of</span>
+<span class="sd">        queries and results read from this dataset.</span>
+<span class="sd">      metadata: `Metadata` object that describes examples in this dataset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_split_paths</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">split_paths</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_label_fn</span> <span class="o">=</span> <span class="n">label_fn</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="o">=</span> <span class="n">transform</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">=</span> <span class="n">metadata</span> <span class="ow">or</span> <span class="n">Metadata</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TFRecordDatasetSpec.Read"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.TFRecordDatasetSpec.Read">[docs]</a>  <span class="k">def</span> <span class="nf">Read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+           <span class="n">split</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+           <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+           <span class="n">input_filepattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+           <span class="n">shuffle_buffer_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+           <span class="n">num_examples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">num_epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">read_parallelism</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Reads the specified `split` as a `tf.data.Dataset`.</span>
+
+<span class="sd">    Reads the tfrecords at the path configured for `split`, parses the examples,</span>
+<span class="sd">    and optionally shuffles and batches them.</span>
+
+<span class="sd">    By default, the tfrecords path is taken from the `split_paths` passed to</span>
+<span class="sd">    the constructor. Callers can optionally override this path by passing</span>
+<span class="sd">    `input_filepattern` explicitly.</span>
+
+<span class="sd">    If `shuffle_buffer_size` is set, examples are randomly shuffled with a</span>
+<span class="sd">    buffer of the given size prior to batching. Shuffling is on by default for</span>
+<span class="sd">    the `TRAIN` split, and can be disabled by setting shuffle_buffer_size=0.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      split: Name of the split to read.</span>
+<span class="sd">      batch_size: If set, the number of examples to batch together.</span>
+<span class="sd">      input_filepattern: If given, read the tfrecords at this path instead of</span>
+<span class="sd">        the one specified in `split_paths`.</span>
+<span class="sd">      shuffle_buffer_size: If &gt; 0, size of the buffer used to shuffle examples.</span>
+<span class="sd">        Defaults to 4096 for the `TRAIN` split and 0 otherwise.</span>
+<span class="sd">      num_examples: Number of examples to read from the underlying tfrecords.</span>
+<span class="sd">        Defaults to -1, meaning all examples are read.</span>
+<span class="sd">      num_epochs: Number of epochs (full passes) through the dataset to make.</span>
+<span class="sd">        Defaults to -1, meaning the dataset repeats indefinitely. If set to n &gt;</span>
+<span class="sd">        0, `tf.errors.OutOfRangeError` at the end of the n&#39;th epoch.</span>
+<span class="sd">      read_parallelism: Number of input files to read in parallel.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The split as a `tf.data.Dataset` object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">input_filepattern</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">input_filepattern</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_paths</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">input_filepattern</span><span class="p">,</span> <span class="s1">&#39;Unsupported split </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">shuffle_buffer_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">shuffle_buffer_size</span> <span class="o">=</span> <span class="mi">4096</span> <span class="k">if</span> <span class="n">split</span> <span class="o">==</span> <span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TRAIN</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="n">shuffle_files</span> <span class="o">=</span> <span class="n">shuffle_buffer_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s1">&#39;Reading inputs </span><span class="si">%s</span><span class="s1"> with batch_size=</span><span class="si">%s</span><span class="s1">, shuffle_buffer_size=</span><span class="si">%s</span><span class="s1">,&#39;</span>
+        <span class="s1">&#39;num_examples=</span><span class="si">%d</span><span class="s1">, num_epochs=</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_filepattern</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">shuffle_buffer_size</span><span class="p">,</span> <span class="n">num_examples</span><span class="p">,</span> <span class="n">num_epochs</span><span class="p">)</span>
+
+    <span class="n">per_file_dataset_factory</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="n">_TFRECORD_READER_BUFFER_SIZE_BYTES</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="n">input_filepattern</span><span class="p">,</span>
+                                   <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle_files</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                                       <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">parallel_interleave</span><span class="p">(</span>
+                                           <span class="n">per_file_dataset_factory</span><span class="p">,</span>
+                                           <span class="n">cycle_length</span><span class="o">=</span><span class="n">read_parallelism</span><span class="p">,</span>
+                                           <span class="n">sloppy</span><span class="o">=</span><span class="n">shuffle_files</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">shuffle_buffer_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">shuffle_buffer_size</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">num_examples</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">drop_remainder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_example</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">),</span>
+        <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transform</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+<div class="viewcode-block" id="TFRecordDatasetSpec.Label"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.TFRecordDatasetSpec.Label">[docs]</a>  <span class="k">def</span> <span class="nf">Label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pairs</span><span class="p">:</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">ExamplePairs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_fn</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">meta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Read</span><span class="p">(</span>
+          <span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TRAIN</span><span class="p">,</span> <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">read_parallelism</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">element_spec</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

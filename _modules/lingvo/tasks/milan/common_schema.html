@@ -1,0 +1,292 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.common_schema &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.common_schema</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.common_schema</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Defines a common `tf.train.Example` format for image-caption(-like) data.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+
+
+<div class="viewcode-block" id="_Feature"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.common_schema.html#lingvo.tasks.milan.common_schema._Feature">[docs]</a><span class="k">def</span> <span class="nf">_Feature</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unsupported sequence shape </span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenSequenceFeature</span><span class="p">(</span>
+        <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">allow_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ImageFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.common_schema.html#lingvo.tasks.milan.common_schema.ImageFeatures">[docs]</a><span class="k">def</span> <span class="nf">ImageFeatures</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Returns definitions of common image features.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dict of feature definitions usable with `tf.io.parse_example`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="p">{</span>
+      <span class="s1">&#39;image/encoded&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
+      <span class="s1">&#39;image/id&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+  <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="TextFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.common_schema.html#lingvo.tasks.milan.common_schema.TextFeatures">[docs]</a><span class="k">def</span> <span class="nf">TextFeatures</span><span class="p">(</span><span class="n">captions_per_example</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bert_embeddings_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns definitions of the common text features.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    captions_per_example: Number of text captions stored in each example.</span>
+<span class="sd">    bert_embeddings_shape: Optional time-major shape of BERT embedding sequences</span>
+<span class="sd">      to include in the schema (if given). Set the leading (time) dimension to</span>
+<span class="sd">      `None` if the sequences have variable length.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dict of feature definitions usable with `tf.io.parse_example`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">captions_shape</span> <span class="o">=</span> <span class="p">([</span><span class="n">captions_per_example</span><span class="p">]</span> <span class="k">if</span> <span class="n">captions_per_example</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="p">[])</span>
+
+  <span class="n">features</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="s1">&#39;text/captions&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">(</span><span class="n">captions_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
+      <span class="s1">&#39;text/id&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">(</span><span class="n">captions_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+  <span class="p">}</span>
+
+  <span class="k">if</span> <span class="n">bert_embeddings_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">max_length</span><span class="p">,</span> <span class="n">feature_dim</span> <span class="o">=</span> <span class="n">bert_embeddings_shape</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="c1"># Token-level BERT embeddings.</span>
+        <span class="s1">&#39;text/bert/token_features&#39;</span><span class="p">:</span>
+            <span class="n">_Feature</span><span class="p">(</span><span class="n">captions_shape</span> <span class="o">+</span> <span class="p">[</span><span class="n">max_length</span><span class="p">,</span> <span class="n">feature_dim</span><span class="p">]),</span>
+        <span class="c1"># Lengths (in tokens) of the token-level embeddings.</span>
+        <span class="s1">&#39;text/bert/lengths&#39;</span><span class="p">:</span>
+            <span class="n">_Feature</span><span class="p">(</span><span class="n">captions_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="p">})</span>
+  <span class="k">return</span> <span class="n">features</span></div>
+
+
+<div class="viewcode-block" id="AudioFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.common_schema.html#lingvo.tasks.milan.common_schema.AudioFeatures">[docs]</a><span class="k">def</span> <span class="nf">AudioFeatures</span><span class="p">(</span><span class="n">mfcc_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cpc8k_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns definitions of common audio features.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    mfcc_shape: Optional time-major shape of MFCC features to include in the</span>
+<span class="sd">      schema (if given). Set the leading (time) dimension to `None` if the</span>
+<span class="sd">      sequences have variable length.</span>
+<span class="sd">    cpc8k_shape: Optional time-major shape of CPC-8K features to include.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dict of feature definitions usable with `tf.io.parse_example`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">features</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;audio/id&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)}</span>
+  <span class="k">if</span> <span class="n">mfcc_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">features</span><span class="p">[</span><span class="s1">&#39;audio/mfccs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Feature</span><span class="p">(</span><span class="n">mfcc_shape</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">cpc8k_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">features</span><span class="p">[</span><span class="s1">&#39;audio/cpc8k/features&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Feature</span><span class="p">(</span><span class="n">cpc8k_shape</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">features</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -295,9 +295,9 @@
     <span class="s1">&#39;inference_graph_random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
     <span class="s1">&#39;Random seed to fix when exporting inference graph. &#39;</span>
     <span class="s1">&#39;Not fixed when set to None.&#39;</span><span class="p">)</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
-    <span class="s1">&#39;graph_def_filename&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="s1">&#39;Output inference graph_def filename. Defaults to CPU graph if &#39;</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_list</span><span class="p">(</span>
+    <span class="s1">&#39;graph_def_filename&#39;</span><span class="p">,</span> <span class="p">[],</span>
+    <span class="s1">&#39;Output inference graph_def filenames. Defaults to CPU graph if &#39;</span>
     <span class="s1">&#39;inference_graph_filename and inference_graph_device are not specified.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
@@ -587,6 +587,10 @@
         <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTF2SummaryOps</span><span class="p">()</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_stats_summary_interval_steps</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_stats_summary_interval_steps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">add_summary</span>
+
         <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
           <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
 
@@ -665,6 +669,11 @@
                       <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">input_data_summary_layout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">input_data_summary_layout</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_num_params</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">summary_utils</span><span class="o">.</span><span class="n">ModelAnalysis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">))</span>
@@ -808,6 +817,11 @@
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
+    <span class="c1"># Get merged summary op for training related input data stats from the</span>
+    <span class="c1"># tasks&#39;s input generator.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">merged_input_data_summary_op</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainerTpu._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -949,6 +963,9 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="s1">&#39;evaler_&#39;</span> <span class="o">+</span> <span class="n">eval_type</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_output_name</span> <span class="o">=</span> <span class="s1">&#39;eval_&#39;</span> <span class="o">+</span> <span class="n">eval_type</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_export</span> <span class="o">=</span> <span class="n">eval_type</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_export</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Job </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="si">}</span><span class="s1"> will not export the model.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">do_eval</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_name</span><span class="p">)</span>
@@ -982,6 +999,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_input_stats_summary_interval_steps</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_stats_summary_interval_steps</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">add_summary</span>
 
     <span class="c1"># Saves the graph def.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">)</span>
@@ -1079,7 +1100,8 @@
 
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
     <span class="c1"># Save any additional information to disk before evaluation.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_export</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="c1"># Check after how many steps checkpoint got saved.</span>
     <span class="c1"># And decide whether to run an evaluation.</span>
@@ -1143,6 +1165,13 @@
         <span class="n">summaries</span><span class="p">,</span>
         <span class="n">text_filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span>
                                    <span class="s1">&#39;score-</span><span class="si">{:08d}</span><span class="s1">.txt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">global_step</span><span class="p">)))</span>
+
+    <span class="c1"># Get merged summaries for input data stats logged by the tasks&#39;s input</span>
+    <span class="c1"># generator and write summaries for the stats.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">merged_input_data_summary_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">input_stats_summary_str</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">merged_input_data_summary_op</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStatSummaries</span><span class="p">(</span><span class="n">input_stats_summary_str</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
     <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
@@ -1669,12 +1698,14 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Error exporting TPU inference graph: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">graph_def_filename</span> <span class="ow">and</span> <span class="n">inference_graph_proto</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Writing graphdef: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">graph_def_filename</span><span class="p">)</span>
-      <span class="n">dir_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">graph_def_filename</span><span class="p">)</span>
-      <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">graph_def_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">graph_def</span><span class="p">))</span></div>
+      <span class="k">for</span> <span class="n">graph_def_filename</span> <span class="ow">in</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">graph_def_filename</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Writing graphdef: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">graph_def_filename</span><span class="p">)</span>
+        <span class="n">dir_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">graph_def_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dir_path</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">graph_def_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+          <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">graph_def</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="RunnerManager.RunEvalerOnce"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.RunEvalerOnce">[docs]</a>  <span class="k">def</span> <span class="nf">RunEvalerOnce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run once evaler.&quot;&quot;&quot;</span>

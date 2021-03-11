@@ -188,6 +188,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">training_loop</span> <span class="k">as</span> <span class="n">tpu_training_loop</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu.ops</span> <span class="kn">import</span> <span class="n">tpu_ops</span>
+
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 
@@ -223,6 +224,8 @@
              <span class="s1">&#39;If multi-task, what the high-level task name is&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_threads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of threads in multiprocessing pool.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;spmd&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether program is running under SPMD mode.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;write_train_input_stats&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to write input data stats during training.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -234,6 +237,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_model</span> <span class="o">=</span> <span class="n">shared_model</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;tf_master&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">write_train_input_stats</span>
 
     <span class="c1"># Program dirs are where the summaries are written to.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
@@ -268,6 +272,13 @@
     <span class="c1"># implementation without creating a default FileWriter in the constructor.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_obj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">FileWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span>
+      <span class="c1"># Apply a custom Tensorboard layout for input data stats if writing</span>
+      <span class="c1"># TF summaries for input data stats is enabled and a custom layout is</span>
+      <span class="c1"># defined by the input generator.</span>
+      <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">input_data_summary_layout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_obj</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">input_data_summary_layout</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_obj</span>
 
 <div class="viewcode-block" id="BaseProgram._SummarizeValue"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._SummarizeValue">[docs]</a>  <span class="k">def</span> <span class="nf">_SummarizeValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
@@ -293,12 +304,31 @@
                             <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="BaseProgram._WriteInputDataStats"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._WriteInputDataStats">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteInputDataStats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write input data stats for model training as TF summaries.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: The Tensorflow session.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">merged_input_data_summary_op</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+        <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span><span class="p">):</span>
+      <span class="k">return</span>
+
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">global_step</span> <span class="o">%</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_stats_summary_interval_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+      <span class="n">summary_str</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">merged_input_data_summary_op</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary_str</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="BaseProgram._InfeedLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_InfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Infeed loop for input generator for batched data and input data stats.&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop start&#39;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;_InfeedLoop </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop exception </span><span class="si">%r</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
@@ -359,6 +389,10 @@
 
 <div class="viewcode-block" id="BaseProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseProgram.SaveProgramState"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.SaveProgramState">[docs]</a>  <span class="k">def</span> <span class="nf">SaveProgramState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Saves program state information that need to be loaded during restore.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="BaseProgram._InstantiateTaskModel"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InstantiateTaskModel">[docs]</a>  <span class="k">def</span> <span class="nf">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Instantiates a model object for a particular task.</span>

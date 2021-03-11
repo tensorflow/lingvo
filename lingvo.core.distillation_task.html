@@ -170,8 +170,146 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-distillation-task-module">
-<h1>lingvo.core.distillation_task module<a class="headerlink" href="#lingvo-core-distillation-task-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.distillation_task">
+<span id="lingvo-core-distillation-task-module"></span><h1>lingvo.core.distillation_task module<a class="headerlink" href="#module-lingvo.core.distillation_task" title="Permalink to this headline">¶</a></h1>
+<p>Base class for tasks that implement knowledge distillation.</p>
+<dl class="py class">
+<dt id="lingvo.core.distillation_task.DistillationTask">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.distillation_task.</span></code><code class="sig-name descname"><span class="pre">DistillationTask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
+<p>A task to distill knowledge from a teacher task to a student task.</p>
+<p>The training parameters (e.g., learning rate) are determined only by
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">DistillationTask.params.train</span></code>. Teacher and student task’s training and eval
+parameters must be set to None.</p>
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.ComputePredictions">
+<code class="sig-name descname"><span class="pre">ComputePredictions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
+<p>The output can be in the form of probablistic distributions, e.g., softmax
+logits for discrete outputs, mixture of logistics for continuous values, or
+regression values.</p>
+<p>For training/evaluation, the output will be used for computing loss and
+gradient updates, including comparing predicted distributions between
+teacher and student for distillation. During inference the output can be
+used to compute final outputs, perhaps with sampling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
+<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Predictions, either a single Tensor, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, or a namedtuple.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.ComputeLoss">
+<code class="sig-name descname"><span class="pre">ComputeLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes loss and other metrics for the given predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
+<li><p><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.core.distillation_task.DistillationTask.ComputePredictions" title="lingvo.core.distillation_task.DistillationTask.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>.</p></li>
+<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.</p></li>
+<li><p>A dict containing arbitrary tensors describing something about each
+training example, where the first dimension of each tensor is the batch
+index.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>, <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.ComputeDistillationLoss">
+<code class="sig-name descname"><span class="pre">ComputeDistillationLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.ComputeDistillationLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.ComputeDistillationLoss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.BProp">
+<code class="sig-name descname"><span class="pre">BProp</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.BProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.BProp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.Decode">
+<code class="sig-name descname"><span class="pre">Decode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.Decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.Decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph for eval decoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_batch</strong> – The input batch. A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors. Or, if input batch
+spiltting is used, a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code>, one for each split.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a dict of Tensors as decoder output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.Inference">
+<code class="sig-name descname"><span class="pre">Inference</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.Inference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.Inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph.</p>
+<p>Each subgraph represents a public API for a part of the graph which can
+be operated independently. By convention, the subgraph named ‘default’
+should perform end to end inference via the input generator.</p>
+<p>Note that having distinct subgraphs (e.g. ‘encoder’, ‘decoder’) is
+not just a space optimization: when driving the graph externally in an
+online fashion, evaluation often needs to be broken into pieces. In this
+case, the graph will be constructed with only those pieces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">inference_graph_pb2.InferenceGraph</span></code> message.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.CreateDecoderMetrics">
+<code class="sig-name descname"><span class="pre">CreateDecoderMetrics</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.CreateDecoderMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dict of decoder metrics for <a class="reference internal" href="#lingvo.core.distillation_task.DistillationTask.PostProcessDecodeOut" title="lingvo.core.distillation_task.DistillationTask.PostProcessDecodeOut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code></a> to update.</p>
+<p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.distillation_task.DistillationTask.PostProcessDecodeOut">
+<code class="sig-name descname"><span class="pre">PostProcessDecodeOut</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dec_out_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/distillation_task.html#DistillationTask.PostProcessDecodeOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.distillation_task.DistillationTask.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post-processes decoder out and updates contents of <code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_metrics_dict</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>decode_out_dict</strong> – A dictionary of Tensors fetched.</p></li>
+<li><p><strong>decode_metrics_dict</strong> – A dict mapping from string key to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a>
+object as created by <a class="reference internal" href="#lingvo.core.distillation_task.DistillationTask.CreateDecoderMetrics" title="lingvo.core.distillation_task.DistillationTask.CreateDecoderMetrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CreateDecoderMetrics</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output_key_value_pairs - a list of (key, value) pairs that can be saved
+(i.e. of type str, bytes, or unicode).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

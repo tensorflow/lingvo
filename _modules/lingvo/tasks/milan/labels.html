@@ -1,0 +1,585 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.labels &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.labels</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.labels</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Utilities for labeling batches and computing loss.</span>
+
+<span class="sd">In dual encoder tasks, the concept of &quot;labels&quot; is more complicated than in</span>
+<span class="sd">traditional supervised learning tasks. This is for two main reasons:</span>
+
+<span class="sd"> - Labels have to be computed on the fly. This is because dual encoder labels</span>
+<span class="sd">   describe pairwise relationships between (and within) examples in a batch.</span>
+<span class="sd">   As such, they aren&#39;t simply fixed annotations attached to each example.</span>
+<span class="sd"> - Determining some of these relationships requires knowledge about the dataset</span>
+<span class="sd">   format and what its features mean. There is no one-size-fits-all computation</span>
+<span class="sd">   that can generate labels for all datasets.</span>
+
+<span class="sd">Milan&#39;s solution is to encapsulate all the logic required to compute labels</span>
+<span class="sd">in dataset-specific *label functions*. Label function instances typically</span>
+<span class="sd">assume input examples have a very particular format and interpretation. Upstream</span>
+<span class="sd">code is responsible for ensuring the labeler only gets called on the specific</span>
+<span class="sd">dataset it describes. Implementations in this file are templates that can be</span>
+<span class="sd">configured for many common datasets.</span>
+
+<span class="sd">The structure of datasets implicitly defines some relationships -- but</span>
+<span class="sd">only some. In particular, *within-example* relationships are assumed to be</span>
+<span class="sd">positive, but *between-example* relationships are a priori unknown. For</span>
+<span class="sd">instance, consider an image-captioning dataset that stores an image and caption</span>
+<span class="sd">per example. Within each example, we assume the caption describes the image and</span>
+<span class="sd">vice-versa; but, without any extra information, we know nothing about how images</span>
+<span class="sd">or captions from different examples relate to each other.</span>
+
+<span class="sd">In practice, most between-example pairs are interpreted as negative (unrelated).</span>
+<span class="sd">However, there are at least two commonly occurring cases where a negative label</span>
+<span class="sd">would be incorrect:</span>
+
+<span class="sd"> - Linked positive examples: Some datasets distribute positive pairs among</span>
+<span class="sd">   multiple examples. For instance, in a captioning dataset with N captions per</span>
+<span class="sd">   image, co-captions might be flattened into N separate (image + caption)</span>
+<span class="sd">   examples. (Side note: Milan supports &quot;multi-item&quot; examples, which makes such</span>
+<span class="sd">   flattening unnecessary.)</span>
+
+<span class="sd"> - Duplicates: Training batches sampled with replacement may contain duplicates,</span>
+<span class="sd">   meaning examples that are identical copies of others, either in whole or</span>
+<span class="sd">   in a modality being modeled.</span>
+<span class="sd">   Note the chance of getting exact duplicates generally increases with the</span>
+<span class="sd">   global batch size and the number of independent TPU infeeds (usually one per</span>
+<span class="sd">   core or TPU host).</span>
+
+<span class="sd">While a negative label is incorrect in both cases, neither can be identified</span>
+<span class="sd">through generic, dataset-independent means. Instead, some knowledge of the</span>
+<span class="sd">dataset is necessary. For instance, if we know there is an `example_id` feature</span>
+<span class="sd">that uniquely identifies each example, then deduplication of examples becomes</span>
+<span class="sd">easy.</span>
+
+
+<span class="sd">Label functions</span>
+<span class="sd">---------------</span>
+<span class="sd">In general, a label function is just a function with signature</span>
+<span class="sd">`ExamplePairs` -&gt; labels Tensor.</span>
+<span class="sd">The `ExamplePairs` input specifies the examples to label and the query and</span>
+<span class="sd">result modalities. Other details like feature names, a method for detecting</span>
+<span class="sd">duplicates, etc. are expected to be captured within the function itself.</span>
+
+<span class="sd">Labels are trinary-valued: they can either be positive (1), negative (0), or a</span>
+<span class="sd">special `IGNORE_PAIR_LABEL` value that indicates the query-result pair should be</span>
+<span class="sd">ignored during training. The last can be used to mark duplicates, or more</span>
+<span class="sd">generally cases where the query-result relationship is unknown or should not be</span>
+<span class="sd">used.</span>
+
+<span class="sd">Implementations in this file are templates that can be configured for many</span>
+<span class="sd">common datasets.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">tpu_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">utils</span>
+
+
+<div class="viewcode-block" id="ExamplePairs"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels.ExamplePairs">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
+<span class="k">class</span> <span class="nc">ExamplePairs</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Defines query-result example pairs to be labeled.</span>
+
+<span class="sd">  `query_examples` and `result_examples` are the input batches of the</span>
+<span class="sd">  queries and results being labeled. These batches contain full examples, as</span>
+<span class="sd">  read from the original dataset, after any applicable preprocessing.</span>
+<span class="sd">  `result_examples` is always a superset of `query_examples`. It contains</span>
+<span class="sd">  identical copies of all `query_examples` plus zero or more other randomly</span>
+<span class="sd">  chosen examples.</span>
+
+<span class="sd">  `correspondences` indicates where each of the `query_examples`</span>
+<span class="sd">  was copied inside `result_examples` when the `ExamplePairs` was constructed.</span>
+<span class="sd">  It has shape [query_batch_size, result_batch_size] and is typically a</span>
+<span class="sd">  rectangular (padded) identity matrix.</span>
+
+<span class="sd">  `query_modality` and `result_modality` are strings identifying the query</span>
+<span class="sd">  and result modalities. These define which slice or view of each</span>
+<span class="sd">  example constitutes a query or result.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">query_examples</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+  <span class="n">query_modality</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+  <span class="n">result_examples</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+  <span class="n">result_modality</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+  <span class="n">correspondences</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+  <span class="c1"># Number of examples in `query_examples`, inferred from tensor shapes.</span>
+  <span class="n">query_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+  <span class="c1"># Number of examples in `result_examples`, inferred from tensor shapes.</span>
+  <span class="n">result_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ExamplePairs.WithinBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels.ExamplePairs.WithinBatch">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">WithinBatch</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ExamplePairs&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Creates an instance representing all example pairs within `batch`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch: Dict of input examples; this same set of examples represents both</span>
+<span class="sd">        the query_examples and result_examples.</span>
+<span class="sd">      **kwargs: kwargs to forward to ExamplePairs constructor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      `ExamplePairs`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">correspondences</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">InferBatchSize</span><span class="p">(</span><span class="n">batch</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ExamplePairs</span><span class="p">(</span>
+        <span class="n">query_examples</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span>
+        <span class="n">result_examples</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span>
+        <span class="n">correspondences</span><span class="o">=</span><span class="n">correspondences</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExamplePairs.BetweenLocalAndGlobalBatches"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels.ExamplePairs.BetweenLocalAndGlobalBatches">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">BetweenLocalAndGlobalBatches</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">local_batch</span><span class="p">,</span>
+                                   <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ExamplePairs&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Creates an instance representing (local, global) example pairs.&quot;&quot;&quot;</span>
+    <span class="n">local_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">local_batch</span><span class="p">)</span>
+    <span class="n">global_batch</span> <span class="o">=</span> <span class="n">tpu_utils</span><span class="o">.</span><span class="n">ConcatenateAcrossReplicas</span><span class="p">(</span><span class="n">local_batch</span><span class="p">)</span>
+    <span class="n">correspondences</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">InferBatchSize</span><span class="p">(</span><span class="n">local_batch</span><span class="p">),</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">InferBatchSize</span><span class="p">(</span><span class="n">global_batch</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ExamplePairs</span><span class="p">(</span>
+        <span class="n">query_examples</span><span class="o">=</span><span class="n">local_batch</span><span class="p">,</span>
+        <span class="n">result_examples</span><span class="o">=</span><span class="n">global_batch</span><span class="p">,</span>
+        <span class="n">correspondences</span><span class="o">=</span><span class="n">correspondences</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">__attrs_post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">InferBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">query_examples</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">result_batch_size</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">InferBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result_examples</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">correspondences</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">(</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_batch_size</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">correspondences</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span></div>
+
+
+<span class="c1"># Type describing general label functions.</span>
+<span class="n">LabelFnType</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ExamplePairs</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+
+<span class="n">IGNORE_PAIR_LABEL</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+
+<div class="viewcode-block" id="ExamplePairLabeler"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels.ExamplePairLabeler">[docs]</a><span class="k">class</span> <span class="nc">ExamplePairLabeler</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;A simple labeler for single-item examples.</span>
+
+<span class="sd">  This labeler provides a mechanism to drop (ignore) example pairs based on</span>
+<span class="sd">  equality of scalar features. Typically these features are integer ids</span>
+<span class="sd">  (or similar) that uniquely identify the example or one of its modalities.</span>
+<span class="sd">  Dropping (distinct) pairs with the same ID is a simple form of deduplication.</span>
+
+<span class="sd">  More precisely:</span>
+<span class="sd">   - Queries and results from the same example (according to `correspondences`)</span>
+<span class="sd">     always get a positive label.</span>
+<span class="sd">   - By default, all other pairs get a negative label.</span>
+<span class="sd">   - Negative labels are replaced by IGNORE if the examples are equal w.r.t.</span>
+<span class="sd">     any feature named in `drop_pairs_that_match`. These features should be</span>
+<span class="sd">     scalars, one per example.</span>
+
+<span class="sd">  This labeler assumes examples only have one item per modality (e.g. one image</span>
+<span class="sd">  and one caption), and is only suitable for datasets that satisfy that</span>
+<span class="sd">  condition.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">drop_pairs_that_match</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">()):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">drop_pairs_that_match</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+      <span class="n">drop_pairs_that_match</span> <span class="o">=</span> <span class="p">[</span><span class="n">drop_pairs_that_match</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_drop_on_match</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">drop_pairs_that_match</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">ExamplePairs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="n">drop_masks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">feature_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drop_on_match</span><span class="p">:</span>
+      <span class="n">query_ids</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">query_examples</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feature_name</span><span class="p">)</span>
+      <span class="n">result_ids</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">result_examples</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feature_name</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">query_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No feature </span><span class="si">{}</span><span class="s1"> in query batch&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">feature_name</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">result_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No feature </span><span class="si">{}</span><span class="s1"> in result batch&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">feature_name</span><span class="p">))</span>
+      <span class="n">query_ids</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">([</span><span class="n">inputs</span><span class="o">.</span><span class="n">query_batch_size</span><span class="p">])</span>
+      <span class="n">result_ids</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">([</span><span class="n">inputs</span><span class="o">.</span><span class="n">result_batch_size</span><span class="p">])</span>
+      <span class="n">drop_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">query_ids</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">result_ids</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]))</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">correspondences</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">drop_masks</span><span class="p">:</span>
+      <span class="n">any_drop_condition_met</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">drop_masks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">labels</span> <span class="o">=</span> <span class="n">_IgnorePairsWhere</span><span class="p">(</span>
+          <span class="o">~</span><span class="n">inputs</span><span class="o">.</span><span class="n">correspondences</span> <span class="o">&amp;</span> <span class="n">any_drop_condition_met</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">labels</span></div>
+
+
+<div class="viewcode-block" id="_BroadcastExamplePairLabelsToAllItemPairs"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels._BroadcastExamplePairLabelsToAllItemPairs">[docs]</a><span class="k">def</span> <span class="nf">_BroadcastExamplePairLabelsToAllItemPairs</span><span class="p">(</span><span class="n">example_pair_labels</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+                                              <span class="n">queries_shape</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">,</span>
+                                              <span class="n">results_shape</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Propagates each example-pair label to all pairs of their items.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    example_pair_labels: Labels tensor for example pairs, shape</span>
+<span class="sd">      [query_batch_size, result_batch_size].</span>
+<span class="sd">    queries_shape: Batch shape of the query examples. Must start with</span>
+<span class="sd">      `query_batch_size`.</span>
+<span class="sd">    results_shape: Batch shape of the query examples. Must start with</span>
+<span class="sd">      `result_batch_size`.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A labels tensor with shape `queries_shape + results_shape`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">example_pair_labels</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_has_rank</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+  <span class="n">queries_shape</span><span class="o">.</span><span class="n">assert_is_fully_defined</span><span class="p">()</span>
+  <span class="n">results_shape</span><span class="o">.</span><span class="n">assert_is_fully_defined</span><span class="p">()</span>
+  <span class="c1"># Expand [q, r] to [q, 1, ..., r, 1, ...]</span>
+  <span class="n">all_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+  <span class="n">reshape_slice</span> <span class="o">=</span> <span class="p">((</span><span class="n">all_slice</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">queries_shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
+                   <span class="p">(</span><span class="n">all_slice</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">results_shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">example_pair_labels</span><span class="p">[</span><span class="n">reshape_slice</span><span class="p">],</span>
+                         <span class="n">queries_shape</span> <span class="o">+</span> <span class="n">results_shape</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_IgnorePairsWhere"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels._IgnorePairsWhere">[docs]</a><span class="k">def</span> <span class="nf">_IgnorePairsWhere</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">IGNORE_PAIR_LABEL</span><span class="p">,</span> <span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+                  <span class="n">labels</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MultiItemExampleWrapper"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels.MultiItemExampleWrapper">[docs]</a><span class="k">class</span> <span class="nc">MultiItemExampleWrapper</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Adapts a labeler for single-item examples into one for multi-item examples.</span>
+
+<span class="sd">  `MultiItemExampleWrapper` wraps a labeler for single-item examples (one that</span>
+<span class="sd">  assumes examples have a single item per modality), so that it can label</span>
+<span class="sd">  multi-item examples (i.e. where each example holds Q &gt;= 1 query and R &gt;= 1</span>
+<span class="sd">  result items). The former produces a label for each of</span>
+<span class="sd">  query_batch_size * result_batch_size pairs; the latter produces one for each</span>
+<span class="sd">  of query_batch_size * Q * result_batch_size * R pairs.</span>
+
+<span class="sd">  `modality_shapes` specifies the number of items per modality in each example</span>
+<span class="sd">  (Q and R, in this example).</span>
+
+<span class="sd">  This wrapper employs some simple semantics to expand labels:</span>
+
+<span class="sd">    - All item pairs inherit the label of the parent example pair.</span>
+<span class="sd">    - When the query and result modalities are the same (intra-modal retrieval),</span>
+<span class="sd">      item self pairs are labeled &quot;ignore&quot;. This is so items aren&#39;t used as</span>
+<span class="sd">      their own targets during training.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">example_pair_labeler</span><span class="p">:</span> <span class="n">LabelFnType</span><span class="p">,</span>
+               <span class="n">modality_batch_shapes</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">]):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_example_pair_labeler</span> <span class="o">=</span> <span class="n">example_pair_labeler</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_modality_batch_shapes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">modality_batch_shapes</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">ExamplePairs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Labels item pairs in `inputs`.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Generate labels for the example pairs. If examples only have one item in</span>
+    <span class="c1"># each modality, everything else below is a no-op.</span>
+    <span class="n">example_pair_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_example_pair_labeler</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">example_pair_labels</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">result_batch_size</span><span class="p">])</span>
+
+    <span class="n">query_batch_shape</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ResolveBatchDim</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_modality_batch_shapes</span><span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">query_modality</span><span class="p">],</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">query_batch_size</span><span class="p">)</span>
+    <span class="n">result_batch_shape</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ResolveBatchDim</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_modality_batch_shapes</span><span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">result_modality</span><span class="p">],</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">result_batch_size</span><span class="p">)</span>
+
+    <span class="c1"># Broadcast example-level labels to all pairs of their items.</span>
+    <span class="n">item_pair_labels</span> <span class="o">=</span> <span class="n">_BroadcastExamplePairLabelsToAllItemPairs</span><span class="p">(</span>
+        <span class="n">example_pair_labels</span><span class="p">,</span> <span class="n">query_batch_shape</span><span class="p">,</span> <span class="n">result_batch_shape</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">query_modality</span> <span class="o">==</span> <span class="n">inputs</span><span class="o">.</span><span class="n">result_modality</span><span class="p">:</span>
+      <span class="c1"># Intra-modal retrieval. Give self pairs the &quot;ignore&quot; label so that items</span>
+      <span class="c1"># aren&#39;t used as their own targets during training.</span>
+      <span class="c1"># For this case we require the batch shape to be rank 2.</span>
+      <span class="c1">#  - If rank == 1, each example only contains a single item, so the only</span>
+      <span class="c1">#    within-example pairs are the self pairs. Once these are dropped,</span>
+      <span class="c1">#    there are typically no positively labeled pairs, meaning there is</span>
+      <span class="c1">#    no training signal. (The exception is if two *distinct* examples</span>
+      <span class="c1">#    are given a positive label.) Rather than hoping the trainer will do</span>
+      <span class="c1">#    something smart in this weird corner case, we simply die if</span>
+      <span class="c1">#    rank == 1.</span>
+      <span class="c1">#  - Any rank &gt; 1 is sufficient to get around the above problem, but</span>
+      <span class="c1">#    currently there&#39;s no use case for any ranks above 2.</span>
+      <span class="n">query_batch_shape</span><span class="o">.</span><span class="n">assert_has_rank</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">dimension_value</span><span class="p">(</span><span class="n">query_batch_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">assert</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span>
+      <span class="c1"># Item self-pairs are those at indices [q, i, r, j] where</span>
+      <span class="c1">#   - Examples q and r are the same example</span>
+      <span class="c1">#   - i == j refer to the same item in the example</span>
+      <span class="n">is_item_self_pair</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="c1"># [q, 1, r, 1]</span>
+          <span class="n">inputs</span><span class="o">.</span><span class="n">correspondences</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+          <span class="c1"># [1, n, 1, n]</span>
+          <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
+      <span class="n">item_pair_labels</span> <span class="o">=</span> <span class="n">_IgnorePairsWhere</span><span class="p">(</span><span class="n">is_item_self_pair</span><span class="p">,</span> <span class="n">item_pair_labels</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">item_pair_labels</span></div>
+
+
+<div class="viewcode-block" id="MultiLabelContrastiveLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels.MultiLabelContrastiveLoss">[docs]</a><span class="k">def</span> <span class="nf">MultiLabelContrastiveLoss</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes a multi-label generalization of softmax cross entropy loss.</span>
+
+<span class="sd">  This loss generalizes softmax cross entropy in the following sense.</span>
+
+<span class="sd">  - If `labels` are one-hot (over `axis`), this loss is equivalent to softmax</span>
+<span class="sd">    cross entropy. Note in this case the per-example loss can be interpreted as</span>
+<span class="sd">    -log(p(positive_class)). Here p() is a distribution of over C classes,</span>
+<span class="sd">    namely 1 positive class and C-1 negative classes.</span>
+
+<span class="sd">  - In general, if `labels` are N-hot, this function computes the loss</span>
+<span class="sd">    `sum_i{ -log(p_i(positive_class_i)) } / N`</span>
+<span class="sd">    where p_i() is a distribution over the i&#39;th positive class and the C-N</span>
+<span class="sd">    negative classes.</span>
+
+<span class="sd">  Note unlike `tf.nn.softmax_cross_entropy_with_logits()`, this function does</span>
+<span class="sd">  not support &quot;soft&quot; labels. Positive and negative labels must be represented as</span>
+<span class="sd">  1 and 0, respectively. Setting a label to any other value causes the example-</span>
+<span class="sd">  class pair to be ignored in the loss calculation. This is intended as a</span>
+<span class="sd">  feature, to give callers fine-grained control over which pairs are used in</span>
+<span class="sd">  the loss.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    labels: Tensor of labels. Must have the same shape as `logits`.</span>
+<span class="sd">    logits: Tensor of logits (scores). Must have the same shape as `labels`.</span>
+<span class="sd">    axis: The class dimension, i.e. the one over which probability distributions</span>
+<span class="sd">      are normalized.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Tensor of per-example losses. Has the same type as `logits`, and the same</span>
+<span class="sd">    shape, except without `axis`.</span>
+
+<span class="sd">    Typically `labels` and `logits` are both [batch_size, num_classes], in</span>
+<span class="sd">    which case the result is [batch_size].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+  <span class="c1"># Set logits for non-negative pairs to -inf so they&#39;re effectively ignored.</span>
+  <span class="n">is_negative_pair</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">negative_pair_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_negative_pair</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span>
+                                  <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s1">&#39;-inf&#39;</span><span class="p">),</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+  <span class="c1"># Compute binary logits, log(p / (1-p)). Shift inputs by the max negative-pair</span>
+  <span class="c1"># score to improve numerical precision. The reason is that</span>
+  <span class="c1">#   tf.reduce_logsumexp(x) == max(x) + log(sum_i(exp(x[i] - max(x))))</span>
+  <span class="c1"># and if the max is sufficiently large the second term disappears as round-off</span>
+  <span class="c1"># error.</span>
+  <span class="n">adjustment</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">negative_pair_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="n">binary_logits</span> <span class="o">=</span> <span class="p">(</span><span class="n">logits</span> <span class="o">-</span> <span class="n">adjustment</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_logsumexp</span><span class="p">(</span>
+      <span class="n">negative_pair_logits</span> <span class="o">-</span> <span class="n">adjustment</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1"># Accumulate the losses of each positive sample vs. all negative ones. Note</span>
+  <span class="c1"># -log_sigmoid == sigmoid_cross_entropy_with_logits in the special case that</span>
+  <span class="c1"># all labels are 1.</span>
+  <span class="n">is_positive_pair</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">binary_logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">losses</span> <span class="o">=</span> <span class="n">is_positive_pair</span> <span class="o">*</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log_sigmoid</span><span class="p">(</span><span class="n">binary_logits</span><span class="p">)</span>
+  <span class="n">num_positives</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">is_positive_pair</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">losses</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_positives</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

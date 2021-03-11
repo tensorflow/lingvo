@@ -170,8 +170,550 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-program-module">
-<h1>lingvo.core.program module<a class="headerlink" href="#lingvo-core-program-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.program">
+<span id="lingvo-core-program-module"></span><h1>lingvo.core.program module<a class="headerlink" href="#module-lingvo.core.program" title="Permalink to this headline">¶</a></h1>
+<p>Programs for interleaving execution on TPU.</p>
+<dl class="py class">
+<dt id="lingvo.core.program.BaseProgram">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">BaseProgram</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A Program associated with a Task.</p>
+<p>This is inspired by the “program” multi-tenancy that TPUs
+support. Essentially, each program corresponds with a
+sub-graph can exist in the same Graph/Session.</p>
+<p>Upon first execution, it is XLA/JIT compiled and is subsequently
+available to be executed on demand without significant delay.</p>
+<p>Program’s provides the following functionality:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Builds a sub-graph</p></li>
+<li><p>Writes summaries</p></li>
+<li><p>Runs for pre-determined <code class="xref py py-obj docutils literal notranslate"><span class="pre">steps_per_loop</span></code> steps with appropriate infeeds</p></li>
+</ul>
+</div></blockquote>
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Defaults parameters for Programs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._summary_writer">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_summary_writer</span></code><a class="headerlink" href="#lingvo.core.program.BaseProgram._summary_writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the FileWriter object to use for summaries.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._SummarizeValue">
+<code class="sig-name descname"><span class="pre">_SummarizeValue</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._SummarizeValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._SummarizeValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._WriteSummaries">
+<code class="sig-name descname"><span class="pre">_WriteSummaries</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summaries</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._WriteSummaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._WriteSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write summaries to be viewed by TensorBoard.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_name</strong> – The name of this job (‘trainer’, ‘evaler’, etc.)</p></li>
+<li><p><strong>global_step</strong> – Integer number of trainer steps (not a tensor).</p></li>
+<li><p><strong>summaries</strong> – Dict of {summary_name: tf.Summary()}.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._WriteInputDataStats">
+<code class="sig-name descname"><span class="pre">_WriteInputDataStats</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._WriteInputDataStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._WriteInputDataStats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write input data stats for model training as TF summaries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – The Tensorflow session.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._InfeedLoop">
+<code class="sig-name descname"><span class="pre">_InfeedLoop</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InfeedLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infeed loop for input generator for batched data and input data stats.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.BuildTpuSubgraph">
+<code class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.SetStatusMessageFn">
+<code class="sig-name descname"><span class="pre">SetStatusMessageFn</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.SetStatusMessageFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.SetStatusMessageFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Workaround since we instantiate programs via Params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.SetStatusMessage">
+<code class="sig-name descname"><span class="pre">SetStatusMessage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.SetStatusMessage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.SetStatusMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write to borglet status.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.Compile">
+<code class="sig-name descname"><span class="pre">Compile</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.Compile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.Compile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compile the program using the given session handle.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.Shutdown">
+<code class="sig-name descname"><span class="pre">Shutdown</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.Shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.Shutdown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs any necessary cleanup (potentially blocking).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.CreateCheckpointer">
+<code class="sig-name descname"><span class="pre">CreateCheckpointer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">init_op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.CreateCheckpointer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.CreateCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.RestoreIfNeeded">
+<code class="sig-name descname"><span class="pre">RestoreIfNeeded</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.RestoreIfNeeded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram.SaveProgramState">
+<code class="sig-name descname"><span class="pre">SaveProgramState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.SaveProgramState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.SaveProgramState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves program state information that need to be loaded during restore.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._InstantiateTaskModel">
+<code class="sig-name descname"><span class="pre">_InstantiateTaskModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InstantiateTaskModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InstantiateTaskModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiates a model object for a particular task.</p>
+<p>MultiTaskModels can accept a shared_model parameter, but SingleTaskModels
+cannot, so we handle them separately here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task_params</strong> – An params instance that constructs either a SingleTaskModel
+or a MultiTaskSubModel.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An instantiated object based on task_params.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._OutfeedEnqueue">
+<code class="sig-name descname"><span class="pre">_OutfeedEnqueue</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_example_tensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._OutfeedEnqueue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._OutfeedEnqueue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.TrainProgram">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">TrainProgram</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
+<p>TrainProgram trains a single task and handles checkpoints.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.TrainProgram._OutfeedDequeueLoop">
+<code class="sig-name descname"><span class="pre">_OutfeedDequeueLoop</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_example_tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loops</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram._OutfeedDequeueLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram._OutfeedDequeueLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process all per-example tensor outfeed data for a TPU sess.run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>per_example_tensors</strong> – dict of key -&gt; tensor as generated by TpuTrainStep.</p></li>
+<li><p><strong>num_loops</strong> – number of times that TpuTrainStep will be executed by TpuTrain.</p></li>
+<li><p><strong>num_devices</strong> – number of TPU cores assigned to this process.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dict of per-example tensors from the latest TpuTrainStep.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.TrainProgram.BuildTpuSubgraph">
+<code class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.TrainProgram.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.EvalProgram">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">EvalProgram</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
+<p>Evaluation program.</p>
+<p>Note that this currently has different infeed semantics compared to
+the existing Evaler as the input generator is not recreated
+per-eval. Thus different random samples are selected each
+evaluation.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.EvalProgram.TpuEvalStep">
+<code class="sig-name descname"><span class="pre">TpuEvalStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.TpuEvalStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.TpuEvalStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Eval a shard of a batch on a single TPU core.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*args</strong> – metrics values from previous steps.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Summed eval metrics.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.EvalProgram.TpuEvalLoop">
+<code class="sig-name descname"><span class="pre">TpuEvalLoop</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.TpuEvalLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.TpuEvalLoop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.EvalProgram.BuildTpuSubgraph">
+<code class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.EvalProgram.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.program._FetchDecodeOut">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">_FetchDecodeOut</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_passthrough_tensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_FetchDecodeOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._FetchDecodeOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch decoder outputs, combining with CPU passthrough tensors if needed.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.DecodeProgram">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">DecodeProgram</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
+<p>DecodeProgram.</p>
+<p>Note that this currently has different infeed semantics compared to
+the existing Decoder as the input generator is not recreated
+per-eval. Thus different random samples are selected each
+decoder run.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.DecodeProgram._CompileDecodeFn">
+<code class="sig-name descname"><span class="pre">_CompileDecodeFn</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._CompileDecodeFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._CompileDecodeFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap the DecodeFn with split_compile_and_shard.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.DecodeProgram.BuildTpuSubgraph">
+<code class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.DecodeProgram.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">ExperimentalDecodeProgram</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.DecodeProgram" title="lingvo.core.program.DecodeProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.DecodeProgram</span></code></a></p>
+<p>DecodeProgram in a tpu loop.</p>
+<p>Note that decoder outputs across cores are concatenated along the first
+dimension. The first dimension usually corresponds to batch size and as long
+as post process decode outputs have the same expectations, this will work.</p>
+<p>TODO(huangyp) test this for beam search decoders and replace the
+default DecodeProgram.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Defaults parameters for Programs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram._CompileDecodeLoop">
+<code class="sig-name descname"><span class="pre">_CompileDecodeLoop</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._CompileDecodeLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._CompileDecodeLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap the DecodeLoop with split_compile_and_shard.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram.BuildTpuSubgraph">
+<code class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue">
+<code class="sig-name descname"><span class="pre">_OutfeedDequeue</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._OutfeedDequeue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collect outfeed dequeue from all devices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of tensors corresponding to stacked decoded outputs. The decoder
+outputs are stacked on the first dimension (usually corresponds to
+batch size).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram._DecodeLoop">
+<code class="sig-name descname"><span class="pre">_DecodeLoop</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._DecodeLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._DecodeLoop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.MLPerfTrainDecodeProgram">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">MLPerfTrainDecodeProgram</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
+<p>Run train/decode in a single session run.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfTrainDecodeProgram.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Defaults parameters for Programs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfTrainDecodeProgram.BuildTpuSubgraph">
+<code class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfTrainDecodeProgram._InfeedLoop">
+<code class="sig-name descname"><span class="pre">_InfeedLoop</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram._InfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram._InfeedLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infeed loop for input generator for batched data and input data stats.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfTrainDecodeProgram._TrainAndDecode">
+<code class="sig-name descname"><span class="pre">_TrainAndDecode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram._TrainAndDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram._TrainAndDecode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfTrainDecodeProgram.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.MultiTaskProgramSchedule">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">MultiTaskProgramSchedule</span></code><a class="reference internal" href="_modules/lingvo/core/program.html#MultiTaskProgramSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiTaskProgramSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Container for ProgramSchedules for a MultiTask model.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.MultiTaskProgramSchedule.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiTaskProgramSchedule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiTaskProgramSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.SimpleProgramSchedule">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">SimpleProgramSchedule</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A schedule of programs associated with a single task.</p>
+<p>Simple sequence is:
+Run train_executions_per_eval * train_program
+Run all the eval_programs</p>
+<dl class="py method">
+<dt id="lingvo.core.program.SimpleProgramSchedule.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramSchedule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for a SimpleProgramSchedule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.SimpleProgramSchedule.Programs">
+<code class="sig-name descname"><span class="pre">Programs</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramSchedule.Programs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramSchedule.Programs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.SimpleProgramSchedule.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramSchedule.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramSchedule.Run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.SimpleProgramSchedule.Shutdown">
+<code class="sig-name descname"><span class="pre">Shutdown</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramSchedule.Shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramSchedule.Shutdown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.program.SimpleProgramScheduleForTask">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">train_dataset_name</span></em>, <em class="sig-param"><span class="pre">train_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">eval_dataset_names</span></em>, <em class="sig-param"><span class="pre">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">decode_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">experimental_decoder=False</span></em>, <em class="sig-param"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenient helper method for common case.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_dataset_name</strong> – Name of the training dataset, eg: ‘Train’</p></li>
+<li><p><strong>train_steps_per_loop</strong> – Number of steps to execute the training program.</p></li>
+<li><p><strong>eval_dataset_names</strong> – List of eval dataset_name strings, eg: [‘Train’].</p></li>
+<li><p><strong>eval_steps_per_loop</strong> – Number of steps to execute the eval program.</p></li>
+<li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program.</p></li>
+<li><p><strong>experimental_decoder</strong> – bool. Whether to use experimental deocder which is
+placed in a tpu loop.</p></li>
+<li><p><strong>train_program_cls</strong> – The class to use for training programs.  Defaults
+to TrainProgram.</p></li>
+<li><p><strong>eval_program_cls</strong> – The class to use for eval programs.  Defaults to
+EvalProgram.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A populated SimpleProgramSchedule.Params()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.program.MLPerfProgramSchedule">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">MLPerfProgramSchedule</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Program schedule for ML Perf benchmark.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfProgramSchedule.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramSchedule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for a MLPerfProgramSchedule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfProgramSchedule.Programs">
+<code class="sig-name descname"><span class="pre">Programs</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramSchedule.Programs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramSchedule.Programs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfProgramSchedule.Run">
+<code class="sig-name descname"><span class="pre">Run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramSchedule.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramSchedule.Run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.MLPerfProgramSchedule.Shutdown">
+<code class="sig-name descname"><span class="pre">Shutdown</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramSchedule.Shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramSchedule.Shutdown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.program.MLPerfProgramScheduleForTask">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></code><code class="sig-name descname"><span class="pre">MLPerfProgramScheduleForTask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populate MLPerfProgramSchedule params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_dataset_name</strong> – Name of the training dataset, eg: ‘Train’.</p></li>
+<li><p><strong>train_steps_per_loop</strong> – Number of steps to execute the training program.</p></li>
+<li><p><strong>decode_dataset_name</strong> – Eg: ‘Test’.</p></li>
+<li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A populated MLPerfProgramSchedule.Params()</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

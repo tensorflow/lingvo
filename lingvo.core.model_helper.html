@@ -170,8 +170,52 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-model-helper-module">
-<h1>lingvo.core.model_helper module<a class="headerlink" href="#lingvo-core-model-helper-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.model_helper">
+<span id="lingvo-core-model-helper-module"></span><h1>lingvo.core.model_helper module<a class="headerlink" href="#module-lingvo.core.model_helper" title="Permalink to this headline">¶</a></h1>
+<p>Some utilities for configuring models.</p>
+<dl class="py function">
+<dt id="lingvo.core.model_helper.CreateUnidirectionalRNNParams">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.model_helper.</span></code><code class="sig-name descname"><span class="pre">CreateUnidirectionalRNNParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_helper.html#CreateUnidirectionalRNNParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.model_helper.CreateUnidirectionalRNNParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates parameters for uni-directional RNN layer.</p>
+<p>Based on <code class="xref py py-obj docutils literal notranslate"><span class="pre">layer_params.unidi_rnn_type</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer_params</strong> – parameters for the layers, has to contain unidi_rnn_type.</p></li>
+<li><p><strong>cell_params</strong> – parameters for the RNN cell.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Parameters for uni-directional RNN layer.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – if <code class="xref py py-obj docutils literal notranslate"><span class="pre">unidi_rnn_type</span></code> is invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.model_helper.CreateBidirectionalRNNParams">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.model_helper.</span></code><code class="sig-name descname"><span class="pre">CreateBidirectionalRNNParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward_cell_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backward_cell_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/model_helper.html#CreateBidirectionalRNNParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.model_helper.CreateBidirectionalRNNParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates parameters for bi-directional RNN layer.</p>
+<p>Based on <code class="xref py py-obj docutils literal notranslate"><span class="pre">layer_params.bidi_rnn_type</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer_params</strong> – parameters for the layers, has to contain bidi_rnn_type.</p></li>
+<li><p><strong>forward_cell_params</strong> – parameters for the forward RNN cell.</p></li>
+<li><p><strong>backward_cell_params</strong> – parameters for the backward RNN cell.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Parameters for bi-directional RNN layer.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – if <code class="xref py py-obj docutils literal notranslate"><span class="pre">bidi_rnn_type</span></code> is invalid.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

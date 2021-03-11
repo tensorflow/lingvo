@@ -170,8 +170,387 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-conformer-layer-module">
-<h1>lingvo.core.conformer_layer module<a class="headerlink" href="#lingvo-core-conformer-layer-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.conformer_layer">
+<span id="lingvo-core-conformer-layer-module"></span><h1>lingvo.core.conformer_layer module<a class="headerlink" href="#module-lingvo.core.conformer_layer" title="Permalink to this headline">¶</a></h1>
+<p>Conformer layers as in <a class="reference external" href="https://arxiv.org/abs/2005.08100">https://arxiv.org/abs/2005.08100</a>.</p>
+<dl class="py class">
+<dt id="lingvo.core.conformer_layer.LConvLayer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.conformer_layer.</span></code><code class="sig-name descname"><span class="pre">LConvLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Lightweight conv layer.</p>
+<p>architecture:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">input</span>
+<span class="o">/</span>   \
+<span class="o">|</span>   <span class="n">ln</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>                   <span class="c1"># input_dim</span>
+<span class="o">|</span>   <span class="n">fflayer</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>              <span class="c1"># 2 * input_dim</span>
+<span class="o">|</span>    <span class="o">|</span>
+<span class="o">|</span>   <span class="n">glu</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>                  <span class="c1"># input_dim</span>
+<span class="o">|</span>   <span class="n">depthwise_conv_1d</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>
+<span class="o">|</span>   <span class="n">norm</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>
+<span class="o">|</span>   <span class="n">act</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>
+<span class="o">|</span>    <span class="o">|</span>
+<span class="o">|</span>   <span class="n">fflayer</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>
+<span class="o">|</span>   <span class="n">dropout</span><span class="p">(</span><span class="o">.</span><span class="p">)</span>
+\   <span class="o">/</span>
+  <span class="o">+</span>
+  <span class="o">|</span>
+<span class="n">output</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.SetCanonicalShardingParams">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">SetCanonicalShardingParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.SetCanonicalShardingParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.SetCanonicalShardingParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up canonical SPMD sharding params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.CommonParams">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">CommonParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_causal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SWISH'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.CommonParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.CommonParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.SetFPropDtype">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">SetFPropDtype</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fprop_dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.SetFPropDtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.SetFPropDtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer._GLU">
+<code class="sig-name descname"><span class="pre">_GLU</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gated_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer._GLU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer._GLU" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer._ApplyActivation">
+<code class="sig-name descname"><span class="pre">_ApplyActivation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer._ApplyActivation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer._ApplyActivation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer._Normalize">
+<code class="sig-name descname"><span class="pre">_Normalize</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer._Normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer._Normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
+<li><p><strong>inputs</strong> – [b, t, 1, d].</p></li>
+<li><p><strong>paddings</strong> – [b, t].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [b, t, d].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds FProp graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of Tensors, see base class.</p></li>
+<li><p><strong>inputs</strong> – A Tensor of shape [batch, seqlen, dim0].</p></li>
+<li><p><strong>paddings</strong> – A Tensor of shape [batch, seqlen].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [batch, seqlen, dim0].
+out_paddings: A Tensor of shape [batch, seqlen].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.zero_state">
+<code class="sig-name descname"><span class="pre">zero_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer._NormalizeStep">
+<code class="sig-name descname"><span class="pre">_NormalizeStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer._NormalizeStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer._NormalizeStep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.LConvLayer.StreamStep">
+<code class="sig-name descname"><span class="pre">StreamStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#LConvLayer.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.LConvLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Streams t steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
+<li><p><strong>inputs</strong> – [b, t, d].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [b, t].</p></li>
+<li><p><strong>state0</strong> – A NestedMap of tensors of the same struct as returned by
+zero_state().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap of tensors consisting:
+padding: the same as input paddings.
+state1: A NestedMap of tensors of the same struct as state0.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.conformer_layer._AttenCtxIsSet">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.conformer_layer.</span></code><code class="sig-name descname"><span class="pre">_AttenCtxIsSet</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atten_context</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#_AttenCtxIsSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer._AttenCtxIsSet" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.conformer_layer._GShardMoELayerParams">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.conformer_layer.</span></code><code class="sig-name descname"><span class="pre">_GShardMoELayerParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_groups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_experts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_expert_capacity_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#_GShardMoELayerParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer._GShardMoELayerParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.conformer_layer.ConformerLayer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.conformer_layer.</span></code><code class="sig-name descname"><span class="pre">ConformerLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Conformer layer as in <a class="reference external" href="https://arxiv.org/abs/2005.08100">https://arxiv.org/abs/2005.08100</a>.</p>
+<dl class="simple">
+<dt>Canonical version (with default params.)</dt><dd><p>x = x + 1/2 * FFN(x)
+x = x + MHSA(x)
+x = x + Lconv(x)
+x = x + 1/2 * FFN(x)
+y = ln(x)</p>
+</dd>
+</dl>
+<p>Optionally one can change the order of MHSA and conv.</p>
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.CommonParams">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">CommonParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_causal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_num_heads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_local_context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_left_context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_right_context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_relative_atten</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fflayer_hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fflayer_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SWISH'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fflayer_residual_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mhsa_before_conv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_norm_layer_tpl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fprop_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_moe_in_fflayer_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_moe_in_fflayer_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moe_num_partitions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moe_num_experts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moe_num_groups</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">moe_per_capacity_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fflayer_start_tpl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fflayer_end_tpl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trans_atten_tpl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lconv_tpl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.CommonParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.CommonParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.SetFPropDtype">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">SetFPropDtype</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fprop_dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.SetFPropDtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.SetFPropDtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.SetMoEFFLayerStartParams">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">SetMoEFFLayerStartParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_experts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_groups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_expert_capacity_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.SetMoEFFLayerStartParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.SetMoEFFLayerStartParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates params setting MoE as feed-forward layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.SetMoEFFLayerEndParams">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">SetMoEFFLayerEndParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_experts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_groups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_expert_capacity_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.SetMoEFFLayerEndParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.SetMoEFFLayerEndParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates params setting MoE as feed-forward layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.has_lconv">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">has_lconv</span></code><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.has_lconv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.has_fflayer_start">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">has_fflayer_start</span></code><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.has_fflayer_start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer._ConfigSelfAttenParams">
+<code class="sig-name descname"><span class="pre">_ConfigSelfAttenParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trans_atten_p</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._ConfigSelfAttenParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._ConfigSelfAttenParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams">
+<code class="sig-name descname"><span class="pre">_ConfigFFLayerOrMoEParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fflayer_tpl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_prefix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._ConfigFFLayerOrMoEParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configures fflayer_tpl params to create Feed-forward layer or MoE params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fflayer_tpl</strong> – Input Feedforward/MoE params to be initialized.</p></li>
+<li><p><strong>name_prefix</strong> – Layer name prefix to be added in case of creating MoE layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Configured Feedforward/MoE layer params to be initialized.
+is_moe_layer_p: Whether returned <code class="xref py py-obj docutils literal notranslate"><span class="pre">fflayer_p</span></code> params of form subclass:
+gshard_builder.MoEBuilder.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>fflayer_p</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer._SelfAtten">
+<code class="sig-name descname"><span class="pre">_SelfAtten</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._SelfAtten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._SelfAtten" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer._LConv">
+<code class="sig-name descname"><span class="pre">_LConv</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._LConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._LConv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer._MoeOrFFLayer">
+<code class="sig-name descname"><span class="pre">_MoeOrFFLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fflayer_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_nmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._MoeOrFFLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._MoeOrFFLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp for MoE or Feed forward layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Layer theta: A NestedMap of Tensors.</p></li>
+<li><p><strong>fflayer_name</strong> – Child FFLayer name as created in __init__.
+For example: ‘fflayer_end’. This assumes the moe_layer if created would
+have the convention as (<code class="xref py py-obj docutils literal notranslate"><span class="pre">fflayer_name</span></code> + <code class="xref py py-obj docutils literal notranslate"><span class="pre">_moe</span></code>).</p></li>
+<li><p><strong>in_nmap</strong> – <p>Nested Map containing the following:</p>
+<ul>
+<li><p>inputs: A Tensor of shape [batch, seqlen, dim0].</p></li>
+<li><p>paddings: A Tensor of shape [batch, seqlen].</p></li>
+<li><p>moe_aux_loss: [None] Optional aux loss if present in input batch.</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A NestedMap of output tensors:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>features: Tensor of shape [batch, seqlen, dim0].</p></li>
+<li><p>paddings: A Tensor of shape [batch, seqlen].</p></li>
+<li><p>aux_loss: [Optional] Scalar tensor. Output moe auxiliary loss with
+input aux loss added.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>out_nmap</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer._FProp">
+<code class="sig-name descname"><span class="pre">_FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_nmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer._FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer._FProp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_nmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.conformer_layer.ConformerLayer.FProp" title="lingvo.core.conformer_layer.ConformerLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.conformer_layer.ConformerLayer.FProp" title="lingvo.core.conformer_layer.ConformerLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.zero_state">
+<code class="sig-name descname"><span class="pre">zero_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conformer_layer.ConformerLayer.StreamStep">
+<code class="sig-name descname"><span class="pre">StreamStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ConformerLayer.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ConformerLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Streams t steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of read-only layer params.</p></li>
+<li><p><strong>inputs</strong> – A tensor of shape [b, t, d].</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [b, t].</p></li>
+<li><p><strong>state0</strong> – A NestedMap of tensors of the same struct as returned by
+zero_state().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of shape [b, t, d].
+padding: the same as input paddings.
+state1: A NestedMap of tensors of the same struct as state0.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.conformer_layer.ApplyGshard">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.conformer_layer.</span></code><code class="sig-name descname"><span class="pre">ApplyGshard</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conformer_tpl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_w_split_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_activation_split_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_dnh_w_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_blnh_activation_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_bld_activation_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lconv_df_w_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lconv_hwim_w_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lconv_fd_w_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lconv_blf_activation_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lconv_bld_activation_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conformer_layer.html#ApplyGshard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conformer_layer.ApplyGshard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies gshard on conformer params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>conformer_tpl</strong> – A NestedMap of conformer Params.</p></li>
+<li><p><strong>device_mesh</strong> – A numpy.ndarray specifying the device mesh on which the
+computation is sharded.</p></li>
+<li><p><strong>proj_w_split_list</strong> – A list of mesh split specifying how weights are sharded
+for fflayer.</p></li>
+<li><p><strong>proj_activation_split_list</strong> – A list of mesh split specifying how activations
+are sharded for fflayer.</p></li>
+<li><p><strong>atten_dnh_w_split</strong> – Mesh split of the attention projection weight with the
+shape of [model_dim, num_heads, dim_per_head].</p></li>
+<li><p><strong>atten_blnh_activation_split</strong> – Mesh split of the attention activation with
+shape of [batch, seq_len, num_heads, dim_per_head].</p></li>
+<li><p><strong>atten_bld_activation_split</strong> – Mesh split of the attention activation with
+shape of [batch, seq_len, model_dim].</p></li>
+<li><p><strong>lconv_df_w_split</strong> – Mesh split of the weights in lconv with the shape of
+[model_dim, ff_hidden_dim].</p></li>
+<li><p><strong>lconv_hwim_w_split</strong> – Mesh split of the depthwise conv weight in lconv with
+the shape of [height, width, in_channels, channel_multiplier].</p></li>
+<li><p><strong>lconv_fd_w_split</strong> – Mesh split of the weights in lconv with the shape of
+[ff_hidden_dim, model_dim].</p></li>
+<li><p><strong>lconv_blf_activation_split</strong> – Mesh split of the activations in lconv with the
+shape of [batch, seq_len, ff_hidden_dim].</p></li>
+<li><p><strong>lconv_bld_activation_split</strong> – Mesh split of the activations in lconv with the
+shape of [batch, seq_len, model_dim].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The updated conformer_tpl.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

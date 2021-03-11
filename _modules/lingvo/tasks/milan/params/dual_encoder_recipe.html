@@ -1,0 +1,375 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.params.dual_encoder_recipe &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.params.dual_encoder_recipe</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.params.dual_encoder_recipe</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Helpers for defining Milan dual-encoder models.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span> <span class="k">as</span> <span class="n">lingvo_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">optimizer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">schedule</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">constants</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">dataset_spec</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">dual_encoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">input_generator</span>
+
+
+<div class="viewcode-block" id="RecipeError"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.RecipeError">[docs]</a><span class="k">class</span> <span class="nc">RecipeError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+  <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="DualEncoderRecipe"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe">[docs]</a><span class="k">class</span> <span class="nc">DualEncoderRecipe</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class that simplifies configuration of Milan dual encoder models.</span>
+
+<span class="sd">  `DualEncoderRecipe` is a `SingleTaskModelParams` with extra builder-like</span>
+<span class="sd">  methods for configuring the dual encoder (the `Task()` params) and input</span>
+<span class="sd">  generators (`Train()`, `Dev()`, `Test()`).</span>
+
+<span class="sd">  In typical usage, model definitions subclass `DualEncoderRecipe`, call helper</span>
+<span class="sd">  methods in the constructor to configure the dual encoder, and specify a</span>
+<span class="sd">  `default_dataset` for the model to run on. For example::</span>
+
+<span class="sd">    @model_registry.RegisterSingleTaskModel</span>
+<span class="sd">    class MyExperiment(DualEncoderRecipe):</span>
+<span class="sd">      def __init__(self):</span>
+<span class="sd">        super().__init__()</span>
+<span class="sd">        self.AddModality(</span>
+<span class="sd">            &#39;TEXT&#39;,</span>
+<span class="sd">            input_feature=&#39;text_feature&#39;,</span>
+<span class="sd">            id_feature=&#39;text_id&#39;,</span>
+<span class="sd">            encoder=MyTextEncoder.Params(),</span>
+<span class="sd">            encoder_output_dim=42)</span>
+<span class="sd">        # Preprocess the raw &#39;image_feature&#39; input prior to encoding.</span>
+<span class="sd">        self.AddPreprocessor(&#39;image_feature&#39;, ImagePreprocessor.Params())</span>
+<span class="sd">        self.AddModality(</span>
+<span class="sd">            &#39;IMAGE&#39;,</span>
+<span class="sd">            input_feature=&#39;image_feature&#39;,</span>
+<span class="sd">            id_feature=&#39;image_id&#39;,</span>
+<span class="sd">            encoder=MyImageEncoder.Params(),</span>
+<span class="sd">            encoder_output_dim=67)</span>
+
+<span class="sd">      @property</span>
+<span class="sd">      def default_dataset(self) -&gt; DatasetSpec:</span>
+<span class="sd">        # Point to your dataset of choice</span>
+<span class="sd">        ...</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Define these members here to make pytype happy.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">task_params</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ChooseDatasetSpec</span><span class="p">()</span>
+    <span class="c1"># Base input params, be shared by both train and eval sets.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">MilanInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="c1"># Run input pipeline on each TPU host (vs. one for all hosts) to</span>
+        <span class="c1"># avoid input-boundedness.</span>
+        <span class="n">use_per_host_infeed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Default optimization and checkpointer settings.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">task_params</span> <span class="o">=</span> <span class="n">dual_encoder</span><span class="o">.</span><span class="n">MilanTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">clip_gradient_norm_to_value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">grad_norm_tracker</span><span class="o">=</span><span class="n">lingvo_layers</span><span class="o">.</span><span class="n">GradNormTracker</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span>
+            <span class="c1"># Don&#39;t clip if the grad norm is already smaller than this.</span>
+            <span class="n">grad_norm_clip_cap_min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">),</span>
+        <span class="n">save_max_to_keep</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+        <span class="n">save_keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="mf">0.1667</span><span class="p">,</span>  <span class="c1"># At most every 10 min.</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">beta1</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">beta2</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>
+        <span class="n">lr_schedule</span><span class="o">=</span><span class="n">schedule</span><span class="o">.</span><span class="n">StepwiseExponentialSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">decay</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span> <span class="n">num_steps_per_decay</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span>
+        <span class="n">tpu_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">max_steps</span><span class="o">=</span><span class="mi">40000</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DualEncoderRecipe._ChooseDatasetSpec"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe._ChooseDatasetSpec">[docs]</a>  <span class="k">def</span> <span class="nf">_ChooseDatasetSpec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the `DatasetSpec` to be used by the recipe.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_dataset</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">default_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">dataset_spec</span><span class="o">.</span><span class="n">DatasetSpec</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns a default dataset for the recipe to use.</span>
+
+<span class="sd">    Subclasses should override this method to specify a dataset, or add logic</span>
+<span class="sd">    (elsewhere) to choose the dataset at runtime, falling back to this one</span>
+<span class="sd">    as the default.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">encoder_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">dual_encoder</span><span class="o">.</span><span class="n">encoder_configs</span>
+
+<div class="viewcode-block" id="DualEncoderRecipe.AddModality"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.AddModality">[docs]</a>  <span class="k">def</span> <span class="nf">AddModality</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">dual_encoder</span><span class="o">.</span><span class="n">EncoderConfig</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">encoder_configs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span>
+    <span class="k">return</span> <span class="n">config</span></div>
+
+<div class="viewcode-block" id="DualEncoderRecipe.AddPreprocessor"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.AddPreprocessor">[docs]</a>  <span class="k">def</span> <span class="nf">AddPreprocessor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_feature</span><span class="p">,</span> <span class="n">preprocessor</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">preprocessors</span><span class="p">[</span><span class="n">input_feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">preprocessor</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DualEncoderRecipe.StartFromCheckpoint"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.StartFromCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">StartFromCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Configures the recipe to start training from the given model checkpoint.</span>
+
+<span class="sd">    This is intended to be used in fine-tuning recipes. All variables, including</span>
+<span class="sd">    Adam accumulators, are loaded from the checkpoint except for global step</span>
+<span class="sd">    (so that it resets to 0 in new experiment) and grad norm tracker stats</span>
+<span class="sd">    (since gradients are likely to have different moments in the new</span>
+<span class="sd">    experiment).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      checkpoint_path: Path of the checkpoint to start training from.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">checkpoint_path</span><span class="p">:</span> <span class="p">(</span>
+            <span class="p">[(</span><span class="s1">&#39;(.*)&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">)],</span>
+            <span class="c1"># Don&#39;t load vars matching these regexes.</span>
+            <span class="p">[</span><span class="s1">&#39;.*grad_norm_tracker/.*&#39;</span><span class="p">,</span> <span class="s1">&#39;global_step&#39;</span><span class="p">])</span>
+    <span class="p">}</span></div>
+
+  <span class="c1"># Methods below implement the lingvo SingleTaskModelParams interface, allowing</span>
+  <span class="c1"># the recipe to be registered with `RegisterSingleTaskModel()`.</span>
+
+<div class="viewcode-block" id="DualEncoderRecipe.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the training dataset.&quot;&quot;&quot;</span>
+    <span class="n">dataset_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TRAIN</span><span class="p">,</span>
+        <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="n">dataset_fn</span><span class="o">=</span><span class="n">dataset_fn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DualEncoderRecipe.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the development dataset.&quot;&quot;&quot;</span>
+    <span class="n">dataset_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">DEV</span><span class="p">,</span> <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Dev&#39;</span><span class="p">,</span> <span class="n">dataset_fn</span><span class="o">=</span><span class="n">dataset_fn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DualEncoderRecipe.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the test dataset.&quot;&quot;&quot;</span>
+    <span class="n">dataset_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TEST</span><span class="p">,</span> <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">dataset_fn</span><span class="o">=</span><span class="n">dataset_fn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DualEncoderRecipe.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">task_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">task_params</span><span class="o">.</span><span class="n">dual_encoder</span><span class="o">.</span><span class="n">encoder_configs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="n">RecipeError</span><span class="p">(</span><span class="s1">&#39;Must configure at least one encoder.&#39;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">task_params</span><span class="o">.</span><span class="n">dual_encoder</span><span class="o">.</span><span class="n">label_fn</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="n">task_params</span><span class="o">.</span><span class="n">dual_encoder</span><span class="o">.</span><span class="n">label_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Label</span>
+    <span class="k">return</span> <span class="n">task_params</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

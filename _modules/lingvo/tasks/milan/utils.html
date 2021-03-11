@@ -1,0 +1,486 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.utils &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Generic utility functions.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+
+
+<div class="viewcode-block" id="BatchMajorToTimeMajor"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.BatchMajorToTimeMajor">[docs]</a><span class="k">def</span> <span class="nf">BatchMajorToTimeMajor</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Transposes axes 0 and 1 of `tensor`, keeping all others the same.&quot;&quot;&quot;</span>
+  <span class="n">perm</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">))[</span><span class="mi">2</span><span class="p">:]</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="n">perm</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MakeFnLayer"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.MakeFnLayer">[docs]</a><span class="k">def</span> <span class="nf">MakeFnLayer</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Decorator that wraps a python function as a lingvo `FnLayer`.</span>
+
+<span class="sd">  Example::</span>
+
+<span class="sd">    @MakeFnLayer</span>
+<span class="sd">    def add_two_things(x, y):</span>
+<span class="sd">      return x + y</span>
+
+<span class="sd">    layer = add_two_things.Instantiate()</span>
+<span class="sd">    output = layer(tf.constant([1, 2, 3], tf.constant([4, 5, 6]))</span>
+
+<span class="sd">  To wrap a lambda, call this as a standard function and provide a &#39;name&#39;::</span>
+
+<span class="sd">    layer_params = MakeFnLayer(lambda x, y: x + y, name=&#39;add_two_things&#39;)</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    fn: Function to be wrapped. Can be anything that take Tensor input(s) and</span>
+<span class="sd">      produces Tensor output(s).</span>
+<span class="sd">    name: Name of the wrapped layer; defaults to the name of `fn`. Must be set</span>
+<span class="sd">      if `fn` is a lambda.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Params of the `FnLayer` wrapper.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__name__</span>
+  <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;&lt;lambda&gt;&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;MakeFnLayer: must set &quot;name&quot; when wrapping a lambda.&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">FnLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetFromNestedMapOrDie"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.GetFromNestedMapOrDie">[docs]</a><span class="k">def</span> <span class="nf">GetFromNestedMapOrDie</span><span class="p">(</span><span class="n">nested_map</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the value of `key` if it exists, otherwise dies with a nice error.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nested_map: The input `NestedMap`.</span>
+<span class="sd">    key: The key to retrieve. May use dots to refer to a `nested.field_name`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">value</span> <span class="o">=</span> <span class="n">nested_map</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">all_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">nested_map</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()]</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;No feature </span><span class="si">{}</span><span class="s1"> in input batch. Available features are: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">key</span><span class="p">,</span> <span class="n">all_keys</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="Selector"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.Selector">[docs]</a><span class="k">class</span> <span class="nc">Selector</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Selects an arbitrarily-structured set of fields from a NestedMap.</span>
+
+<span class="sd">  A `Selector` selects one or more fields from a NestedMap and returns them in a</span>
+<span class="sd">  user-defined structure. One use is to restructure inputs so they can be fed</span>
+<span class="sd">  as inputs to a layer that expects a different format.</span>
+
+<span class="sd">  The simplest selector extracts a single field from the input::</span>
+
+<span class="sd">    batch = NestedMap(foo=NestedMap(a=1, b=2), c=3)</span>
+<span class="sd">    selector = Selector(&#39;foo.a&#39;)</span>
+<span class="sd">    selector(batch) ==&gt; 1</span>
+
+<span class="sd">  In general, selectors can extract any number of fields and return them in a</span>
+<span class="sd">  user-defined structure::</span>
+
+<span class="sd">    # Select multiple elements as a tuple.</span>
+<span class="sd">    tuple_selector = Selector((&#39;foo.a&#39;, &#39;c&#39;))</span>
+<span class="sd">    tuple_selector(batch) ==&gt; (1, 3)</span>
+
+<span class="sd">    # Select multiple elements arranged in a nested map structure.</span>
+<span class="sd">    fancy_selector = Selector(</span>
+<span class="sd">        NestedMap(x=&#39;foo.a&#39;, y=&#39;c&#39;, bar=NestedMap(baz=&#39;foo.b&#39;)))</span>
+<span class="sd">    fancy_selector(batch) ==&gt; NestedMap(x=1, y=3, bar=NestedMap(baz=2))</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates an instance using the fields and structure specified in `spec`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      spec: The field(s) to select, as a string field name or a (possibly</span>
+<span class="sd">        nested) structure containing field names as values. The structure may be</span>
+<span class="sd">        in any format supported by `tf.nest`, or a lingvo `NestedMap`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_flat_source_keys</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flat_source_keys</span><span class="p">:</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_map</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+    <span class="n">flat_values</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">GetFromNestedMapOrDie</span><span class="p">(</span><span class="n">nested_map</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flat_source_keys</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_values</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="p">,</span> <span class="n">flat_values</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InferBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.InferBatchSize">[docs]</a><span class="k">def</span> <span class="nf">InferBatchSize</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Returns the batch size of the given Tensor or Tensors.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    batch: A Tensor or structure of Tensors representing a batch of examples.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">     An int, the batch size.</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: if `batch` contains no Tensors or the batch size (shape dim 0)</span>
+<span class="sd">      is not statically known.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tensors</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can</span><span class="se">\&#39;</span><span class="s1">t infer batch size: batch has no tensors.&#39;</span><span class="p">)</span>
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can</span><span class="se">\&#39;</span><span class="s1">t infer batch size: input tensor has dynamic shape.&#39;</span><span class="p">)</span>
+  <span class="c1"># TODO(austinwaters): Check that others tensors agree?</span>
+  <span class="k">return</span> <span class="n">batch_size</span></div>
+
+
+<div class="viewcode-block" id="ResolveBatchDim"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.ResolveBatchDim">[docs]</a><span class="k">def</span> <span class="nf">ResolveBatchDim</span><span class="p">(</span><span class="n">shape</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Returns `shape` with the None batch dimension replaced by `batch_size`.&quot;&quot;&quot;</span>
+  <span class="c1"># NB: Dies if dim 0 is already known but not equal to batch_size.</span>
+  <span class="k">return</span> <span class="n">shape</span><span class="o">.</span><span class="n">merge_with</span><span class="p">([</span><span class="n">batch_size</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="BatchFlattener"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.BatchFlattener">[docs]</a><span class="k">class</span> <span class="nc">BatchFlattener</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Reshapes tensors for functions/layers that expect a single batch dimension.</span>
+
+<span class="sd">  Example:</span>
+<span class="sd">  Suppose a sequence `encoder` has signature ::</span>
+
+<span class="sd">    [batch_size, max_length] -&gt; [batch_size, max_length, feature_dim]</span>
+
+<span class="sd">  and we want to run it on inputs with shape `[batch_size, n, max_length]`, i.e.</span>
+<span class="sd">  where each example has `n` sequences.</span>
+
+<span class="sd">  `BatchFlattener` can handle the mess of flattening the batch</span>
+<span class="sd">  structure of the inputs and restoring it on the outputs::</span>
+
+<span class="sd">    inputs = ...  # [batch_size, n, max_length]</span>
+<span class="sd">    bf = BatchFlattener([None, n])</span>
+<span class="sd">    flat_inputs = bf.Flatten(inputs)  # [batch_size * n, max_length]</span>
+<span class="sd">    flat_outputs = encoder(flat_inputs)  # [batch_size * n, feature_dim]</span>
+<span class="sd">    outputs = bf.Unflatten(flat_outputs)  # [batch_size, n, feature_dim]</span>
+
+<span class="sd">  In general, arguments to `Flatten()` and `Unflatten()` may be single Tensors</span>
+<span class="sd">  or (nearly) arbitrary structures of Tensors, including `NestedMap`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_shape</span><span class="p">):</span>
+    <span class="n">batch_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">batch_shape</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">batch_shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+    <span class="n">batch_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">assert_is_fully_defined</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_batch_shape</span> <span class="o">=</span> <span class="n">batch_shape</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_no_op</span> <span class="o">=</span> <span class="n">batch_shape</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">])</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">batch_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_shape</span>
+
+<div class="viewcode-block" id="BatchFlattener.Flatten"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.BatchFlattener.Flatten">[docs]</a>  <span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reshapes `tensors`, collapsing the leading `batch_shape` to one dim.</span>
+
+<span class="sd">    The shapes of all `tensors` must begin with `batch_shape`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      tensors: A tensor or structure of tensors to be reshaped.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The reshaped tensors, with `batch_shape.rank` - 1 fewer dimensions, in the</span>
+<span class="sd">      same format (tensor, list, dict) as the input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_no_op</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tensors</span>
+    <span class="n">flat_tensors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetFlatShape</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PackAs</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">flat_tensors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BatchFlattener.Unflatten"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.BatchFlattener.Unflatten">[docs]</a>  <span class="k">def</span> <span class="nf">Unflatten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flat_tensors</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The inverse of Flatten(); expands the leading dim to `batch_shape`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      flat_tensors: A tensor or structure of tensors to be reshaped.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The reshaped tensors, with `batch_shape.rank` - 1 more dimensions, in the</span>
+<span class="sd">      same format (tensor, list, dict) as the input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_no_op</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">flat_tensors</span>
+    <span class="n">batch_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">batch_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">batch_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="n">unflattened_tensors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">flat_tensor</span><span class="p">,</span> <span class="n">batch_shape</span> <span class="o">+</span> <span class="n">flat_tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">for</span> <span class="n">flat_tensor</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">flat_tensors</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">flat_tensors</span><span class="p">,</span> <span class="n">unflattened_tensors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BatchFlattener._PackAs"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.BatchFlattener._PackAs">[docs]</a>  <span class="k">def</span> <span class="nf">_PackAs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">structure</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">structure</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BatchFlattener._GetFlatShape"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.BatchFlattener._GetFlatShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetFlatShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+    <span class="c1"># Fill in leading batch dim if necessary.</span>
+    <span class="n">batch_rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_shape</span><span class="o">.</span><span class="n">rank</span>
+    <span class="n">merged_batch_shape</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="n">batch_rank</span><span class="p">]</span><span class="o">.</span><span class="n">merge_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_shape</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Inferred batch shape </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">merged_batch_shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">merged_batch_shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()]</span> <span class="o">+</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">batch_rank</span><span class="p">:]</span></div></div>
+
+
+<div class="viewcode-block" id="FlattenBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.FlattenBatch">[docs]</a><span class="k">def</span> <span class="nf">FlattenBatch</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">batch_shape</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">BatchFlattener</span><span class="p">(</span><span class="n">batch_shape</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UnflattenBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.UnflattenBatch">[docs]</a><span class="k">def</span> <span class="nf">UnflattenBatch</span><span class="p">(</span><span class="n">flat_tensors</span><span class="p">,</span> <span class="n">batch_shape</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">BatchFlattener</span><span class="p">(</span><span class="n">batch_shape</span><span class="p">)</span><span class="o">.</span><span class="n">Unflatten</span><span class="p">(</span><span class="n">flat_tensors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CollectRegularizationLosses"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.CollectRegularizationLosses">[docs]</a><span class="k">def</span> <span class="nf">CollectRegularizationLosses</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+  <span class="sd">&quot;&quot;&quot;Collects regularization losses from `layer` or its Keras-like children.</span>
+
+<span class="sd">  This function assumes (some) lingvo layers expose regularziation losses</span>
+<span class="sd">  through a `losses` attribute, as `tf.keras.Layer`s do. When present, `losses`</span>
+<span class="sd">  is assumed to be a list of regularization losses for the layer and all of its</span>
+<span class="sd">  children.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    layer: The root lingvo layer to collect regularization losses over.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of scalar Tensors containing regularization losses.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">deque</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">deque</span><span class="p">([</span><span class="n">layer</span><span class="p">])</span>
+  <span class="k">while</span> <span class="n">deque</span><span class="p">:</span>
+    <span class="n">child</span> <span class="o">=</span> <span class="n">deque</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s1">&#39;losses&#39;</span><span class="p">):</span>
+      <span class="n">losses</span> <span class="o">+=</span> <span class="n">child</span><span class="o">.</span><span class="n">losses</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">deque</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">children</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">losses</span></div>
+
+
+<div class="viewcode-block" id="PadOrTrimDimension"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.utils.html#lingvo.tasks.milan.utils.PadOrTrimDimension">[docs]</a><span class="k">def</span> <span class="nf">PadOrTrimDimension</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">new_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                       <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+  <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">with_rank_at_least</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">axis</span><span class="p">))</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span>
+                              <span class="n">shape</span><span class="p">[:</span><span class="n">axis</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">new_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span><span class="p">[</span><span class="n">axis</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:])</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

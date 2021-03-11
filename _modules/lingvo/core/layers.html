@@ -1021,6 +1021,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_pruning&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to prune the weights while training&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
+        <span class="s1">&#39;with hyperparameter: value pairs. See google-research.model_pruning.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_einsum&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use tf.einsum for optimizing &#39;</span>
         <span class="s1">&#39;computations. When this is set to False, this causes an increase in &#39;</span>
         <span class="s1">&#39;TPU memory usage (b/158336491).  When this is set to True, it might &#39;</span>
@@ -1081,6 +1084,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
         <span class="s1">&#39;projection_aqt&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># only apply compression on tall matrices (input_dim &gt; output_dim)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">apply_compression</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span>
+
 <div class="viewcode-block" id="ProjectionLayer._GetBlockedMatMulInputOutputMultipliers"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._GetBlockedMatMulInputOutputMultipliers">[docs]</a>  <span class="k">def</span> <span class="nf">_GetBlockedMatMulInputOutputMultipliers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Get number of input and output blocks.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1095,7 +1104,6 @@
     <span class="k">return</span> <span class="n">w_im</span><span class="p">,</span> <span class="n">w_om</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer._GetBlockedWeightMatrix"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._GetBlockedWeightMatrix">[docs]</a>  <span class="k">def</span> <span class="nf">_GetBlockedWeightMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a 3D weight matrix for blocked matmul.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># w is 3D Tensor of shape [i * o, block_dim, block_dim] such that</span>
     <span class="c1"># i * block_dim = num_inputs (modulo padding).</span>
@@ -1180,6 +1188,12 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+      <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">ApplyPruning</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span>
+                                           <span class="n">weights_var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                                           <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetLastCompressionOp</span><span class="p">()</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">b_pc</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
@@ -1244,6 +1258,12 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">w</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">[</span>
+            <span class="s1">&#39;compression_option&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">9</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_compression</span><span class="p">:</span>
+          <span class="c1"># compression_option 9 corresponds to input compression</span>
+          <span class="c1"># redirect w to point to c</span>
+          <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">c_matrix_tfvar</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span><span class="p">:</span>
@@ -1364,7 +1384,11 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">:</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ProjectLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_compression</span><span class="p">:</span>
+          <span class="n">out</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetProjectLastDim</span><span class="p">(</span>
+              <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ProjectLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])),</span> <span class="n">w</span><span class="p">)</span>
@@ -1671,6 +1695,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;right_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
              <span class="s1">&#39;Number of time steps to stack on the right to the central step.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stride&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The stride for emitting the stacked output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pad_with_left_frame&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to use the left frame for padding instead of 0s.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1708,10 +1734,17 @@
       <span class="n">out</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">inputs_max_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-      <span class="c1"># Add zero paddings to the left and right of the input sequence.</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
-          <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_value</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_with_left_frame</span><span class="p">:</span>
+        <span class="n">left_pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">repeats</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">left_pad</span><span class="p">,</span> <span class="n">inputs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+            <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_value</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Add zero paddings to the left and right of the input sequence.</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+            <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_value</span><span class="p">)</span>
 
       <span class="c1"># Make window_size() copies of the padded sequence with the original</span>
       <span class="c1"># sequence length, where each copy is offset by 1 time step.</span>
@@ -2241,7 +2274,8 @@
     <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
       <span class="n">embs</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
-    <span class="n">embs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;vn&#39;</span><span class="p">):</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
     <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">]],</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span></div></div>
 
@@ -2525,7 +2559,8 @@
     <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FpropImpl</span><span class="p">(</span><span class="n">wm</span><span class="p">,</span> <span class="n">flat_ids</span><span class="p">)</span>
 
     <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">,</span> <span class="n">embs_result</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">embs_result</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;vn&#39;</span><span class="p">):</span>
+      <span class="n">embs_result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">embs_result</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
       <span class="n">embs_result</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
@@ -2547,6 +2582,70 @@
     <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
         <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]],</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">embs_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                         <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">embs_result</span></div></div>
+
+
+<div class="viewcode-block" id="EinsumEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">EinsumEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;An embedding layer that uses einsum to avoid reshaping.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="EinsumEmbeddingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumEmbeddingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Depth of the input. I.e., the number of classes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;scale_sqrt_depth&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set True, activations are scaled&#39;</span>
+        <span class="s1">&#39; with sqrt(embedding_dim) in EmbLookup.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mf">1.</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="EinsumEmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumEmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Define weights</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="c1"># Apply VN on theta.wm so that this layer can be used within a recurrent</span>
+    <span class="c1"># loop.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EinsumEmbeddingLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumEmbeddingLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EinsumEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookups embedding vectors for ids.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Named tuple collection of weights for the layer.</span>
+<span class="sd">      ids: A rank-N int32 tensor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A rank-(N+1) params.dtype tensor.</span>
+<span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Emulate tf.nn.embedding_lookup(theta.wm, ids) with tf.einsum.</span>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ProjectLastDim</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">),</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
+      <span class="n">embs_result</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
     <span class="n">embs_result</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                                          <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">embs_result</span></div></div>
@@ -2669,7 +2768,7 @@
 <span class="sd">      a Tensor of shape [bs, seq_length, embedding_dim].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">position</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">seq_length</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">position</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">num_timescales</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">//</span> <span class="mi">2</span>
     <span class="n">log_timescale_increment</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_timescale</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">min_timescale</span><span class="p">))</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
@@ -2980,6 +3079,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_pruning&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to prune the weights while training&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Pruning related hyperparameters. A dict with hyperparameter: value&#39;</span>
+        <span class="s1">&#39;pairs. See google-research.model_pruning.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_num_classes_major_weight&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether to use num_classes as major dimension for weight params. &#39;</span>
         <span class="s1">&#39;This shows performance benefit especially when sharing embedding &#39;</span>
@@ -3007,6 +3110,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
           <span class="s1">&#39;softmax_aqt&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">compression_ops</span> <span class="o">=</span> <span class="p">[]</span>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
@@ -3068,6 +3172,13 @@
 
       <span class="k">else</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+          <span class="c1"># matrix compression path. call ApplyPruning to setup compression op</span>
+          <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">ApplyPruning</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span>
+                                               <span class="n">weights_var_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                                               <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">compression_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetLastCompressionOp</span><span class="p">())</span>
 
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">],</span>
@@ -3125,8 +3236,14 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span><span class="s1">&#39;softmax_aqt&#39;</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="c1"># compression path. call GetMatmulResult.</span>
+        <span class="c1"># inputs and wm are both rank 2. using GetMatmulResult</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetMatmulResult</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">)</span>
 
       <span class="c1"># We used weight&#39;s output_dimension, i.e. p.num_classes as feature axis</span>
       <span class="c1"># while quantizing weight.</span>

@@ -170,8 +170,96 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lingvo-core-self-attention-layer-module">
-<h1>lingvo.core.self_attention_layer module<a class="headerlink" href="#lingvo-core-self-attention-layer-module" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-lingvo.core.self_attention_layer">
+<span id="lingvo-core-self-attention-layer-module"></span><h1>lingvo.core.self_attention_layer module<a class="headerlink" href="#module-lingvo.core.self_attention_layer" title="Permalink to this headline">¶</a></h1>
+<p>Self-attention layers.</p>
+<dl class="simple">
+<dt>[1] Attention is all you need.</dt><dd><p><a class="reference external" href="https://arxiv.org/pdf/1706.03762.pdf">https://arxiv.org/pdf/1706.03762.pdf</a> Section 3.</p>
+</dd>
+<dt>[2] Pay Less Attention with Lightweight and Dynamic Convolutions.</dt><dd><p><a class="reference external" href="https://arxiv.org/abs/1901.10430">https://arxiv.org/abs/1901.10430</a></p>
+</dd>
+</dl>
+<dl class="py class">
+<dt id="lingvo.core.self_attention_layer.Builder">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.self_attention_layer.</span></code><code class="sig-name descname"><span class="pre">Builder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#Builder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.Builder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder" title="lingvo.core.batch_major_attention.Builder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.Builder</span></code></a></p>
+<p>Builder for self-attention layers.</p>
+<dl class="py method">
+<dt id="lingvo.core.self_attention_layer.Builder.SelfAttention">
+<code class="sig-name descname"><span class="pre">SelfAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#Builder.SelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.Builder.SelfAttention" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.self_attention_layer.Builder._TransformerLayerBlock">
+<code class="sig-name descname"><span class="pre">_TransformerLayerBlock</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#Builder._TransformerLayerBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.Builder._TransformerLayerBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>(inputs, paddings) -&gt; (encoded, paddings).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.self_attention_layer.Builder.TransformerStack">
+<code class="sig-name descname"><span class="pre">TransformerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#Builder.TransformerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.Builder.TransformerStack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stack of num_layers self-attention layers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.self_attention_layer.Builder._StridedTransformerLayerBlock">
+<code class="sig-name descname"><span class="pre">_StridedTransformerLayerBlock</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stride</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#Builder._StridedTransformerLayerBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.Builder._StridedTransformerLayerBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>(inputs, paddings) -&gt; (encoded, paddings).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.self_attention_layer.Builder.TransformerStackV2">
+<code class="sig-name descname"><span class="pre">TransformerStackV2</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_layer_first_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">final_layer_stride</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#Builder.TransformerStackV2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.Builder.TransformerStackV2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stack of num_layers self-attention layers.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.self_attention_layer.StackedTransformerEncoderLayers">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.self_attention_layer.</span></code><code class="sig-name descname"><span class="pre">StackedTransformerEncoderLayers</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#StackedTransformerEncoderLayers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.StackedTransformerEncoderLayers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Wrapper class for layers returned by Builder.TransformerStack.</p>
+<dl class="py method">
+<dt id="lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.Cast">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Cast</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#StackedTransformerEncoderLayers.Cast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.Cast" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/self_attention_layer.html#StackedTransformerEncoderLayers.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.FProp" title="lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.FProp" title="lingvo.core.self_attention_layer.StackedTransformerEncoderLayers.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

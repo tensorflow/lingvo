@@ -1,0 +1,474 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.labels module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.milan.score_functions module" href="lingvo.tasks.milan.score_functions.html" />
+    <link rel="prev" title="lingvo.tasks.milan.input_generator module" href="lingvo.tasks.milan.input_generator.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.milan.html">lingvo.tasks.milan namespace</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.labels module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/lingvo.tasks.milan.labels.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.milan.labels">
+<span id="lingvo-tasks-milan-labels-module"></span><h1>lingvo.tasks.milan.labels module<a class="headerlink" href="#module-lingvo.tasks.milan.labels" title="Permalink to this headline">¶</a></h1>
+<p>Utilities for labeling batches and computing loss.</p>
+<p>In dual encoder tasks, the concept of “labels” is more complicated than in
+traditional supervised learning tasks. This is for two main reasons:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Labels have to be computed on the fly. This is because dual encoder labels
+describe pairwise relationships between (and within) examples in a batch.
+As such, they aren’t simply fixed annotations attached to each example.</p></li>
+<li><p>Determining some of these relationships requires knowledge about the dataset
+format and what its features mean. There is no one-size-fits-all computation
+that can generate labels for all datasets.</p></li>
+</ul>
+</div></blockquote>
+<p>Milan’s solution is to encapsulate all the logic required to compute labels
+in dataset-specific <em>label functions</em>. Label function instances typically
+assume input examples have a very particular format and interpretation. Upstream
+code is responsible for ensuring the labeler only gets called on the specific
+dataset it describes. Implementations in this file are templates that can be
+configured for many common datasets.</p>
+<p>The structure of datasets implicitly defines some relationships – but
+only some. In particular, <em>within-example</em> relationships are assumed to be
+positive, but <em>between-example</em> relationships are a priori unknown. For
+instance, consider an image-captioning dataset that stores an image and caption
+per example. Within each example, we assume the caption describes the image and
+vice-versa; but, without any extra information, we know nothing about how images
+or captions from different examples relate to each other.</p>
+<p>In practice, most between-example pairs are interpreted as negative (unrelated).
+However, there are at least two commonly occurring cases where a negative label
+would be incorrect:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Linked positive examples: Some datasets distribute positive pairs among
+multiple examples. For instance, in a captioning dataset with N captions per
+image, co-captions might be flattened into N separate (image + caption)
+examples. (Side note: Milan supports “multi-item” examples, which makes such
+flattening unnecessary.)</p></li>
+<li><p>Duplicates: Training batches sampled with replacement may contain duplicates,
+meaning examples that are identical copies of others, either in whole or
+in a modality being modeled.
+Note the chance of getting exact duplicates generally increases with the
+global batch size and the number of independent TPU infeeds (usually one per
+core or TPU host).</p></li>
+</ul>
+</div></blockquote>
+<p>While a negative label is incorrect in both cases, neither can be identified
+through generic, dataset-independent means. Instead, some knowledge of the
+dataset is necessary. For instance, if we know there is an <code class="xref py py-obj docutils literal notranslate"><span class="pre">example_id</span></code> feature
+that uniquely identifies each example, then deduplication of examples becomes
+easy.</p>
+<div class="section" id="label-functions">
+<h2>Label functions<a class="headerlink" href="#label-functions" title="Permalink to this headline">¶</a></h2>
+<p>In general, a label function is just a function with signature
+<a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs" title="lingvo.tasks.milan.labels.ExamplePairs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExamplePairs</span></code></a> -&gt; labels Tensor.
+The <a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs" title="lingvo.tasks.milan.labels.ExamplePairs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExamplePairs</span></code></a> input specifies the examples to label and the query and
+result modalities. Other details like feature names, a method for detecting
+duplicates, etc. are expected to be captured within the function itself.</p>
+<p>Labels are trinary-valued: they can either be positive (1), negative (0), or a
+special <code class="xref py py-obj docutils literal notranslate"><span class="pre">IGNORE_PAIR_LABEL</span></code> value that indicates the query-result pair should be
+ignored during training. The last can be used to mark duplicates, or more
+generally cases where the query-result relationship is unknown or should not be
+used.</p>
+<p>Implementations in this file are templates that can be configured for many
+common datasets.</p>
+<dl class="py class">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.labels.</span></code><code class="sig-name descname"><span class="pre">ExamplePairs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query_examples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_modality</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_examples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_modality</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">correspondences</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#ExamplePairs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Defines query-result example pairs to be labeled.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_examples</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">result_examples</span></code> are the input batches of the
+queries and results being labeled. These batches contain full examples, as
+read from the original dataset, after any applicable preprocessing.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">result_examples</span></code> is always a superset of <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_examples</span></code>. It contains
+identical copies of all <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_examples</span></code> plus zero or more other randomly
+chosen examples.</p>
+<p><a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs.correspondences" title="lingvo.tasks.milan.labels.ExamplePairs.correspondences"><code class="xref py py-obj docutils literal notranslate"><span class="pre">correspondences</span></code></a> indicates where each of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_examples</span></code>
+was copied inside <code class="xref py py-obj docutils literal notranslate"><span class="pre">result_examples</span></code> when the <a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs" title="lingvo.tasks.milan.labels.ExamplePairs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExamplePairs</span></code></a> was constructed.
+It has shape [query_batch_size, result_batch_size] and is typically a
+rectangular (padded) identity matrix.</p>
+<p><a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs.query_modality" title="lingvo.tasks.milan.labels.ExamplePairs.query_modality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_modality</span></code></a> and <a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs.result_modality" title="lingvo.tasks.milan.labels.ExamplePairs.result_modality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">result_modality</span></code></a> are strings identifying the query
+and result modalities. These define which slice or view of each
+example constitutes a query or result.</p>
+<dl class="py attribute">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs.query_modality">
+<code class="sig-name descname"><span class="pre">query_modality</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></em><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs.query_modality" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs.result_modality">
+<code class="sig-name descname"><span class="pre">result_modality</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></em><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs.result_modality" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs.correspondences">
+<code class="sig-name descname"><span class="pre">correspondences</span></code><em class="property"><span class="pre">:</span> <span class="pre">tensorflow.python.framework.ops.Tensor</span></em><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs.correspondences" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs.query_batch_size">
+<code class="sig-name descname"><span class="pre">query_batch_size</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></em><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs.query_batch_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs.result_batch_size">
+<code class="sig-name descname"><span class="pre">result_batch_size</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></em><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs.result_batch_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs.WithinBatch">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">WithinBatch</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs" title="lingvo.tasks.milan.labels.ExamplePairs"><span class="pre">lingvo.tasks.milan.labels.ExamplePairs</span></a><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#ExamplePairs.WithinBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs.WithinBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an instance representing all example pairs within <code class="xref py py-obj docutils literal notranslate"><span class="pre">batch</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> – Dict of input examples; this same set of examples represents both
+the query_examples and result_examples.</p></li>
+<li><p><strong>**kwargs</strong> – kwargs to forward to ExamplePairs constructor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs" title="lingvo.tasks.milan.labels.ExamplePairs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExamplePairs</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.labels.ExamplePairs.BetweenLocalAndGlobalBatches">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">BetweenLocalAndGlobalBatches</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">local_batch</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs" title="lingvo.tasks.milan.labels.ExamplePairs"><span class="pre">lingvo.tasks.milan.labels.ExamplePairs</span></a><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#ExamplePairs.BetweenLocalAndGlobalBatches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairs.BetweenLocalAndGlobalBatches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an instance representing (local, global) example pairs.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.milan.labels.ExamplePairLabeler">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.labels.</span></code><code class="sig-name descname"><span class="pre">ExamplePairLabeler</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">drop_pairs_that_match</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#ExamplePairLabeler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels.ExamplePairLabeler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A simple labeler for single-item examples.</p>
+<p>This labeler provides a mechanism to drop (ignore) example pairs based on
+equality of scalar features. Typically these features are integer ids
+(or similar) that uniquely identify the example or one of its modalities.
+Dropping (distinct) pairs with the same ID is a simple form of deduplication.</p>
+<dl class="simple">
+<dt>More precisely:</dt><dd><ul class="simple">
+<li><p>Queries and results from the same example (according to <code class="xref py py-obj docutils literal notranslate"><span class="pre">correspondences</span></code>)
+always get a positive label.</p></li>
+<li><p>By default, all other pairs get a negative label.</p></li>
+<li><p>Negative labels are replaced by IGNORE if the examples are equal w.r.t.
+any feature named in <code class="xref py py-obj docutils literal notranslate"><span class="pre">drop_pairs_that_match</span></code>. These features should be
+scalars, one per example.</p></li>
+</ul>
+</dd>
+</dl>
+<p>This labeler assumes examples only have one item per modality (e.g. one image
+and one caption), and is only suitable for datasets that satisfy that
+condition.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.milan.labels._BroadcastExamplePairLabelsToAllItemPairs">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.labels.</span></code><code class="sig-name descname"><span class="pre">_BroadcastExamplePairLabelsToAllItemPairs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">example_pair_labels</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queries_shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results_shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#_BroadcastExamplePairLabelsToAllItemPairs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels._BroadcastExamplePairLabelsToAllItemPairs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Propagates each example-pair label to all pairs of their items.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>example_pair_labels</strong> – Labels tensor for example pairs, shape
+[query_batch_size, result_batch_size].</p></li>
+<li><p><strong>queries_shape</strong> – Batch shape of the query examples. Must start with
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">query_batch_size</span></code>.</p></li>
+<li><p><strong>results_shape</strong> – Batch shape of the query examples. Must start with
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">result_batch_size</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A labels tensor with shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">queries_shape</span> <span class="pre">+</span> <span class="pre">results_shape</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.milan.labels._IgnorePairsWhere">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.labels.</span></code><code class="sig-name descname"><span class="pre">_IgnorePairsWhere</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#_IgnorePairsWhere"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels._IgnorePairsWhere" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.milan.labels.MultiItemExampleWrapper">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.labels.</span></code><code class="sig-name descname"><span class="pre">MultiItemExampleWrapper</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">example_pair_labeler</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#lingvo.tasks.milan.labels.ExamplePairs" title="lingvo.tasks.milan.labels.ExamplePairs"><span class="pre">lingvo.tasks.milan.labels.ExamplePairs</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modality_batch_shapes</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#MultiItemExampleWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels.MultiItemExampleWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Adapts a labeler for single-item examples into one for multi-item examples.</p>
+<p><a class="reference internal" href="#lingvo.tasks.milan.labels.MultiItemExampleWrapper" title="lingvo.tasks.milan.labels.MultiItemExampleWrapper"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiItemExampleWrapper</span></code></a> wraps a labeler for single-item examples (one that
+assumes examples have a single item per modality), so that it can label
+multi-item examples (i.e. where each example holds Q &gt;= 1 query and R &gt;= 1
+result items). The former produces a label for each of
+query_batch_size * result_batch_size pairs; the latter produces one for each
+of query_batch_size * Q * result_batch_size * R pairs.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">modality_shapes</span></code> specifies the number of items per modality in each example
+(Q and R, in this example).</p>
+<p>This wrapper employs some simple semantics to expand labels:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>All item pairs inherit the label of the parent example pair.</p></li>
+<li><p>When the query and result modalities are the same (intra-modal retrieval),
+item self pairs are labeled “ignore”. This is so items aren’t used as
+their own targets during training.</p></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.milan.labels.MultiLabelContrastiveLoss">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.labels.</span></code><code class="sig-name descname"><span class="pre">MultiLabelContrastiveLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/labels.html#MultiLabelContrastiveLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.labels.MultiLabelContrastiveLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes a multi-label generalization of softmax cross entropy loss.</p>
+<p>This loss generalizes softmax cross entropy in the following sense.</p>
+<ul class="simple">
+<li><p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> are one-hot (over <code class="xref py py-obj docutils literal notranslate"><span class="pre">axis</span></code>), this loss is equivalent to softmax
+cross entropy. Note in this case the per-example loss can be interpreted as
+-log(p(positive_class)). Here p() is a distribution of over C classes,
+namely 1 positive class and C-1 negative classes.</p></li>
+<li><p>In general, if <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> are N-hot, this function computes the loss
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">sum_i{</span> <span class="pre">-log(p_i(positive_class_i))</span> <span class="pre">}</span> <span class="pre">/</span> <span class="pre">N</span></code>
+where p_i() is a distribution over the i’th positive class and the C-N
+negative classes.</p></li>
+</ul>
+<p>Note unlike <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.nn.softmax_cross_entropy_with_logits()</span></code>, this function does
+not support “soft” labels. Positive and negative labels must be represented as
+1 and 0, respectively. Setting a label to any other value causes the example-
+class pair to be ignored in the loss calculation. This is intended as a
+feature, to give callers fine-grained control over which pairs are used in
+the loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> – Tensor of labels. Must have the same shape as <code class="xref py py-obj docutils literal notranslate"><span class="pre">logits</span></code>.</p></li>
+<li><p><strong>logits</strong> – Tensor of logits (scores). Must have the same shape as <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code>.</p></li>
+<li><p><strong>axis</strong> – The class dimension, i.e. the one over which probability distributions
+are normalized.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A Tensor of per-example losses. Has the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">logits</span></code>, and the same
+shape, except without <code class="xref py py-obj docutils literal notranslate"><span class="pre">axis</span></code>.</p>
+<p>Typically <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">logits</span></code> are both [batch_size, num_classes], in
+which case the result is [batch_size].</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="lingvo.tasks.milan.score_functions.html" class="btn btn-neutral float-right" title="lingvo.tasks.milan.score_functions module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="lingvo.tasks.milan.input_generator.html" class="btn btn-neutral float-left" title="lingvo.tasks.milan.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

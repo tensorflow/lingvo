@@ -171,6 +171,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">entmax</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
@@ -346,6 +347,15 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Extra logit for attention softmax.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;attention_logits_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Using float32 for attention logits with fprop_dtype=bfloat16 &#39;</span>
+        <span class="s1">&#39;generally makes training giant models more stable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;mask_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Using bfloat16 for fprop_dtype could be problematic for &#39;</span>
+        <span class="s1">&#39;mask tensors, mask_dtype is a special dtype for such tensors.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
@@ -364,6 +374,8 @@
 <div class="viewcode-block" id="MoEBuilder._Var"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Var">[docs]</a>  <span class="k">def</span> <span class="nf">_Var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">shared_var_collection_suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">VarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
         <span class="n">shared_var_collection_suffix</span><span class="o">=</span><span class="n">shared_var_collection_suffix</span><span class="p">)</span></div>
 
@@ -385,7 +397,11 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
+          <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
+          <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._ShardedVarOn1DDeviceArray"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVarOn1DDeviceArray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Variables sharded along dimension 0.</span>
@@ -808,14 +824,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">def</span> <span class="nf">_AddBias</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_AddBiasF32</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
       <span class="c1"># logits: BLHM [batch, length, heads, memory_length]</span>
       <span class="c1"># bias: BLHM [batch, length, heads, memory_length]</span>
       <span class="c1">#       (in case of attention with relative bias) OR</span>
       <span class="c1">#</span>
       <span class="c1">#       BLM  [batch, length, memory_length]</span>
       <span class="c1">#       (default masking bias with very negative logits).</span>
-
+      <span class="n">bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">bias</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
         <span class="c1"># Expanding the &#39;heads&#39; dimension</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -830,7 +846,7 @@
 
       <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_extra_logit</span>
       <span class="k">if</span> <span class="n">extra_logit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">extra_logit</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+        <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">extra_logit</span><span class="p">,</span> <span class="n">max_logit</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">max_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_logit</span><span class="p">,</span> <span class="n">extra_logit</span><span class="p">)</span>
       <span class="n">x</span> <span class="o">-=</span> <span class="n">max_logit</span>
       <span class="n">exp_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
@@ -842,10 +858,22 @@
     <span class="k">def</span> <span class="nf">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">x</span> <span class="o">-</span> <span class="n">_ReduceLogsumexp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_Softmax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_LogitsFnF32</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+      <span class="c1"># logits.dtype == tf.float32 leads to better training stability</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_logits_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_logits_dtype</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_logits_dtype</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLHD,BMHD-&gt;BLHM&#39;</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_SoftmaxF32</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="c1"># expecting x.dtype == tf.float32</span>
+      <span class="c1">#</span>
+      <span class="c1"># TODO(lepikhin): consider</span>
       <span class="c1"># if p.attention_extra_logit is None:</span>
       <span class="c1">#   return tf.nn.softmax(x)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+      <span class="n">softmax</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+      <span class="n">softmax</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">softmax</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">softmax</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
@@ -854,11 +882,9 @@
         <span class="p">(</span><span class="s1">&#39;_q-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;_q&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;_k-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;_k&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;_v-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;_v&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;q,k-&gt;l&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span>
-                  <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLHD,BMHD-&gt;BLHM&#39;</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;l,bias-&gt;logits&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_AddBias</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;logits-&gt;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="n">_Softmax</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k-&gt;l&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_LogitsFnF32</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;l,bias-&gt;logits&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_AddBiasF32</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;logits-&gt;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="n">_SoftmaxF32</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;w-&gt;weights&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">attention_dropout_prob</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;weights,v-&gt;outputs&#39;</span><span class="p">,</span>
@@ -1498,6 +1524,7 @@
           <span class="n">expert_capacity_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">c_dim</span><span class="p">,</span>
           <span class="n">local_dispatch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
           <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
+          <span class="n">mask_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_dtype</span><span class="p">,</span>
           <span class="c1"># We rely on sharding propagation here, Top2Gating is done</span>
           <span class="c1"># independently for each group and inputs are typically sharded by</span>
           <span class="c1"># group dimension.</span>
@@ -1766,7 +1793,8 @@
       <span class="n">num_devices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">)</span>
       <span class="n">device_mesh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span>
+          <span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">device_mesh</span>
 
 <div class="viewcode-block" id="DenseBuilder._MeshSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._MeshSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_MeshSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">):</span>
@@ -1991,14 +2019,16 @@
     <span class="sd">&quot;&quot;&quot;Attention with multiple attention heads.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">def</span> <span class="nf">_AddBias</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_AddBiasF32</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
       <span class="c1"># logits: BLHM [batch, length, heads, memory_length]</span>
+      <span class="c1"># expecting logits.dtype == tf.float32</span>
+      <span class="c1">#</span>
       <span class="c1"># bias: BLHM [batch, length, heads, memory_length]</span>
       <span class="c1">#       (in case of attention with relative bias) OR</span>
       <span class="c1">#</span>
       <span class="c1">#       BLM  [batch, length, memory_length]</span>
       <span class="c1">#       (default masking bias with very negative logits).</span>
-
+      <span class="n">bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">bias</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
         <span class="c1"># Expanding the &#39;heads&#39; dimension</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -2012,7 +2042,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_extra_logit</span>
       <span class="k">if</span> <span class="n">extra_logit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">extra_logit</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+        <span class="n">extra_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">extra_logit</span><span class="p">,</span> <span class="n">max_logit</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">max_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_logit</span><span class="p">,</span> <span class="n">extra_logit</span><span class="p">)</span>
       <span class="n">x</span> <span class="o">-=</span> <span class="n">max_logit</span>
       <span class="n">exp_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
@@ -2024,18 +2054,26 @@
     <span class="k">def</span> <span class="nf">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">x</span> <span class="o">-</span> <span class="n">_ReduceLogsumexp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_Softmax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_SoftmaxF32</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="c1"># expecting x.dtype == tf.float32</span>
+      <span class="c1">#</span>
       <span class="c1"># TODO(lepikhin): consider</span>
       <span class="c1"># if p.attention_extra_logit is None:</span>
       <span class="c1">#   return tf.nn.softmax(x)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+      <span class="n">softmax</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">_LogSoftmax</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+      <span class="n">softmax</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">softmax</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">softmax</span>
 
     <span class="c1"># p.attention_num_memory_heads == 1 special case is simple, we omit the</span>
     <span class="c1"># &quot;heads&quot; dimension H from the projection matrices wk and wv.</span>
     <span class="c1">#</span>
     <span class="c1"># Then remove the heads dimension H of wk, vv, k, or v in any einsum</span>
     <span class="c1"># formula in which it appears.</span>
-    <span class="k">def</span> <span class="nf">_LogitsFn</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_LogitsFnF32</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+      <span class="c1"># logits.dtype == tf.float32 leads to better training stability</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_logits_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_logits_dtype</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_logits_dtype</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLHD,BMD-&gt;BLHM&#39;</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span>
@@ -2056,9 +2094,9 @@
         <span class="p">(</span><span class="s1">&#39;_q-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_q&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">qkv_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;_k-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_k&#39;</span><span class="p">,</span> <span class="n">kv_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;_v-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_v&#39;</span><span class="p">,</span> <span class="n">kv_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;q,k-&gt;l&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_LogitsFn</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;l,bias-&gt;logits&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_AddBias</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;logits-&gt;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="n">_Softmax</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k-&gt;l&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_LogitsFnF32</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;l,bias-&gt;logits&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_AddBiasF32</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;logits-&gt;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="n">_SoftmaxF32</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;w-&gt;weights&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">attention_dropout_prob</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;weights-&gt;weights_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_wsplit&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">qkv_split</span><span class="p">)),</span>
@@ -2599,16 +2637,20 @@
 
 <div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DecoderLayerStack with self attention and feedforward in parallel.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s1">&#39;inputs-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">,</span>
+                                                <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[:</span><span class="mi">2</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[:</span><span class="mi">2</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[:</span><span class="mi">2</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;encoder_output-&gt;encoder_output_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_output_split&#39;</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;encoder_output_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">blm_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;encoder_segment_id-&gt;encoder_segment_id_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_id_split&#39;</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;encoder_segment_id_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[:</span><span class="mi">2</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;encoder_segment_pos-&gt;encoder_segment_pos_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_pos_split&#39;</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;encoder_segment_pos_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[:</span><span class="mi">2</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;inputs-&gt;input_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;input_dropout,segment_id_split,segment_pos_split-&gt;&#39;</span>
@@ -2674,6 +2716,17 @@
         <span class="s1">&#39; parallel_ffn is true currently.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;conv_kernel_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Optional 1D depthwise convolutional kernel.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_entmax&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Flag to use the entmax for entropy and loss &#39;</span>
+        <span class="s1">&#39;calculation. The entmax is following this publication: &#39;</span>
+        <span class="s1">&#39;https://arxiv.org/pdf/2004.02644.pdf.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;entmax_alpha&#39;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="s1">&#39;Define the alpha value for the entmax &#39;</span>
+             <span class="s1">&#39;calculation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;entmax_n_iters&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;Define the number of iterations for the &#39;</span>
+             <span class="s1">&#39;entmax.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;entmax_ensure_sum_one&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Define the if the summation of &#39;</span>
+        <span class="s1">&#39;the output probabilities should be 1.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2858,18 +2911,35 @@
       <span class="n">logits</span><span class="p">,</span> <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">predictions</span>
       <span class="n">soft_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeSoftLabels</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
 
-      <span class="n">xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">),</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_entmax</span><span class="p">:</span>
+        <span class="n">entropy</span> <span class="o">=</span> <span class="n">entmax</span><span class="o">.</span><span class="n">entmax_loss</span><span class="p">(</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">),</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">entmax_alpha</span><span class="p">,</span>
+            <span class="n">n_iter</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">entmax_n_iters</span><span class="p">,</span>
+            <span class="n">ensure_sum_one</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">entmax_ensure_sum_one</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">entmax</span><span class="o">.</span><span class="n">entmax_loss</span><span class="p">(</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">soft_labels</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">entmax_alpha</span><span class="p">,</span>
+            <span class="n">n_iter</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">entmax_n_iters</span><span class="p">,</span>
+            <span class="n">ensure_sum_one</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">entmax_ensure_sum_one</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">entropy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">),</span>
+            <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">soft_labels</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
 
       <span class="n">top1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span>
           <span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">acc1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">top1</span><span class="p">),</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="n">acc1</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">xent</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">acc1</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">acc1</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">entropy</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">acc1</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">entropy</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
-      <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
-          <span class="n">labels</span><span class="o">=</span><span class="n">soft_labels</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span>
-      <span class="n">soft_labels_xent</span> <span class="o">=</span> <span class="n">loss</span>
+      <span class="n">soft_labels_entropy</span> <span class="o">=</span> <span class="n">loss</span>
 
+      <span class="c1"># To make sure the entmax works as intended, the z_loss should be set</span>
+      <span class="c1"># to 0.</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">z_loss</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
         <span class="n">log_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_logsumexp</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">z_loss_increment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">z_loss</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">log_z</span><span class="p">)</span>
@@ -2893,8 +2963,8 @@
       <span class="n">avg_z_loss_increment</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_token_z_loss_increment</span><span class="p">)</span> <span class="o">/</span>
                               <span class="n">loss_denom</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">z_loss</span> <span class="k">else</span> <span class="mf">0.0</span>
 
-      <span class="n">soft_labels_xent</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">soft_labels_xent</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span>
+      <span class="n">soft_labels_entropy</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">soft_labels_entropy</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">))</span>
       <span class="n">avg_loss</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">aux_loss_coef</span> <span class="o">*</span> <span class="n">aux_loss</span>
 
@@ -2925,16 +2995,26 @@
               <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">whole_tgt_correct</span><span class="p">)</span> <span class="o">/</span>
                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">whole_tgt_correct</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">whole_tgt_correct</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="mf">1.0</span>
               <span class="p">),</span>
-          <span class="s1">&#39;mean_xent&#39;</span><span class="p">:</span>
-              <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">xent</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span>
-               <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
-          <span class="s1">&#39;soft_labels_xent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">soft_labels_xent</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
+          <span class="s1">&#39;mean_xent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">entropy</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
+          <span class="s1">&#39;soft_labels_xent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">soft_labels_entropy</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
           <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">),</span>
           <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">avg_loss</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
           <span class="s1">&#39;aux_loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">aux_loss_coef</span> <span class="o">*</span> <span class="n">aux_loss</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
           <span class="s1">&#39;avg_z_loss_increment&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">avg_z_loss_increment</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
       <span class="p">}</span>
-      <span class="n">eval_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuSummaryTensors</span><span class="p">())</span>
+      <span class="k">if</span> <span class="s1">&#39;word_count&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">:</span>
+        <span class="c1"># +input_batch.num_sentences to account for the end of sequence symbol.</span>
+        <span class="n">num_words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+                <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">word_count</span> <span class="o">+</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">num_sentences</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_words&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx_per_word&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">entropy</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_words</span><span class="p">,</span> <span class="n">num_words</span><span class="p">)</span>
+
+      <span class="c1"># TpuSummaries are in now propagated in _BPropGenTrainOps</span>
       <span class="k">return</span> <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">per_step_loss</span></div>
 
 <div class="viewcode-block" id="UniTransformer.FilterPerExampleTensors"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer.FilterPerExampleTensors">[docs]</a>  <span class="k">def</span> <span class="nf">FilterPerExampleTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_step</span><span class="p">):</span>

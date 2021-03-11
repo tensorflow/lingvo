@@ -1,0 +1,294 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.transformers &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.transformers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.milan.transformers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Layers for preprocessing and modeling text inputs.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.milan</span> <span class="kn">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="kn">import</span> <span class="n">layers</span> <span class="k">as</span> <span class="n">mt_layers</span>
+
+
+<div class="viewcode-block" id="GetTransformerStackWithEmbeddingInput"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.transformers.html#lingvo.tasks.milan.transformers.GetTransformerStackWithEmbeddingInput">[docs]</a><span class="k">def</span> <span class="nf">GetTransformerStackWithEmbeddingInput</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+                                          <span class="n">input_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                          <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                          <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                          <span class="n">num_attention_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                          <span class="n">output_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                                          <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Configures a transformer stack that takes embedding sequences as input.</span>
+
+<span class="sd">  The returned layer has the overall signature</span>
+<span class="sd">    (features, lengths) -&gt; fixed_dim_encodings</span>
+<span class="sd">  where</span>
+<span class="sd">    `features` are [batch_size, max_length, input_dim],</span>
+<span class="sd">    `lengths` are [batch_size], and</span>
+<span class="sd">    `fixed_dim_encodings` have shape [batch_size, output_dim].</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    input_dim: int, dimension of the input embeddings.</span>
+<span class="sd">    num_layers: int, number of transformer layers to use in the encoder.</span>
+<span class="sd">    hidden_dim: int, size of transformer feed-forward hidden layer (see</span>
+<span class="sd">      `TransformerFeedForwardLayer`)</span>
+<span class="sd">    num_attention_heads: int, number of attention heads to use in each</span>
+<span class="sd">      transformer layer,</span>
+<span class="sd">    output_dim: int, the dimension of the output (and input) of each transformer</span>
+<span class="sd">      layer; also the dimension of the final output.</span>
+<span class="sd">    name: Name to use for the resulting layer.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Params defining the encoder.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># Projects features to transformer &#39;model_dim&#39; (a.k.a. &#39;output_dim&#39;).</span>
+  <span class="n">input_projection</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;input_projection&#39;</span><span class="p">,</span>
+      <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
+      <span class="n">output_dim</span><span class="o">=</span><span class="n">output_dim</span><span class="p">)</span>
+
+  <span class="nd">@utils</span><span class="o">.</span><span class="n">MakeFnLayer</span>
+  <span class="k">def</span> <span class="nf">ConvertInputs</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">lengths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the padding mask and transposes inputs to time-major.&quot;&quot;&quot;</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_has_rank</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">lengths</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">assert_has_rank</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span>
+        <span class="n">lengths</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">features</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">features</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">BatchMajorToTimeMajor</span><span class="p">(</span><span class="n">features</span><span class="p">),</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">BatchMajorToTimeMajor</span><span class="p">(</span><span class="n">paddings</span><span class="p">))</span>
+
+  <span class="n">transformer_stack</span> <span class="o">=</span> <span class="n">mt_layers</span><span class="o">.</span><span class="n">TransformerStack</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;transformer_stack&#39;</span><span class="p">,</span>
+      <span class="n">model_dim</span><span class="o">=</span><span class="n">output_dim</span><span class="p">,</span>
+      <span class="n">num_transformer_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">)</span>
+  <span class="n">layer_template</span> <span class="o">=</span> <span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span>
+  <span class="n">layer_template</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">hidden_dim</span>
+  <span class="n">layer_template</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="n">num_attention_heads</span>
+
+  <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">GraphLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+      <span class="n">input_endpoints</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">,</span> <span class="s1">&#39;lengths&#39;</span><span class="p">],</span>
+      <span class="n">output_endpoints</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;fixed_dim_encodings&#39;</span><span class="p">],</span>
+      <span class="n">sub</span><span class="o">=</span><span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;features-&gt;proj_features&#39;</span><span class="p">,</span> <span class="n">input_projection</span><span class="p">),</span>
+          <span class="c1"># Transpose inputs to time-major and construct the paddings.</span>
+          <span class="p">(</span><span class="s1">&#39;proj_features,lengths-&gt;time_major_features,time_major_paddings&#39;</span><span class="p">,</span>
+           <span class="n">ConvertInputs</span><span class="p">),</span>
+          <span class="p">(</span><span class="s1">&#39;time_major_features,time_major_paddings-&gt;time_major_encodings,_,_1&#39;</span><span class="p">,</span>
+           <span class="n">transformer_stack</span><span class="p">),</span>
+          <span class="p">(</span><span class="s1">&#39;time_major_encodings-&gt;fixed_dim_encodings&#39;</span><span class="p">,</span>
+           <span class="n">utils</span><span class="o">.</span><span class="n">MakeFnLayer</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;select_index_0&#39;</span><span class="p">)),</span>
+      <span class="p">])</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

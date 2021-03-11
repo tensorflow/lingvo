@@ -1,0 +1,429 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.milan.dual_encoder module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.milan.image_preprocessor module" href="lingvo.tasks.milan.image_preprocessor.html" />
+    <link rel="prev" title="lingvo.tasks.milan.dataset_spec module" href="lingvo.tasks.milan.dataset_spec.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.milan.html">lingvo.tasks.milan namespace</a> &raquo;</li>
+        
+      <li>lingvo.tasks.milan.dual_encoder module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/lingvo.tasks.milan.dual_encoder.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.milan.dual_encoder">
+<span id="lingvo-tasks-milan-dual-encoder-module"></span><h1>lingvo.tasks.milan.dual_encoder module<a class="headerlink" href="#module-lingvo.tasks.milan.dual_encoder" title="Permalink to this headline">¶</a></h1>
+<p>Template for a multi-modal dual encoder model.</p>
+<dl class="py function">
+<dt id="lingvo.tasks.milan.dual_encoder._EncodeBatch">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">_EncodeBatch</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><span class="pre">lingvo.core.base_layer.BaseLayer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#_EncodeBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder._EncodeBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">encoder</span></code> on <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> with an arbitrary number of batch dimensions.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.milan.dual_encoder.EncoderConfig">
+<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">EncoderConfig</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><span class="pre">lingvo.core.hyperparams.Params</span></a><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#EncoderConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.EncoderConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Params for configuring one <a class="reference internal" href="#lingvo.tasks.milan.dual_encoder.DualEncoder" title="lingvo.tasks.milan.dual_encoder.DualEncoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoder</span></code></a> modality.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">DualEncoder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Implements a dual encoder trained with in-batch softmax loss.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder._CreateChildrenVariables">
+<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.EncodeModality">
+<code class="sig-name descname"><span class="pre">EncodeModality</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modality</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.EncodeModality"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.EncodeModality" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> through <code class="xref py py-obj docutils literal notranslate"><span class="pre">modality</span></code>’s encoder and optional projection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>modality</strong> – Name of the modality to encode.</p></li>
+<li><p><strong>inputs</strong> – Tensor(s) of input to the encoder, e.g. a batch of decoded images.</p></li>
+<li><p><strong>batch_shape</strong> – TensorShape describing the batch structure of the inputs.
+Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[None]</span></code>, which means <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> have a single batch
+dimension. Set to (e.g.) <code class="xref py py-obj docutils literal notranslate"><span class="pre">[None,</span> <span class="pre">5]</span></code> if each example in the batch
+contains 5 encodable items.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A float32 Tensor of the encoded items, shape
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_shape</span> <span class="pre">+</span> <span class="pre">[joint_embedding_dim]</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions">
+<code class="sig-name descname"><span class="pre">ComputePredictions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encodes the examples in <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code> with respect to each modality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> containing variable values of this task.</p></li>
+<li><p><strong>input_batch</strong> – <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of input tensors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of encodings in all configured modalities. Maps modality
+name to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> with</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>’ids’: int32 ids Tensor, shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch_size,</span> <span class="pre">...]</span></code></p></li>
+<li><p>’encodings’: float32 encodings Tensor, shape
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">ids_shape</span> <span class="pre">+</span> <span class="pre">[joint_embedding_dim]</span></code></p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.ComputeLoss">
+<code class="sig-name descname"><span class="pre">ComputeLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes loss and other metrics for the given predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
+<li><p><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions" title="lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>.</p></li>
+<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (metrics, per_example_tensors), where</dt><dd><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics</span></code> is a dict of str keys to (metric, weight) values</p></li>
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">per_example_tensors</span></code> is a dict of str keys to tensors describing each
+training example, where the first dimension of each tensor is the
+batch index.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.milan.dual_encoder.MilanTask">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">MilanTask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
+<p>Task that runs a <a class="reference internal" href="#lingvo.tasks.milan.dual_encoder.DualEncoder" title="lingvo.tasks.milan.dual_encoder.DualEncoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoder</span></code></a>.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions">
+<code class="sig-name descname"><span class="pre">ComputePredictions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
+<p>The output can be in the form of probablistic distributions, e.g., softmax
+logits for discrete outputs, mixture of logistics for continuous values, or
+regression values.</p>
+<p>For training/evaluation, the output will be used for computing loss and
+gradient updates, including comparing predicted distributions between
+teacher and student for distillation. During inference the output can be
+used to compute final outputs, perhaps with sampling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
+<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Predictions, either a single Tensor, a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, or a namedtuple.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.ComputeLoss">
+<code class="sig-name descname"><span class="pre">ComputeLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes loss and other metrics for the given predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</p></li>
+<li><p><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions" title="lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>.</p></li>
+<li><p><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.</p></li>
+<li><p>A dict containing arbitrary tensors describing something about each
+training example, where the first dimension of each tensor is the batch
+index.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>, <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.Decode">
+<code class="sig-name descname"><span class="pre">Decode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.Decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.Decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph for eval decoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_batch</strong> – The input batch. A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors. Or, if input batch
+spiltting is used, a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code>, one for each split.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a dict of Tensors as decoder output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.CreateDecoderMetrics">
+<code class="sig-name descname"><span class="pre">CreateDecoderMetrics</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.CreateDecoderMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dict of decoder metrics for <code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code> to update.</p>
+<p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="lingvo.tasks.milan.image_preprocessor.html" class="btn btn-neutral float-right" title="lingvo.tasks.milan.image_preprocessor module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="lingvo.tasks.milan.dataset_spec.html" class="btn btn-neutral float-left" title="lingvo.tasks.milan.dataset_spec module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
