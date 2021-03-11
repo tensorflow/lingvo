@@ -31,7 +31,7 @@ class APTest(test_utils.TestCase):
   def testWaymoAPConfig(self):
     metadata = waymo_metadata.WaymoMetadata()
     # Use 2D metric.
-    config = waymo_ap_metric._BuildWaymoMetricConfig(metadata, '2d', [])
+    config = waymo_ap_metric.BuildWaymoMetricConfig(metadata, '2d', [])
     vehicle_idx = label_pb2.Label.Type.Value('TYPE_VEHICLE')
     ped_idx = label_pb2.Label.Type.Value('TYPE_PEDESTRIAN')
     cyc_idx = label_pb2.Label.Type.Value('TYPE_CYCLIST')

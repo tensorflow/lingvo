@@ -36,7 +36,7 @@ from waymo_open_dataset.protos import breakdown_pb2
 from waymo_open_dataset.protos import metrics_pb2
 
 
-def _BuildWaymoMetricConfig(metadata, box_type, waymo_breakdown_metrics):
+def BuildWaymoMetricConfig(metadata, box_type, waymo_breakdown_metrics):
   """Build the Config proto for Waymo's metric op."""
   config = metrics_pb2.Config()
   # config.num_desired_score_cutoffs = metadata.NumberOfPrecisionRecallPoints()
@@ -87,7 +87,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
 
   def __init__(self, params):
     super().__init__(params)
-    self._waymo_metric_config = _BuildWaymoMetricConfig(
+    self._waymo_metric_config = BuildWaymoMetricConfig(
         self.metadata, self.params.box_type,
         self.params.waymo_breakdown_metrics)
     # Compute only waymo breakdown metrics.
