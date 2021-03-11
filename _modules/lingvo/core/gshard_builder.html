@@ -2397,18 +2397,24 @@
 <span class="sd">  By setting proj_weight_hdim = 64, RepeatLayer will create 8x micro variables,</span>
 <span class="sd">  each with shape [L, 16k, 64, 128] only. Using leasting loading placer those</span>
 <span class="sd">  micro variables will be placed at different hosts.</span>
+
+<span class="sd">  To disable micro variables, set proj_weight_hdim to None.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;proj_weight_hdim&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span>
-             <span class="s1">&#39;weight hd_dims = [proj_weight_hdim, attention_key_value_dim].&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;proj_weight_hdim&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span>
+        <span class="s1">&#39;weight hd_dims = [proj_weight_hdim, attention_key_value_dim]. &#39;</span>
+        <span class="s1">&#39;Use None to disable micro variables.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_num_input_proj_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
     <span class="n">num_wq</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span>
     <span class="n">kv_h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span>
     <span class="k">if</span> <span class="n">kv_h</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span><span class="p">:</span>
@@ -2421,17 +2427,42 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_num_output_proj_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
     <span class="n">num_atten</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span>
     <span class="n">num_wo</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span>
     <span class="k">return</span> <span class="n">num_atten</span><span class="p">,</span> <span class="n">num_wo</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_ffw_var_h_dim_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_atten_q_var_heads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_atten_kv_var_heads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">kv_h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">kv_h</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">kv_h</span>
+    <span class="k">assert</span> <span class="n">kv_h</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span>
 
 <div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_DecoderLayerInputProjWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="c1"># Create multiple input projection weights, each of which has shape</span>
     <span class="c1"># [model_dim, proj_weight_hdim, d_kv].</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span> <span class="o">==</span> <span class="mi">0</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">==</span> <span class="mi">0</span>
-    <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="n">input_w_split</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">max</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
     <span class="n">kv_w_split</span> <span class="o">=</span> <span class="n">input_w_split</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">kv_mhd_w_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span>
         <span class="n">p</span><span class="o">.</span><span class="n">kv_mhd_w_split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -2440,16 +2471,18 @@
 
     <span class="n">q_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
     <span class="n">wq_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten_q_var_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+        <span class="p">],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">q_stddev</span><span class="p">),</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">input_w_split</span><span class="p">)</span>
 
-    <span class="n">kv_h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span>
     <span class="n">kv_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
-    <span class="n">h_dim</span> <span class="o">=</span> <span class="n">kv_h</span> <span class="k">if</span> <span class="n">kv_h</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span>
     <span class="n">wkv_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">h_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten_kv_var_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+        <span class="p">],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">kv_stddev</span><span class="p">),</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">kv_w_split</span><span class="p">)</span>
@@ -2457,7 +2490,7 @@
     <span class="n">ffw_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ffw_var_h_dim_size</span><span class="p">],</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">input_w_split</span><span class="p">)</span>
 
     <span class="n">num_wq</span><span class="p">,</span> <span class="n">num_wkv</span><span class="p">,</span> <span class="n">num_wi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_input_proj_weights</span>
@@ -2482,14 +2515,16 @@
 
     <span class="n">atten_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
     <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_atten_q_var_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
+        <span class="p">],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">atten_stddev</span><span class="p">),</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">out_w_split</span><span class="p">)</span>
     <span class="n">ffw_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">proj_weight_hdim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ffw_var_h_dim_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">out_w_split</span><span class="p">)</span>
     <span class="n">num_atten</span><span class="p">,</span> <span class="n">num_wo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_output_proj_weights</span>
     <span class="n">weights_params</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2727,6 +2762,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;entmax_ensure_sum_one&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Define the if the summation of &#39;</span>
         <span class="s1">&#39;the output probabilities should be 1.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_per_layer_vars_for_recurrent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Create per-layer variables for RecurrentDenseBuilder, instead of &#39;</span>
+        <span class="s1">&#39;combined variables [num_layers, ...].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2769,7 +2808,8 @@
                 <span class="n">body</span><span class="o">=</span><span class="n">b</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span>
                                     <span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
                                     <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim_reshape_segments</span><span class="p">),</span>
-                <span class="n">repeat</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">)</span>
+                <span class="n">repeat</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
+                <span class="n">per_layer_vars</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_per_layer_vars_for_recurrent</span><span class="p">)</span>
         <span class="p">]</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>

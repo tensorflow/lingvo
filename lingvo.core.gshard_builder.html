@@ -981,6 +981,7 @@ ff_dim = 64k, d_kv = 128, then RepeatLayer will create variables with size
 By setting proj_weight_hdim = 64, RepeatLayer will create 8x micro variables,
 each with shape [L, 16k, 64, 128] only. Using leasting loading placer those
 micro variables will be placed at different hosts.</p>
+<p>To disable micro variables, set proj_weight_hdim to None.</p>
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params">
 <em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params" title="Permalink to this definition">¶</a></dt>
@@ -995,6 +996,21 @@ micro variables will be placed at different hosts.</p>
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights">
 <em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_num_output_proj_weights</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ffw_var_h_dim_size">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_ffw_var_h_dim_size</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ffw_var_h_dim_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_q_var_heads">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_atten_q_var_heads</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_q_var_heads" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_kv_var_heads">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_atten_kv_var_heads</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_kv_var_heads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
