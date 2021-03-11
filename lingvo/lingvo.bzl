@@ -171,3 +171,11 @@ def lingvo_proto_py(name, src, deps = []):
         name = name,
         srcs = [basename + "_pb2.py"],
     )
+
+# Placeholder to use until bazel supports pytype_strict_library.
+def pytype_strict_library(name, **kwargs):
+    native.py_library(name = name, **kwargs)
+
+# Placeholder to use until bazel supports py_strict_test.
+def py_strict_test(name, **kwargs):
+    native.py_test(name = name, **kwargs)

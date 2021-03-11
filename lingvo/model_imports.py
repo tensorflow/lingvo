@@ -54,6 +54,7 @@ _TASK_DIRS = (
     # 'car',  # TODO(b/179168646): Reenable car models.
     'image',
     'lm',
+    'milan',
     'mt',
     'punctuator',
 )

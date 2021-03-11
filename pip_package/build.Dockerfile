@@ -6,7 +6,7 @@ ENV PYTHON_MINOR_VERSION="8"
 ENV PIP_MANYLINUX2010="1"
 
 # There are some problems with the python3 installation from custom-op-ubuntu16.
-# Remove it and install new ones. 
+# Remove it and install new ones.
 RUN apt-get remove --purge -y python3.5 python3.6
 RUN rm -f /etc/apt/sources.list.d/jonathonf-ubuntu-python-3_6-xenial.list
 RUN apt-key del F06FC659
@@ -24,7 +24,9 @@ RUN for python in python3.6 python3.7 python3.8; do \
       $python get-pip.py && \
       $python -m pip install --upgrade pip setuptools auditwheel && \
       $python -m pip install --upgrade \
+        attrs \
         dataclasses \
+        graph-compression-google-research \
         grpcio>=1.24.3 \
         matplotlib \
         mock \
@@ -33,6 +35,7 @@ RUN for python in python3.6 python3.7 python3.8; do \
         sympy \
         twine && \
       $python -m pip install tensorflow-gpu tensorflow-datasets \
+         tensorflow-hub tensorflow-text \
       ; \
     done
 

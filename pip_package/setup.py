@@ -31,10 +31,12 @@ if '--project_name' in sys.argv:
   sys.argv.pop(project_name_idx)
 
 REQUIRED_PACKAGES = [
+    'attrs',
     'dataclasses',
     'ipykernel',
     'jupyter',
     'jupyter_http_over_ws',
+    'graph-compression-google-research',
     'matplotlib',
     'model-pruning-google-research',
     'Pillow',
@@ -43,7 +45,9 @@ REQUIRED_PACKAGES = [
     'sympy',
     'tensorflow-datasets'
     'tensorflow-gpu==' + tf.__version__,
-    'waymo-open-dataset-tf-2-3-0',
+    'tensorflow-hub',
+    'tensorflow-text',
+    'waymo-open-dataset-tf-2-4-0',
 ]
 
 
