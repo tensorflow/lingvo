@@ -272,11 +272,11 @@
              <span class="s1">&#39;Whether to cast variables to fprop_dtype&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="ShardedVarLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ShardedVarLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="ShardedVarLayer.InstantiateVariables"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ShardedVarLayer.InstantiateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">InstantiateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="c1"># TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.</span>
-    <span class="k">def</span> <span class="nf">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">MaybeWeightSplit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
       <span class="c1"># In-place annotate the variable (no sharding op). This makes sure that</span>
       <span class="c1"># in some backend implementation, even if the following sharding is</span>
       <span class="c1"># optimized away, the backend can still infer the variable sharding.</span>
@@ -288,6 +288,15 @@
         <span class="n">split_dims</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape_prefix_len</span> <span class="o">+</span> <span class="n">split_dims</span>
       <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">split_dims</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
+      <span class="n">MaybeWeightSplit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ShardedVarLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ShardedVarLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.</span>
+    <span class="k">def</span> <span class="nf">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
