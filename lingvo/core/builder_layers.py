@@ -106,6 +106,7 @@ class RepeatLayer(base_layer.BaseLayer):
     p.Define('body', None, 'The param for the main network layer.')
     p.Define('repeat', 1,
              'Repeat layers specified in \'body\' this many times.')
+    p.Define('per_layer_vars', False, 'Use separate variables for each layer')
     return p
 
   def __init__(self, params):
@@ -113,18 +114,45 @@ class RepeatLayer(base_layer.BaseLayer):
     p = self.params
     assert p.name
     assert p.repeat > 0
-    self.CreateChild('body', p.body)
+    if p.per_layer_vars:
+      for i in range(p.repeat):
+        self.CreateChild('body_iter_' + str(i), p.body)
+    else:
+      self.CreateChild('body', p.body)
+
+  @property
+  def _body(self):
+    """A child layer to be used as the loop body."""
+    p = self.params
+    if p.per_layer_vars:
+      return self.body_iter_0
+    else:
+      return self.body
 
   def _CreateChildrenVariables(self):
+    p = self.params
     with tf.variable_scope(self.params.name):
-      with py_utils.VariableShapePrefixContext(self.params.repeat):
-        self.body.InstantiateVariables()
+      if p.per_layer_vars:
+        for i in range(p.repeat):
+          with tf.variable_scope('iter_' + str(i)):
+            self.children['body_iter_' + str(i)].InstantiateVariables()
+      else:
+        with py_utils.VariableShapePrefixContext(self.params.repeat):
+          self.body.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def FProp(self, theta, *args):
     p = self.params
-    # Collects all variable key and values into sets.
-    theta_stack = _MaybeStackExtraTheta(theta.body, self.body.vars, p.repeat)
+    if p.per_layer_vars:
+
+      def _ConcatPerLayerVals(*per_layer_vals):
+        vals_expanded_dim = [tf.expand_dims(v, 0) for v in per_layer_vals]
+        return tf.concat(vals_expanded_dim, 0)
+
+      all_iters = [theta['body_iter_' + str(i)] for i in range(p.repeat)]
+      theta_stack = tf.nest.map_structure(_ConcatPerLayerVals, *all_iters)
+    else:
+      theta_stack = _MaybeStackExtraTheta(theta.body, self.body.vars, p.repeat)
 
     def _ArgsToState(arg_list):
       """Returns a NestedMap from a list of FProp args."""
@@ -166,7 +194,7 @@ class RepeatLayer(base_layer.BaseLayer):
           dst.set_shape(tf.TensorShape(src.shape.as_list()[1:]))
 
       # Runs the actual body.FProp
-      fprop_outputs = self.body.FProp(theta_i, *fprop_inputs)
+      fprop_outputs = self._body.FProp(theta_i, *fprop_inputs)
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(fprop_inputs)
 

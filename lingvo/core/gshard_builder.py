@@ -2245,18 +2245,24 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
   By setting proj_weight_hdim = 64, RepeatLayer will create 8x micro variables,
   each with shape [L, 16k, 64, 128] only. Using leasting loading placer those
   micro variables will be placed at different hosts.
+
+  To disable micro variables, set proj_weight_hdim to None.
   """
 
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('proj_weight_hdim', 64,
-             'weight hd_dims = [proj_weight_hdim, attention_key_value_dim].')
+    p.Define(
+        'proj_weight_hdim', 64,
+        'weight hd_dims = [proj_weight_hdim, attention_key_value_dim]. '
+        'Use None to disable micro variables.')
     return p
 
   @property
   def _num_input_proj_weights(self):
     p = self.params
+    if p.proj_weight_hdim is None:
+      return 1, 1, 1
     num_wq = p.attention_num_heads // p.proj_weight_hdim
     kv_h = p.attention_num_memory_heads or p.attention_num_heads
     if kv_h < p.proj_weight_hdim:
@@ -2269,17 +2275,42 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
   @property
   def _num_output_proj_weights(self):
     p = self.params
+    if p.proj_weight_hdim is None:
+      return 1, 1
     num_atten = p.attention_num_heads // p.proj_weight_hdim
     num_wo = p.ff_dim // p.attention_key_value_dim // p.proj_weight_hdim
     return num_atten, num_wo
+
+  @property
+  def _ffw_var_h_dim_size(self):
+    p = self.params
+    assert p.ff_dim % p.attention_key_value_dim == 0
+    if p.proj_weight_hdim is None:
+      return p.ff_dim
+    assert (p.ff_dim // p.attention_key_value_dim) % p.proj_weight_hdim == 0
+    return p.proj_weight_hdim * p.attention_key_value_dim
+
+  @property
+  def _atten_q_var_heads(self):
+    p = self.params
+    if p.proj_weight_hdim is None:
+      return p.attention_num_heads
+    assert p.attention_num_heads % p.proj_weight_hdim == 0
+    return p.proj_weight_hdim
+
+  @property
+  def _atten_kv_var_heads(self):
+    p = self.params
+    kv_h = p.attention_num_memory_heads or p.attention_num_heads
+    if p.proj_weight_hdim is None or kv_h < p.proj_weight_hdim:
+      return kv_h
+    assert kv_h % p.proj_weight_hdim == 0
+    return p.proj_weight_hdim
 
   def _DecoderLayerInputProjWeights(self, name):
     # Create multiple input projection weights, each of which has shape
     # [model_dim, proj_weight_hdim, d_kv].
     p = self.params
-    assert p.ff_dim % p.attention_key_value_dim == 0
-    assert p.attention_num_heads % p.proj_weight_hdim == 0
-    assert (p.ff_dim // p.attention_key_value_dim) % p.proj_weight_hdim == 0
     input_w_split = [p.mhd_w_split[0], max(p.mhd_w_split[1], p.mhd_w_split[2])]
     kv_w_split = input_w_split if p.kv_mhd_w_split is None else [
         p.kv_mhd_w_split[0],
@@ -2288,16 +2319,18 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
 
     q_stddev = (p.model_dim * p.attention_key_value_dim)**-0.5
     wq_tpl = gshard_layers.ShardedWeightParams(
-        shape=[p.model_dim, p.proj_weight_hdim * p.attention_key_value_dim],
+        shape=[
+            p.model_dim, self._atten_q_var_heads * p.attention_key_value_dim
+        ],
         dtype=p.dtype,
         init=py_utils.WeightInit.Gaussian(q_stddev),
         tensor_split_dims_mapping=input_w_split)
 
-    kv_h = p.attention_num_memory_heads or p.attention_num_heads
     kv_stddev = (p.model_dim)**-0.5
-    h_dim = kv_h if kv_h < p.proj_weight_hdim else p.proj_weight_hdim
     wkv_tpl = gshard_layers.ShardedWeightParams(
-        shape=[p.model_dim, h_dim * p.attention_key_value_dim],
+        shape=[
+            p.model_dim, self._atten_kv_var_heads * p.attention_key_value_dim
+        ],
         dtype=p.dtype,
         init=py_utils.WeightInit.Gaussian(kv_stddev),
         tensor_split_dims_mapping=kv_w_split)
@@ -2305,7 +2338,7 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
     ffw_tpl = gshard_layers.ShardedWeightParams(
         init=py_utils.WeightInit.Uniform(((1. / p.model_dim)**0.5) * 3.0**0.5),
         dtype=p.dtype,
-        shape=[p.model_dim, p.proj_weight_hdim * p.attention_key_value_dim],
+        shape=[p.model_dim, self._ffw_var_h_dim_size],
         tensor_split_dims_mapping=input_w_split)
 
     num_wq, num_wkv, num_wi = self._num_input_proj_weights
@@ -2330,14 +2363,16 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
 
     atten_stddev = (p.attention_num_heads * p.attention_key_value_dim)**-0.5
     atten_tpl = gshard_layers.ShardedWeightParams(
-        shape=[p.proj_weight_hdim * p.attention_key_value_dim, p.model_dim],
+        shape=[
+            self._atten_q_var_heads * p.attention_key_value_dim, p.model_dim
+        ],
         dtype=p.dtype,
         init=py_utils.WeightInit.Gaussian(atten_stddev),
         tensor_split_dims_mapping=out_w_split)
     ffw_tpl = gshard_layers.ShardedWeightParams(
         init=py_utils.WeightInit.Uniform(((1. / p.ff_dim)**0.5) * 3.0**0.5),
         dtype=p.dtype,
-        shape=[p.proj_weight_hdim * p.attention_key_value_dim, p.model_dim],
+        shape=[self._ffw_var_h_dim_size, p.model_dim],
         tensor_split_dims_mapping=out_w_split)
     num_atten, num_wo = self._num_output_proj_weights
     weights_params = []
@@ -2575,6 +2610,10 @@ class UniTransformer(base_model.BaseTask):
     p.Define(
         'entmax_ensure_sum_one', True, 'Define the if the summation of '
         'the output probabilities should be 1.')
+    p.Define(
+        'use_per_layer_vars_for_recurrent', False,
+        'Create per-layer variables for RecurrentDenseBuilder, instead of '
+        'combined variables [num_layers, ...].')
     return p
 
   def __init__(self, params):
@@ -2617,7 +2656,8 @@ class UniTransformer(base_model.BaseTask):
                 body=b.DecoderLayer('block', gated_ffn_activation,
                                     p.conv_kernel_size,
                                     p.hidden_dim_reshape_segments),
-                repeat=p.num_transformer_layers)
+                repeat=p.num_transformer_layers,
+                per_layer_vars=p.use_per_layer_vars_for_recurrent)
         ]
       else:
         if p.positional_embedding:
