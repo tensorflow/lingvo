@@ -40,8 +40,8 @@ static string IdsToStr(const google::protobuf::RepeatedField<int32>& ids) {
 
 bool IdsMatchUpToIndex(const std::vector<int>& cur_hyp_ids,
                        const std::vector<int>& other_hyp_ids, const int index) {
-  CHECK_LE(index, cur_hyp_ids.size());
-  CHECK_LE(index, other_hyp_ids.size());
+  DCHECK_LE(index, cur_hyp_ids.size());
+  DCHECK_LE(index, other_hyp_ids.size());
   return std::equal(cur_hyp_ids.begin(), cur_hyp_ids.begin() + index,
                     other_hyp_ids.begin());
 }
@@ -117,11 +117,11 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
                       std::vector<int32>* terminal_symbols) {
   VLOG(1) << "Topk clear, num_beams: " << num_beams;
-  CHECK_EQ(hyps.size(), num_beams * k);
-  CHECK_GE(m, 0);
-  CHECK(eos_in_topk && top_k && extra_m && eos_hyps && terminal_symbols);
-  CHECK_EQ(hyps.size(), scores.dim_size(0));
-  CHECK_LT(eos_id, scores.dim_size(1));
+  DCHECK_EQ(hyps.size(), num_beams * k);
+  DCHECK_GE(m, 0);
+  DCHECK(eos_in_topk && top_k && extra_m && eos_hyps && terminal_symbols);
+  DCHECK_EQ(hyps.size(), scores.dim_size(0));
+  DCHECK_LT(eos_id, scores.dim_size(1));
   int hyps_size = hyps.size();
   eos_in_topk->clear();
   top_k->clear();
@@ -196,8 +196,9 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
           }
 
           auto entries = topk.Get();
-          CHECK(!entries.empty()) << "No entries in TopK. This typically " <<
-              "happens if your model is producing NaNs in the output.";
+          DCHECK(!entries.empty())
+              << "No entries in TopK. This typically "
+              << "happens if your model is producing NaNs in the output.";
           std::sort(entries.begin(), entries.end(), HigherScore());
           const float eos_score_threshold =
               entries[0].global_score - valid_eos_max_logit_delta;
@@ -285,9 +286,9 @@ class BeamSearchStepOp : public OpKernel {
     OP_REQUIRES_OK(
         ctx, ctx->GetAttr("force_eos_in_last_step", &force_eos_in_last_step_));
 
-    CHECK_GE(eos_id_, 0);
-    CHECK_GT(beam_size_, 0.0);
-    CHECK_GT(num_hyps_per_beam_, 0);
+    DCHECK_GE(eos_id_, 0);
+    DCHECK_GT(beam_size_, 0.0);
+    DCHECK_GT(num_hyps_per_beam_, 0);
 
     if (merge_paths_) {
       OP_REQUIRES(
@@ -300,27 +301,28 @@ class BeamSearchStepOp : public OpKernel {
   }
 
  private:
-  Tensor* ForwardOrCopyInputToOutput(OpKernelContext* ctx, int input_idx,
-                                     int output_idx) {
-    Tensor* output = nullptr;
+  Status ForwardOrCopyInputToOutput(OpKernelContext* ctx, int input_idx,
+                                    int output_idx, Tensor** output) {
     const Tensor& input = ctx->input(input_idx);
-    CHECK(ctx->forward_input_or_allocate_output({input_idx}, output_idx,
-                                                input.shape(), &output)
-              .ok());
-    if (!output->SharesBufferWith(input)) {
-      // Copy the input data if we were unable to forward the underlying buffer.
-      if (DataTypeCanUseMemcpy(input.dtype())) {
-        if (input.NumElements() > 0) {
-          StringPiece input_data = input.tensor_data();
-          StringPiece output_data = output->tensor_data();
-          memcpy(const_cast<char*>(output_data.data()), input_data.data(),
-                 input_data.size());
+    auto status = ctx->forward_input_or_allocate_output({input_idx}, output_idx,
+                                                        input.shape(), output);
+    if (status.ok()) {
+      if (!(*output)->SharesBufferWith(input)) {
+        // Copy the input data if we were unable to forward the underlying
+        // buffer.
+        if (DataTypeCanUseMemcpy(input.dtype())) {
+          if (input.NumElements() > 0) {
+            StringPiece input_data = input.tensor_data();
+            StringPiece output_data = (*output)->tensor_data();
+            memcpy(const_cast<char*>(output_data.data()), input_data.data(),
+                   input_data.size());
+          }
+        } else if (input.dtype() == DT_STRING) {
+          (*output)->flat<tstring>() = input.flat<tstring>();
         }
-      } else if (input.dtype() == DT_STRING) {
-        output->flat<tstring>() = input.flat<tstring>();
       }
     }
-    return output;
+    return status;
   }
 
   string AssembleDoneHypProto(const Hyp& hyp, const int32 terminal_sym,
@@ -571,8 +573,8 @@ class BeamSearchStepOp : public OpKernel {
     const int num_beams = best_scores.dim_size(0);
     const int num_hyps = cumulative_scores.dim_size(0);
     const int t = cur_step.scalar<int>()();
-    CHECK_EQ(num_hyps_per_beam_, num_hyps / num_beams);
-    CHECK_LT(t, in_hyps.dim_size(0));
+    DCHECK_EQ(num_hyps_per_beam_, num_hyps / num_beams);
+    DCHECK_LT(t, in_hyps.dim_size(0));
     VLOG(2) << "BeamSearchStepOp(" << num_hyps_per_beam_ << ") step=" << t;
 
     // Assembles hyps from inputs.
@@ -594,7 +596,9 @@ class BeamSearchStepOp : public OpKernel {
                      &eos_in_topk, &top_k_hyps, &extra_m_hyps, &eos_hyps,
                      &terminal_symbols);
 
-    Tensor* out_done_hyps = ForwardOrCopyInputToOutput(ctx, 7, 5);
+    Tensor* out_done_hyps = nullptr;
+    OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 7, 5, &out_done_hyps));
+
     Tensor* out_best_scores = NULL;
     Tensor* out_cumulative_scores = NULL;
     Tensor* all_done = NULL;
@@ -609,16 +613,24 @@ class BeamSearchStepOp : public OpKernel {
     // [N]
     auto t_out_cumulative_scores = out_cumulative_scores->vec<float>();
     // [T, N]
-    auto t_out_scores = ForwardOrCopyInputToOutput(ctx, 4, 2)->matrix<float>();
+    Tensor* out_scores = nullptr;
+    OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 4, 2, &out_scores));
+    auto t_out_scores = out_scores->matrix<float>();
     // [T, N]
-    auto t_out_hyps = ForwardOrCopyInputToOutput(ctx, 5, 3)->matrix<int>();
+    Tensor* out_hyps = nullptr;
+    OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 5, 3, &out_hyps));
+    auto t_out_hyps = out_hyps->matrix<int>();
     // [T, N]
-    auto t_out_prev_hyps = ForwardOrCopyInputToOutput(ctx, 6, 4)->matrix<int>();
+    Tensor* out_prev_hyps = nullptr;
+    OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 6, 4, &out_prev_hyps));
+    auto t_out_prev_hyps = out_prev_hyps->matrix<int>();
     // [T, N]
     auto t_out_done_hyps = out_done_hyps->matrix<tstring>();
     // [T, N, S]
-    auto t_out_atten_probs =
-        ForwardOrCopyInputToOutput(ctx, 8, 6)->tensor<float, 3>();
+    Tensor* out_atten_probs = nullptr;
+    OP_REQUIRES_OK(ctx,
+                   ForwardOrCopyInputToOutput(ctx, 8, 6, &out_atten_probs));
+    auto t_out_atten_probs = out_atten_probs->tensor<float, 3>();
 
     // To initialize the two vectors.
     t_out_best_scores = best_scores.vec<float>();
@@ -636,7 +648,7 @@ class BeamSearchStepOp : public OpKernel {
       if (eos_in_topk[i]) {
         // We have a good terminated hyp.
         const int beam_id = eos_hyps[i].beam_id;
-        CHECK_EQ(beam_id, i % num_beams);
+        DCHECK_EQ(beam_id, i % num_beams);
         VLOG(2) << "Top EOS hyp @step " << t
                 << " score=" << eos_hyps[i].global_score
                 << " toks=" << debug::IdsToStr(eos_hyps[i].prev_labels);
@@ -696,7 +708,7 @@ class BeamSearchStepOp : public OpKernel {
     for (int i = 0; i < num_hyps; ++i) {
       const Hyp& hyp = top_k_hyps[i];
       const int beam_id = hyp.beam_id;
-      CHECK_EQ(beam_id, i % num_beams);
+      DCHECK_EQ(beam_id, i % num_beams);
       VLOG(3) << "Hyp score=" << hyp.global_score
               << " beam best=" << t_out_best_scores(beam_id)
               << " beam size=" << beam_size_;
@@ -733,11 +745,11 @@ class TopKTerminatedHypsOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("coverage_penalty", &coverage_penalty_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("target_seq_length_ratio",
                                      &target_seq_length_ratio_));
-    CHECK_GE(length_normalization_, 0.0);
-    CHECK_GE(target_seq_length_ratio_, 0.0);
-    CHECK_GE(coverage_penalty_, 0);
-    CHECK_GT(num_hyps_per_beam_, 0);
-    CHECK_GT(k_, 0);
+    DCHECK_GE(length_normalization_, 0.0);
+    DCHECK_GE(target_seq_length_ratio_, 0.0);
+    DCHECK_GE(coverage_penalty_, 0);
+    DCHECK_GT(num_hyps_per_beam_, 0);
+    DCHECK_GT(k_, 0);
   }
 
   void ComputeTopK(const Tensor& in_done_hyps,
@@ -791,7 +803,7 @@ class TopKTerminatedHypsOp : public OpKernel {
     auto t_topk_hyps = topk_hyps->matrix<tstring>();
     for (int i = 0; i < num_beams; ++i) {
       auto ith_topk = topk_vec[i].Get();
-      CHECK_LE(ith_topk.size(), k);
+      DCHECK_LE(ith_topk.size(), k);
       std::sort(ith_topk.begin(), ith_topk.end(), BetterTerminatedHyp());
       for (int j = 0; j < ith_topk.size(); ++j) {
         t_topk_hyps(i, j) = ith_topk[j].SerializeAsString();
@@ -886,7 +898,7 @@ class UnpackHypOp : public OpKernel {
  public:
   explicit UnpackHypOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("max_seq_length", &max_seq_length_));
-    CHECK_GE(max_seq_length_, 0);
+    DCHECK_GE(max_seq_length_, 0);
   }
 
   void Compute(OpKernelContext* ctx) override {
