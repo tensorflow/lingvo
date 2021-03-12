@@ -467,27 +467,27 @@ class MoEBuilder(builder.Base):
   def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
     """Clean DecoderLayerStack."""
     stack = [
-        ('inputs->inputs_split', self.Split('inputs_split')),
-        ('segment_id->segment_id_split', self.Split('segment_id_split')),
-        ('segment_pos->segment_pos_split', self.Split('segment_pos_split')),
-        ('encoder_output->encoder_output_split',
+        ('i.vec->inputs_split', self.Split('inputs_split')),
+        ('i.segment_id->segment_id_split', self.Split('segment_id_split')),
+        ('i.segment_pos->segment_pos_split', self.Split('segment_pos_split')),
+        ('i.encoder_output->encoder_output_split',
          self.Split('encoder_output_split')),
-        ('encoder_segment_id->encoder_segment_id_split',
+        ('i.encoder_segment_id->encoder_segment_id_split',
          self.Split('encoder_segment_id_split')),
-        ('encoder_segment_pos->encoder_segment_pos_split',
+        ('i.encoder_segment_pos->encoder_segment_pos_split',
          self.Split('encoder_segment_pos_split')),
     ]
     stack += [
-        ('inputs->x_000',
+        ('i.vec->x_000',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('input_loss->loss_000', self._Identity('loss_000')),
+        ('i.aux_loss->loss_000', self._Identity('loss_000')),
     ]
     i = 0
     for _ in range(num):
       for l in sub_layers:
         # x_i, loss_i => x_{i+1}, loss_{i+1}
         stack += [('x_%03d,segment_id_split,segment_pos_split,'
-                   'encoder_output,encoder_segment_id_split,'
+                   'i.encoder_output,encoder_segment_id_split,'
                    'encoder_segment_pos_split->'
                    'x_%03d,aux_loss_%03d' % (i, i + 1, i),
                    self.DecoderLayer('layer_%03d' % i, l, conv_kernel_size)),
@@ -496,19 +496,13 @@ class MoEBuilder(builder.Base):
         i += 1
 
     stack += [
-        (('loss_%03d->output_loss' % i), self._Identity('output_loss')),
+        (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
         (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
         ('y_norm->y_dropout',
          self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
-        ('y_dropout,segment_id_split->outputs', self.Mask()),
+        ('y_dropout,segment_id_split->o.vec', self.Mask()),
     ]
-    return self._Graph(name, [
-        'inputs', 'segment_id', 'segment_pos', 'encoder_output',
-        'encoder_segment_id', 'encoder_segment_pos', 'input_loss'
-    ], [
-        'outputs',
-        'output_loss',
-    ], *stack)
+    return self._Graph(name, ['i'], ['o'], *stack)
 
   def _DenseReluDenseWeights(self,
                              name,
@@ -2207,34 +2201,28 @@ class RecurrentDenseBuilder(DenseBuilder):
         name='blocks', body=recurrent_body, repeat=num)
 
     stack = [
-        ('inputs->inputs_split', self.Split('inputs_split')),
-        ('segment_id->segment_id_split', self.Split('segment_id_split')),
-        ('segment_pos->segment_pos_split', self.Split('segment_pos_split')),
-        ('encoder_output->encoder_output_split',
-         self.Split('encoder_output_split')),
-        ('encoder_segment_id->encoder_segment_id_split',
+        ('i.vec->inputs_split', self.Split('inputs_split')),
+        ('i.segment_id->segment_id_split', self.Split('segment_id_split')),
+        ('i.segment_pos->segment_pos_split', self.Split('segment_pos_split')),
+        ('i.encoder_output->encoder_out_split',
+         self.Split('encoder_out_split')),
+        ('i.encoder_segment_id->encoder_segment_id_split',
          self.Split('encoder_segment_id_split')),
-        ('encoder_segment_pos->encoder_segment_pos_split',
+        ('i.encoder_segment_pos->encoder_segment_pos_split',
          self.Split('encoder_segment_pos_split')),
-        ('inputs->input_dropout',
+        ('i.vec->input_dropout',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('input_dropout,segment_id_split,segment_pos_split,encoder_output,'
-         'encoder_segment_id_split,encoder_segment_pos_split,input_loss->'
+        ('input_dropout,segment_id_split,segment_pos_split,encoder_out_split,'
+         'i.encoder_segment_id,encoder_segment_pos_split,i.aux_loss->'
          'y,o_segment_id_split,o_segment_pos_split,o_encoder_output,'
-         'o_encoder_segment_id_split,o_encoder_segment_pos_split,output_loss',
+         'o_encoder_segment_id_split,o_encoder_segment_pos_split,o.aux_loss',
          repeated_blocks),
         ('y->y_norm', self._LN('final_layer_norm')),
         ('y_norm->y_dropout',
          self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
-        ('y_dropout,segment_id_split->outputs', self.Mask()),
+        ('y_dropout,segment_id_split->o.vec', self.Mask()),
     ]
-    return self._Graph(name, [
-        'inputs', 'segment_id', 'segment_pos', 'encoder_output',
-        'encoder_segment_id', 'encoder_segment_pos', 'input_loss'
-    ], [
-        'outputs',
-        'output_loss',
-    ], *stack)
+    return self._Graph(name, ['i'], ['o'], *stack)
 
 
 class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
@@ -2530,34 +2518,23 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
     """DecoderLayerStack with self attention and feedforward in parallel."""
     p = self.params
     stack = [
-        ('inputs->inputs_split', self.MeshSplit('inputs_split',
-                                                p.blm_split[:2])),
-        ('segment_id->segment_id_split',
+        ('i.vec->inputs_split',
+         self.MeshSplit('inputs_split', self._AdjustMSplit(p.blm_split, 2))),
+        ('i.segment_id->segment_id_split',
          self.MeshSplit('segment_id_split', p.blm_split[:2])),
-        ('segment_pos->segment_pos_split',
+        ('i.segment_pos->segment_pos_split',
          self.MeshSplit('segment_pos_split', p.blm_split[:2])),
-        ('encoder_output->encoder_output_split',
-         self.MeshSplit('encoder_output_split', self.params.blm_split)),
-        ('encoder_segment_id->encoder_segment_id_split',
-         self.MeshSplit('encoder_segment_id_split', p.blm_split[:2])),
-        ('encoder_segment_pos->encoder_segment_pos_split',
-         self.MeshSplit('encoder_segment_pos_split', p.blm_split[:2])),
-        ('inputs->input_dropout',
+        ('inputs_split->input_dropout',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
         ('input_dropout,segment_id_split,segment_pos_split->'
          'y,o_segment_id_split,o_segment_pos_split', sub_layers[0]),
         ('y->y_norm', self._LNNoScale('final_layer_norm')),
         ('y_norm->y_dropout',
          self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
-        ('y_dropout,segment_id_split->outputs', self.Mask()),
+        ('i.aux_loss->o.aux_loss', self._Identity('id')),
+        ('y_dropout,segment_id_split->o.vec', self.Mask()),
     ]
-    return self._Graph(name, [
-        'inputs', 'segment_id', 'segment_pos', 'encoder_output',
-        'encoder_segment_id', 'encoder_segment_pos', 'zero_loss'
-    ], [
-        'outputs',
-        'zero_loss',
-    ], *stack)
+    return self._Graph(name, ['i'], ['o'], *stack)
 
 
 class UniTransformer(base_model.BaseTask):
@@ -2719,13 +2696,16 @@ class UniTransformer(base_model.BaseTask):
       if p.positional_embedding:
         y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
                                     input_batch.tgt.segment_pos)
-
-      dec_outputs, aux_loss = self.dec.FProp(
-          theta.dec, y, input_batch.tgt.segment_ids,
-          input_batch.tgt.segment_pos, tf.zeros_like(y),
-          tf.zeros_like(input_batch.tgt.segment_ids),
-          tf.zeros_like(input_batch.tgt.segment_pos),
-          tf.convert_to_tensor(0.0, py_utils.FPropDtype(p)))
+      decoder_input = py_utils.NestedMap(
+          vec=y,
+          segment_id=input_batch.tgt.segment_ids,
+          segment_pos=input_batch.tgt.segment_pos,
+          encoder_output=tf.zeros_like(y),
+          encoder_segment_id=tf.zeros_like(input_batch.tgt.segment_ids),
+          encoder_segment_pos=tf.zeros_like(input_batch.tgt.segment_pos),
+          aux_loss=tf.convert_to_tensor(0.0, py_utils.FPropDtype(p)))
+      all_outputs = self.dec.FProp(theta.dec, decoder_input)
+      dec_outputs, aux_loss = all_outputs.vec, all_outputs.aux_loss
       dec_outputs *= (p.builder.model_dim**-0.5)
       dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
       # TODO(lepikhin): we only support

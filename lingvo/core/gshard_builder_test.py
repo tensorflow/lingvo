@@ -236,9 +236,15 @@ class MoEBuilderTest(test_utils.TestCase):
       inputs = tf.ones([batch_dim, length_dim, input_dim])
       segment_ids = tf.ones([batch_dim, length_dim])
       segment_pos = tf.ones([batch_dim, length_dim])
-      outputs = layer.FPropDefaultTheta(inputs, segment_ids, segment_pos,
-                                        inputs, segment_ids, segment_pos,
-                                        tf.zeros([]))
+      layer_inputs = py_utils.NestedMap(
+          vec=inputs,
+          segment_id=segment_ids,
+          segment_pos=segment_pos,
+          encoder_output=inputs,
+          encoder_segment_id=segment_ids,
+          encoder_segment_pos=segment_pos,
+          aux_loss=tf.zeros([]))
+      outputs = layer.FPropDefaultTheta(layer_inputs)
       sess.run(tf.global_variables_initializer())
       sess.run(outputs)
 
