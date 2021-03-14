@@ -3733,7 +3733,10 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
     if p.emb_with_matmul:
       # [b, t, vocab_size]
       one_hot = tf.one_hot(ids, p.vocab_size, dtype=theta.linear.w.dtype)
-      embs = tf.einsum('kv,...v->...k', theta.linear.w, one_hot)
+      if one_hot.shape.is_fully_defined() and len(one_hot.shape.as_list()) == 3:
+        embs = tf.einsum('blv,kv->blk', one_hot, theta.linear.w)
+      else:
+        embs = tf.einsum('kv,...v->...k', theta.linear.w, one_hot)
     else:
       # TODO(yonghui): Get rid of this extra copy (tf.transpose).
       emb_vars = tf.transpose(theta.linear.w)
