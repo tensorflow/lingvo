@@ -2273,7 +2273,8 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
       checkpoint_var_name = name_format % match.groups()
       if checkpoint_var_name.endswith(':0'):
         checkpoint_var_name = checkpoint_var_name[:-2]
-      tf.logging.info('Loading %s from %s', model_var, checkpoint_var_name)
+      tf.logging.info('Loading %s from %s with regexp: %s', model_var,
+                      checkpoint_var_name, regexp)
       vars_to_load.append((checkpoint_var_name, model_var))
       loaded = True
       break
