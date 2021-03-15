@@ -4105,7 +4105,7 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
 
       def _Fn(theta, *, common_input, layerwise_input, iterative):
         del layerwise_input
-        layer_out, layer_atten_probs = self.body.FProp(
+        layer_out, layer_atten_probs = self._body.FProp(
             theta.body, query_vec=iterative.query_vec, **common_input)
         return py_utils.NestedMap(
             iterative=py_utils.NestedMap(query_vec=layer_out),
@@ -4132,8 +4132,8 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
     def _Fn(theta, *, common_input, layerwise_input, iterative):
       del layerwise_input
       del iterative
-      states = self.body.InitStates(theta.body, *common_input.args,
-                                    **common_input.kwargs)
+      states = self._body.InitStates(theta.body, *common_input.args,
+                                     **common_input.kwargs)
       return py_utils.NestedMap(
           iterative=py_utils.NestedMap(), layerwise_output=states)
 
@@ -4152,7 +4152,7 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
       # layerwise_output: updated_state, atten_probs
 
       def _Fn(theta, *, common_input, layerwise_input, iterative):
-        layer_out, layer_atten_probs, updated_states = self.body.ExtendStep(
+        layer_out, layer_atten_probs, updated_states = self._body.ExtendStep(
             theta.body,
             query_vec=iterative.query_vec,
             cached_states=layerwise_input.cached_states,

@@ -2643,12 +2643,15 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     p.random_seed = 12345
     return p.Instantiate()
 
-  def _ConstructRepeatedTransformerDecoderLayer(self, repeat):
+  def _ConstructRepeatedTransformerDecoderLayer(self,
+                                                repeat,
+                                                per_layer_vars=False):
     p = attention.RepeatedTransformerLayer.Params()
     p.name = 'repeated_decoder_layer'
     p.params_init = py_utils.WeightInit.Xavier()
     p.random_seed = 12345
     p.repeat = repeat
+    p.per_layer_vars = per_layer_vars
     p.atten_prob_aggregation = 'mean'
     tp = p.body = attention.TransformerDecoderLayer.Params()
     tp.input_dim = 4
@@ -2837,12 +2840,17 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       }, {
           'testcase_name': '_repeat',
           'repeat': 3,
+      }, {
+          'testcase_name': '_repeat_per_layer_var',
+          'repeat': 3,
+          'per_layer_var': True,
       })
   def testTransformerDecoderLayerExtendStepDifferentBatchSizes(
-      self, use_short_seq_opt=False, repeat=None):
+      self, use_short_seq_opt=False, repeat=None, per_layer_var=False):
     with self.session(use_gpu=True) as sess:
       if repeat:
-        l = self._ConstructRepeatedTransformerDecoderLayer(repeat)
+        l = self._ConstructRepeatedTransformerDecoderLayer(
+            repeat, per_layer_var)
       else:
         l = self._ConstructTransformerDecoderLayer()
 

@@ -116,7 +116,7 @@ class RepeatLayer(base_layer.BaseLayer):
     assert p.repeat > 0
     if p.per_layer_vars:
       for i in range(p.repeat):
-        self.CreateChild('body_iter_' + str(i), p.body)
+        self.CreateChild('body_iter_%05d' % i, p.body)
     else:
       self.CreateChild('body', p.body)
 
@@ -125,7 +125,7 @@ class RepeatLayer(base_layer.BaseLayer):
     """A child layer to be used as the loop body."""
     p = self.params
     if p.per_layer_vars:
-      return self.body_iter_0
+      return self.body_iter_00000
     else:
       return self.body
 
@@ -134,8 +134,8 @@ class RepeatLayer(base_layer.BaseLayer):
     with tf.variable_scope(self.params.name):
       if p.per_layer_vars:
         for i in range(p.repeat):
-          with tf.variable_scope('iter_' + str(i)):
-            self.children['body_iter_' + str(i)].InstantiateVariables()
+          with tf.variable_scope('iter_%05d' % i):
+            self.children['body_iter_%05d' % i].InstantiateVariables()
       else:
         with py_utils.VariableShapePrefixContext(self.params.repeat):
           self.body.InstantiateVariables()
@@ -144,13 +144,9 @@ class RepeatLayer(base_layer.BaseLayer):
   def FProp(self, theta, *args):
     p = self.params
     if p.per_layer_vars:
-
-      def _ConcatPerLayerVals(*per_layer_vals):
-        vals_expanded_dim = [tf.expand_dims(v, 0) for v in per_layer_vals]
-        return tf.concat(vals_expanded_dim, 0)
-
-      all_iters = [theta['body_iter_' + str(i)] for i in range(p.repeat)]
-      theta_stack = tf.nest.map_structure(_ConcatPerLayerVals, *all_iters)
+      all_iters = [theta['body_iter_%05d' % i] for i in range(p.repeat)]
+      theta_stack = tf.nest.map_structure(lambda *t: tf.stack(list(t)),
+                                          *all_iters)
     else:
       theta_stack = _MaybeStackExtraTheta(theta.body, self.body.vars, p.repeat)
 

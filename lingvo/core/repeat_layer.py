@@ -85,6 +85,7 @@ class GenericRepeatLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('body', None, 'The param for the main network layer.')
+    p.Define('per_layer_vars', False, 'Use separate variables for each layer')
     p.Define('repeat', 1,
              'Repeat layers specified in \'body\' this many times.')
     return p
@@ -94,12 +95,31 @@ class GenericRepeatLayer(base_layer.BaseLayer):
     p = self.params
     assert p.name
     assert p.repeat > 0
-    self.CreateChild('body', p.body)
+    if p.per_layer_vars:
+      for i in range(p.repeat):
+        self.CreateChild('body_iter_%05d' % i, p.body)
+    else:
+      self.CreateChild('body', p.body)
+
+  @property
+  def _body(self):
+    """A child layer to be used as the loop body."""
+    p = self.params
+    if p.per_layer_vars:
+      return self.body_iter_00000
+    else:
+      return self.body
 
   def _CreateChildrenVariables(self):
-    with tf.variable_scope(self.params.name):
-      with py_utils.VariableShapePrefixContext(self.params.repeat):
-        self.body.InstantiateVariables()
+    p = self.params
+    with tf.variable_scope(p.name):
+      if p.per_layer_vars:
+        for i in range(p.repeat):
+          with tf.variable_scope('iter_%05d' % i):
+            self.children['body_iter_%05d' % i].InstantiateVariables()
+      else:
+        with py_utils.VariableShapePrefixContext(p.repeat):
+          self.body.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def _MaybeStackExtraTheta(self, theta):
@@ -155,8 +175,13 @@ class GenericRepeatLayer(base_layer.BaseLayer):
     if iterative_input_0 is None:
       iterative_input_0 = py_utils.NestedMap()
 
-    theta = self._MaybeStackExtraTheta(theta)
-    theta_0 = tf.nest.map_structure(lambda t: t[0, ...], theta)
+    if p.per_layer_vars:
+      all_iters = [theta['body_iter_%05d' % i] for i in range(p.repeat)]
+      theta_stack = py_utils.NestedMap(
+          body=tf.nest.map_structure(lambda *t: tf.stack(list(t)), *all_iters))
+    else:
+      theta_stack = self._MaybeStackExtraTheta(theta)
+    theta_0 = tf.nest.map_structure(lambda t: t[0, ...], theta_stack)
     layerwise_input_0 = tf.nest.map_structure(lambda t: t[0, ...],
                                               layerwise_inputs)
 
@@ -213,7 +238,8 @@ class GenericRepeatLayer(base_layer.BaseLayer):
       acc_states, final_recur_state = recurrent.Recurrent(
           theta=tensor_common_input,
           state0=recur_state0,
-          inputs=py_utils.NestedMap(theta=theta, layerwise=layerwise_inputs),
+          inputs=py_utils.NestedMap(
+              theta=theta_stack, layerwise=layerwise_inputs),
           cell_fn=_CellFn,
           allow_implicit_capture=p.allow_implicit_capture)
       # Retrieves outputs from recur_state1 and sets shapes.
