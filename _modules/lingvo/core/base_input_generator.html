@@ -297,6 +297,12 @@
         <span class="s1">&#39;Number of steps in between logging of TF scalar summaries for &#39;</span>
         <span class="s1">&#39;training related input data stats.&#39;</span><span class="p">)</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;skip_tpu_embedding_enqueue_ops&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to skip CreateTpuEmbeddingEnqueueOps. This is useful for &#39;</span>
+        <span class="s1">&#39;multi-program training with one tasking having tpu embedding and &#39;</span>
+        <span class="s1">&#39;the other not.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -663,6 +669,8 @@
 <span class="sd">        TPUEmbedding.generate_enqueue_ops()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">skip_tpu_embedding_enqueue_ops</span><span class="p">:</span>
+      <span class="k">return</span>
 
     <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
     <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="p">(</span>

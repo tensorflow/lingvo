@@ -795,7 +795,7 @@
     <span class="c1"># gradient op.</span>
     <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">tpu_embedding_activations</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
       <span class="c1"># Lookup the per-task activations.</span>
       <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>

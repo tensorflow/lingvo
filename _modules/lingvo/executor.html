@@ -526,15 +526,26 @@
           <span class="k">return</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
-          <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
+
+          <span class="k">def</span> <span class="nf">RunRetrieveOps</span><span class="p">():</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
+            <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
+
           <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">:</span>
+            <span class="c1"># TODO(syzhang): only run the retrieve ops when we are sure we are</span>
+            <span class="c1"># gonna store a checkpoint to avoid a huge unnecessary overhead if</span>
+            <span class="c1"># we have tpu embedding enabled.</span>
+            <span class="n">RunRetrieveOps</span><span class="p">()</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint asynchronously AT YOUR OWN RISK.&#39;</span><span class="p">)</span>
             <span class="n">threadpool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">dummy</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">saver_future</span> <span class="o">=</span> <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">))</span>
-          <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+          <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">():</span>
+            <span class="c1"># Only run retrieve ops when we are checkpointing; otherwise, there</span>
+            <span class="c1"># will be a huge overhead.</span>
+            <span class="n">RunRetrieveOps</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
               <span class="n">program</span><span class="o">.</span><span class="n">SaveProgramState</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
