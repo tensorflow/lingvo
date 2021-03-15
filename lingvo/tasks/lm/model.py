@@ -223,12 +223,13 @@ class LanguageModel(base_model.BaseTask):
             tf.reduce_sum(tf.cast(oovs, tf.float32) * (1 - paddings), axis=1)),
         tf.int32)
     # [time, batch]
-    transposed = self._TrimIfPossibleThenTranspose({
-        'ids': ids,
-        'paddings': paddings,
-        'labels': labels,
-        'weights': weights,
-    })
+    transposed = self._TrimIfPossibleThenTranspose(
+        py_utils.NestedMap({
+            'ids': ids,
+            'paddings': paddings,
+            'labels': labels,
+            'weights': weights,
+        }))
     batch_size = tf.shape(ids)[0]
     xent_output, _ = self.lm.FPropDefaultTheta(
         inputs=transposed.ids,
@@ -269,13 +270,13 @@ class LanguageModel(base_model.BaseTask):
 
 class FixedShapeInputLanguageModel(LanguageModel):
 
-  def _TrimIfPossibleThenTranspose(self, ids, paddings, labels, weights):
-    data = (ids, paddings, labels, weights)
+  def _TrimIfPossibleThenTranspose(self, input_batch):
     if not py_utils.use_tpu() and self.do_eval:
       max_seq_len = tf.cast(
-          tf.reduce_max(tf.reduce_sum(1.0 - paddings, 1)), tf.int32)
-      data = (x[:, :max_seq_len] for x in data)
-    return (tf.transpose(x) for x in data)
+          tf.reduce_max(tf.reduce_sum(1.0 - input_batch.paddings, 1)), tf.int32)
+      input_batch = input_batch.Transform(lambda x: x[:, :max_seq_len])
+    input_batch = input_batch.Transform(tf.transpose)
+    return input_batch
 
 
 class BatchMajorLanguageModel(LanguageModel):
