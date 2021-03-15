@@ -237,6 +237,7 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The param for the main network layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;per_layer_vars&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use separate variables for each layer&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
              <span class="s1">&#39;Repeat layers specified in </span><span class="se">\&#39;</span><span class="s1">body</span><span class="se">\&#39;</span><span class="s1"> this many times.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -246,12 +247,31 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">repeat</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_layer_vars</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_body</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A child layer to be used as the loop body.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_layer_vars</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body_iter_00000</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span>
 
 <div class="viewcode-block" id="GenericRepeatLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_layer_vars</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="GenericRepeatLayer._MaybeStackExtraTheta"><a class="viewcode-back" href="../../../lingvo.core.repeat_layer.html#lingvo.core.repeat_layer.GenericRepeatLayer._MaybeStackExtraTheta">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeStackExtraTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
@@ -307,8 +327,13 @@
     <span class="k">if</span> <span class="n">iterative_input_0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">iterative_input_0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
-    <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeStackExtraTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="n">theta_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_layer_vars</span><span class="p">:</span>
+      <span class="n">all_iters</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">)]</span>
+      <span class="n">theta_stack</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">body</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">t</span><span class="p">)),</span> <span class="o">*</span><span class="n">all_iters</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">theta_stack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeStackExtraTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">theta_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">theta_stack</span><span class="p">)</span>
     <span class="n">layerwise_input_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
                                               <span class="n">layerwise_inputs</span><span class="p">)</span>
 
@@ -365,7 +390,8 @@
       <span class="n">acc_states</span><span class="p">,</span> <span class="n">final_recur_state</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">=</span><span class="n">tensor_common_input</span><span class="p">,</span>
           <span class="n">state0</span><span class="o">=</span><span class="n">recur_state0</span><span class="p">,</span>
-          <span class="n">inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">layerwise</span><span class="o">=</span><span class="n">layerwise_inputs</span><span class="p">),</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+              <span class="n">theta</span><span class="o">=</span><span class="n">theta_stack</span><span class="p">,</span> <span class="n">layerwise</span><span class="o">=</span><span class="n">layerwise_inputs</span><span class="p">),</span>
           <span class="n">cell_fn</span><span class="o">=</span><span class="n">_CellFn</span><span class="p">,</span>
           <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">)</span>
       <span class="c1"># Retrieves outputs from recur_state1 and sets shapes.</span>

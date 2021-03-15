@@ -4257,7 +4257,7 @@
 
       <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_input</span><span class="p">,</span> <span class="n">iterative</span><span class="p">):</span>
         <span class="k">del</span> <span class="n">layerwise_input</span>
-        <span class="n">layer_out</span><span class="p">,</span> <span class="n">layer_atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">layer_out</span><span class="p">,</span> <span class="n">layer_atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">query_vec</span><span class="o">=</span><span class="n">iterative</span><span class="o">.</span><span class="n">query_vec</span><span class="p">,</span> <span class="o">**</span><span class="n">common_input</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
             <span class="n">iterative</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">query_vec</span><span class="o">=</span><span class="n">layer_out</span><span class="p">),</span>
@@ -4284,8 +4284,8 @@
     <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_input</span><span class="p">,</span> <span class="n">iterative</span><span class="p">):</span>
       <span class="k">del</span> <span class="n">layerwise_input</span>
       <span class="k">del</span> <span class="n">iterative</span>
-      <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InitStates</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="o">*</span><span class="n">common_input</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
-                                    <span class="o">**</span><span class="n">common_input</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_body</span><span class="o">.</span><span class="n">InitStates</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="o">*</span><span class="n">common_input</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
+                                     <span class="o">**</span><span class="n">common_input</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">iterative</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span> <span class="n">layerwise_output</span><span class="o">=</span><span class="n">states</span><span class="p">)</span>
 
@@ -4304,7 +4304,7 @@
       <span class="c1"># layerwise_output: updated_state, atten_probs</span>
 
       <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_input</span><span class="p">,</span> <span class="n">iterative</span><span class="p">):</span>
-        <span class="n">layer_out</span><span class="p">,</span> <span class="n">layer_atten_probs</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
+        <span class="n">layer_out</span><span class="p">,</span> <span class="n">layer_atten_probs</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_body</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span>
             <span class="n">query_vec</span><span class="o">=</span><span class="n">iterative</span><span class="o">.</span><span class="n">query_vec</span><span class="p">,</span>
             <span class="n">cached_states</span><span class="o">=</span><span class="n">layerwise_input</span><span class="o">.</span><span class="n">cached_states</span><span class="p">,</span>
