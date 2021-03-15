@@ -145,6 +145,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'Number of steps in between logging of TF scalar summaries for '
         'training related input data stats.')
 
+    p.Define(
+        'skip_tpu_embedding_enqueue_ops', False,
+        'Whether to skip CreateTpuEmbeddingEnqueueOps. This is useful for '
+        'multi-program training with one tasking having tpu embedding and '
+        'the other not.')
+
     return p
 
   def __init__(self, params):
@@ -511,6 +517,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
         TPUEmbedding.generate_enqueue_ops()
     """
     p = self.params
+    if p.skip_tpu_embedding_enqueue_ops:
+      return
 
     tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
     tpu_embedding = (

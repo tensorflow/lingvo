@@ -374,15 +374,26 @@ class ExecutorTpu(base_runner.BaseRunner):
           return
 
         if not self._ml_perf_log:
-          tf.logging.info('Retrieve params.')
-          sess.run(self._retrieve_ops)
-          tf.logging.info('Retrieve params done.')
+
+          def RunRetrieveOps():
+            tf.logging.info('Retrieve params.')
+            sess.run(self._retrieve_ops)
+            tf.logging.info('Retrieve params done.')
+
           if self.save_only_checkpointer.async_checkpointing:
+            # TODO(syzhang): only run the retrieve ops when we are sure we are
+            # gonna store a checkpoint to avoid a huge unnecessary overhead if
+            # we have tpu embedding enabled.
+            RunRetrieveOps()
             tf.logging.info('Save checkpoint asynchronously AT YOUR OWN RISK.')
             threadpool = multiprocessing.dummy.Pool(1)
             saver_future = threadpool.apply_async(
                 self.save_only_checkpointer.MaybeSave, args=(sess, global_step))
-          elif self.save_only_checkpointer.MaybeSave(sess, global_step):
+          elif self.save_only_checkpointer.ShouldSave():
+            # Only run retrieve ops when we are checkpointing; otherwise, there
+            # will be a huge overhead.
+            RunRetrieveOps()
+            self.save_only_checkpointer.MaybeSave(sess, global_step)
             for program in self._programs:
               program.SaveProgramState(sess, global_step)
 

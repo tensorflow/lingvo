@@ -134,6 +134,13 @@ class Checkpointer:
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
     assert not uninitialized_var_names, uninitialized_var_names
 
+  def ShouldSave(self):
+    """Returns if it's time to save a checkpoint."""
+    now = time.time()
+    if now >= self._next_checkpoint_seconds:
+      return True
+    return False
+
   def MaybeSave(self, sess, gsteps):
     """If it's time to save, save the checkpoint.
 
@@ -143,9 +150,9 @@ class Checkpointer:
     Returns:
       Whether a checkpoint was saved.
     """
-    now = time.time()
-    if now >= self._next_checkpoint_seconds:
+    if self.ShouldSave():
       self.Save(sess, gsteps)
+      now = time.time()
       self._next_checkpoint_seconds = now + self._save_interval_seconds
       return True
     return False

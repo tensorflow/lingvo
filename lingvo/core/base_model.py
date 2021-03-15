@@ -643,7 +643,7 @@ class BaseTask(base_layer.BaseLayer):
     # gradient op.
     tpu_embedding_activations = tf.get_collection(
         py_utils.TPU_EMBEDDING_ACTIVATIONS)
-    if tpu_embedding_activations:
+    if tpu_embedding_activations and p.name in tpu_embedding_activations[0]:
       # Lookup the per-task activations.
       tpu_embedding_activations_dict = tpu_embedding_activations[0][p.name]
       tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
