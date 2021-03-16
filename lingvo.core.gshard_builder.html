@@ -206,8 +206,8 @@ stacks, for example:</p>
 builder.EncoderLayer or builder.DecoderLayer. These wrappers introduce
 Transformer residual connections and layer norm as well.</p>
 <p>Naturally supports input packing, where multiple segments are packed in a
-single inputs row (e.g. packing 2 segments in a single row):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inputs</span>      <span class="p">[</span>  <span class="mi">4</span><span class="p">,</span>   <span class="mi">3</span><span class="p">,</span>  <span class="mi">24</span><span class="p">]</span>
+single vec row (e.g. packing 2 segments in a single row):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">vec</span>      <span class="p">[</span>  <span class="mi">4</span><span class="p">,</span>   <span class="mi">3</span><span class="p">,</span>  <span class="mi">24</span><span class="p">]</span>
 <span class="n">segment_id</span>  <span class="p">[</span>  <span class="mi">1</span><span class="p">,</span>   <span class="mi">1</span><span class="p">,</span>   <span class="mi">2</span><span class="p">]</span> <span class="p">(</span><span class="mi">0</span> <span class="n">would</span> <span class="n">indicate</span> <span class="n">padding</span><span class="p">)</span>
 <span class="n">segment_pos</span> <span class="p">[</span>  <span class="mi">0</span><span class="p">,</span>   <span class="mi">1</span><span class="p">,</span>   <span class="mi">0</span><span class="p">]</span> <span class="p">(</span><span class="mi">0</span> <span class="k">for</span> <span class="n">first</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">segment</span> <span class="n">etc</span><span class="p">)</span>
 </pre></div>
@@ -347,6 +347,11 @@ sharding specification in ShardedWeightParams.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._EncoderLayerInMapKeys">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_EncoderLayerInMapKeys</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack">
 <code class="sig-name descname"><span class="pre">EncoderLayerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.EncoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack" title="Permalink to this definition">¶</a></dt>
 <dd><p>Clean EncoderLayerStack with minimal layer nesting.</p>
@@ -387,6 +392,11 @@ sharding specification in ShardedWeightParams.</p>
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">
 <code class="sig-name descname"><span class="pre">DecoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.MoEBuilder._DecoderLayerInMapKeys">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_DecoderLayerInMapKeys</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -942,32 +952,9 @@ to compute per position-pair bias.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilder">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></code><code class="sig-name descname"><span class="pre">RecurrentDenseBuilder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.DenseBuilder" title="lingvo.core.gshard_builder.DenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.DenseBuilder</span></code></a></p>
-<p>Deprecated. Same as DenseBuilder but layers are stacked using recurrent.</p>
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilder._Repeat">
-<code class="sig-name descname"><span class="pre">_Repeat</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilder._Repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder._Repeat" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilder._RepeatableDecoderLayer">
-<code class="sig-name descname"><span class="pre">_RepeatableDecoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilder._RepeatableDecoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder._RepeatableDecoderLayer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack">
-<code class="sig-name descname"><span class="pre">DecoderLayerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilder.DecoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack" title="Permalink to this definition">¶</a></dt>
-<dd><p>Clean DecoderLayerStack.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></code><code class="sig-name descname"><span class="pre">RecurrentDenseBuilderParallelDecode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.RecurrentDenseBuilder" title="lingvo.core.gshard_builder.RecurrentDenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.RecurrentDenseBuilder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.DenseBuilder" title="lingvo.core.gshard_builder.DenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.DenseBuilder</span></code></a></p>
 <p>Same as RecurrentDenseBuilder but with micro variables.</p>
 <p>Projection variables created under this builder will be replaced by multiple
 micro variables, each with shape [model_dim, proj_weight_hdim, d_kv].
@@ -1031,6 +1018,11 @@ micro variables will be placed at different hosts.</p>
 <dl class="py method">
 <dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer">
 <code class="sig-name descname"><span class="pre">DecoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.DecoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInMapKeys">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_DecoderLayerInMapKeys</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">

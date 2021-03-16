@@ -212,9 +212,9 @@
 <span class="sd">  Transformer residual connections and layer norm as well.</span>
 
 <span class="sd">  Naturally supports input packing, where multiple segments are packed in a</span>
-<span class="sd">  single inputs row (e.g. packing 2 segments in a single row)::</span>
+<span class="sd">  single vec row (e.g. packing 2 segments in a single row)::</span>
 
-<span class="sd">      inputs      [  4,   3,  24]</span>
+<span class="sd">      vec      [  4,   3,  24]</span>
 <span class="sd">      segment_id  [  1,   1,   2] (0 would indicate padding)</span>
 <span class="sd">      segment_pos [  0,   1,   0] (0 for first token in the segment etc)</span>
 
@@ -501,21 +501,24 @@
 
 <div class="viewcode-block" id="MoEBuilder.EncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.EncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">EncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">residual_weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns params for lambda x: x + residual_weight * DropOut(layer(LN(x))).&quot;&quot;&quot;</span>
+    <span class="n">layer_input_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
+    <span class="n">layer_inputs</span> <span class="o">=</span> <span class="s1">&#39;x,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;i.&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">layer_input_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">],</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
-        <span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
         <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;x,segment_id,segment_pos-&gt;&#39;</span> <span class="o">+</span> <span class="s1">&#39;y,aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">layer_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;y,o.aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span>
                                        <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;outputs&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">residual_weight</span><span class="o">=</span><span class="n">residual_weight</span><span class="p">)),</span>
     <span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_EncoderLayerInMapKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
 
   <span class="c1"># We avoid Builder._Seq and Builder._Rep to improve theta / checkpoint</span>
   <span class="c1"># readability and reduce layer nesting.</span>
@@ -550,100 +553,95 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      The layer params.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s1">&#39;inputs-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">)),</span>
-    <span class="p">]</span>
-    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s1">&#39;inputs_split-&gt;x_000&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_loss-&gt;loss_000&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_000&#39;</span><span class="p">)),</span>
-    <span class="p">]</span>
-    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
-        <span class="c1"># x_i, loss_i =&gt; x_{i+1}, loss_{i+1}</span>
-        <span class="n">stack</span> <span class="o">+=</span> <span class="p">[(</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,segment_id_split,segment_pos_split-&gt;&#39;</span>
-                   <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-                   <span class="bp">self</span><span class="o">.</span><span class="n">EncoderLayer</span><span class="p">(</span><span class="s1">&#39;layer_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">)),</span>
-                  <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-                   <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
-        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">imap_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">:</span>
+      <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;i.&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">)))</span>
 
     <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
-        <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;output_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
-        <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
-    <span class="p">]</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
-                       <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;input_loss&#39;</span><span class="p">],</span> <span class="p">[</span>
-                           <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;output_loss&#39;</span><span class="p">,</span>
-                       <span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="MoEBuilder.DecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">conv_kernel_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span>
-        <span class="p">],</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
-        <span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">ln_layer</span><span class="p">),</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;zero_loss&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;zero_loss&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;x,segment_id,segment_pos,&#39;</span> <span class="o">+</span>
-         <span class="s1">&#39;encoder_output,encoder_segment_id,encoder_segment_pos-&gt;&#39;</span> <span class="o">+</span>
-         <span class="s1">&#39;y,aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
-        <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span>
-                                       <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
-    <span class="p">)</span></div>
-
-<div class="viewcode-block" id="MoEBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack.&quot;&quot;&quot;</span>
-    <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s1">&#39;i.vec-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.encoder_output-&gt;encoder_output_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_output_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.encoder_segment_id-&gt;encoder_segment_id_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_id_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.encoder_segment_pos-&gt;encoder_segment_pos_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_pos_split&#39;</span><span class="p">)),</span>
-    <span class="p">]</span>
-    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s1">&#39;i.vec-&gt;x_000&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">imap_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_split-&gt;x_000&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;i.aux_loss-&gt;loss_000&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_000&#39;</span><span class="p">)),</span>
     <span class="p">]</span>
     <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">map_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
         <span class="c1"># x_i, loss_i =&gt; x_{i+1}, loss_{i+1}</span>
-        <span class="n">stack</span> <span class="o">+=</span> <span class="p">[(</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,segment_id_split,segment_pos_split,&#39;</span>
-                   <span class="s1">&#39;i.encoder_output,encoder_segment_id_split,&#39;</span>
-                   <span class="s1">&#39;encoder_segment_pos_split-&gt;&#39;</span>
-                   <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+        <span class="n">stack</span> <span class="o">+=</span> <span class="p">[((</span><span class="n">map_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;imap_</span><span class="si">%03d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_CreateNestedMap</span><span class="p">(</span>
+                       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;imap_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;imap_</span><span class="si">%03d</span><span class="s1">-&gt;omap_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">EncoderLayer</span><span class="p">(</span><span class="s1">&#39;layer_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;omap_</span><span class="si">%03d</span><span class="s1">.vec-&gt;x_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;vec_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,omap_</span><span class="si">%03d</span><span class="s1">.aux_loss-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+        <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;o.aux_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
+        <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.DecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">conv_kernel_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
+    <span class="n">layer_input_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="n">layer_inputs</span> <span class="o">=</span> <span class="s1">&#39;x,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;i.&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">layer_input_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">ln_layer</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">layer_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;y,o.aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span>
+                                       <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_DecoderLayerInMapKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="s1">&#39;vec&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="MoEBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="s1">&#39;segment_id&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">imap_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">:</span>
+      <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;i.&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">)))</span>
+
+    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">imap_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_split-&gt;x_000&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.aux_loss-&gt;loss_000&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_000&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">map_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
+        <span class="c1"># x_i, loss_i =&gt; x_{i+1}, loss_{i+1}</span>
+        <span class="n">stack</span> <span class="o">+=</span> <span class="p">[((</span><span class="n">map_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;imap_</span><span class="si">%03d</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_CreateNestedMap</span><span class="p">(</span>
+                       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;imap_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;imap_</span><span class="si">%03d</span><span class="s1">-&gt;omap_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
                    <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)),</span>
-                  <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,aux_loss_</span><span class="si">%03d</span><span class="s1">-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                  <span class="p">(</span><span class="s1">&#39;omap_</span><span class="si">%03d</span><span class="s1">.vec-&gt;x_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;vec_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,omap_</span><span class="si">%03d</span><span class="s1">.aux_loss-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                    <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 
@@ -680,22 +678,18 @@
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
-      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
-          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
-      <span class="p">]</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
     <span class="c1"># Note that dropout is used here, but not in the MoE layer by default.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="n">input_endpoints</span><span class="p">,</span>
         <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wi,inputs-&gt;h&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
-             <span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">wi</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">wi</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;wi,vec-&gt;h&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">wi</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">wi</span><span class="p">,</span> <span class="n">vec</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;h-&gt;h_relu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h_relu-&gt;h_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
@@ -741,14 +735,10 @@
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.DenseReluDenseGated"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGated">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDenseGated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">activation_fn</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="c1"># Need to unify.</span>
-    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
-      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
-          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
-      <span class="p">]</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
 
     <span class="k">def</span> <span class="nf">_Impl</span><span class="p">(</span><span class="n">wi_0</span><span class="p">,</span> <span class="n">wi_1</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
@@ -761,7 +751,7 @@
         <span class="n">input_endpoints</span><span class="p">,</span>
         <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;wi_0,wi_1,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeightsGatedGELU</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_0,wi_1,inputs-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_Impl</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wi_0,wi_1,vec-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_Impl</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h-&gt;h_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;wo,h_dropout-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
@@ -781,16 +771,14 @@
 
 <div class="viewcode-block" id="MoEBuilder.MoE"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.MoE">[docs]</a>  <span class="k">def</span> <span class="nf">MoE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns layer params to compute (outputs, scalar_aux_loss).&quot;&quot;&quot;</span>
-    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
-      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
-          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
-      <span class="p">]</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
+
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="n">input_endpoints</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;inputs-&gt;input_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;input_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec-&gt;input_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;input_split&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedFeedForwardNetworksWeights</span><span class="p">(</span><span class="n">name</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;input_split,segment_id_split,wi,wo-&gt;outputs_pre_split,aux_loss&#39;</span><span class="p">,</span>
@@ -917,12 +905,7 @@
     <span class="sd">&quot;&quot;&quot;TransformerEncoder SelfAttention.&quot;&quot;&quot;</span>
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_pos&#39;</span>
-        <span class="p">],</span> <span class="p">[</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span>
         <span class="p">],</span>
@@ -932,7 +915,7 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
                   <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncNotVisible</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">),</span>
                   <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k,v,bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
@@ -946,15 +929,7 @@
     <span class="sd">&quot;&quot;&quot;Transformer Decoder-Encoder Attention.&quot;&quot;&quot;</span>
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span>
-        <span class="p">],</span> <span class="p">[</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
         <span class="p">],</span>
@@ -962,7 +937,7 @@
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id,encoder_segment_id-&gt;bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="o">-</span><span class="mf">1e+09</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncNotVisible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;encoder_output,wk-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;encoder_output,wv-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKV</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k,v,bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
@@ -1006,21 +981,13 @@
 
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
-        <span class="p">],</span> <span class="p">[</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
         <span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_id,segment_pos-&gt;bias&#39;</span><span class="p">,</span>
@@ -1141,12 +1108,7 @@
 
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_pos&#39;</span>
-        <span class="p">],</span> <span class="p">[</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span>
         <span class="p">],</span>
@@ -1160,7 +1122,7 @@
                   <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;segment_bias,segment_pos,relative_bias_weights-&gt;bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_EncoderAddRelativeBias</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k,v,bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
@@ -1214,22 +1176,14 @@
 
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span>
-            <span class="s1">&#39;inputs&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
-        <span class="p">],</span> <span class="p">[</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
             <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
             <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
         <span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
@@ -1984,10 +1938,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">optional_conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">)</span>
 
-    <span class="n">graph_inputs</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;unused_encoder_segment_pos&#39;</span>
-    <span class="p">]</span>
+    <span class="n">graph_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
     <span class="n">graph_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">]</span>
     <span class="n">sub_layers</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo1&#39;</span><span class="p">,</span>
@@ -1998,7 +1949,7 @@
                                               <span class="n">p</span><span class="o">.</span><span class="n">mh_wi_split</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hm_wo_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,wq,wk,wv,wi_0,wi_1-&gt;q,k,v,h1,h2&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv,wi_0,wi_1-&gt;q,k,v,h1,h2&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVH</span><span class="p">(</span><span class="s1">&#39;qkvh&#39;</span><span class="p">,</span> <span class="n">hidden_dim_reshape_segments</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
@@ -2240,13 +2191,10 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;SHDM,BLSHD-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
-      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
-          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
-      <span class="p">]</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Note that dropout is used here, but not in the MoE layer by default.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
@@ -2260,7 +2208,7 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_reshaped&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wo_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_reshaped,inputs-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wi_reshaped,vec-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h-&gt;h_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_h_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h_split-&gt;h_relu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h_relu-&gt;h_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span>
@@ -2273,14 +2221,10 @@
     <span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.DenseReluDenseGated"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseGated">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDenseGated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">activation_fn</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="c1"># Need to unify.</span>
-    <span class="n">input_endpoints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
-      <span class="n">input_endpoints</span> <span class="o">+=</span> <span class="p">[</span>
-          <span class="s1">&#39;unused_encoder_output&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_id&#39;</span><span class="p">,</span>
-          <span class="s1">&#39;unused_encoder_segment_pos&#39;</span><span class="p">,</span>
-      <span class="p">]</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
 
     <span class="k">def</span> <span class="nf">_Impl</span><span class="p">(</span><span class="n">wi_0</span><span class="p">,</span> <span class="n">wi_1</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
       <span class="n">wi</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">wi_0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">wi_1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="mi">0</span><span class="p">)</span>
@@ -2306,7 +2250,7 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi1_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_reshaped&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wo_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;wi_0_reshaped,wi_1_reshaped,inputs-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_Impl</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;wi_0_reshaped,wi_1_reshaped,vec-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_Impl</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h-&gt;h_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_h_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h_split-&gt;h_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
@@ -2318,66 +2262,7 @@
     <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="RecurrentDenseBuilder"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder">[docs]</a><span class="k">class</span> <span class="nc">RecurrentDenseBuilder</span><span class="p">(</span><span class="n">DenseBuilder</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Deprecated. Same as DenseBuilder but layers are stacked using recurrent.&quot;&quot;&quot;</span>
-
-  <span class="c1"># Required manually changing Split() split dimension for variables creating</span>
-  <span class="c1"># with VarLayer().</span>
-  <span class="c1"># TODO(huangyp): either adds a warning message or fix it.</span>
-<div class="viewcode-block" id="RecurrentDenseBuilder._Repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder._Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">_Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">RepeatLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">repeat</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="RecurrentDenseBuilder._RepeatableDecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder._RepeatableDecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">_RepeatableDecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span>
-        <span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;input_loss&#39;</span>
-    <span class="p">],</span> <span class="p">[</span>
-        <span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_output&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;encoder_segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;encoder_segment_pos&#39;</span><span class="p">,</span> <span class="s1">&#39;output_loss&#39;</span>
-    <span class="p">],</span> <span class="p">(</span><span class="s1">&#39;inputs,segment_id,segment_pos,encoder_output,encoder_segment_id,&#39;</span>
-        <span class="s1">&#39;encoder_segment_pos-&gt;outputs,aux_loss&#39;</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;layer&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">conv_kernel_size</span><span class="p">)),</span>
-                        <span class="p">(</span><span class="s1">&#39;input_loss,aux_loss-&gt;output_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;_add&#39;</span><span class="p">)))</span>
-    <span class="k">return</span> <span class="n">block</span></div>
-
-<div class="viewcode-block" id="RecurrentDenseBuilder.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilder.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack.&quot;&quot;&quot;</span>
-
-    <span class="n">recurrent_cells</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_RepeatableDecoderLayer</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_rep&#39;</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span>
-    <span class="p">]</span>
-    <span class="n">recurrent_body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;blocks_body&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">recurrent_cells</span><span class="p">)</span>
-    <span class="n">repeated_blocks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Repeat</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">recurrent_body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">num</span><span class="p">)</span>
-
-    <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="s1">&#39;i.vec-&gt;inputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;inputs_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.segment_pos-&gt;segment_pos_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.encoder_output-&gt;encoder_out_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_out_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.encoder_segment_id-&gt;encoder_segment_id_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_id_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.encoder_segment_pos-&gt;encoder_segment_pos_split&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;encoder_segment_pos_split&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.vec-&gt;input_dropout&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_dropout,segment_id_split,segment_pos_split,encoder_out_split,&#39;</span>
-         <span class="s1">&#39;i.encoder_segment_id,encoder_segment_pos_split,i.aux_loss-&gt;&#39;</span>
-         <span class="s1">&#39;y,o_segment_id_split,o_segment_pos_split,o_encoder_output,&#39;</span>
-         <span class="s1">&#39;o_encoder_segment_id_split,o_encoder_segment_pos_split,o.aux_loss&#39;</span><span class="p">,</span>
-         <span class="n">repeated_blocks</span><span class="p">),</span>
-        <span class="p">(</span><span class="s1">&#39;y-&gt;y_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
-    <span class="p">]</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div></div>
-
-
-<div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">[docs]</a><span class="k">class</span> <span class="nc">RecurrentDenseBuilderParallelDecode</span><span class="p">(</span><span class="n">RecurrentDenseBuilder</span><span class="p">):</span>
+<div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">[docs]</a><span class="k">class</span> <span class="nc">RecurrentDenseBuilderParallelDecode</span><span class="p">(</span><span class="n">DenseBuilder</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Same as RecurrentDenseBuilder but with micro variables.</span>
 
 <span class="sd">  Projection variables created under this builder will be replaced by multiple</span>
@@ -2639,23 +2524,26 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">],</span>
-        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s1">&#39;i.segment_id-&gt;o.segment_id&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;segment_id&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.segment_pos-&gt;o.segment_pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;segment_pos&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">ln_layer</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">wi_str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInputProjWeights</span><span class="p">(</span><span class="s1">&#39;get_w_in&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_ws&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;x,</span><span class="si">%s</span><span class="s1">-&gt;q,k,v,h1,h2&#39;</span> <span class="o">%</span> <span class="n">wi_str</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVH</span><span class="p">(</span><span class="s1">&#39;qkvh&#39;</span><span class="p">,</span> <span class="n">hidden_dim_reshape_segments</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;i.segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;segment_id,segment_pos-&gt;qq_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ComputeBias</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.segment_id,i.segment_pos-&gt;qq_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
+            <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ComputeBias</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
         <span class="c1"># Decoder _AddRelativeBias always has bidirectional=False.</span>
-        <span class="p">(</span><span class="s1">&#39;qk_bias,segment_pos,key_segment_pos,relative_bias_weights-&gt;qhk_bias&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;qk_bias,i.segment_pos,key_segment_pos,relative_bias_ws-&gt;qhk_bias&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AddRelativeBias</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,qhk_bias-&gt;o_atten&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h1-&gt;h1_act&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;h1_act&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">activation_fn</span><span class="p">)),</span>
@@ -2664,7 +2552,11 @@
         <span class="p">(</span><span class="s1">&#39;-&gt;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">wo_str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerOutputProjWeights</span><span class="p">(</span><span class="s1">&#39;get_w_out&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;o_atten,o_ffw,</span><span class="si">%s</span><span class="s1">-&gt;y&#39;</span> <span class="o">%</span> <span class="n">wo_str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;compute_output&#39;</span><span class="p">,</span> <span class="n">_Outputs</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)))</span></div>
+        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)))</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_DecoderLayerInMapKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
 
 <div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DecoderLayerStack with self attention and feedforward in parallel.&quot;&quot;&quot;</span>
@@ -2678,9 +2570,10 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;segment_pos_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[:</span><span class="mi">2</span><span class="p">])),</span>
         <span class="p">(</span><span class="s1">&#39;inputs_split-&gt;input_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_dropout,segment_id_split,segment_pos_split-&gt;&#39;</span>
-         <span class="s1">&#39;y,o_segment_id_split,o_segment_pos_split&#39;</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-        <span class="p">(</span><span class="s1">&#39;y-&gt;y_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNNoScale</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_dropout,segment_id_split,segment_pos_split-&gt;sub_layer_imap&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_CreateNestedMap</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;map&#39;</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;sub_layer_imap-&gt;sub_layer_omap&#39;</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="p">(</span><span class="s1">&#39;sub_layer_omap.vec-&gt;y_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNNoScale</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;i.aux_loss-&gt;o.aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)),</span>
@@ -2749,8 +2642,8 @@
         <span class="s1">&#39;the output probabilities should be 1.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_per_layer_vars_for_recurrent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Create per-layer variables for RecurrentDenseBuilder, instead of &#39;</span>
-        <span class="s1">&#39;combined variables [num_layers, ...].&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Create per-layer variables for RecurrentDenseBuilderParallelDecode, &#39;</span>
+        <span class="s1">&#39;instead of  combined variables [num_layers, ...].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
