@@ -407,7 +407,7 @@ class TFDatasetAdaptor(TFDatasetSource):
 
   def GetDataset(self):
     return tf.data.Dataset.from_tensors(0).repeat().map(
-        lambda _: self.sub.GetNext())
+        lambda _: self.sub.GetNext(), **self._map_args)
 
 
 class TFDatasetTransform(TFDatasetSource):
@@ -664,8 +664,7 @@ class TFDatasetMixer(TFDatasetSource):
 
     for i in range(len(datasets)):
       datasets[i] = datasets[i].map(
-          functools.partial(SetSourceId, i),
-          num_parallel_calls=tf.data.experimental.AUTOTUNE)
+          functools.partial(SetSourceId, i), **self._map_args)
 
     if p.broadcast_dataset_structures:
       expected_structure = {}
@@ -698,9 +697,7 @@ class TFDatasetMixer(TFDatasetSource):
         return element
 
       for i in range(len(datasets)):
-        datasets[i] = datasets[i].map(
-            BroadcastStructure,
-            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        datasets[i] = datasets[i].map(BroadcastStructure, **self._map_args)
 
     return tf.data.experimental.sample_from_datasets(datasets, p.weights,
                                                      p.random_seed or None)
