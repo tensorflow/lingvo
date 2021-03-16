@@ -167,6 +167,7 @@ py_test(
     deps = [
         ":compat",
         ":datasets_lib",
+        "//lingvo/core:base_model_params",
         "//lingvo/core:test_utils",
     ],
 )

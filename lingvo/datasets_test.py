@@ -17,6 +17,7 @@
 
 from lingvo import datasets
 import lingvo.compat as tf
+from lingvo.core import base_model_params
 from lingvo.core import test_utils
 
 
@@ -24,7 +25,7 @@ class DatasetsTest(test_utils.TestCase):
 
   def testGetDatasetsFindsAllPublicMethods(self):
 
-    class DummyDatasetHolder:
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
 
       def Train(self):
         pass
@@ -38,7 +39,7 @@ class DatasetsTest(test_utils.TestCase):
 
   def testGetDatasetsRaisesErrorOnInvalidDatasets(self):
 
-    class DummyDatasetHolder:
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
 
       def Train(self):
         pass
@@ -51,7 +52,7 @@ class DatasetsTest(test_utils.TestCase):
 
   def testGetDatasetsWarnsOnError(self):
 
-    class DummyDatasetHolder:
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
 
       def Train(self):
         pass
@@ -68,7 +69,7 @@ class DatasetsTest(test_utils.TestCase):
 
   def testGetDatasetsFindsAllPublicMethodsOnInstanceVar(self):
 
-    class DummyDatasetHolder:
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
 
       def Train(self):
         pass
@@ -82,7 +83,7 @@ class DatasetsTest(test_utils.TestCase):
 
   def testGetDatasetsRaisesErrorOnInvalidDatasetsOnInstanceVar(self):
 
-    class DummyDatasetHolder:
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
 
       def Train(self):
         pass
@@ -95,7 +96,7 @@ class DatasetsTest(test_utils.TestCase):
 
   def testGetDatasetsWarnsOnErrorOnInstanceVar(self):
 
-    class DummyDatasetHolder:
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
 
       def Train(self):
         pass
@@ -109,6 +110,18 @@ class DatasetsTest(test_utils.TestCase):
       self.assertAllEqual(['Train'], found_datasets)
     self.assertIn('WARNING:absl:Found a public function BadDataset',
                   assert_log.output[0])
+
+  def testGetDatasetsWithGetAllDatasetParams(self):
+
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
+
+      def GetAllDatasetParams(self):
+        return {'Train': None, 'Dev': None}
+
+    self.assertAllEqual(['Dev', 'Train'],
+                        datasets.GetDatasets(DummyDatasetHolder))
+    self.assertAllEqual(['Dev', 'Train'],
+                        datasets.GetDatasets(DummyDatasetHolder()))
 
 
 if __name__ == '__main__':

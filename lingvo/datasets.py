@@ -44,11 +44,23 @@ def GetDatasets(cls, warn_on_error=True):
     DatasetFunctionError: if the cls contains public methods that cannot be used
       as datasets, and warn_on_error is False.
   """
+  try:
+    if inspect.isclass(cls):
+      mdl_params = cls()
+    else:
+      mdl_params = cls
+    all_datasets = mdl_params.GetAllDatasetParams()
+    return sorted(list(all_datasets.keys()))
+  except NotImplementedError:
+    pass
+
   datasets = []
   for name, _ in inspect.getmembers(
       cls, lambda x: inspect.isfunction(x) or inspect.ismethod(x)):
-    if name not in ['GetDatasetParams', 'Model', 'Task', 'ProgramSchedule'
-                   ] and not name.startswith('_'):
+    if name not in [
+        'GetAllDatasetParams', 'GetDatasetParams', 'Model', 'Task',
+        'ProgramSchedule'
+    ] and not name.startswith('_'):
       # Datasets are assumed to have no required positional arguments.
       args = list(inspect.signature(getattr(cls, name)).parameters.values())
       if inspect.isclass(cls):

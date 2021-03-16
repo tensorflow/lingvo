@@ -38,6 +38,17 @@ class DatasetError(Exception):
 class _BaseModelParams:
   """Base class for storing model Params for a single experiment."""
 
+  def GetAllDatasetParams(self):
+    """Enumerates all dataset params for this model.
+
+    If implemented, other methods (such as Train, Dev, and Test) will not
+    be treated as dataset specifications.
+
+    Returns:
+      A dict of {dataset_name: dataset_params}.
+    """
+    raise NotImplementedError(type(self))
+
   def GetDatasetParams(self, dataset):
     """Convenience function that returns the param for the given dataset name.
 
@@ -51,6 +62,16 @@ class _BaseModelParams:
     Raises:
       DatasetError: if there is not a `${dataset}` method defined under `cls`.
     """
+    try:
+      all_datasets = self.GetAllDatasetParams()
+      if dataset not in all_datasets:
+        raise DatasetError(f'Dataset {dataset} not found; '
+                           f'available datasets are: {all_datasets.keys()}')
+      return all_datasets.get(dataset)
+    except NotImplementedError as e:
+      # Fall through the legacy path.
+      pass
+
     try:
       f = getattr(self, dataset)
     except AttributeError as e:
