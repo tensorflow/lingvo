@@ -559,7 +559,7 @@
 
 <div class="viewcode-block" id="TFDatasetAdaptor.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetAdaptor.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensors</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">GetNext</span><span class="p">())</span></div></div>
+        <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">GetNext</span><span class="p">(),</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_map_args</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TFDatasetTransform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetTransform">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetTransform</span><span class="p">(</span><span class="n">TFDatasetSource</span><span class="p">):</span>
@@ -816,8 +816,7 @@
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)):</span>
       <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-          <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">SetSourceId</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-          <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+          <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">SetSourceId</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_map_args</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">broadcast_dataset_structures</span><span class="p">:</span>
       <span class="n">expected_structure</span> <span class="o">=</span> <span class="p">{}</span>
@@ -850,9 +849,7 @@
         <span class="k">return</span> <span class="n">element</span>
 
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)):</span>
-        <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-            <span class="n">BroadcastStructure</span><span class="p">,</span>
-            <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+        <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">BroadcastStructure</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_map_args</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">sample_from_datasets</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
                                                      <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span></div></div>
