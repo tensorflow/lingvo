@@ -60,9 +60,9 @@ class MoEBuilder(builder.Base):
   Transformer residual connections and layer norm as well.
 
   Naturally supports input packing, where multiple segments are packed in a
-  single inputs row (e.g. packing 2 segments in a single row)::
+  single vec row (e.g. packing 2 segments in a single row)::
 
-      inputs      [  4,   3,  24]
+      vec      [  4,   3,  24]
       segment_id  [  1,   1,   2] (0 would indicate padding)
       segment_pos [  0,   1,   0] (0 for first token in the segment etc)
 
@@ -349,21 +349,24 @@ class MoEBuilder(builder.Base):
 
   def EncoderLayer(self, name, layer, residual_weight=1.0):
     """Returns params for lambda x: x + residual_weight * DropOut(layer(LN(x)))."""
+    layer_input_keys = self._EncoderLayerInMapKeys
+    layer_inputs = 'x,' + ','.join(['i.' + key for key in layer_input_keys[1:]])
     return self._Graph(
         name,
-        ['inputs', 'segment_id', 'segment_pos'],
-        [
-            'outputs',
-            'aux_loss',
-        ],
-        ('inputs,segment_id->input_masked', self.Mask()),
+        ['i'],
+        ['o'],
+        ('i.vec,i.segment_id->input_masked', self.Mask()),
         ('input_masked->x', self._LN('ln')),
-        ('x,segment_id,segment_pos->' + 'y,aux_loss', layer),
+        (layer_inputs + '->y,o.aux_loss', layer),
         ('y->y_dropout', self._Dropout('y_dropout',
                                        1 - self.params.dropout_rate)),
-        ('input_masked,y_dropout->outputs',
+        ('input_masked,y_dropout->o.vec',
          self._Add('add', residual_weight=residual_weight)),
     )
+
+  @property
+  def _EncoderLayerInMapKeys(self):
+    return ['vec', 'segment_id', 'segment_pos']
 
   # We avoid Builder._Seq and Builder._Rep to improve theta / checkpoint
   # readability and reduce layer nesting.
@@ -398,100 +401,95 @@ class MoEBuilder(builder.Base):
     Returns:
       The layer params.
     """
-    stack = [
-        ('inputs->inputs_split', self.Split('inputs_split')),
-        ('segment_id->segment_id_split', self.Split('segment_id_split')),
-        ('segment_pos->segment_pos_split', self.Split('segment_pos_split')),
-    ]
-    stack += [
-        ('inputs_split->x_000',
-         self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('input_loss->loss_000', self._Identity('loss_000')),
-    ]
-    i = 0
-    for _ in range(num):
-      for l in sub_layers:
-        # x_i, loss_i => x_{i+1}, loss_{i+1}
-        stack += [('x_%03d,segment_id_split,segment_pos_split->'
-                   'x_%03d,aux_loss_%03d' % (i, i + 1, i),
-                   self.EncoderLayer('layer_%03d' % i, l)),
-                  ('loss_%03d,aux_loss_%03d->loss_%03d' % (i, i, i + 1),
-                   self._Add('loss_%03d' % (i + 1)))]
-        i += 1
+    stack = []
+    imap_keys = self._EncoderLayerInMapKeys
+    for key in imap_keys:
+      stack.append(
+          ('i.' + key + '->' + key + '_split', self.Split(key + '_split')))
 
     stack += [
-        (('loss_%03d->output_loss' % i), self._Identity('output_loss')),
-        (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
-        ('y_norm->y_dropout',
-         self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
-        ('y_dropout,segment_id_split->outputs', self.Mask()),
-    ]
-    return self._Graph(name,
-                       ['inputs', 'segment_id', 'segment_pos', 'input_loss'], [
-                           'outputs',
-                           'output_loss',
-                       ], *stack)
-
-  def DecoderLayer(self, name, layer, conv_kernel_size=None):
-    fprop_dtype = py_utils.FPropDtype(self.params)
-    if conv_kernel_size is not None:
-      ln_layer = self._LNConv('ln', conv_kernel_size)
-    else:
-      ln_layer = self._LN('ln')
-    return self._Graph(
-        name,
-        [
-            'inputs',
-            'segment_id',
-            'segment_pos',
-            'encoder_output',
-            'encoder_segment_id',
-            'encoder_segment_pos',
-        ],
-        [
-            'outputs',
-            'aux_loss',
-        ],
-        ('inputs,segment_id->input_masked', self.Mask()),
-        ('input_masked->x', ln_layer),
-        ('->zero_loss',
-         self._Fn('zero_loss', lambda: tf.constant(0.0, fprop_dtype))),
-        ('x,segment_id,segment_pos,' +
-         'encoder_output,encoder_segment_id,encoder_segment_pos->' +
-         'y,aux_loss', layer),
-        ('y->y_dropout', self._Dropout('y_dropout',
-                                       1 - self.params.dropout_rate)),
-        ('input_masked,y_dropout->outputs', self._Add('add')),
-    )
-
-  def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
-    """Clean DecoderLayerStack."""
-    stack = [
-        ('i.vec->inputs_split', self.Split('inputs_split')),
-        ('i.segment_id->segment_id_split', self.Split('segment_id_split')),
-        ('i.segment_pos->segment_pos_split', self.Split('segment_pos_split')),
-        ('i.encoder_output->encoder_output_split',
-         self.Split('encoder_output_split')),
-        ('i.encoder_segment_id->encoder_segment_id_split',
-         self.Split('encoder_segment_id_split')),
-        ('i.encoder_segment_pos->encoder_segment_pos_split',
-         self.Split('encoder_segment_pos_split')),
-    ]
-    stack += [
-        ('i.vec->x_000',
+        (imap_keys[0] + '_split->x_000',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
         ('i.aux_loss->loss_000', self._Identity('loss_000')),
     ]
     i = 0
+    map_inputs = 'x_%03d,' + ','.join([key + '_split' for key in imap_keys[1:]])
     for _ in range(num):
       for l in sub_layers:
         # x_i, loss_i => x_{i+1}, loss_{i+1}
-        stack += [('x_%03d,segment_id_split,segment_pos_split,'
-                   'i.encoder_output,encoder_segment_id_split,'
-                   'encoder_segment_pos_split->'
-                   'x_%03d,aux_loss_%03d' % (i, i + 1, i),
+        stack += [((map_inputs + '->imap_%03d') % (i, i),
+                   self._CreateNestedMap(
+                       name='imap_%03d' % i, keys=self._EncoderLayerInMapKeys)),
+                  ('imap_%03d->omap_%03d' % (i, i),
+                   self.EncoderLayer('layer_%03d' % i, l)),
+                  ('omap_%03d.vec->x_%03d' % (i, i + 1),
+                   self._Identity('vec_%03d' % i)),
+                  ('loss_%03d,omap_%03d.aux_loss->loss_%03d' % (i, i, i + 1),
+                   self._Add('loss_%03d' % (i + 1)))]
+        i += 1
+
+    stack += [
+        (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
+        (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
+        ('y_norm->y_dropout',
+         self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
+        ('y_dropout,segment_id_split->o.vec', self.Mask()),
+    ]
+    return self._Graph(name, ['i'], ['o'], *stack)
+
+  def DecoderLayer(self, name, layer, conv_kernel_size=None):
+    if conv_kernel_size is not None:
+      ln_layer = self._LNConv('ln', conv_kernel_size)
+    else:
+      ln_layer = self._LN('ln')
+    layer_input_keys = self._DecoderLayerInMapKeys
+    layer_inputs = 'x,' + ','.join(['i.' + key for key in layer_input_keys[1:]])
+    return self._Graph(
+        name,
+        ['i'],
+        ['o'],
+        ('i.vec,i.segment_id->input_masked', self.Mask()),
+        ('input_masked->x', ln_layer),
+        (layer_inputs + '->y,o.aux_loss', layer),
+        ('y->y_dropout', self._Dropout('y_dropout',
+                                       1 - self.params.dropout_rate)),
+        ('input_masked,y_dropout->o.vec', self._Add('add')),
+    )
+
+  @property
+  def _DecoderLayerInMapKeys(self):
+    return [
+        'vec', 'segment_id', 'segment_pos', 'encoder_output',
+        'encoder_segment_id', 'encoder_segment_pos'
+    ]
+
+  def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
+    """Clean DecoderLayerStack."""
+    assert 'segment_id' in self._DecoderLayerInMapKeys
+    stack = []
+    imap_keys = self._DecoderLayerInMapKeys
+    for key in imap_keys:
+      stack.append(
+          ('i.' + key + '->' + key + '_split', self.Split(key + '_split')))
+
+    stack += [
+        (imap_keys[0] + '_split->x_000',
+         self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
+        ('i.aux_loss->loss_000', self._Identity('loss_000')),
+    ]
+    i = 0
+    map_inputs = 'x_%03d,' + ','.join([key + '_split' for key in imap_keys[1:]])
+    for _ in range(num):
+      for l in sub_layers:
+        # x_i, loss_i => x_{i+1}, loss_{i+1}
+        stack += [((map_inputs + '->imap_%03d') % (i, i),
+                   self._CreateNestedMap(
+                       name='imap_%03d' % i, keys=self._DecoderLayerInMapKeys)),
+                  ('imap_%03d->omap_%03d' % (i, i),
                    self.DecoderLayer('layer_%03d' % i, l, conv_kernel_size)),
-                  ('loss_%03d,aux_loss_%03d->loss_%03d' % (i, i, i + 1),
+                  ('omap_%03d.vec->x_%03d' % (i, i + 1),
+                   self._Identity('vec_%03d' % i)),
+                  ('loss_%03d,omap_%03d.aux_loss->loss_%03d' % (i, i, i + 1),
                    self._Add('loss_%03d' % (i + 1)))]
         i += 1
 
@@ -528,22 +526,18 @@ class MoEBuilder(builder.Base):
         device_mesh=device_mesh)
 
   def DenseReluDense(self, name, decoder=False):
-    input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
-      input_endpoints += [
-          'unused_encoder_output',
-          'unused_encoder_segment_id',
-          'unused_encoder_segment_pos',
-      ]
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
     # Note that dropout is used here, but not in the MoE layer by default.
     return self._Graph(
         name,
         input_endpoints,
         ['outputs', 'aux_loss'],
         ('->wi,wo', self._DenseReluDenseWeights('w')),
-        ('wi,inputs->h',
-         self._Fn(
-             'wi', fn=lambda wi, inputs: tf.einsum('MH,BLM->BLH', wi, inputs))),
+        ('wi,vec->h',
+         self._Fn('wi', fn=lambda wi, vec: tf.einsum('MH,BLM->BLH', wi, vec))),
         ('h->h_relu', self._Fn('relu', tf.nn.relu)),
         ('h_relu->h_dropout',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
@@ -589,14 +583,10 @@ class MoEBuilder(builder.Base):
         device_mesh=device_mesh)
 
   def DenseReluDenseGated(self, name, activation_fn, decoder=False):
-    # Need to unify.
-    input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
-      input_endpoints += [
-          'unused_encoder_output',
-          'unused_encoder_segment_id',
-          'unused_encoder_segment_pos',
-      ]
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
 
     def _Impl(wi_0, wi_1, inputs):
       return tf.math.multiply(
@@ -609,7 +599,7 @@ class MoEBuilder(builder.Base):
         input_endpoints,
         ['outputs', 'aux_loss'],
         ('->wi_0,wi_1,wo', self._DenseReluDenseWeightsGatedGELU('w')),
-        ('wi_0,wi_1,inputs->h', self._Fn('wi', fn=_Impl)),
+        ('wi_0,wi_1,vec->h', self._Fn('wi', fn=_Impl)),
         ('h->h_dropout',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
         ('wo,h_dropout->outputs_pre_split',
@@ -629,16 +619,14 @@ class MoEBuilder(builder.Base):
 
   def MoE(self, name, decoder=False):
     """Returns layer params to compute (outputs, scalar_aux_loss)."""
-    input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
-      input_endpoints += [
-          'unused_encoder_output',
-          'unused_encoder_segment_id',
-          'unused_encoder_segment_pos',
-      ]
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
+
     return self._Graph(
         name, input_endpoints, ['outputs', 'aux_loss'],
-        ('inputs->input_split', self.Split('input_split')),
+        ('vec->input_split', self.Split('input_split')),
         ('segment_id->segment_id_split', self.Split('segment_id_split')),
         ('->wi,wo', self._ShardedFeedForwardNetworksWeights(name)),
         ('input_split,segment_id_split,wi,wo->outputs_pre_split,aux_loss',
@@ -765,12 +753,7 @@ class MoEBuilder(builder.Base):
     """TransformerEncoder SelfAttention."""
     # pyformat: disable
     return self._Graph(
-        name,
-        [
-            'inputs',
-            'segment_id',
-            'segment_pos'
-        ], [
+        name, self._EncoderLayerInMapKeys, [
             'outputs',
             'aux_loss'
         ],
@@ -780,7 +763,7 @@ class MoEBuilder(builder.Base):
          self._Fn('bias',
                   fn=lambda x: self._EncNotVisible(x, x) * (-1e+09),
                   fn_out=lambda x: x + x[-1])),
-        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
+        ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('q,k,v,bias->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
@@ -794,15 +777,7 @@ class MoEBuilder(builder.Base):
     """Transformer Decoder-Encoder Attention."""
     # pyformat: disable
     return self._Graph(
-        name,
-        [
-            'inputs',
-            'segment_id',
-            'segment_pos',
-            'encoder_output',
-            'encoder_segment_id',
-            'encoder_segment_pos',
-        ], [
+        name, self._DecoderLayerInMapKeys, [
             'outputs',
             'aux_loss',
         ],
@@ -810,7 +785,7 @@ class MoEBuilder(builder.Base):
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('segment_id,encoder_segment_id->bias',
          self._Fn('bias', fn=lambda a, b: -1e+09 * self._EncNotVisible(a, b))),
-        ('inputs,wq->q', self._ComputeQKV('q')),
+        ('vec,wq->q', self._ComputeQKV('q')),
         ('encoder_output,wk->k', self._ComputeQKV('k')),
         ('encoder_output,wv->v', self._ComputeQKV('v')),
         ('q,k,v,bias->o', self.Attention('attention')),
@@ -854,21 +829,13 @@ class MoEBuilder(builder.Base):
 
     # pyformat: disable
     return self._Graph(
-        name,
-        [
-            'inputs',
-            'segment_id',
-            'segment_pos',
-            'unused_encoder_output',
-            'unused_encoder_segment_id',
-            'unused_encoder_segment_pos',
-        ], [
+        name, self._DecoderLayerInMapKeys, [
             'outputs',
             'aux_loss',
         ],
         ('->wq,wk,wv,wo', self._AttentionWeights(
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
-        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
+        ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
         ('segment_id,segment_pos->bias',
@@ -989,12 +956,7 @@ class MoEBuilder(builder.Base):
 
     # pyformat: disable
     return self._Graph(
-        name,
-        [
-            'inputs',
-            'segment_id',
-            'segment_pos'
-        ], [
+        name, self._EncoderLayerInMapKeys, [
             'outputs',
             'aux_loss'
         ],
@@ -1008,7 +970,7 @@ class MoEBuilder(builder.Base):
                   fn_out=lambda x: x + x[-1])),
         ('segment_bias,segment_pos,relative_bias_weights->bias',
          self._Fn('relative_bias', fn=self._EncoderAddRelativeBias)),
-        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
+        ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('q,k,v,bias->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
@@ -1062,22 +1024,14 @@ class MoEBuilder(builder.Base):
 
     # pyformat: disable
     return self._Graph(
-        name,
-        [
-            'inputs',
-            'segment_id',
-            'segment_pos',
-            'unused_encoder_output',
-            'unused_encoder_segment_id',
-            'unused_encoder_segment_pos',
-        ], [
+        name, self._DecoderLayerInMapKeys, [
             'outputs',
             'aux_loss',
         ],
         ('->wq,wk,wv,wo', self._AttentionWeights(
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('->relative_bias_weights', self._RelativeAttentionBiasWeights('wrb', collections)),
-        ('inputs,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
+        ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
         ('segment_pos->key_segment_pos',
@@ -1832,10 +1786,7 @@ class DenseBuilder(MoEBuilder):
     else:
       optional_conv_layer = self._Identity('conv')
 
-    graph_inputs = [
-        'inputs', 'segment_id', 'segment_pos', 'unused_encoder_output',
-        'unused_encoder_segment_id', 'unused_encoder_segment_pos'
-    ]
+    graph_inputs = self._DecoderLayerInMapKeys
     graph_outputs = ['outputs', 'aux_loss']
     sub_layers = [
         ('->wq,wk,wv,wo1',
@@ -1846,7 +1797,7 @@ class DenseBuilder(MoEBuilder):
                                               p.mh_wi_split, p.hm_wo_split)),
         ('->relative_bias_weights',
          self._RelativeAttentionBiasWeights('wrb', collections)),
-        ('inputs,wq,wk,wv,wi_0,wi_1->q,k,v,h1,h2',
+        ('vec,wq,wk,wv,wi_0,wi_1->q,k,v,h1,h2',
          self._ComputeQKVH('qkvh', hidden_dim_reshape_segments)),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
@@ -2088,13 +2039,10 @@ class DenseBuilder(MoEBuilder):
     return self._EinsumWithModelDim('SHDM,BLSHD->BLM', wo, o) * (2.0**-0.5)
 
   def DenseReluDense(self, name, decoder=False):
-    input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
-      input_endpoints += [
-          'unused_encoder_output',
-          'unused_encoder_segment_id',
-          'unused_encoder_segment_pos',
-      ]
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
     p = self.params
     # Note that dropout is used here, but not in the MoE layer by default.
     return self._Graph(
@@ -2108,7 +2056,7 @@ class DenseBuilder(MoEBuilder):
          self._Fn('wi_reshape', fn=lambda x: self._ReshapeM(x, 0))),
         ('wo->wo_reshaped',
          self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
-        ('wi_reshaped,inputs->h', self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
+        ('wi_reshaped,vec->h', self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
         ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
         ('h_split->h_relu', self._Fn('relu', tf.nn.relu)),
         ('h_relu->h_dropout', self._Dropout('input_dropout',
@@ -2121,14 +2069,10 @@ class DenseBuilder(MoEBuilder):
     )
 
   def DenseReluDenseGated(self, name, activation_fn, decoder=False):
-    # Need to unify.
-    input_endpoints = ['inputs', 'segment_id', 'segment_pos']
     if decoder:
-      input_endpoints += [
-          'unused_encoder_output',
-          'unused_encoder_segment_id',
-          'unused_encoder_segment_pos',
-      ]
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
 
     def _Impl(wi_0, wi_1, inputs):
       wi = tf.concat([tf.expand_dims(wi_0, 0), tf.expand_dims(wi_1, 0)], 0)
@@ -2154,7 +2098,7 @@ class DenseBuilder(MoEBuilder):
          self._Fn('wi1_reshape', fn=lambda x: self._ReshapeM(x, 0))),
         ('wo->wo_reshaped',
          self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
-        ('wi_0_reshaped,wi_1_reshaped,inputs->h', self._Fn('wi', fn=_Impl)),
+        ('wi_0_reshaped,wi_1_reshaped,vec->h', self._Fn('wi', fn=_Impl)),
         ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
         ('h_split->h_dropout',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
@@ -2166,66 +2110,7 @@ class DenseBuilder(MoEBuilder):
     )
 
 
-class RecurrentDenseBuilder(DenseBuilder):
-  """Deprecated. Same as DenseBuilder but layers are stacked using recurrent."""
-
-  # Required manually changing Split() split dimension for variables creating
-  # with VarLayer().
-  # TODO(huangyp): either adds a warning message or fix it.
-  def _Repeat(self, name, body, repeat=1):
-    return builder_layers.RepeatLayer.Params().Set(
-        name=name, body=body, repeat=repeat)
-
-  def _RepeatableDecoderLayer(self, name, layer, conv_kernel_size=None):
-    block = self._Graph(name, [
-        'inputs', 'segment_id', 'segment_pos', 'encoder_output',
-        'encoder_segment_id', 'encoder_segment_pos', 'input_loss'
-    ], [
-        'outputs', 'segment_id', 'segment_pos', 'encoder_output',
-        'encoder_segment_id', 'encoder_segment_pos', 'output_loss'
-    ], ('inputs,segment_id,segment_pos,encoder_output,encoder_segment_id,'
-        'encoder_segment_pos->outputs,aux_loss',
-        self.DecoderLayer('layer', layer, conv_kernel_size=conv_kernel_size)),
-                        ('input_loss,aux_loss->output_loss', self._Add('_add')))
-    return block
-
-  def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
-    """Clean DecoderLayerStack."""
-
-    recurrent_cells = [
-        self._RepeatableDecoderLayer(l.name + '_rep', l, conv_kernel_size)
-        for l in sub_layers
-    ]
-    recurrent_body = self._Seq('blocks_body', *recurrent_cells)
-    repeated_blocks = self._Repeat(
-        name='blocks', body=recurrent_body, repeat=num)
-
-    stack = [
-        ('i.vec->inputs_split', self.Split('inputs_split')),
-        ('i.segment_id->segment_id_split', self.Split('segment_id_split')),
-        ('i.segment_pos->segment_pos_split', self.Split('segment_pos_split')),
-        ('i.encoder_output->encoder_out_split',
-         self.Split('encoder_out_split')),
-        ('i.encoder_segment_id->encoder_segment_id_split',
-         self.Split('encoder_segment_id_split')),
-        ('i.encoder_segment_pos->encoder_segment_pos_split',
-         self.Split('encoder_segment_pos_split')),
-        ('i.vec->input_dropout',
-         self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('input_dropout,segment_id_split,segment_pos_split,encoder_out_split,'
-         'i.encoder_segment_id,encoder_segment_pos_split,i.aux_loss->'
-         'y,o_segment_id_split,o_segment_pos_split,o_encoder_output,'
-         'o_encoder_segment_id_split,o_encoder_segment_pos_split,o.aux_loss',
-         repeated_blocks),
-        ('y->y_norm', self._LN('final_layer_norm')),
-        ('y_norm->y_dropout',
-         self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
-        ('y_dropout,segment_id_split->o.vec', self.Mask()),
-    ]
-    return self._Graph(name, ['i'], ['o'], *stack)
-
-
-class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
+class RecurrentDenseBuilderParallelDecode(DenseBuilder):
   """Same as RecurrentDenseBuilder but with micro variables.
 
   Projection variables created under this builder will be replaced by multiple
@@ -2487,23 +2372,26 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
 
     return self._Graph(
         name,
-        ['inputs', 'segment_id', 'segment_pos'],
-        ['outputs', 'segment_id', 'segment_pos'],
-        ('inputs,segment_id->input_masked', self.Mask()),
+        ['i'],
+        ['o'],
+        ('i.vec,i.segment_id->input_masked', self.Mask()),
+        ('i.segment_id->o.segment_id', self._Identity('segment_id')),
+        ('i.segment_pos->o.segment_pos', self._Identity('segment_pos')),
         ('input_masked->x', ln_layer),
         ('->%s' % wi_str, self._DecoderLayerInputProjWeights('get_w_in')),
-        ('->relative_bias_weights',
+        ('->relative_bias_ws',
          self._RelativeAttentionBiasWeights('wrb', collections)),
         ('x,%s->q,k,v,h1,h2' % wi_str,
          self._ComputeQKVH('qkvh', hidden_dim_reshape_segments)),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
-        ('segment_pos->key_segment_pos',
+        ('i.segment_pos->key_segment_pos',
          self._State('seg_pos', [None, None], dtype=tf.int32)),
-        ('segment_id,segment_pos->qq_bias', self._Fn('bias', fn=_ComputeBias)),
+        ('i.segment_id,i.segment_pos->qq_bias', self._Fn(
+            'bias', fn=_ComputeBias)),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
         # Decoder _AddRelativeBias always has bidirectional=False.
-        ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
+        ('qk_bias,i.segment_pos,key_segment_pos,relative_bias_ws->qhk_bias',
          self._Fn('relative_bias', fn=self._AddRelativeBias)),
         ('q,k_full,v_full,qhk_bias->o_atten', self.Attention('attention')),
         ('h1->h1_act', self._Fn('h1_act', fn=activation_fn)),
@@ -2512,7 +2400,11 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
         ('->%s' % wo_str, self._DecoderLayerOutputProjWeights('get_w_out')),
         ('o_atten,o_ffw,%s->y' % wo_str, self._Fn('compute_output', _Outputs)),
         ('y->y_dropout', self._Dropout('y_dropout', 1 - p.dropout_rate)),
-        ('input_masked,y_dropout->outputs', self._Add('add')))
+        ('input_masked,y_dropout->o.vec', self._Add('add')))
+
+  @property
+  def _DecoderLayerInMapKeys(self):
+    return ['vec', 'segment_id', 'segment_pos']
 
   def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
     """DecoderLayerStack with self attention and feedforward in parallel."""
@@ -2526,9 +2418,10 @@ class RecurrentDenseBuilderParallelDecode(RecurrentDenseBuilder):
          self.MeshSplit('segment_pos_split', p.blm_split[:2])),
         ('inputs_split->input_dropout',
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('input_dropout,segment_id_split,segment_pos_split->'
-         'y,o_segment_id_split,o_segment_pos_split', sub_layers[0]),
-        ('y->y_norm', self._LNNoScale('final_layer_norm')),
+        ('input_dropout,segment_id_split,segment_pos_split->sub_layer_imap',
+         self._CreateNestedMap(name='map', keys=self._DecoderLayerInMapKeys)),
+        ('sub_layer_imap->sub_layer_omap', sub_layers[0]),
+        ('sub_layer_omap.vec->y_norm', self._LNNoScale('final_layer_norm')),
         ('y_norm->y_dropout',
          self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
         ('i.aux_loss->o.aux_loss', self._Identity('id')),
@@ -2597,8 +2490,8 @@ class UniTransformer(base_model.BaseTask):
         'the output probabilities should be 1.')
     p.Define(
         'use_per_layer_vars_for_recurrent', False,
-        'Create per-layer variables for RecurrentDenseBuilder, instead of '
-        'combined variables [num_layers, ...].')
+        'Create per-layer variables for RecurrentDenseBuilderParallelDecode, '
+        'instead of  combined variables [num_layers, ...].')
     return p
 
   def __init__(self, params):

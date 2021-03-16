@@ -250,6 +250,11 @@ class Base:
     """Print FProp input shape information."""
     return builder_layers.PrintShapeLayer.Params().Set(name=name)
 
+  def _CreateNestedMap(self, name, keys):
+    """Returns a NestedMap with keys from fprop args."""
+    return builder_layers.CreateNestedMapLayer.Params().Set(
+        name=name, keys=keys)
+
   ###########################################################################
   # Basic nn layers.
   #

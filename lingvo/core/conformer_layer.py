@@ -826,10 +826,12 @@ class ConformerLayer(base_layer.BaseLayer):
       # 0 - padded positions and 1 - non-padded positions.
       segment_ids = tf.cast(1. - in_nmap.paddings, tf.int32)
       segment_pos = tf.zeros_like(segment_ids)  # not used but required by MoE.
-      ys, aux_loss = self.children[moe_fflayer_name].FProp(
-          theta.GetItem(moe_fflayer_name), in_nmap.features, segment_ids,
-          segment_pos)
-      out_nmap.features = ys
+      moe_in = py_utils.NestedMap(
+          vec=in_nmap.features, segment_id=segment_ids, segment_pos=segment_pos)
+      moe_out = self.children[moe_fflayer_name].FProp(
+          theta.GetItem(moe_fflayer_name), moe_in)
+      out_nmap.features = moe_out.vec
+      aux_loss = moe_out.aux_loss
       if 'aux_loss' in in_nmap:
         aux_loss += in_nmap.aux_loss
       # Add 'aux_loss' in out_nmap.

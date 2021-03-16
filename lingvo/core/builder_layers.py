@@ -97,6 +97,23 @@ def _MaybeStackExtraTheta(theta, all_vars, repeat):
   return theta.Pack(values)
 
 
+class CreateNestedMapLayer(base_layer.BaseLayer):
+  """Returns a NestedMap from FProp args."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('keys', None, 'A list of keys for the returned NestedMap.')
+    return p
+
+  def FProp(self, theta, *args):
+    assert len(self.params.keys) == len(args)
+    output = py_utils.NestedMap()
+    for key, arg in zip(self.params.keys, args):
+      output.Set(key, arg)
+    return output
+
+
 class RepeatLayer(base_layer.BaseLayer):
   """A layer which repeats itself sequentially using lingvo Recurrent."""
 

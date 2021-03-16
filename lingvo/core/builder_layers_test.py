@@ -53,6 +53,17 @@ class FCLayerTestNestedMapFPropInput(lingvo_layers.FCLayer):
 
 class BuilderLayerTest(test_utils.TestCase):
 
+  def testCreateNestedMapLayerFProp(self):
+    with self.session():
+      x = tf.constant(1)
+      y = tf.constant(2)
+      params = layers.CreateNestedMapLayer.Params().Set(
+          name='map', keys=['x', 'y'])
+      layer = params.Instantiate()
+      layer_out = self.evaluate(layer.FPropDefaultTheta(x, y))
+      self.assertEqual(1, layer_out.x)
+      self.assertEqual(2, layer_out.y)
+
   def testFirstNLayerFProp(self):
     with self.session():
       params = layers.FirstNLayer.Params()
