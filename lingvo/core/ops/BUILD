@@ -16,6 +16,13 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+exports_files(
+    [
+        "beam_search_step_op_kernels.cc",
+        "beam_search_step_op_kernels.h",
+    ],
+)
+
 cc_library(
     name = "x_ops_helper",
     hdrs = ["x_ops_helper.h"],
