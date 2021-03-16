@@ -196,11 +196,23 @@
 <span class="sd">    DatasetFunctionError: if the cls contains public methods that cannot be used</span>
 <span class="sd">      as datasets, and warn_on_error is False.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+      <span class="n">mdl_params</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">mdl_params</span> <span class="o">=</span> <span class="bp">cls</span>
+    <span class="n">all_datasets</span> <span class="o">=</span> <span class="n">mdl_params</span><span class="o">.</span><span class="n">GetAllDatasetParams</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">all_datasets</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+  <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
   <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span>
       <span class="bp">cls</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">or</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;GetDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Task&#39;</span><span class="p">,</span> <span class="s1">&#39;ProgramSchedule&#39;</span>
-                   <span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s1">&#39;GetAllDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;GetDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Task&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;ProgramSchedule&#39;</span>
+    <span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
       <span class="c1"># Datasets are assumed to have no required positional arguments.</span>
       <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
       <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
