@@ -373,29 +373,28 @@ class ExecutorTpu(base_runner.BaseRunner):
             program_schedule.Shutdown()
           return
 
-        if not self._ml_perf_log:
+        if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave():
 
-          def RunRetrieveOps():
+          def RunSave(sess, global_step):
+            # Run TPU embedding retrieve ops.
+            # NOTE: this is expensive, so only run it when we're checkpointing.
             tf.logging.info('Retrieve params.')
             sess.run(self._retrieve_ops)
             tf.logging.info('Retrieve params done.')
+            # Save program state first, so it's recoverable after we restore
+            # from checkpoint.
+            for program in self._programs:
+              program.SaveProgramState(sess, global_step)
+            # Save the checkpoints.
+            self.save_only_checkpointer.Save(sess, global_step)
 
           if self.save_only_checkpointer.async_checkpointing:
-            # TODO(syzhang): only run the retrieve ops when we are sure we are
-            # gonna store a checkpoint to avoid a huge unnecessary overhead if
-            # we have tpu embedding enabled.
-            RunRetrieveOps()
             tf.logging.info('Save checkpoint asynchronously AT YOUR OWN RISK.')
             threadpool = multiprocessing.dummy.Pool(1)
             saver_future = threadpool.apply_async(
-                self.save_only_checkpointer.MaybeSave, args=(sess, global_step))
-          elif self.save_only_checkpointer.ShouldSave():
-            # Only run retrieve ops when we are checkpointing; otherwise, there
-            # will be a huge overhead.
-            RunRetrieveOps()
-            self.save_only_checkpointer.MaybeSave(sess, global_step)
-            for program in self._programs:
-              program.SaveProgramState(sess, global_step)
+                RunSave, args=(sess, global_step))
+          else:
+            RunSave(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.

@@ -152,8 +152,7 @@ class Checkpointer:
     """
     if self.ShouldSave():
       self.Save(sess, gsteps)
-      now = time.time()
-      self._next_checkpoint_seconds = now + self._save_interval_seconds
+      self._UpdateNextSaveTime()
       return True
     return False
 
@@ -167,6 +166,11 @@ class Checkpointer:
     tf.logging.info('Save checkpoint')
     path = self._saver.save(sess, self._save_path, gsteps)
     tf.logging.info('Save checkpoint done: %s', path)
+    self._UpdateNextSaveTime()
+
+  def _UpdateNextSaveTime(self):
+    now = time.time()
+    self._next_checkpoint_seconds = now + self._save_interval_seconds
 
   def _RestoreFromLatestCheckpoint(self, sess):
     assert not self._save_only
