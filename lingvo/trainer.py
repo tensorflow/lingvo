@@ -147,6 +147,12 @@ tf.flags.DEFINE_list(
     'graph_def_filename', [],
     'Output inference graph_def filenames. Defaults to CPU graph if '
     'inference_graph_filename and inference_graph_device are not specified.')
+tf.flags.DEFINE_string(
+    'inference_dataset_name', 'Test',
+    'Name of the dataset whose params to be extracted inference graph with.')
+tf.flags.DEFINE_bool(
+    'inference_gen_tpu_init_op', True,
+    'Whether the tpu_init_op subgraph is generated for TPU inference graph.')
 
 tf.flags.DEFINE_bool(
     'evaler_in_same_address_as_controller', False,
@@ -1474,7 +1480,8 @@ class RunnerManager:
     tf.io.gfile.makedirs(inference_graph_dir)
     tf.logging.info('Writing inference graphs to dir: %s', inference_graph_dir)
 
-    cfg = self.model_registry.GetParams(self._model_name, 'Test')
+    cfg = self.model_registry.GetParams(self._model_name,
+                                        FLAGS.inference_dataset_name)
     task_names = [FLAGS.model_task_name]
     if (issubclass(cfg.cls, base_model.MultiTaskModel) and
         not FLAGS.model_task_name):
@@ -1499,7 +1506,7 @@ class RunnerManager:
             device=device,
             retain_device_placement=False,
             var_options=var_options,
-            gen_init_op=True,
+            gen_init_op=FLAGS.inference_gen_tpu_init_op,
             dtype_override=None,
             fprop_dtype_override=None)
         inference_graph_proto = (
@@ -1533,7 +1540,7 @@ class RunnerManager:
               device='tpu',
               retain_device_placement=False,
               var_options='ON_DEVICE',
-              gen_init_op=True,
+              gen_init_op=FLAGS.inference_gen_tpu_init_op,
               dtype_override=None,
               fprop_dtype_override=None)
           self.inference_graph_exporter.InferenceGraphExporter.Export(
