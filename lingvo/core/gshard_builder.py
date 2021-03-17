@@ -805,6 +805,12 @@ class MoEBuilder(builder.Base):
     ret = tf.math.logical_or(causal, ret)
     return tf.cast(ret, py_utils.FPropDtype(self.params))
 
+  def _DecComputeBiasGraphEdge(self):
+    """Returns an edge of GraphLayer to compute attenion bias for Decoders."""
+    return ('segment_id,segment_pos->qq_bias',
+            self._Fn(
+                'bias', fn=lambda x, y: self._DecNotVisible(x, y) * (-1e+09)))
+
   def DecSelfAttention(self,
                        name,
                        device_mesh=None,
@@ -838,11 +844,8 @@ class MoEBuilder(builder.Base):
         ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
         ('k->k_full', self._State('k_state', state_shape)),
         ('v->v_full', self._State('v_state', state_shape)),
-        ('segment_id,segment_pos->bias',
-         self._Fn('bias',
-                  fn=lambda x, y: self._DecNotVisible(x, y) * (-1e+09),
-                  fn_out=lambda x, y: x + x[-1])),
-        ('bias->bias_full', self._Override('dec_self_attention_bias')),
+        self._DecComputeBiasGraphEdge(),
+        ('qq_bias->bias_full', self._Override('dec_self_attention_bias')),
         ('q,k_full,v_full,bias_full->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
@@ -1017,9 +1020,6 @@ class MoEBuilder(builder.Base):
     else:
       assert p.relative_attention_type == 'bias', p.relative_attention_type
 
-    def _ComputeBias(segment_id, segment_pos):
-      return self._DecNotVisible(segment_id, segment_pos) * (-1e+09)
-
     state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
 
     # pyformat: disable
@@ -1036,7 +1036,7 @@ class MoEBuilder(builder.Base):
         ('v->v_full', self._State('v_state', state_shape)),
         ('segment_pos->key_segment_pos',
          self._State('seg_pos', [None, None], dtype=tf.int32)),
-        ('segment_id,segment_pos->qq_bias', self._Fn('bias', fn=_ComputeBias)),
+        self._DecComputeBiasGraphEdge(),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
         ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
          # Decoder _AddRelativeBias always has bidirectional=False.
@@ -1768,9 +1768,6 @@ class DenseBuilder(MoEBuilder):
     else:
       assert p.relative_attention_type == 'bias', p.relative_attention_type
 
-    def _ComputeBias(segment_id, segment_pos):
-      return self._DecNotVisible(segment_id, segment_pos) * (-1e+09)
-
     state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
 
     def _Output(o, h1, h2, wo1, wo2):
@@ -1803,7 +1800,7 @@ class DenseBuilder(MoEBuilder):
         ('v->v_full', self._State('v_state', state_shape)),
         ('segment_pos->key_segment_pos',
          self._State('seg_pos', [None, None], dtype=tf.int32)),
-        ('segment_id,segment_pos->qq_bias', self._Fn('bias', fn=_ComputeBias)),
+        self._DecComputeBiasGraphEdge(),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
         # Decoder _AddRelativeBias always has bidirectional=False.
         ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
@@ -2445,7 +2442,7 @@ class UniTransformer(base_model.BaseTask):
         'max_length', 512,
         'Max sequence length. Second pos_emb Tensor dim is set to ' +
         'max_length.')
-    p.Define('batch_size', None, 'Batch size.')
+    p.Define('batch_size', None, 'Batch size. Unused.')
     p.Define('num_transformer_layers', None,
              'Number of blocks in builder.{Decoder,Encoder}LayerStack.')
     p.Define(
@@ -2566,6 +2563,20 @@ class UniTransformer(base_model.BaseTask):
     self.CreateChild('dec_out_split', dec_out_split)
     self.CreateChild('logits_split', logits_split)
 
+  def _ComputeDecoderInput(self, theta, input_batch):
+    y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
+    if self.params.positional_embedding:
+      y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
+                                  input_batch.tgt.segment_pos)
+    return py_utils.NestedMap(
+        vec=y,
+        segment_id=input_batch.tgt.segment_ids,
+        segment_pos=input_batch.tgt.segment_pos,
+        encoder_output=tf.zeros_like(y),
+        encoder_segment_id=tf.zeros_like(input_batch.tgt.segment_ids),
+        encoder_segment_pos=tf.zeros_like(input_batch.tgt.segment_pos),
+        aux_loss=tf.convert_to_tensor(0.0, py_utils.FPropDtype(self.params)))
+
   def ComputePredictions(self, theta, input_batch):
     """Forward propagation through one tower of the model.
 
@@ -2580,23 +2591,7 @@ class UniTransformer(base_model.BaseTask):
     p = self.params
 
     with tf.name_scope(p.name):
-      # ops.text_packed:
-      #   target_id_eos => tgt_labels
-      #   target_bos_id => tgt_ids
-
-      y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
-
-      if p.positional_embedding:
-        y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
-                                    input_batch.tgt.segment_pos)
-      decoder_input = py_utils.NestedMap(
-          vec=y,
-          segment_id=input_batch.tgt.segment_ids,
-          segment_pos=input_batch.tgt.segment_pos,
-          encoder_output=tf.zeros_like(y),
-          encoder_segment_id=tf.zeros_like(input_batch.tgt.segment_ids),
-          encoder_segment_pos=tf.zeros_like(input_batch.tgt.segment_pos),
-          aux_loss=tf.convert_to_tensor(0.0, py_utils.FPropDtype(p)))
+      decoder_input = self._ComputeDecoderInput(theta, input_batch)
       all_outputs = self.dec.FProp(theta.dec, decoder_input)
       dec_outputs, aux_loss = all_outputs.vec, all_outputs.aux_loss
       dec_outputs *= (p.builder.model_dim**-0.5)
