@@ -2182,7 +2182,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       attention_state_f32 = tf.cast(attention_state, tf.float32)
       location_filter_var_f32 = tf.cast(location_filter_var, tf.float32)
     data_format = 'NCW'
-    if not py_utils.use_xla():
+    if py_utils.use_xla() in ('', 'cpu'):
       # NCW format is not supported on CPU.
       attention_state_f32 = tf.transpose(attention_state_f32, [0, 2, 1])
       data_format = 'NWC'
@@ -2193,7 +2193,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         'SAME',
         data_format=data_format,
         qt='atten_conv')
-    if not py_utils.use_xla():
+    if py_utils.use_xla() in ('', 'cpu'):
       location_feats = tf.transpose(location_feats, [0, 2, 1])
     if p.dtype != tf.float32:
       location_feats = tf.cast(location_feats, p.dtype)
