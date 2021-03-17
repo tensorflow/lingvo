@@ -299,6 +299,12 @@
     <span class="s1">&#39;graph_def_filename&#39;</span><span class="p">,</span> <span class="p">[],</span>
     <span class="s1">&#39;Output inference graph_def filenames. Defaults to CPU graph if &#39;</span>
     <span class="s1">&#39;inference_graph_filename and inference_graph_device are not specified.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;inference_dataset_name&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Name of the dataset whose params to be extracted inference graph with.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;inference_gen_tpu_init_op&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s1">&#39;Whether the tpu_init_op subgraph is generated for TPU inference graph.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;evaler_in_same_address_as_controller&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -1626,7 +1632,8 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">inference_graph_dir</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Writing inference graphs to dir: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">inference_graph_dir</span><span class="p">)</span>
 
-    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span>
+                                        <span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_dataset_name</span><span class="p">)</span>
     <span class="n">task_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">]</span>
     <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">)</span> <span class="ow">and</span>
         <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">):</span>
@@ -1651,7 +1658,7 @@
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
             <span class="n">retain_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">var_options</span><span class="o">=</span><span class="n">var_options</span><span class="p">,</span>
-            <span class="n">gen_init_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">gen_init_op</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_gen_tpu_init_op</span><span class="p">,</span>
             <span class="n">dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">fprop_dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
         <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="p">(</span>
@@ -1685,7 +1692,7 @@
               <span class="n">device</span><span class="o">=</span><span class="s1">&#39;tpu&#39;</span><span class="p">,</span>
               <span class="n">retain_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
               <span class="n">var_options</span><span class="o">=</span><span class="s1">&#39;ON_DEVICE&#39;</span><span class="p">,</span>
-              <span class="n">gen_init_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">gen_init_op</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_gen_tpu_init_op</span><span class="p">,</span>
               <span class="n">dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">fprop_dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">inference_graph_exporter</span><span class="o">.</span><span class="n">InferenceGraphExporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span>
