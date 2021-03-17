@@ -18,10 +18,10 @@ limitations under the License.
 #include <cmath>
 
 #include "lingvo/core/ops/hyps.pb.h"
-#include "lingvo/core/ops/simple_vocab.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
+#include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/util/work_sharder.h"
 
@@ -31,12 +31,6 @@ namespace lingvo {
 namespace {
 constexpr int kNumWorkers = 8;
 }  // namespace
-
-namespace debug {
-static string IdsToStr(const google::protobuf::RepeatedField<int32>& ids) {
-  return debug::IdsToStr(std::vector<int32>(ids.begin(), ids.end()));
-}
-}  // namespace debug
 
 bool IdsMatchUpToIndex(const std::vector<int>& cur_hyp_ids,
                        const std::vector<int>& other_hyp_ids, const int index) {
@@ -210,7 +204,7 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
             for (const auto& e : entries) {
               if (e.word_id == eos_id) {
                 VLOG(3) << "EOS hyp score=" << e.global_score
-                        << " toks=" << debug::IdsToStr(e.prev_labels);
+                        << " toks=" << str_util::Join(e.prev_labels, " ");
                 // We move terminated hyps off of the beam.
                 if (is_last_decoder_step ||
                     (e.global_score > eos_score_threshold &&
@@ -222,7 +216,7 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
               } else if (eoc_id >= 0 && is_last_chunk.vec<bool>()(hyp_id) &&
                          e.word_id == eoc_id) {
                 VLOG(3) << "last chunk hyp score=" << e.global_score
-                        << " toks=" << debug::IdsToStr(e.prev_labels);
+                        << " toks=" << str_util::Join(e.prev_labels, " ");
                 // At the last chunk and output <epsilon>. We terminate the
                 // hypothesis, even though <eos> was not predicted, and
                 // indicate that the final symbol for the hypothesis is
@@ -545,7 +539,7 @@ class BeamSearchStepOp : public OpKernel {
       }
       VLOG(3) << "Step " << t << " hyp " << i
               << " score=" << hyps->at(i).global_score
-              << " toks=" << debug::IdsToStr(hyps->at(i).prev_labels);
+              << " toks=" << str_util::Join(hyps->at(i).prev_labels, " ");
     }
   }
 
@@ -651,7 +645,7 @@ class BeamSearchStepOp : public OpKernel {
         DCHECK_EQ(beam_id, i % num_beams);
         VLOG(2) << "Top EOS hyp @step " << t
                 << " score=" << eos_hyps[i].global_score
-                << " toks=" << debug::IdsToStr(eos_hyps[i].prev_labels);
+                << " toks=" << str_util::Join(eos_hyps[i].prev_labels, " ");
         // Update the best scores.
         if (eos_hyps[i].global_score > t_out_best_scores(beam_id)) {
           t_out_best_scores(beam_id) = eos_hyps[i].global_score;
@@ -788,9 +782,10 @@ class TopKTerminatedHypsOp : public OpKernel {
                     float normalized_score =
                         NormalizedScore(hypothesis, src_size);
                     hypothesis.set_normalized_score(normalized_score);
-                    VLOG(2) << "Add to terminated top-k "
-                            << " score=" << hypothesis.normalized_score()
-                            << " toks=" << debug::IdsToStr(hypothesis.ids());
+                    VLOG(2)
+                        << "Add to terminated top-k "
+                        << " score=" << hypothesis.normalized_score()
+                        << " toks=" << str_util::Join(hypothesis.ids(), " ");
                     // TODO(xbing): avoid acquiring a mutex for each record.
                     mutex_lock l(mu_vec[hyp_id % num_beams]);
                     topk->Add(hypothesis);
@@ -807,8 +802,8 @@ class TopKTerminatedHypsOp : public OpKernel {
       std::sort(ith_topk.begin(), ith_topk.end(), BetterTerminatedHyp());
       for (int j = 0; j < ith_topk.size(); ++j) {
         t_topk_hyps(i, j) = ith_topk[j].SerializeAsString();
-        VLOG(2) << "TopK(" << i << ", " << j << ") = "
-                << debug::IdsToStr(ith_topk[j].ids());
+        VLOG(2) << "TopK(" << i << ", " << j
+                << ") = " << str_util::Join(ith_topk[j].ids(), " ");
       }
     }
   }
