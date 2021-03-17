@@ -24,6 +24,8 @@
 import bisect
 import math
 import string
+from typing import Optional, Tuple, Union
+
 from absl import logging
 from lingvo import compat as tf
 from lingvo.core import attention_util
@@ -4797,7 +4799,12 @@ class FunnelPoolingLayer(StrideLayer):
         'implementation does not consider this.')
     return p
 
-  def FProp(self, theta, inputs, paddings=None):
+  def FProp(
+      self,
+      theta: py_utils.NestedMap,
+      inputs: tf.Tensor,
+      paddings: Optional[tf.Tensor] = None,
+  ) -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
     """Applies pooling to the inputs.
 
     Args:
@@ -4808,8 +4815,8 @@ class FunnelPoolingLayer(StrideLayer):
         striding will be applied to the time dim.
 
     Returns:
-      Pooled tensor and paddings, with the pooling/striding applied to the time
-      dimension. The pooled paddings will be None if input paddings is None.
+      An (output, paddings) tensor tuple if paddings is not None, else just
+      output, with the pooling/striding applied to the time dimension.
     """
     # Notes:
     # - The output shape is [batch, out_len, dim], where:
@@ -4842,7 +4849,9 @@ class FunnelPoolingLayer(StrideLayer):
       assert p.first_n is None or p.first_n == 1
       pooled_tensor = inputs[:, :1]
       pooled_paddings = paddings[:, :1] if paddings is not None else None
-      return pooled_tensor, pooled_paddings
+      if pooled_paddings is not None:
+        return pooled_tensor, pooled_paddings
+      return pooled_tensor
 
     if p.first_n:
       inputs = inputs[:, :p.first_n]
@@ -4850,7 +4859,9 @@ class FunnelPoolingLayer(StrideLayer):
 
     # stride == 1
     if p.stride == 1:
-      return inputs, paddings
+      if paddings is not None:
+        return inputs, paddings
+      return inputs
 
     # stride > 1
     if p.begin_intact > 0:
@@ -4919,8 +4930,8 @@ class FunnelPoolingLayer(StrideLayer):
     if pooled_paddings is not None:
       pooled_tensor *= tf.cast(
           tf.expand_dims(1.0 - pooled_paddings, -1), pooled_tensor.dtype)
-
-    return pooled_tensor, pooled_paddings
+      return pooled_tensor, pooled_paddings
+    return pooled_tensor
 
 
 class FunnelUpsampleLayer(base_layer.BaseLayer):
@@ -5614,7 +5625,7 @@ class Builder(builder.Base):
     p = self.params
 
     if p.selfatten_add_unnormalized_input:
-      shortcut_sub = ('i.vec->strided_input,_',
+      shortcut_sub = ('i.vec->strided_input',
                       self._Pool('shortcut_after_pooling', stride, first_n))
     else:
       # Reuse 'strided_query' to avoid doing the pooling twice

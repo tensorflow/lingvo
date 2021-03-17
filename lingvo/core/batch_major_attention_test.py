@@ -3191,7 +3191,6 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'begin_intact': 1,
           'trunc_seq': True,
       })
-
   def testFunnelTransformerStack(self, strides, begin_intact=0, trunc_seq=True):
     with self.session(use_gpu=False) as sess:
       bs = 2
@@ -3365,6 +3364,41 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       target_tensor *= (1.0 - paddings_np[:, ::stride, None])
 
       self.assertAllClose(target_tensor, pooled_tensor_np)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_avg_pool_no_paddings',
+          'stride': 2,
+          'pooling_type': 'AVG',
+      }, {
+          'testcase_name': '_max_pool_no_paddings',
+          'stride': 2,
+          'pooling_type': 'MAX',
+      })
+  def testFunnelPoolingNoPaddings(self, stride, pooling_type):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      funnel_pooling_params = attention.FunnelPoolingLayer.Params().Set(
+          name='funnel_pool', stride=stride, pooling_type=pooling_type)
+      l = funnel_pooling_params.Instantiate()
+      inputs_np = np.random.random([bs, sl, d]) * 10
+      inputs = tf.constant(inputs_np, dtype=np.float)
+      pooled_tensor = l.FPropDefaultTheta(inputs)
+      tf.global_variables_initializer().run()
+      pooled_tensor_np = sess.run(pooled_tensor)
+      with self.subTest('test_output_shape'):
+        self.assertAllEqual([bs, sl // stride, d], pooled_tensor_np.shape)
+
+      inputs_4d = inputs_np.copy().reshape([bs, sl // stride, stride, d])
+      if pooling_type == 'AVG':
+        target_tensor = np.sum(inputs_4d, axis=2) / 2
+      elif pooling_type == 'MAX':
+        target_tensor = np.max(inputs_4d, axis=2)
+      with self.subTest('test_output_value'):
+        self.assertAllClose(target_tensor, pooled_tensor_np)
 
   @parameterized.named_parameters(
       {

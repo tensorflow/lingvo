@@ -1737,7 +1737,7 @@ class PoolingLayerTest(test_utils.TestCase, parameterized.TestCase):
       input_paddings = tf.convert_to_tensor(input_paddings, dtype=tf.float32)
       output, output_paddings = pooling_layer.FPropDefaultTheta(
           inputs, input_paddings)
-      output_without_padding, _ = pooling_layer.FPropDefaultTheta(inputs)
+      output_without_padding = pooling_layer.FPropDefaultTheta(inputs)
       tf.global_variables_initializer().run()
       output_val, output_paddings_val, output_without_padding_val = sess.run(
           [output, output_paddings, output_without_padding])
@@ -1763,26 +1763,39 @@ class PoolingLayerTest(test_utils.TestCase, parameterized.TestCase):
       output1, _ = pool_layer.FPropDefaultTheta(inputs1, in_padding1)
       self.evaluate(tf.global_variables_initializer())
       print([np.array_repr(output1.eval())])
-      # pyformat: disable
-      expected_output1 = [
-          [[[18., 19., 20.],
-            [21., 22., 23.]],
-           [[30., 31., 32.],
-            [33., 34., 35.]],
-           [[42., 43., 44.],
-            [45., 46., 47.]],
-           [[42., 43., 44.],
-            [45., 46., 47.]]],
-          [[[66., 67., 68.],
-            [69., 70., 71.]],
-           [[78., 79., 80.],
-            [81., 82., 83.]],
-           [[90., 91., 92.],
-            [93., 94., 95.]],
-           [[90., 91., 92.],
-            [93., 94., 95.]]]]
-      # pyformat: enable
+      expected_output1 = [[[[18., 19., 20.], [21., 22., 23.]],
+                           [[30., 31., 32.], [33., 34., 35.]],
+                           [[42., 43., 44.], [45., 46., 47.]],
+                           [[42., 43., 44.], [45., 46., 47.]]],
+                          [[[66., 67., 68.], [69., 70., 71.]],
+                           [[78., 79., 80.], [81., 82., 83.]],
+                           [[90., 91., 92.], [93., 94., 95.]],
+                           [[90., 91., 92.], [93., 94., 95.]]]]
       self.assertAllClose(expected_output1, output1.eval())
+
+  def test2DPoolLayerNoPaddingsFProp(self):
+    with self.session(use_gpu=True):
+      params = layers.PoolingLayer.Params()
+      params.name = 'pool'
+      params.window_shape = [3, 3]
+      params.window_stride = [1, 2]
+
+      pool_layer = layers.PoolingLayer(params)
+      inputs = tf.constant(
+          np.arange(96, dtype='float32').reshape([2, 4, 4, 3]),
+          dtype=tf.float32)
+
+      outputs = pool_layer.FPropDefaultTheta(inputs)
+      self.evaluate(tf.global_variables_initializer())
+      expected_outputs = [[[[18., 19., 20.], [21., 22., 23.]],
+                           [[30., 31., 32.], [33., 34., 35.]],
+                           [[42., 43., 44.], [45., 46., 47.]],
+                           [[42., 43., 44.], [45., 46., 47.]]],
+                          [[[66., 67., 68.], [69., 70., 71.]],
+                           [[78., 79., 80.], [81., 82., 83.]],
+                           [[90., 91., 92.], [93., 94., 95.]],
+                           [[90., 91., 92.], [93., 94., 95.]]]]
+      self.assertAllClose(expected_outputs, outputs.eval())
 
   def testPoolLayerMoreShapes(self):
     with self.session(use_gpu=True):
@@ -1817,7 +1830,11 @@ class PoolingLayerTest(test_utils.TestCase, parameterized.TestCase):
 
 class BlurPoolLayerTest(test_utils.TestCase):
 
-  def _testBlurPool(self, subsample_type, blur_filter, expected_output):
+  def _testBlurPool(self,
+                    subsample_type,
+                    blur_filter,
+                    expected_output,
+                    has_paddings=True):
     with self.session(use_gpu=True):
       p = layers.BlurPoolLayer.Params().Set(
           name='blur_pool',
@@ -1826,18 +1843,26 @@ class BlurPoolLayerTest(test_utils.TestCase):
           blur_filter=blur_filter)
 
       layer = p.Instantiate()
-      in_padding1 = tf.convert_to_tensor([[0, 0, 0, 1], [0, 0, 1, 1]],
-                                         dtype=tf.float32)
-      expected_out_padding = [[0, 1], [0, 1]]
       inputs1 = tf.constant(
           np.arange(24, dtype='float32').reshape([2, 4, 1, 3]),
           dtype=tf.float32)
 
-      output1, out_padding1 = layer.FPropDefaultTheta(inputs1, in_padding1)
-      self.evaluate(tf.global_variables_initializer())
-      print([np.array_repr(output1.eval())])
-      self.assertAllClose(expected_output, output1.eval())
-      self.assertAllClose(expected_out_padding, out_padding1.eval())
+      if has_paddings:
+        in_padding1 = tf.convert_to_tensor([[0, 0, 0, 1], [0, 0, 1, 1]],
+                                           dtype=tf.float32)
+        expected_out_padding = [[0, 1], [0, 1]]
+        output1, out_padding1 = layer.FPropDefaultTheta(inputs1, in_padding1)
+        self.evaluate(tf.global_variables_initializer())
+        with self.subTest('test_output_values'):
+          self.assertAllClose(expected_output, output1.eval())
+
+        with self.subTest('test_output_paddings'):
+          self.assertAllClose(expected_out_padding, out_padding1.eval())
+      else:
+        output1 = layer.FPropDefaultTheta(inputs1)
+        self.evaluate(tf.global_variables_initializer())
+        with self.subTest('test_output_values'):
+          self.assertAllClose(expected_output, output1.eval())
 
   def testBlurPool1D(self):
     expected_output = np.array([[[[1.125, 1.8125, 2.5]], [[0, 0, 0]]],
@@ -1850,6 +1875,20 @@ class BlurPoolLayerTest(test_utils.TestCase):
                                 [[[3.09375, 3.328125, 3.5625]], [[0, 0, 0]]]],
                                dtype=np.float32)
     self._testBlurPool('2D', 'B5', expected_output)
+
+  def testBlurPool1DNoPaddings(self):
+    expected_output = np.array(
+        [[[[1.125, 1.8125, 2.5]], [[5.25, 6.1875, 7.125]]],
+         [[[9.375, 10.0625, 10.75]], [[16.5, 17.4375, 18.375]]]],
+        dtype=np.float32)
+    self._testBlurPool('1D', 'B5', expected_output, has_paddings=False)
+
+  def testBlurPool2DNoPaddings(self):
+    expected_output = np.array(
+        [[[[0.421875, 0.6796875, 0.9375]], [[1.96875, 2.320312, 2.671875]]],
+         [[[3.515625, 3.7734375, 4.03125]], [[6.1875, 6.5390625, 6.890625]]]],
+        dtype=np.float32)
+    self._testBlurPool('2D', 'B5', expected_output, has_paddings=False)
 
 
 class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):

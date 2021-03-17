@@ -19,6 +19,8 @@ import copy
 import functools
 import math
 import numbers
+from typing import Optional, Tuple, Union
+
 import lingvo.compat as tf
 from lingvo.core import activations
 from lingvo.core import base_layer
@@ -1801,7 +1803,12 @@ class PoolingLayer(quant_utils.QuantizableLayer):
     """Compute the output shape given the input shape."""
     return self.OutputShape(self.params, in_shape)
 
-  def FProp(self, theta, inputs, paddings=None):
+  def FProp(
+      self,
+      theta: py_utils.NestedMap,
+      inputs: tf.Tensor,
+      paddings: Optional[tf.Tensor] = None,
+  ) -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
     """Apply pooling to inputs.
 
     Args:
@@ -1815,7 +1822,8 @@ class PoolingLayer(quant_utils.QuantizableLayer):
         time]. Defaults to None, which means there no paddings.
 
     Returns:
-      outputs, out_paddings pair.
+      An (output, paddings) tensor tuple if paddings is not None, else just
+      output tensor.
     """
     p = self.params
     stride = p.window_stride
@@ -1861,7 +1869,8 @@ class PoolingLayer(quant_utils.QuantizableLayer):
       out = self.QTensor('output', out)
       if out_padding is not None:
         out *= tf.expand_dims(tf.expand_dims(1.0 - out_padding, -1), -1)
-      return out, out_padding
+        return out, out_padding
+      return out
 
 
 class BlurPoolLayer(base_layer.BaseLayer):
@@ -1910,7 +1919,12 @@ class BlurPoolLayer(base_layer.BaseLayer):
 
     self.CreateChild('blur_conv', conv_params)
 
-  def FProp(self, theta, inputs, paddings=None):
+  def FProp(
+      self,
+      theta: py_utils.NestedMap,
+      inputs: tf.Tensor,
+      paddings: Optional[tf.Tensor] = None,
+  ) -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
     """Apply blur pooling.
 
     Args:
@@ -1924,7 +1938,8 @@ class BlurPoolLayer(base_layer.BaseLayer):
         time]. Defaults to None, which means there no paddings.
 
     Returns:
-      outputs, out_paddings pair.
+      An (output, paddings) tensor tuple if paddings is not None, else just
+      output tensor.
     """
     p = self.params
     if paddings is not None:
@@ -1949,10 +1964,8 @@ class BlurPoolLayer(base_layer.BaseLayer):
       out_padding = _ComputeConvOutputPadding(
           out_padding, window=2, stride=2, padding_algorithm='SAME')
       out *= (1.0 - out_padding)[..., tf.newaxis, tf.newaxis]
-    else:
-      out_padding = None
-
-    return out, out_padding
+      return out, out_padding
+    return out
 
 
 class SingleShardEmbeddingLayer(base_layer.BaseLayer):

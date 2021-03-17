@@ -171,7 +171,7 @@ class ModelV1(BaseClassifier):
       # Conv, BN (optional)
       act, _ = self.conv[i].FProp(theta.conv[i], act)
       # MaxPool
-      act, _ = self.pool[i].FProp(theta.pool[i], act)
+      act = self.pool[i].FProp(theta.pool[i], act)
       # Dropout (optional)
       if p.dropout_prob > 0.0 and not self.do_eval:
         act = tf.nn.dropout(act, rate=p.dropout_prob, seed=p.random_seed)
