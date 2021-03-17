@@ -171,6 +171,8 @@
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">activations</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -1953,7 +1955,12 @@
     <span class="sd">&quot;&quot;&quot;Compute the output shape given the input shape.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">OutputShape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="PoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="PoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span>
+      <span class="n">theta</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">,</span>
+      <span class="n">inputs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+      <span class="n">paddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
     <span class="sd">&quot;&quot;&quot;Apply pooling to inputs.</span>
 
 <span class="sd">    Args:</span>
@@ -1967,7 +1974,8 @@
 <span class="sd">        time]. Defaults to None, which means there no paddings.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      outputs, out_paddings pair.</span>
+<span class="sd">      An (output, paddings) tensor tuple if paddings is not None, else just</span>
+<span class="sd">      output tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">window_stride</span>
@@ -2013,7 +2021,8 @@
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">out_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">out_padding</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">out_padding</span></div></div>
+        <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">out_padding</span>
+      <span class="k">return</span> <span class="n">out</span></div></div>
 
 
 <div class="viewcode-block" id="BlurPoolLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BlurPoolLayer">[docs]</a><span class="k">class</span> <span class="nc">BlurPoolLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -2062,7 +2071,12 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;blur_conv&#39;</span><span class="p">,</span> <span class="n">conv_params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BlurPoolLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BlurPoolLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="BlurPoolLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BlurPoolLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span>
+      <span class="n">theta</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">,</span>
+      <span class="n">inputs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+      <span class="n">paddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
     <span class="sd">&quot;&quot;&quot;Apply blur pooling.</span>
 
 <span class="sd">    Args:</span>
@@ -2076,7 +2090,8 @@
 <span class="sd">        time]. Defaults to None, which means there no paddings.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      outputs, out_paddings pair.</span>
+<span class="sd">      An (output, paddings) tensor tuple if paddings is not None, else just</span>
+<span class="sd">      output tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2101,10 +2116,8 @@
       <span class="n">out_padding</span> <span class="o">=</span> <span class="n">_ComputeConvOutputPadding</span><span class="p">(</span>
           <span class="n">out_padding</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding_algorithm</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">out_padding</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">out_padding</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">out_padding</span></div></div>
+      <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">out_padding</span>
+    <span class="k">return</span> <span class="n">out</span></div></div>
 
 
 <div class="viewcode-block" id="SingleShardEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">SingleShardEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>

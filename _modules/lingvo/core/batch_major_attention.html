@@ -176,6 +176,8 @@
 <span class="kn">import</span> <span class="nn">bisect</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
 <span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention_util</span>
@@ -4949,7 +4951,12 @@
         <span class="s1">&#39;implementation does not consider this.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="FunnelPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FunnelPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span>
+      <span class="n">theta</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">,</span>
+      <span class="n">inputs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+      <span class="n">paddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
     <span class="sd">&quot;&quot;&quot;Applies pooling to the inputs.</span>
 
 <span class="sd">    Args:</span>
@@ -4960,8 +4967,8 @@
 <span class="sd">        striding will be applied to the time dim.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Pooled tensor and paddings, with the pooling/striding applied to the time</span>
-<span class="sd">      dimension. The pooled paddings will be None if input paddings is None.</span>
+<span class="sd">      An (output, paddings) tensor tuple if paddings is not None, else just</span>
+<span class="sd">      output, with the pooling/striding applied to the time dimension.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Notes:</span>
     <span class="c1"># - The output shape is [batch, out_len, dim], where:</span>
@@ -4994,7 +5001,9 @@
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="o">==</span> <span class="mi">1</span>
       <span class="n">pooled_tensor</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">pooled_paddings</span> <span class="o">=</span> <span class="n">paddings</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-      <span class="k">return</span> <span class="n">pooled_tensor</span><span class="p">,</span> <span class="n">pooled_paddings</span>
+      <span class="k">if</span> <span class="n">pooled_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pooled_tensor</span><span class="p">,</span> <span class="n">pooled_paddings</span>
+      <span class="k">return</span> <span class="n">pooled_tensor</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">:</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="p">]</span>
@@ -5002,7 +5011,9 @@
 
     <span class="c1"># stride == 1</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span>
+      <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span>
+      <span class="k">return</span> <span class="n">inputs</span>
 
     <span class="c1"># stride &gt; 1</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -5071,8 +5082,8 @@
     <span class="k">if</span> <span class="n">pooled_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">pooled_tensor</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">pooled_paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">pooled_tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">pooled_tensor</span><span class="p">,</span> <span class="n">pooled_paddings</span></div></div>
+      <span class="k">return</span> <span class="n">pooled_tensor</span><span class="p">,</span> <span class="n">pooled_paddings</span>
+    <span class="k">return</span> <span class="n">pooled_tensor</span></div></div>
 
 
 <div class="viewcode-block" id="FunnelUpsampleLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer">[docs]</a><span class="k">class</span> <span class="nc">FunnelUpsampleLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -5766,7 +5777,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">selfatten_add_unnormalized_input</span><span class="p">:</span>
-      <span class="n">shortcut_sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;i.vec-&gt;strided_input,_&#39;</span><span class="p">,</span>
+      <span class="n">shortcut_sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;i.vec-&gt;strided_input&#39;</span><span class="p">,</span>
                       <span class="bp">self</span><span class="o">.</span><span class="n">_Pool</span><span class="p">(</span><span class="s1">&#39;shortcut_after_pooling&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Reuse &#39;strided_query&#39; to avoid doing the pooling twice</span>
