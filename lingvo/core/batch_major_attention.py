@@ -1769,7 +1769,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     """Returns the initial state given the batch size."""
     p = self.params
     if (p.inference_step_max_length is not None and
-        p.inference_step_max_length > 0):
+        p.inference_step_max_length > 0 and not p.right_context):
       return self._zero_state_static_length(batch_size)
     else:
       return self._zero_state_dynamic_length(batch_size)
@@ -1821,22 +1821,31 @@ class LocalSelfAttention(MultiHeadedAttention):
     Returns:
       A `.NestedMap` object containing
 
-      - key: [B, p.left_context - 1, N, H].
-      - value: [B, p.left_context - 1, N, H].
-      - masks: [B, p.left_context-1]. Tensor where 0s are masked out positions.
+      - key:   [B, p.left_context - 1 + p.right_context, N, H].
+      - value: [B, p.left_context - 1 + p.right_context, N, H].
+      - masks: [B, p.left_context-1 + p.right_context], 0/1 Tensor where 0s are
+      - masked out positions.
+      - query: (only if p.right_context > 0) [B, p.right_context, N, H].
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
-    assert p.right_context == 0, 'StreamStep does not support look-ahead'
 
-    context_len = p.left_context - 1
+    dtype = py_utils.FPropDtype(p)
+    context_len = p.left_context - 1 + p.right_context
+
     key_state = tf.zeros(
         [batch_size, context_len, p.num_heads, p.hidden_dim // p.num_heads],
-        py_utils.FPropDtype(p))
-    value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
+        dtype)
+    value_state = tf.zeros_like(key_state, dtype)
     # At the beginning, all positions are masked out.
-    masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
-    return py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
+    masks = tf.zeros([batch_size, context_len], dtype)
+    state0 = py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
+
+    if p.right_context > 0:
+      state0.query = tf.zeros([
+          batch_size, p.right_context, p.num_heads, p.hidden_dim // p.num_heads
+      ], dtype)
+    return state0
 
   def IsInferenceStepStatic(self):
     p = self.params
@@ -1861,9 +1870,11 @@ class LocalSelfAttention(MultiHeadedAttention):
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
-    assert p.right_context == 0, ('StreamStep() does not support look ahead.')
 
     if self.IsInferenceStepStatic():
+      assert p.right_context == 0, (
+          'StreamStep() does not yet support look ahead with '
+          'inference_step_max_length set.')
       return self._StreamStepStaticLength(theta, query_vec, paddings, state0)
     else:
       return self._StreamStepDynamicLength(theta, query_vec, paddings, state0)
@@ -2027,7 +2038,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     # Sanity checks.
     b, q = py_utils.GetShape(query_vec, 2)
     unused_n, h = p.num_heads, p.hidden_dim // p.num_heads
-    unused_s = q + p.left_context - 1
+    context_len = p.left_context - 1 + p.right_context
 
     query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
     paddings = py_utils.HasShape(paddings, [b, q])
@@ -2040,33 +2051,46 @@ class LocalSelfAttention(MultiHeadedAttention):
       else:
         query_proj *= h**-0.5
 
+      if p.right_context == 0:
+        # [B, Q, N, H]
+        query = query_proj
+      else:
+        # [B, R + Q, N, H]
+        concat_query = tf.concat([state0.query, query_proj], axis=1)
+        # [B, Q, N, H]
+        query = concat_query[:, :q]
+
       # key, value, mask.
-      # [B, S, N, H].
+      # [B, T, N, H].
       key = tf.concat(
           [state0.key, self.key.FProp(theta.key, query_vec)], axis=1)
-      # [B, S, N, H]
+      # [B, T, N, H]
       value = tf.concat(
           [state0.value, self.value.FProp(theta.value, query_vec)], axis=1)
-      # [B, S]. 1s are masked positions.
+      # [B, T]. 1s are masked positions.
       state_paddings = tf.concat([1 - state0.masks, paddings], axis=1)
+      # t == context_len + q
       t = py_utils.GetShape(state_paddings)[1]
 
       # [B, Q, N, T]
-      logits = self._StreamAttenLogits(theta, query_proj, key)
+      logits = self._StreamAttenLogits(theta, query, key)
 
       very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
 
       with tf.name_scope('compute_padding'):
         # Generate local atten mask.
         # [Q, 1]
-        rows = tf.expand_dims(tf.range(q), -1)
+        # Assuming the current query index starts from 0
+        query_indices = tf.expand_dims(
+            tf.range(-p.right_context, -p.right_context + q), -1)
         # [1, T]
-        cols = tf.expand_dims(tf.range(t), 0)
+        target_indices = tf.expand_dims(tf.range(-context_len, q), 0)
         # 1s are masked positions.
-        # [Q, S]
-        distance = cols - rows
+        # [Q, T]
+        distance = query_indices - target_indices
         local_atten_per_step_paddings = tf.where(
-            tf.logical_and(distance <= p.left_context - 1, distance >= 0),
+            tf.logical_and(distance <= p.left_context - 1,
+                           distance >= -p.right_context),
             tf.zeros([q, t], py_utils.FPropDtype(p)),
             tf.ones([q, t], py_utils.FPropDtype(p)))
         # [1, Q, T]
@@ -2097,9 +2121,11 @@ class LocalSelfAttention(MultiHeadedAttention):
       output = self.post.FProp(theta.post, output)
 
       state1 = py_utils.NestedMap(
-          key=key[:, -(p.left_context - 1):, :, :],
-          value=value[:, -(p.left_context - 1):, :, :],
-          masks=1 - state_paddings[:, -(p.left_context - 1):])
+          key=key[:, q:, :, :],
+          value=value[:, q:, :, :],
+          masks=1 - state_paddings[:, q:])
+      if p.right_context > 0:
+        state1.query = concat_query[:, q:]
       return output, paddings, state1
 
   @classmethod
