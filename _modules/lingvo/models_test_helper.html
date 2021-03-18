@@ -170,6 +170,7 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model_params</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -290,7 +291,14 @@
         <span class="n">p</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">params</span>
 
       <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="s1">&#39;Dev&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">):</span>
-        <span class="n">input_p</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span><span class="o">.</span><span class="n">input</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">input_p</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span><span class="o">.</span><span class="n">input</span>
+        <span class="k">except</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">DatasetError</span><span class="p">:</span>
+          <span class="c1"># Dataset not defined.</span>
+          <span class="k">if</span> <span class="n">dataset</span> <span class="o">==</span> <span class="s1">&#39;Dev&#39;</span><span class="p">:</span>  <span class="c1"># Dev can be optional.</span>
+            <span class="k">pass</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span>
         <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">):</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span>
               <span class="nb">issubclass</span><span class="p">(</span><span class="n">input_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="p">),</span>
