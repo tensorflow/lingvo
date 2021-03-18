@@ -930,6 +930,10 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
       else:
         segment_mask = tf.zeros([batch, 1, time, time])
 
+      shape = py_utils.GetShape(transformer_input)
+      batch_size = shape[0]
+      seq_len = shape[1]
+      paddings = tf.reshape(paddings, [batch_size, seq_len])
       encoded, padding = self.transformer_stack.FProp(theta.transformer_stack,
                                                       transformer_input,
                                                       paddings, segment_mask)

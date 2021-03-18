@@ -2446,6 +2446,10 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
             target_segment_id, aux_segment_id, dtype=layer_in.dtype)
       for layer, layer_theta in zip(self.decoder_trans, theta.decoder_trans):
         # [batch, target_time, dim]
+        shape = py_utils.GetShape(layer_in)
+        batch_size = shape[0]
+        seq_len = shape[1]
+        target_paddings = tf.reshape(target_paddings, [batch_size, seq_len])
         layer_out, _ = layer.FProp(
             layer_theta,
             layer_in,
