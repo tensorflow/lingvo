@@ -2598,6 +2598,10 @@
             <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">aux_segment_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">layer_in</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder_trans</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">decoder_trans</span><span class="p">):</span>
         <span class="c1"># [batch, target_time, dim]</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">layer_in</span><span class="p">)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">])</span>
         <span class="n">layer_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">layer_theta</span><span class="p">,</span>
             <span class="n">layer_in</span><span class="p">,</span>

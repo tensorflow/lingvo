@@ -1082,6 +1082,10 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">segment_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">time</span><span class="p">])</span>
 
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">transformer_input</span><span class="p">)</span>
+      <span class="n">batch_size</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">seq_len</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">])</span>
       <span class="n">encoded</span><span class="p">,</span> <span class="n">padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">,</span>
                                                       <span class="n">transformer_input</span><span class="p">,</span>
                                                       <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">)</span>
