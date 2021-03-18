@@ -753,16 +753,17 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_AdafactorDecayRatePow"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer._AdafactorDecayRatePow">[docs]</a><span class="k">def</span> <span class="nf">_AdafactorDecayRatePow</span><span class="p">(</span><span class="n">exponent</span><span class="p">):</span>
+<div class="viewcode-block" id="_AdafactorDecayRatePow"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer._AdafactorDecayRatePow">[docs]</a><span class="k">def</span> <span class="nf">_AdafactorDecayRatePow</span><span class="p">(</span><span class="n">exponent</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Second moment decay rate where memory-length grows as step_num^exponent.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    exponent: a float between 0 and 1</span>
+<span class="sd">    offset: an optional integer</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    a scalar</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">((</span><span class="n">_StepNum</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">),</span> <span class="o">-</span><span class="n">exponent</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">((</span><span class="n">_StepNum</span><span class="p">()</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">),</span> <span class="o">-</span><span class="n">exponent</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_AdafactorDecayRateAdam"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer._AdafactorDecayRateAdam">[docs]</a><span class="k">def</span> <span class="nf">_AdafactorDecayRateAdam</span><span class="p">(</span><span class="n">beta2</span><span class="p">):</span>
@@ -1131,6 +1132,8 @@
         <span class="s1">&#39;less memory usage.&#39;</span><span class="p">)</span>
     <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decay_exponent_pow&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
                   <span class="s1">&#39;if set, call adafactor_decay_rate_pow from T2T adafactor&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decay_exponent_offset&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                  <span class="s1">&#39;start step number for adafactor decay schedule&#39;</span><span class="p">)</span>
     <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;min_dim_size_to_factor&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="s1">&#39;only factor accumulator if &#39;</span>
         <span class="s1">&#39;two tensor dimensions are at least this size.&#39;</span><span class="p">)</span>
@@ -1143,7 +1146,8 @@
 <div class="viewcode-block" id="XLAShardingAdafactor.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactor.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_pow</span><span class="p">:</span>
-      <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">_AdafactorDecayRatePow</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_pow</span><span class="p">)</span>
+      <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">_AdafactorDecayRatePow</span><span class="p">(</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_pow</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_offset</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">_AdafactorDecayRateAdam</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">beta2</span><span class="p">)</span>
 
