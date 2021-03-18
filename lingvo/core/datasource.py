@@ -666,6 +666,9 @@ class TFDatasetMixer(TFDatasetSource):
       datasets[i] = datasets[i].map(
           functools.partial(SetSourceId, i), **self._map_args)
 
+    if len(datasets) == 1:
+      return datasets[0]
+
     if p.broadcast_dataset_structures:
       expected_structure = {}
       for dataset in datasets:
