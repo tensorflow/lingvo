@@ -890,7 +890,17 @@
 <span class="sd">    Args:</span>
 <span class="sd">      sess: A tensorflow session.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_map_args</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default args for tf.data.DataSet.map().&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;num_parallel_calls&#39;</span><span class="p">:</span>
+            <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">in_unit_test</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
+        <span class="s1">&#39;deterministic&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">require_sequential_input_order</span>
+    <span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="FilePatternToDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.FilePatternToDataSource">[docs]</a><span class="k">def</span> <span class="nf">FilePatternToDataSource</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
@@ -1541,17 +1551,7 @@
     <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_paddings&#39;</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensorspec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensorspec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">_map_args</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Default args for tf.data.DataSet.map().&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s1">&#39;num_parallel_calls&#39;</span><span class="p">:</span>
-            <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">in_unit_test</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">,</span>
-        <span class="s1">&#39;deterministic&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">require_sequential_input_order</span>
-    <span class="p">}</span></div>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensorspec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="BaseDataExampleInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseDataExampleInputGenerator</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
