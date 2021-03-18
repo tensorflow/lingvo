@@ -740,6 +740,16 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """
     raise NotImplementedError()
 
+  @property
+  def _map_args(self):
+    """Default args for tf.data.DataSet.map()."""
+    return {
+        'num_parallel_calls':
+            1 if self.cluster.in_unit_test else tf.data.experimental.AUTOTUNE,
+        'deterministic':
+            self.cluster.require_sequential_input_order
+    }
+
 
 def FilePatternToDataSource(p):
   """Helper to turn p.file_pattern (deprecated) into p.file_datasource."""
@@ -1390,16 +1400,6 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
       return tf.ones([], dtype=tensorspec.dtype)
     else:
       return tf.zeros([], dtype=tensorspec.dtype)
-
-  @property
-  def _map_args(self):
-    """Default args for tf.data.DataSet.map()."""
-    return {
-        'num_parallel_calls':
-            1 if self.cluster.in_unit_test else tf.data.experimental.AUTOTUNE,
-        'deterministic':
-            self.cluster.require_sequential_input_order
-    }
 
 
 class BaseDataExampleInputGenerator(BaseInputGenerator):
