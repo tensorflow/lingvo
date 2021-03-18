@@ -96,6 +96,7 @@ py_library(
         ":compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
+        "//lingvo/core:base_model_params",
         "//lingvo/core:bn_layers",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",

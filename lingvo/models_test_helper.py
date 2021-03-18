@@ -18,6 +18,7 @@
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
+from lingvo.core import base_model_params
 from lingvo.core import bn_layers
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
@@ -138,7 +139,14 @@ class BaseModelsTest(test_utils.TestCase):
         p = mdl.params
 
       for dataset in ('Train', 'Dev', 'Test'):
-        input_p = registry.GetParams(name, dataset).input
+        try:
+          input_p = registry.GetParams(name, dataset).input
+        except base_model_params.DatasetError:
+          # Dataset not defined.
+          if dataset == 'Dev':  # Dev can be optional.
+            pass
+          else:
+            raise
         if issubclass(p.cls, base_model.SingleTaskModel):
           self.assertTrue(
               issubclass(input_p.cls, base_input_generator.BaseInputGenerator),
