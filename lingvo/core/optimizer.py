@@ -601,16 +601,17 @@ def _StepNum():
   return tf.cast(tf.train.get_or_create_global_step(), tf.float32)
 
 
-def _AdafactorDecayRatePow(exponent):
+def _AdafactorDecayRatePow(exponent, offset=0):
   """Second moment decay rate where memory-length grows as step_num^exponent.
 
   Args:
     exponent: a float between 0 and 1
+    offset: an optional integer
 
   Returns:
     a scalar
   """
-  return 1.0 - tf.pow((_StepNum() + 1.0), -exponent)
+  return 1.0 - tf.pow((_StepNum() - offset + 1.0), -exponent)
 
 
 def _AdafactorDecayRateAdam(beta2):
@@ -979,6 +980,8 @@ class XLAShardingAdafactor(Base):
         'less memory usage.')
     params.Define('decay_exponent_pow', None,
                   'if set, call adafactor_decay_rate_pow from T2T adafactor')
+    params.Define('decay_exponent_offset', 0,
+                  'start step number for adafactor decay schedule')
     params.Define(
         'min_dim_size_to_factor', 128, 'only factor accumulator if '
         'two tensor dimensions are at least this size.')
@@ -991,7 +994,8 @@ class XLAShardingAdafactor(Base):
   def GetOptimizer(self, lr):
     params = self.params
     if params.decay_exponent_pow:
-      decay_rate = _AdafactorDecayRatePow(params.decay_exponent_pow)
+      decay_rate = _AdafactorDecayRatePow(
+          params.decay_exponent_pow, offset=params.decay_exponent_offset)
     else:
       decay_rate = _AdafactorDecayRateAdam(params.beta2)
 

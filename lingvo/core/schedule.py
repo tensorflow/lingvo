@@ -789,12 +789,14 @@ class SqrtDecay(BaseSchedule):
     p = super().Params()
     p.Define('warmup_steps', 10000, 'Number of warm up steps.')
     p.Define('multiplier', 1.0, 'Multiplier.')
+    p.Define('offset', 0.0, 'Offset.')
     return p
 
   def Value(self):
     p = self.params
     step_num = tf.cast(py_utils.GetGlobalStep(), tf.float32)
-    learning_rate = tf.math.rsqrt(tf.maximum(step_num, p.warmup_steps))
+    learning_rate = tf.math.rsqrt(
+        tf.maximum(step_num - p.offset, p.warmup_steps))
     learning_rate *= p.multiplier
     return learning_rate
 
