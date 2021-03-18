@@ -1243,9 +1243,11 @@ Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing</p>
 <ul class="simple">
-<li><p>key: [B, p.left_context - 1, N, H].</p></li>
-<li><p>value: [B, p.left_context - 1, N, H].</p></li>
-<li><p>masks: [B, p.left_context-1]. Tensor where 0s are masked out positions.</p></li>
+<li><p>key:   [B, p.left_context - 1 + p.right_context, N, H].</p></li>
+<li><p>value: [B, p.left_context - 1 + p.right_context, N, H].</p></li>
+<li><p>masks: [B, p.left_context-1 + p.right_context], 0/1 Tensor where 0s are</p></li>
+<li><p>masked out positions.</p></li>
+<li><p>query: (only if p.right_context &gt; 0) [B, p.right_context, N, H].</p></li>
 </ul>
 </p>
 </dd>
