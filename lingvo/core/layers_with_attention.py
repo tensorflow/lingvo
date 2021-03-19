@@ -738,6 +738,10 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         ' than or equal to 1.0. This is the ratio between max allowed'
         ' examples per expert over the average number of examples per '
         ' expert assuming routing is completely uniform.')
+    p.Define(
+        'expert_weight_shards', 1,
+        'Shard each expert params into this many number of shards to reduce'
+        ' the size of individual weight params.')
 
     # SPMD partition related params.
     # M - model_dim, for both inputs and outputs.
@@ -800,7 +804,12 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
     # Next create the expert network.
     # Params initialization follows gshard_builder.py
-    emh_shape = [p.num_experts, p.input_dim, p.hidden_dim]
+    # emh tensor typically mesh-shard on first dim and last dim. Hence, here we
+    # split the tensor manually into multiple tensors on the second dim.
+    assert p.expert_weight_shards > 0
+    emh_shape = [
+        p.num_experts, p.input_dim // p.expert_weight_shards, p.hidden_dim
+    ]
     stddev = (1. / p.input_dim)**0.5
     wi_init_scale = stddev * 3.**0.5
     wi_pc = py_utils.WeightParams(
@@ -809,10 +818,16 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=wp.emh)
-    self.CreateVariable('wi', wi_pc)
+
+    for ii in range(p.expert_weight_shards):
+      self.CreateVariable('wi_%d' % ii, wi_pc)
 
     # EHM Tensor (output transformation after RELU)
-    ehm_shape = [p.num_experts, p.hidden_dim, p.output_dim]
+    # ehm tensor typically shard on the first dim and the second dim. Here we
+    # manually split the tensor on the last dim into multiple tensors.
+    ehm_shape = [
+        p.num_experts, p.hidden_dim, p.output_dim // p.expert_weight_shards
+    ]
     stddev = (1. / p.hidden_dim)**0.5
     wo_init_scale = stddev * 3.**0.5
     wo_pc = py_utils.WeightParams(
@@ -821,7 +836,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=wp.ehm)
-    self.CreateVariable('wo', wo_pc)
+
+    for ii in range(p.expert_weight_shards):
+      self.CreateVariable('wo_%d' % ii, wo_pc)
 
     # TODO(yonghui): Possibly also add bias variables.
 
@@ -926,18 +943,34 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       # of shape [g, s, e, c]
       dispatch_tensor = _split(dispatch_tensor, ap.gsec)
 
+      theta_wis = []
+      theta_wos = []
+      for ii in range(p.expert_weight_shards):
+        theta_wis.append(theta.get('wi_%d' % ii))
+        theta_wos.append(theta.get('wo_%d' % ii))
+
+      if len(theta_wis) == 1:
+        theta_wi = theta_wis[0]
+      else:
+        theta_wi = tf.concat(theta_wis, 1)
+
+      if len(theta_wos) == 1:
+        theta_wo = theta_wos[0]
+      else:
+        theta_wo = tf.concat(theta_wos, 2)
+
       expert_inputs = _split(
           tf.einsum('gsec,gsm->egcm', dispatch_tensor, reshaped_inputs),
           ap.egcm)
       hidden = _split(
-          tf.einsum('egcm,emh->egch', expert_inputs, theta.wi), ap.egch)
+          tf.einsum('egcm,emh->egch', expert_inputs, theta_wi), ap.egch)
       # Activation function.
       hidden = activations.GetFn(p.activation)(hidden)
       # Dropout.
       hidden = self.relu_dropout.FProp(theta.relu_dropout, hidden)
       # Output
       expert_output = _split(
-          tf.einsum('egch,ehm->egcm', hidden, theta.wo), ap.egcm)
+          tf.einsum('egch,ehm->egcm', hidden, theta_wo), ap.egcm)
       # Now transpose and reshard.
       transposed_expert_output = _split(
           tf.einsum('egcm->gecm', expert_output), ap.gecm)

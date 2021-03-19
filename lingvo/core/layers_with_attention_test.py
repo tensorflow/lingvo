@@ -94,16 +94,51 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       actual_layer_output = self.evaluate(h)
       # pylint: disable=bad-whitespace
-      expected_output = [[[0.75621, 0.37295103, 0.56047],
-                          [1.5269375, 2.1854978, 2.0311358]],
-                         [[0.31018698, 0.0721665, 0.6291196],
-                          [1.2051861, 0.23239791, 1.1243742]],
-                         [[0.08191884, -0.07450339, -1.573398],
-                          [0.91850793, 0.36956626, 0.01488252]],
-                         [[0.51935196, 0.29575813, -0.6700821],
-                          [0.04179591, -0.14877638, -1.5491983]],
-                         [[0.05816227, -0.6668698, -0.48498422],
-                          [-0.273085, 0.63597345, 0.2428317]]]
+      expected_output = [[[-0.34213868, -0.1577737, 0.15908651],
+                          [0.0995039, 2.0593567, 2.422616]],
+                         [[-0.9544622, -0.289206, 0.3745581],
+                          [2.7121983, 0.49732625, 0.98936653]],
+                         [[-0.22911909, -0.52321994, -1.3037556],
+                          [0.29460418, 0.14727175, 0.3075519]],
+                         [[-0.03022301, 0.00274765, -0.4092078],
+                          [-1.0508028, 0.11724383, -0.70965374]],
+                         [[-0.3473336, -0.4793697, -0.26441547],
+                          [-1.6704988, 0.60920537, 0.7469079]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
+  def testTransformerShardedMoeLayerShardedWeights(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 4], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layers_with_attention.TransformerShardedMoeLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 4
+      p.hidden_dim = 7
+      p.output_dim = 4
+      p.num_groups = 2
+      p.num_experts = 4
+      p.expert_capacity_factor = 2
+      p.expert_weight_shards = 2
+      moe_fflayer = layers_with_attention.TransformerShardedMoeLayer(p)
+
+      h = moe_fflayer.FPropDefaultTheta(inputs, paddings)
+      self.evaluate(tf.global_variables_initializer())
+      actual_layer_output = self.evaluate(h)
+      # pylint: disable=bad-whitespace
+      expected_output = [[[-1.6894771, -0.6188934, 1.3259739, 0.6954013],
+                          [2.0653946, 2.946611, -0.8549718, -0.5904686]],
+                         [[0.15020806, 1.439679, 0.54579806, 2.0817866],
+                          [-0.08175106, -0.7739575, -0.9843587, 0.46894]],
+                         [[0.8291634, -0.58913743, 0.6789296, 0.08628751],
+                          [-0.431438, -1.3788042, -0.8718487, -0.6101668]],
+                         [[0.32909858, 0.5900509, -0.7350087, -1.3075548],
+                          [0.46176028, 1.3289857, -1.640419, -0.9618089]],
+                         [[-1.2423284, -0.26266062, 2.591324, 0.13978946],
+                          [-0.10520535, -0.00721201, -0.44894043, 1.3547784]]]
       # pyformat: enable
       # pylint: enable=bad-whitespace
       print(np.array_repr(actual_layer_output))
