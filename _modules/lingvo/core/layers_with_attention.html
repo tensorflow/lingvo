@@ -890,6 +890,10 @@
         <span class="s1">&#39; than or equal to 1.0. This is the ratio between max allowed&#39;</span>
         <span class="s1">&#39; examples per expert over the average number of examples per &#39;</span>
         <span class="s1">&#39; expert assuming routing is completely uniform.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;expert_weight_shards&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;Shard each expert params into this many number of shards to reduce&#39;</span>
+        <span class="s1">&#39; the size of individual weight params.&#39;</span><span class="p">)</span>
 
     <span class="c1"># SPMD partition related params.</span>
     <span class="c1"># M - model_dim, for both inputs and outputs.</span>
@@ -952,7 +956,12 @@
 
     <span class="c1"># Next create the expert network.</span>
     <span class="c1"># Params initialization follows gshard_builder.py</span>
-    <span class="n">emh_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_experts</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">]</span>
+    <span class="c1"># emh tensor typically mesh-shard on first dim and last dim. Hence, here we</span>
+    <span class="c1"># split the tensor manually into multiple tensors on the second dim.</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">expert_weight_shards</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">emh_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">num_experts</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">expert_weight_shards</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+    <span class="p">]</span>
     <span class="n">stddev</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
     <span class="n">wi_init_scale</span> <span class="o">=</span> <span class="n">stddev</span> <span class="o">*</span> <span class="mf">3.</span><span class="o">**</span><span class="mf">0.5</span>
     <span class="n">wi_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -961,10 +970,16 @@
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wp</span><span class="o">.</span><span class="n">emh</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">wi_pc</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">expert_weight_shards</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wi_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ii</span><span class="p">,</span> <span class="n">wi_pc</span><span class="p">)</span>
 
     <span class="c1"># EHM Tensor (output transformation after RELU)</span>
-    <span class="n">ehm_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_experts</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]</span>
+    <span class="c1"># ehm tensor typically shard on the first dim and the second dim. Here we</span>
+    <span class="c1"># manually split the tensor on the last dim into multiple tensors.</span>
+    <span class="n">ehm_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">num_experts</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">expert_weight_shards</span>
+    <span class="p">]</span>
     <span class="n">stddev</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
     <span class="n">wo_init_scale</span> <span class="o">=</span> <span class="n">stddev</span> <span class="o">*</span> <span class="mf">3.</span><span class="o">**</span><span class="mf">0.5</span>
     <span class="n">wo_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -973,7 +988,9 @@
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wp</span><span class="o">.</span><span class="n">ehm</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_pc</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">expert_weight_shards</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wo_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ii</span><span class="p">,</span> <span class="n">wo_pc</span><span class="p">)</span>
 
     <span class="c1"># TODO(yonghui): Possibly also add bias variables.</span>
 
@@ -1078,18 +1095,34 @@
       <span class="c1"># of shape [g, s, e, c]</span>
       <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">ap</span><span class="o">.</span><span class="n">gsec</span><span class="p">)</span>
 
+      <span class="n">theta_wis</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">theta_wos</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">expert_weight_shards</span><span class="p">):</span>
+        <span class="n">theta_wis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wi_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ii</span><span class="p">))</span>
+        <span class="n">theta_wos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wo_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ii</span><span class="p">))</span>
+
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_wis</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">theta_wi</span> <span class="o">=</span> <span class="n">theta_wis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">theta_wi</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">theta_wis</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_wos</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">theta_wo</span> <span class="o">=</span> <span class="n">theta_wos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">theta_wo</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">theta_wos</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
       <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;gsec,gsm-&gt;egcm&#39;</span><span class="p">,</span> <span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">reshaped_inputs</span><span class="p">),</span>
           <span class="n">ap</span><span class="o">.</span><span class="n">egcm</span><span class="p">)</span>
       <span class="n">hidden</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;egcm,emh-&gt;egch&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">wi</span><span class="p">),</span> <span class="n">ap</span><span class="o">.</span><span class="n">egch</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;egcm,emh-&gt;egch&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">theta_wi</span><span class="p">),</span> <span class="n">ap</span><span class="o">.</span><span class="n">egch</span><span class="p">)</span>
       <span class="c1"># Activation function.</span>
       <span class="n">hidden</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">hidden</span><span class="p">)</span>
       <span class="c1"># Dropout.</span>
       <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">relu_dropout</span><span class="p">,</span> <span class="n">hidden</span><span class="p">)</span>
       <span class="c1"># Output</span>
       <span class="n">expert_output</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;egch,ehm-&gt;egcm&#39;</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">wo</span><span class="p">),</span> <span class="n">ap</span><span class="o">.</span><span class="n">egcm</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;egch,ehm-&gt;egcm&#39;</span><span class="p">,</span> <span class="n">hidden</span><span class="p">,</span> <span class="n">theta_wo</span><span class="p">),</span> <span class="n">ap</span><span class="o">.</span><span class="n">egcm</span><span class="p">)</span>
       <span class="c1"># Now transpose and reshard.</span>
       <span class="n">transposed_expert_output</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;egcm-&gt;gecm&#39;</span><span class="p">,</span> <span class="n">expert_output</span><span class="p">),</span> <span class="n">ap</span><span class="o">.</span><span class="n">gecm</span><span class="p">)</span>
