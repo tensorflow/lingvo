@@ -48,8 +48,8 @@ from tensorflow import _major_api_version
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
 if tf1.executing_eagerly():
-  logging.warning("Lingvo does not support eager execution yet. Please disable "
-                  "eager execution with tf.compat.v1.disable_eager_execution() "
+  logging.warning("Lingvo with eager execution is not well tested. Consider "
+                  "disabling eager with tf.compat.v1.disable_eager_execution() "
                   "or proceed at your own risk.")
 
 
