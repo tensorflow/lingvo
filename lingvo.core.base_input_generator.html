@@ -617,6 +617,55 @@ labels for step-by-step teacher-forcing training, respectively.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIdsWithOffsets">
+<code class="sig-name descname"><span class="pre">StringsToIdsWithOffsets</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_append_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.StringsToIdsWithOffsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIdsWithOffsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tokenize strs into vocab ids, and also return byte-level offsets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strs</strong> – A vector of strings.</p></li>
+<li><p><strong>is_source</strong> – A bool to indicate whether to use <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_max_length</span></code> to pad
+‘strs’.</p></li>
+<li><p><strong>external_max_length</strong> – An int providing the max_length for strs.</p></li>
+<li><p><strong>external_append_eos</strong> – Bool or None. If None, will be ignored and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">params.append_eos</span></code> will be used. If bool, will determine if an eos
+symbol will be added to tokens.</p></li>
+<li><p><strong>key</strong> – A string key in case the model has multiple tokenizers.</p></li>
+<li><p><strong>languages</strong> – A vector of str with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">strs</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (ids, labels, paddings) with the same shape [batch, maxlen].</p>
+<ul class="simple">
+<li><p>ids[i, j] is the input token id of i-th sample for j-th step.</p></li>
+<li><p>labels[i, j] is the target token id of i-th sample for j-th step.</p></li>
+<li><p>paddings[i, j] is 1 iff i-th sample’s j-th step is padded.</p></li>
+<li><dl class="simple">
+<dt>start_offset[i, j] is the byte-level offset of the start of the j-th id</dt><dd><p>in the i-th original string</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>end_offset[i, j] is the byte-level offset of the end of the j-th id</dt><dd><p>in the i-th original string</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Usually ids[i, 0] == SOS, ids[i, j+1] == labels[i, j], and labels[i, :]
+ends with EOS. That is, <code class="xref py py-obj docutils literal notranslate"><span class="pre">ids</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> are inputs and ground-truth
+labels for step-by-step teacher-forcing training, respectively.</p>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If unknown token type.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#Exception" title="(in Python v3.7)"><strong>Exception</strong></a> – If the specified tokenizer does not support offsets.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.IdsToStrings">
 <code class="sig-name descname"><span class="pre">IdsToStrings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.IdsToStrings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.IdsToStrings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts ids back to strings.</p>

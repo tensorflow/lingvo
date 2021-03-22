@@ -1317,6 +1317,58 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
         <span class="n">strs</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">external_append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="n">languages</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseSequenceInputGenerator.StringsToIdsWithOffsets"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIdsWithOffsets">[docs]</a>  <span class="k">def</span> <span class="nf">StringsToIdsWithOffsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                              <span class="n">strs</span><span class="p">,</span>
+                              <span class="n">is_source</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                              <span class="n">external_max_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">external_append_eos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tokenize strs into vocab ids, and also return byte-level offsets.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      strs: A vector of strings.</span>
+<span class="sd">      is_source: A bool to indicate whether to use `source_max_length` to pad</span>
+<span class="sd">        &#39;strs&#39;.</span>
+<span class="sd">      external_max_length: An int providing the max_length for strs.</span>
+<span class="sd">      external_append_eos: Bool or None. If None, will be ignored and</span>
+<span class="sd">        `params.append_eos` will be used. If bool, will determine if an eos</span>
+<span class="sd">        symbol will be added to tokens.</span>
+<span class="sd">      key: A string key in case the model has multiple tokenizers.</span>
+<span class="sd">      languages: A vector of str with the same length as `strs`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].</span>
+
+<span class="sd">      - ids[i, j] is the input token id of i-th sample for j-th step.</span>
+<span class="sd">      - labels[i, j] is the target token id of i-th sample for j-th step.</span>
+<span class="sd">      - paddings[i, j] is 1 iff i-th sample&#39;s j-th step is padded.</span>
+<span class="sd">      - start_offset[i, j] is the byte-level offset of the start of the j-th id</span>
+<span class="sd">          in the i-th original string</span>
+<span class="sd">      - end_offset[i, j] is the byte-level offset of the end of the j-th id</span>
+<span class="sd">          in the i-th original string</span>
+
+<span class="sd">      Usually ids[i, 0] == SOS, ids[i, j+1] == labels[i, j], and labels[i, :]</span>
+<span class="sd">      ends with EOS. That is, `ids` and `labels` are inputs and ground-truth</span>
+<span class="sd">      labels for step-by-step teacher-forcing training, respectively.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">      Exception: If the specified tokenizer does not support offsets.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">external_max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">maxlen</span> <span class="o">=</span> <span class="n">external_max_length</span>
+    <span class="k">elif</span> <span class="n">is_source</span><span class="p">:</span>
+      <span class="n">maxlen</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">maxlen</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span>
+
+    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="n">DEFAULT_TOKENIZER_KEY</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">StringsToIdsWithOffsets</span><span class="p">(</span>
+        <span class="n">strs</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">external_append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="n">languages</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseSequenceInputGenerator.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Converts ids back to strings.</span>
 

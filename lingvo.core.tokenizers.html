@@ -215,8 +215,57 @@ symbol will be added to tokens.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.tokenizers.BaseTokenizer.StringsToIdsWithOffsets">
+<code class="sig-name descname"><span class="pre">StringsToIdsWithOffsets</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_append_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer.StringsToIdsWithOffsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer.StringsToIdsWithOffsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tokenize strs into vocab ids, and also return byte-level offsets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strs</strong> – A vector of strings.</p></li>
+<li><p><strong>max_length</strong> – An int providing the max_length for strs.</p></li>
+<li><p><strong>external_append_eos</strong> – Bool or None. If None, will be ignored and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">params.append_eos</span></code> will be used. If bool, will determine if an eos
+symbol will be added to tokens.</p></li>
+<li><p><strong>languages</strong> – A vector of strings with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">strs</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (ids, labels, paddings, start_offsets, end_offsets). Each tensor
+has the same shape [batch, maxlen].</p>
+<ul class="simple">
+<li><p>ids[i, j] is the input token id of i-th sample for j-th step.</p></li>
+<li><p>labels[i, j] is the target token id of i-th sample for j-th step.</p></li>
+<li><p>paddings[i, j] is 1 iff i-th sample’s j-th step is padded.</p></li>
+<li><dl class="simple">
+<dt>start_offset[i, j] is the byte-level offset of the start of the j-th id</dt><dd><p>in the i-th original string</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>end_offset[i, j] is the byte-level offset of the end of the j-th id</dt><dd><p>in the i-th original string</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If unknown token type.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#Exception" title="(in Python v3.7)"><strong>Exception</strong></a> – If the tokenizer does not support offsets.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.tokenizers.BaseTokenizer._StringsToIdsImpl">
 <code class="sig-name descname"><span class="pre">_StringsToIdsImpl</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_eos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer._StringsToIdsImpl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.tokenizers.BaseTokenizer._StringsToIdsWithOffsetsImpl">
+<code class="sig-name descname"><span class="pre">_StringsToIdsWithOffsetsImpl</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_eos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer._StringsToIdsWithOffsetsImpl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsWithOffsetsImpl" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
