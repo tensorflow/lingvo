@@ -1165,6 +1165,58 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     return self.tokenizer_dict[key].StringsToIds(
         strs, maxlen, external_append_eos, languages=languages)
 
+  def StringsToIdsWithOffsets(self,
+                              strs,
+                              is_source=False,
+                              external_max_length=None,
+                              external_append_eos=None,
+                              key=None,
+                              languages=None):
+    """Tokenize strs into vocab ids, and also return byte-level offsets.
+
+    Args:
+      strs: A vector of strings.
+      is_source: A bool to indicate whether to use `source_max_length` to pad
+        'strs'.
+      external_max_length: An int providing the max_length for strs.
+      external_append_eos: Bool or None. If None, will be ignored and
+        `params.append_eos` will be used. If bool, will determine if an eos
+        symbol will be added to tokens.
+      key: A string key in case the model has multiple tokenizers.
+      languages: A vector of str with the same length as `strs`.
+
+    Returns:
+      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].
+
+      - ids[i, j] is the input token id of i-th sample for j-th step.
+      - labels[i, j] is the target token id of i-th sample for j-th step.
+      - paddings[i, j] is 1 iff i-th sample's j-th step is padded.
+      - start_offset[i, j] is the byte-level offset of the start of the j-th id
+          in the i-th original string
+      - end_offset[i, j] is the byte-level offset of the end of the j-th id
+          in the i-th original string
+
+      Usually ids[i, 0] == SOS, ids[i, j+1] == labels[i, j], and labels[i, :]
+      ends with EOS. That is, `ids` and `labels` are inputs and ground-truth
+      labels for step-by-step teacher-forcing training, respectively.
+
+    Raises:
+      ValueError: If unknown token type.
+      Exception: If the specified tokenizer does not support offsets.
+    """
+    p = self.params
+
+    if external_max_length is not None:
+      maxlen = external_max_length
+    elif is_source:
+      maxlen = p.source_max_length
+    else:
+      maxlen = p.target_max_length
+
+    key = key or DEFAULT_TOKENIZER_KEY
+    return self.tokenizer_dict[key].StringsToIdsWithOffsets(
+        strs, maxlen, external_append_eos, languages=languages)
+
   def IdsToStrings(self, ids, lens, key=None):
     """Converts ids back to strings.
 

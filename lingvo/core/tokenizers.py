@@ -88,7 +88,51 @@ class BaseTokenizer(base_layer.BaseLayer):
 
     return self._StringsToIdsImpl(strs, max_length, append_eos, languages)
 
+  def StringsToIdsWithOffsets(self,
+                              strs,
+                              max_length,
+                              external_append_eos=None,
+                              languages=None):
+    """Tokenize strs into vocab ids, and also return byte-level offsets.
+
+    Args:
+      strs: A vector of strings.
+      max_length: An int providing the max_length for strs.
+      external_append_eos: Bool or None. If None, will be ignored and
+        `params.append_eos` will be used. If bool, will determine if an eos
+        symbol will be added to tokens.
+      languages: A vector of strings with the same length as `strs`.
+
+    Returns:
+      A tuple (ids, labels, paddings, start_offsets, end_offsets). Each tensor
+      has the same shape [batch, maxlen].
+
+      - ids[i, j] is the input token id of i-th sample for j-th step.
+      - labels[i, j] is the target token id of i-th sample for j-th step.
+      - paddings[i, j] is 1 iff i-th sample's j-th step is padded.
+      - start_offset[i, j] is the byte-level offset of the start of the j-th id
+          in the i-th original string
+      - end_offset[i, j] is the byte-level offset of the end of the j-th id
+          in the i-th original string
+
+    Raises:
+      ValueError: If unknown token type.
+      Exception: If the tokenizer does not support offsets.
+    """
+    p = self.params
+    if external_append_eos is None:
+      append_eos = p.append_eos
+    else:
+      append_eos = external_append_eos
+
+    return self._StringsToIdsWithOffsetsImpl(strs, max_length, append_eos,
+                                             languages)
+
   def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
+    raise NotImplementedError('Abstract method.')
+
+  def _StringsToIdsWithOffsetsImpl(self, strs, max_length, append_eos,
+                                   languages):
     raise NotImplementedError('Abstract method.')
 
   def IdsToStrings(self, ids, lens, languages=None):
