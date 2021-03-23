@@ -167,6 +167,11 @@ class BaseInputGeneratorTest(test_utils.TestCase):
       p.file_datasource = TestDataset.Params()
       p.Instantiate().GetPreprocessedInputBatch()
 
+    with self.subTest('AllowedWithBaseInputGeneratorFromFiles'):
+      p = base_input_generator.BaseInputGeneratorFromFiles.Params()
+      p.file_datasource = TestDataset.Params()
+      p.Instantiate().GetPreprocessedInputBatch()
+
     msg = 'Batches obtained through p.file_datasource'
 
     with self.subTest('DisallowedWhenOverridingInputBatch'):

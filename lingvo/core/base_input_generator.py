@@ -254,9 +254,13 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # TODO(b/139345706): Use self.datasource.GetNext() for all datasource.
     if ('datasource' in self.children and
         isinstance(self.datasource, datasource.TFDatasetSource)):
-      if (self._InputBatch.__func__ is not BaseInputGenerator._InputBatch or
-          self._PreprocessInputBatch.__func__ is
-          not BaseInputGenerator._PreprocessInputBatch):
+      # pylint: disable=protected-access
+      if ((self._InputBatch.__func__ is not BaseInputGenerator._InputBatch and
+           self._InputBatch.__func__
+           is not BaseInputGeneratorFromFiles._InputBatch) or
+          self._PreprocessInputBatch.__func__
+          is not BaseInputGenerator._PreprocessInputBatch):
+        # pylint: enable=protected-access
         # If you hit this error trying to run with --tf_data_service_replicas,
         # try to refactor your input generator by moving all the code inside
         # _InputBatch and _PreprocessInputBatch to _DataSourceFromFilePattern.
