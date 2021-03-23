@@ -4959,6 +4959,26 @@ class FunnelPoolingLayer(StrideLayer):
       return pooled_tensor, pooled_paddings
     return pooled_tensor
 
+  @classmethod
+  def FPropMeta(cls, p, x, paddings=None):
+    """See base class."""
+    assert p.first_n is None or p.first_n > 0
+    assert p.axis in (1, 2, 3)
+    py_utils.CheckShapes((x,))
+    stride, first_n = p.stride, p.first_n
+    if stride == 0:
+      stride, first_n = 1, 1
+    if first_n is None:
+      first_n = x[p.axis]
+
+    out_seq_len = (first_n - 1) // stride + 1
+    out_x_shape = tshape.Shape(x[0:p.axis] + [out_seq_len] + x[p.axis + 1:])
+    if paddings is None:
+      return py_utils.NestedMap(flops=1, out_shapes=(out_x_shape,))
+
+    out_paddings = tshape.Shape(paddings[0:p.axis] + [out_seq_len])
+    return py_utils.NestedMap(flops=1, out_shapes=(out_x_shape, out_paddings))
+
 
 class FunnelUpsampleLayer(base_layer.BaseLayer):
   """A layer that does upsampling in Funnel-Transformer."""
@@ -5309,7 +5329,7 @@ class Builder(builder.Base):
             ('x->x1', self._DefaultLN('ln')),
             ('x1->h0', self._Linear('wi0', p.model_dim, ff_hidden_dim)),
             ('x1->h1', self._Linear('wi1', p.model_dim, ff_hidden_dim)),
-            ('h0,h1->h', self._Fn('gelu', fn=GatedFn)),
+            ('h0,h1->h', self._Fn('gelu', fn=GatedFn, fn_out=lambda x, y: x)),
             ('h->h_dropout', self._Dropout('dropout', p.relu_dropout_prob)),
             ('h_dropout->y', self._Linear('wo', ff_hidden_dim, p.model_dim)))),
         ('after_gelu->y', self._Dropout('dropout', p.residual_dropout_prob)),

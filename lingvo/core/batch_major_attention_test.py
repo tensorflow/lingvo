@@ -3257,14 +3257,27 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'strides': [1, 2],
           'begin_intact': 1,
           'trunc_seq': True,
+      }, {
+          'testcase_name': '_gpipe',
+          'strides': [1, 1],
+          'num_splits': 2,
+          'num_micro_batches': 2,
       })
-  def testFunnelTransformerStack(self, strides, begin_intact=0, trunc_seq=True):
+  def testFunnelTransformerStack(self,
+                                 strides,
+                                 begin_intact=0,
+                                 trunc_seq=True,
+                                 num_splits=1,
+                                 num_micro_batches=1):
     with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 10
       d = 16
       tf.random.set_seed(12345)
       atten_builder_params = attention.Builder.Params().Set(
+          num_splits=num_splits,
+          num_micro_batches=num_micro_batches,
+          deterministic_dropout=num_splits > 1 or num_micro_batches > 1,
           model_dim=d,
           num_heads=2,
           ff_hidden_dim=5,
@@ -3278,7 +3291,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
         layers.append(
             atten_builder.FunnelEncoderLayer(
                 name='atten_{}'.format(layer_i), stride=stride))
-      p = atten_builder.Seq('model', *layers)
+      p = atten_builder.Stack('model', layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
       input_embs = tf.constant(
