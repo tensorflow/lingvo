@@ -1436,6 +1436,25 @@ class RunnerManager:
     else:
       FLAGS.decoder_gpus = 0
 
+  def InspectParams(self):
+    r"""Print out all the params.
+
+    An example to run this mode:
+
+    bazel-bin/lingvo/trainer --logtostderr \
+      --model=image.mnist.LeNet5 --mode=inspect_params --logdir=/tmp/lenet5 \
+      --run_locally=cpu
+    """
+    FLAGS.mode = 'sync'
+    cls = self.model_registry.GetClass(self._model_name)
+    tf.io.gfile.makedirs(FLAGS.logdir)
+    for dataset in datasets.GetDatasets(cls):
+      p = self.GetParamsForDataset('controller', dataset)
+      outf = os.path.join(FLAGS.logdir, dataset.lower() + '-params.txt')
+      tf.logging.info('Write all params for {} to {}'.format(dataset, outf))
+      with tf.io.gfile.GFile(outf, 'w') as f:
+        f.write(p.ToText())
+
   def InspectModel(self):
     """Prints out model analysis for the model."""
     FLAGS.mode = 'sync'
@@ -1575,6 +1594,10 @@ class RunnerManager:
     """Start the process."""
     tf.logging.set_verbosity(tf.logging.INFO)
     tf.logging.info('tf_api_version: %s', tf.summarize_tf2_status())
+
+    if FLAGS.mode == 'inspect_params':
+      self.InspectParams()
+      return
 
     if FLAGS.mode == 'inspect_model':
       self.InspectModel()
