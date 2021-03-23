@@ -1588,6 +1588,25 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span> <span class="o">=</span> <span class="mi">0</span></div>
 
+<div class="viewcode-block" id="RunnerManager.InspectParams"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.InspectParams">[docs]</a>  <span class="k">def</span> <span class="nf">InspectParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Print out all the params.</span>
+
+<span class="sd">    An example to run this mode:</span>
+
+<span class="sd">    bazel-bin/lingvo/trainer --logtostderr \</span>
+<span class="sd">      --model=image.mnist.LeNet5 --mode=inspect_params --logdir=/tmp/lenet5 \</span>
+<span class="sd">      --run_locally=cpu</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="o">.</span><span class="n">GetDatasets</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+      <span class="n">outf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;-params.txt&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Write all params for </span><span class="si">{}</span><span class="s1"> to </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">outf</span><span class="p">))</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">outf</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span></div>
+
 <div class="viewcode-block" id="RunnerManager.InspectModel"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.InspectModel">[docs]</a>  <span class="k">def</span> <span class="nf">InspectModel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Prints out model analysis for the model.&quot;&quot;&quot;</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
@@ -1727,6 +1746,10 @@
     <span class="sd">&quot;&quot;&quot;Start the process.&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;tf_api_version: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">summarize_tf2_status</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_params&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">InspectParams</span><span class="p">()</span>
+      <span class="k">return</span>
 
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_model&#39;</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">InspectModel</span><span class="p">()</span>
