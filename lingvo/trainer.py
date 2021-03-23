@@ -240,13 +240,13 @@ class Controller(base_runner.BaseRunner):
     assert not self._model_task_name, 'Controller needs all tasks!'
     self._control_dir = os.path.join(self._logdir, 'control')
     tf.io.gfile.makedirs(self._control_dir)
-    self._summary_writer = self._CreateSummaryWriter(self._control_dir)
     self._checkpoint_in_controller = True
     if FLAGS.checkpoint_in_trainer_tpu:
       self._checkpoint_in_controller = False
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
+        self._summary_writer = self._CreateSummaryWriter(self._control_dir)
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
@@ -427,6 +427,7 @@ class TrainerTpu(base_runner.BaseRunner):
     _WaitUntilInitTpu()
 
     with self._graph.as_default(), tf.container(self._container_id):
+      self._summary_writer = self._CreateSummaryWriter(self._train_dir)
       self._CreateTF2SummaryWriter(self._train_dir)
       with self._cluster, tf.device(
           self._cluster.GetPlacer()), self._TF2SummaryContext():
@@ -522,7 +523,6 @@ class TrainerTpu(base_runner.BaseRunner):
       tf.logging.info('Trainer number of enqueue ops: %d',
                       len(self.enqueue_ops))
 
-    self._summary_writer = self._CreateSummaryWriter(self._train_dir)
     if (self._task.input.input_data_summary_layout is not None and
         self._write_train_input_stats):
       self._summary_writer.add_summary(
@@ -833,11 +833,11 @@ class Evaler(base_runner.BaseRunner):
       self._eval_path = checkpointer.GetSpecificCheckpoint(
           self.params.task.eval.load_checkpoint_from)
 
-    self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
     self._should_report_metrics = self._job_name.startswith(
         self.params.reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
+      self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
       self._CreateTF2SummaryWriter(self._eval_dir)
       with self._cluster, tf.device(
           self._cluster.GetPlacer()), self._TF2SummaryContext():

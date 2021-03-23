@@ -51,7 +51,23 @@ class Trainer(base_runner.BaseRunner):
     super().__init__(*args, **kwargs)
     self._job_name = 'trainer'
     with self._graph.as_default(), tf.container(self._container_id):
-      self._CreateTF2SummaryWriter(self._train_dir)
+      try:
+        self._task_probs_summary_writers = []
+        for task in self._model.task_schedule.tasks:
+          path = os.path.join(os.path.join(self._train_dir, task))
+          tf.io.gfile.makedirs(path)
+          self._task_probs_summary_writers.append(
+              self._CreateSummaryWriter(path))
+      except AttributeError:
+        tf.logging.info('AttributeError. Expected for single task models.')
+        self._task_probs_summary_writers = []
+
+      if self.params.cluster.task == 0:
+        self._summary_writer = self._CreateSummaryWriter(self._train_dir)
+        self._CreateTF2SummaryWriter(self._train_dir)
+      else:
+        self._summary_writer = None
+
       with self._cluster, tf.device(
           self._cluster.GetPlacer()), self._TF2SummaryContext():
         self._model = self.params.Instantiate()
@@ -64,25 +80,12 @@ class Trainer(base_runner.BaseRunner):
       tf.logging.info('Trainer number of enqueue ops: %d',
                       len(self.enqueue_ops))
 
-    try:
-      self._task_probs_summary_writers = []
-      for task in self._model.task_schedule.tasks:
-        path = os.path.join(os.path.join(self._train_dir, task))
-        tf.io.gfile.makedirs(path)
-        self._task_probs_summary_writers.append(self._CreateSummaryWriter(path))
-    except AttributeError:
-      tf.logging.info('AttributeError. Expected for single task models.')
-      self._task_probs_summary_writers = []
-
     self._step_rate_tracker = summary_utils.StepRateTracker()
 
     # Saves the graph def.
-    if self.params.cluster.task > 0:
-      self._summary_writer = None
-    else:
+    if self.params.cluster.task == 0:
       self._WriteToLog(self.params.ToText(), self._train_dir,
                        'trainer_params.txt')
-      self._summary_writer = self._CreateSummaryWriter(self._train_dir)
       tf.io.write_graph(self._graph.as_graph_def(), self._train_dir,
                         'train.pbtxt')
     worker_id = self.params.cluster.task
@@ -251,11 +254,11 @@ class Decoder(base_runner.BaseRunner):
       self._decode_path = checkpointer.GetSpecificCheckpoint(
           self.params.task.eval.load_checkpoint_from)
 
-    self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
     self._should_report_metrics = self._job_name.startswith(
         self.params.reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
+      self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
       self._CreateTF2SummaryWriter(self._decoder_dir)
       with self._cluster, tf.device(
           self._cluster.GetPlacer()), self._TF2SummaryContext():
