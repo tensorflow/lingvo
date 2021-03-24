@@ -2616,8 +2616,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gated_gelu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;FFN gated GELU. &#39;</span>
              <span class="s1">&#39;Deprecated. Use gated_ffn_activation=gelu.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gated_ffn_activation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Transformer gated FFN activation.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_layers_in_block&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
-             <span class="s1">&#39;Number of transformer layers in DecoderLayerStack.sub_layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;parallel_ffn&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to make ffn and attention parallel.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -2668,41 +2666,37 @@
       <span class="n">dec_pos_emb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="s1">&#39;dec_pos_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec_pos_emb&#39;</span><span class="p">,</span> <span class="n">dec_pos_emb</span><span class="p">)</span>
 
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_layers_in_block</span> <span class="o">==</span> <span class="mi">0</span>
-    <span class="n">num_blocks</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_layers_in_block</span>
-
-    <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_layers_in_block</span><span class="p">):</span>
-      <span class="n">str_i</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">layer_idx</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer_idx</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">parallel_ffn</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span>
-        <span class="k">assert</span> <span class="n">gated_ffn_activation</span>
-        <span class="n">decoder_sub_layers</span> <span class="o">+=</span> <span class="p">[</span>
-            <span class="n">builder_layers</span><span class="o">.</span><span class="n">RepeatLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span>
-                <span class="n">body</span><span class="o">=</span><span class="n">b</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span>
-                                    <span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
-                                    <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim_reshape_segments</span><span class="p">),</span>
-                <span class="n">repeat</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
-                <span class="n">per_layer_vars</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_per_layer_vars_for_recurrent</span><span class="p">)</span>
-        <span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">parallel_ffn</span><span class="p">:</span>  <span class="c1"># Only works with RecurrentDenseBuilderParallelDecode.</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span>
+      <span class="k">assert</span> <span class="n">gated_ffn_activation</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">RecurrentDenseBuilderParallelDecode</span><span class="p">)</span>
+      <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">builder_layers</span><span class="o">.</span><span class="n">RepeatLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span>
+              <span class="n">body</span><span class="o">=</span><span class="n">b</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span>
+                                  <span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
+                                  <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim_reshape_segments</span><span class="p">),</span>
+              <span class="n">repeat</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
+              <span class="n">per_layer_vars</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_per_layer_vars_for_recurrent</span><span class="p">)</span>
+      <span class="p">]</span>
+      <span class="n">dec</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span>
+          <span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="n">decoder_sub_layers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
+        <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
-          <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span> <span class="o">+</span> <span class="n">str_i</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span> <span class="o">+</span>
-                                                       <span class="n">str_i</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">gated_ffn_activation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDense</span><span class="p">(</span><span class="s1">&#39;dense_relu_dense&#39;</span> <span class="o">+</span> <span class="n">str_i</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDenseGated</span><span class="p">(</span>
-              <span class="s1">&#39;dense_relu_dense&#39;</span> <span class="o">+</span> <span class="n">str_i</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">decoder_sub_layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
-    <span class="n">dec</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span>
-        <span class="s1">&#39;decoder&#39;</span><span class="p">,</span>
-        <span class="n">decoder_sub_layers</span><span class="p">,</span>
-        <span class="n">num_blocks</span><span class="p">,</span>
-        <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">)</span>
+        <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">gated_ffn_activation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDense</span><span class="p">(</span><span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDenseGated</span><span class="p">(</span>
+            <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
+      <span class="n">dec</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span>
+          <span class="s1">&#39;decoder&#39;</span><span class="p">,</span>
+          <span class="n">decoder_sub_layers</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
+          <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">)</span>
     <span class="n">dec</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="n">emb_w_split</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;w_split&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)</span>
