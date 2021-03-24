@@ -3675,6 +3675,7 @@ class TransformerLayer(base_layer.BaseLayer):
     p.tr_self_atten_tpl = TransformerAttentionLayer.CommonParams(
         input_dim,
         atten_num_heads,
+        use_relative_atten=atten_is_relative,
         is_masked=mask_self_atten,
         local_context=atten_local_context,
         left_context=atten_left_context,
