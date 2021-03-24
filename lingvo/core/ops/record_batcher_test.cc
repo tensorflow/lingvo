@@ -16,6 +16,7 @@ limitations under the License.
 #include "lingvo/core/ops/record_batcher.h"
 
 #include <gtest/gtest.h>
+#include "absl/flags/flag.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/sequential_record_yielder.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -79,7 +80,8 @@ class TestRP : public RecordProcessor {
 };
 
 TEST(RecordBatcher, Basic) {
-  const string filename = io::JoinPath("/tmp", "basic");
+  const string filename =
+      io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
   BasicRecordYielder::Options yopts;
@@ -120,7 +122,8 @@ TEST(RecordBatcher, Basic) {
 }
 
 TEST(RecordBatcher, BasicMultiThread) {
-  const string filename = io::JoinPath("/tmp", "basic");
+  const string filename =
+      io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
   BasicRecordYielder::Options yopts;
@@ -158,7 +161,8 @@ TEST(RecordBatcher, BasicMultiThread) {
 }
 
 TEST(RecordBatcher, LearnBuckets) {
-  const string filename = io::JoinPath("/tmp", "basic");
+  const string filename =
+      io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
   BasicRecordYielder::Options yopts;
@@ -254,7 +258,8 @@ TEST(RecordBatcher, FullEpoch) {
 
 TEST(RecordBatcher, CaptureYielderStatus) {
   const int N = 50;
-  const string filename = io::JoinPath("/tmp", "full_epoch");
+  const string filename =
+      io::JoinPath("/tmp", "full_epoch");
   GenerateTestData(filename, N, false /* random_value */);
 
   RecordBatcher::Options bopts;
@@ -293,7 +298,8 @@ TEST(RecordBatcher, CaptureYielderStatus) {
 }
 
 TEST(RecordBatcher, SequentialEoFImmediately) {
-  const string filename = io::JoinPath("/tmp", "full_epoch");
+  const string filename =
+      io::JoinPath("/tmp", "full_epoch");
   // Generate no data.
   GenerateTestData(filename, 0, false /* random_value */);
 

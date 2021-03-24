@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "absl/flags/flag.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/record_yielder.h"
 #include "lingvo/core/ops/yielder_test_helper.h"
@@ -36,16 +37,16 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   GeneratePlainTextTestData("yielder2", N, M);
 
   BasicRecordYielder::Options opts1;
-  opts1.file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "yielder1.*"));
+  opts1.file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "yielder1.*"));
   opts1.seed = 301;
   opts1.bufsize = 2000;
   opts1.parallelism = 1;
   BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
-  opts2.file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "yielder2.*"));
+  opts2.file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "yielder2.*"));
   opts2.seed = 301;
   opts2.bufsize = 2000;
   opts2.parallelism = 1;
@@ -83,8 +84,8 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   GeneratePlainTextTestData("yielder2", N, M);
 
   BasicRecordYielder::Options opts1;
-  opts1.file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "yielder1.*"));
+  opts1.file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "yielder1.*"));
   opts1.seed = 301;
   opts1.bufsize = 2000;
   opts1.parallelism = 1;
@@ -92,8 +93,8 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
-  opts2.file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "yielder2.*"));
+  opts2.file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "yielder2.*"));
   opts2.seed = 301;
   opts2.bufsize = 2000;
   opts2.parallelism = 1;
@@ -142,16 +143,16 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   GeneratePlainTextTestData("yielder2", 4 * N, M);
 
   BasicRecordYielder::Options opts1;
-  opts1.file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "yielder1.*"));
+  opts1.file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "yielder1.*"));
   opts1.seed = 301;
   opts1.bufsize = 2000;
   opts1.parallelism = 1;
   BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
-  opts2.file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "yielder2.*"));
+  opts2.file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "yielder2.*"));
   opts2.seed = 301;
   opts2.bufsize = 2000;
   opts2.parallelism = 1;

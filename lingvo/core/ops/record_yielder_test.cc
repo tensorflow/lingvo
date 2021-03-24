@@ -18,6 +18,7 @@ limitations under the License.
 #include <chrono>  // NOLINT(build/c++11)
 
 #include <gtest/gtest.h>
+#include "absl/flags/flag.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/sequential_record_yielder.h"
 #include "lingvo/core/ops/yielder_test_helper.h"
@@ -38,8 +39,8 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
   const int M = 1000;
   GeneratePlainTextTestData("basic", N, M);
   BasicRecordYielder::Options opts;
-  opts.file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
+  opts.file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "basic.*"));
   opts.seed = 301;
   opts.bufsize = 2000;
   opts.parallelism = 1;
@@ -78,8 +79,8 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderBasicTest) {
   const int N = 10;
   const int M = 1000;
   GeneratePlainTextTestData("basic", N, M);
-  const string& file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
+  const string& file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "basic.*"));
 
   SequentialRecordYielder* yielder =
       SequentialRecordYielder::New(file_pattern, -1);
@@ -103,8 +104,8 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderRepeatCount) {
   const int N = 10;
   const int M = 1000;
   GeneratePlainTextTestData("basic", N, M);
-  const string& file_pattern =
-      strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
+  const string& file_pattern = strings::StrCat(
+      "text:", io::JoinPath("/tmp", "basic.*"));
 
   // Yield two epochs.
   SequentialRecordYielder* yielder =
@@ -134,7 +135,8 @@ void GenerateTfRecordTestData(const string& prefix, int n, int m,
   for (int i = 0; i < n; ++i) {
     std::unique_ptr<WritableFile> file;
     TF_CHECK_OK(Env::Default()->NewWritableFile(
-        io::JoinPath("/tmp", strings::StrCat(prefix, ".", i)),
+        io::JoinPath("/tmp",
+                     strings::StrCat(prefix, ".", i)),
         &file));
     io::RecordWriter writer(
         file.get(),
@@ -175,9 +177,9 @@ TEST_P(TfRecordYielderTest, TfRecordYielderBasicTest) {
   const int M = 1000;
   GenerateTfRecordTestData("basic", N, M, GetParam());
   BasicRecordYielder::Options opts;
-  opts.file_pattern =
-      strings::StrCat(PrefixFromCompressionType(GetParam()),
-                      io::JoinPath("/tmp", "basic.*"));
+  opts.file_pattern = strings::StrCat(
+      PrefixFromCompressionType(GetParam()),
+      io::JoinPath("/tmp", "basic.*"));
   opts.seed = 301;
   opts.bufsize = 2000;
   opts.parallelism = 1;
@@ -227,9 +229,9 @@ TEST_P(TfRecordYielderTest, ShufflesShard) {
   GenerateTfRecordTestData("oneshard", 1 /* num_shards */, M, GetParam());
 
   BasicRecordYielder::Options opts;
-  opts.file_pattern =
-      strings::StrCat(PrefixFromCompressionType(GetParam()),
-                      io::JoinPath("/tmp", "oneshard.0"));
+  opts.file_pattern = strings::StrCat(
+      PrefixFromCompressionType(GetParam()),
+      io::JoinPath("/tmp", "oneshard.0"));
   opts.bufsize = M;
   opts.parallelism = 1;
 
@@ -274,7 +276,8 @@ TEST(RecordYielderDeathTest, Error) {
   EXPECT_DEATH([](){
     BasicRecordYielder::Options opts;
     opts.file_pattern = strings::StrCat(
-        "tfrecord:", io::JoinPath("/tmp", "nothing.*"));
+        "tfrecord:",
+        io::JoinPath("/tmp", "nothing.*"));
     auto yielder = BasicRecordYielder::New(opts);
     Record record;
     record.source_id = kDefaultSourceId;
@@ -288,8 +291,10 @@ TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
   GenerateTfRecordTestData("twoshard", N /* num_shards */,
                            M /* record per shard */, GetParam());
   BasicRecordYielder::Options opts;
-  const string path0 = io::JoinPath("/tmp", "twoshard.0");
-  const string path1 = io::JoinPath("/tmp", "twoshard.1");
+  const string path0 =
+      io::JoinPath("/tmp", "twoshard.0");
+  const string path1 =
+      io::JoinPath("/tmp", "twoshard.1");
   opts.file_pattern =
       strings::StrCat(PrefixFromCompressionType(GetParam()), path0, ",", path1);
   opts.bufsize = M;
@@ -326,7 +331,8 @@ TEST(RecordYielder, MatchShardedFilePattern) {
 
   BasicRecordYielder::Options opts;
   opts.file_pattern = strings::StrCat(
-      "tfrecord:", io::JoinPath("/tmp", "sharded_data@16"));
+      "tfrecord:",
+      io::JoinPath("/tmp", "sharded_data@16"));
   opts.bufsize = records_per_shard;
   opts.parallelism = 1;
   std::vector<Rope> epoch;
@@ -357,7 +363,8 @@ TEST(RecordYielder, MatchWildcardShardedFilePattern) {
 
   BasicRecordYielder::Options opts;
   opts.file_pattern = strings::StrCat(
-      "tfrecord:", io::JoinPath("/tmp", "sharded_data2@*"));
+      "tfrecord:",
+      io::JoinPath("/tmp", "sharded_data2@*"));
   opts.bufsize = records_per_shard;
   opts.parallelism = 1;
   std::vector<Rope> epoch;
@@ -387,7 +394,8 @@ TEST(RecordYielder, MatchIndirectFilePattern) {
 
   BasicRecordYielder::Options opts;
   opts.file_pattern = strings::StrCat(
-      "text_indirect:", io::JoinPath("/tmp", "checkpoint"));
+      "text_indirect:",
+      io::JoinPath("/tmp", "checkpoint"));
   opts.bufsize = records_per_shard;
   opts.parallelism = 1;
   std::vector<Rope> epoch;

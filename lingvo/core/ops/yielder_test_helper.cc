@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 #include "lingvo/core/ops/yielder_test_helper.h"
 
+#include "absl/flags/flag.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 
@@ -24,7 +25,8 @@ void GeneratePlainTextTestData(const string& prefix, int n, int m) {
   for (int i = 0; i < n; ++i) {
     std::unique_ptr<WritableFile> file;
     TF_CHECK_OK(Env::Default()->NewWritableFile(
-        io::JoinPath("/tmp", strings::StrCat(prefix, ".", i)),
+        io::JoinPath("/tmp",
+                     strings::StrCat(prefix, ".", i)),
         &file));
     for (int j = 0; j < m; ++j) {
       TF_CHECK_OK(file->Append(
@@ -41,7 +43,8 @@ void GenerateCheckpointPlainTextTestData(const string& prefix, int m) {
   TF_CHECK_OK(ckpt_file->Append(
       strings::Printf("current: {file_pattern:\"data-0.txt\"}")));
 
-  string data_file_path = io::JoinPath("/tmp", "data-0.txt");
+  string data_file_path =
+      io::JoinPath("/tmp", "data-0.txt");
   TF_CHECK_OK(Env::Default()->NewWritableFile(data_file_path, &data_file));
   for (int j = 0; j < m; ++j) {
     TF_CHECK_OK(data_file->Append(
@@ -57,7 +60,8 @@ void UpdateCheckpointPlainTextTestData(const string& prefix, int m) {
   TF_CHECK_OK(ckpt_file->Append(
       strings::Printf("current: {file_pattern:\"data-1.txt\"}")));
 
-  string data_file_path = io::JoinPath("/tmp", "data-1.txt");
+  string data_file_path =
+      io::JoinPath("/tmp", "data-1.txt");
   TF_CHECK_OK(Env::Default()->NewWritableFile(data_file_path, &data_file));
   for (int j = 0; j < m; ++j) {
     TF_CHECK_OK(data_file->Append(

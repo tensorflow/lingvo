@@ -152,6 +152,7 @@ lingvo_cc_test(
         ":input_common",
         ":record",
         ":yielder_test_helper",
+        # Implicit absl.flags:flag dependency.
     ],
 )
 
@@ -162,6 +163,7 @@ lingvo_cc_test(
         ":input_common",
         ":record",
         ":yielder_test_helper",
+        # Implicit absl.flags:flag dependency.
     ],
 )
 
@@ -171,6 +173,7 @@ lingvo_cc_test(
     deps = [
         ":input_common",
         ":record",
+        # Implicit absl.flags:flag dependency.
     ],
 )
 
@@ -193,6 +196,7 @@ lingvo_cc_test_library(
     ],
     deps = [
         ":record",
+        # Implicit absl.flags:flag dependency.
     ],
 )
 
