@@ -787,7 +787,10 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Sharding propagation should be sufficient and Splits &#39;</span>
                        <span class="s1">&#39;within Top2GatingOnLogits are generally redundant.&#39;</span><span class="p">)</span>
   <span class="k">del</span> <span class="n">inputs</span>  <span class="c1"># inputs is currently not used.</span>
+  <span class="c1"># logits.dtype could be tf.float32</span>
   <span class="n">raw_gates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>  <span class="c1"># along E dim</span>
+  <span class="k">if</span> <span class="n">raw_gates</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">fprop_dtype</span><span class="p">:</span>
+    <span class="n">raw_gates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">raw_gates</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">capacity_factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Determine expert capacity automatically depedning on the input size.</span>
@@ -1107,7 +1110,8 @@
                <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">mask_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+               <span class="n">mask_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">gating_logits_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes Top-2 gating for Mixture-of-Experts.</span>
 
 <span class="sd">  See Top2GatingOnLogits for more details.</span>
@@ -1141,6 +1145,8 @@
 <span class="sd">      value of expert_capacity_dim is already big enough no change is made.</span>
 <span class="sd">    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask</span>
 <span class="sd">      tensors, mask_dtype is a special dtype for such tensors.</span>
+<span class="sd">    gating_logits_dtype: using bfloat16 for fprop_dtype could be problematic for</span>
+<span class="sd">      gating logits, gating_logits_dtype is a special dtype for such tensors.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A tuple (dispatch_tensor, combine_tensor, aux_loss).</span>
@@ -1157,7 +1163,14 @@
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-  <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">gating_logits_dtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">gating_logits_dtype</span> <span class="o">==</span> <span class="n">fprop_dtype</span><span class="p">:</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+        <span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">gating_logits_dtype</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">gating_logits_dtype</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;gating_logits_with_custom_dtype&#39;</span><span class="p">)</span>
 
   <span class="n">top1_expert_per_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 

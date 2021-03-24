@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="MoEBuilder"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder">[docs]</a><span class="k">class</span> <span class="nc">MoEBuilder</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Mixture-of-Experts Builder.</span>
+  <span class="sd">&quot;&quot;&quot;Mixture-of-Experts, Dense and DenseSparse Builder.</span>
 
 <span class="sd">  To be used with xla_sharding + SPMD.</span>
 
@@ -355,6 +355,12 @@
         <span class="s1">&#39;mask_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Using bfloat16 for fprop_dtype could be problematic for &#39;</span>
         <span class="s1">&#39;mask tensors, mask_dtype is a special dtype for such tensors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gating_logits_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Using bfloat16 for fprop_dtype could be problematic for &#39;</span>
+        <span class="s1">&#39;gating logits, gating_logits_dtype is a special dtype for such &#39;</span>
+        <span class="s1">&#39;tensors.&#39;</span><span class="p">)</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;conv_vars_reshape&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Boolean, whether or not to &#39;</span>
         <span class="s1">&#39;change the shape of conv variables. For checkpoint backward &#39;</span>
@@ -1481,6 +1487,7 @@
           <span class="n">local_dispatch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
           <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
           <span class="n">mask_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_dtype</span><span class="p">,</span>
+          <span class="n">gating_logits_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">gating_logits_dtype</span><span class="p">,</span>
           <span class="c1"># We rely on sharding propagation here, Top2Gating is done</span>
           <span class="c1"># independently for each group and inputs are typically sharded by</span>
           <span class="c1"># group dimension.</span>
