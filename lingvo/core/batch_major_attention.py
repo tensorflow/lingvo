@@ -1821,11 +1821,12 @@ class LocalSelfAttention(MultiHeadedAttention):
     Returns:
       A `.NestedMap` object containing
 
-      - key:   [B, p.left_context - 1 + p.right_context, N, H].
-      - value: [B, p.left_context - 1 + p.right_context, N, H].
-      - masks: [B, p.left_context-1 + p.right_context], 0/1 Tensor where 0s are
-      - masked out positions.
+      conext_len = p.left_context - 1 + p.right_context
+      - key:   [B, conext_len, N, H].
+      - value: [B, conext_len, N, H].
+      - masks: [B, conext_len], 0/1 Tensor where 0s are masked out positions.
       - query: (only if p.right_context > 0) [B, p.right_context, N, H].
+      - out_paddings: (only if p.right_context> 0): [B, p.right_context].
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
@@ -1845,6 +1846,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       state0.query = tf.zeros([
           batch_size, p.right_context, p.num_heads, p.hidden_dim // p.num_heads
       ], dtype)
+      state0.out_paddings = tf.ones([batch_size, p.right_context])
     return state0
 
   def IsInferenceStepStatic(self):
@@ -2042,6 +2044,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
     paddings = py_utils.HasShape(paddings, [b, q])
+
     with tf.name_scope(f'{p.name}/StreamStep'):
       # query projection.
       # [B, Q, N, H]
@@ -2054,11 +2057,14 @@ class LocalSelfAttention(MultiHeadedAttention):
       if p.right_context == 0:
         # [B, Q, N, H]
         query = query_proj
+        out_paddings = paddings
       else:
         # [B, R + Q, N, H]
         concat_query = tf.concat([state0.query, query_proj], axis=1)
         # [B, Q, N, H]
         query = concat_query[:, :q]
+        concat_out_paddings = tf.concat([state0.out_paddings, paddings], axis=1)
+        out_paddings = concat_out_paddings[:, :q]
 
       # key, value, mask.
       # [B, T, N, H].
@@ -2126,7 +2132,8 @@ class LocalSelfAttention(MultiHeadedAttention):
           masks=1 - state_paddings[:, q:])
       if p.right_context > 0:
         state1.query = concat_query[:, q:]
-      return output, paddings, state1
+        state1.out_paddings = concat_out_paddings[:, q:]
+      return output, out_paddings, state1
 
   @classmethod
   def FPropMeta(cls, p, *args):

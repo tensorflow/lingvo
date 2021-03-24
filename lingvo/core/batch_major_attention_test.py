@@ -1572,11 +1572,9 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testStreamStepRightContext(self):
     tf.random.set_seed(2021)
-    p_cls, stride = attention.LocalSelfAttention, 1
-    right_context = 5
+    left_context, right_context = 9, 5
     batch_size, max_seqlen, input_dim = 4, 8, 4
     hidden_dim, num_heads = 4, 4
-    left_context = 9
     stride = 2
 
     # Prepares inputs.
@@ -1594,15 +1592,13 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
 
     # Builds graph.
-    p = p_cls.Params().Set(
+    p = attention.LocalSelfAttention.Params().Set(
         name='local_self_atten',
         num_heads=num_heads,
         input_dim=input_dim,
         hidden_dim=hidden_dim,
         left_context=left_context,
         right_context=right_context)
-    if p_cls == attention.LocalSelfAttentionXL:
-      p.Set(rel_pos_emb_dim=input_dim)
 
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
     with self.session(use_gpu=False) as sess:
@@ -1631,6 +1627,100 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       outputs = outputs[:, right_context:][:, :max_seqlen]
       outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
 
+      sess.run(init_op)
+
+      expected, actual = sess.run([base_outputs, outputs])
+      print(f'expected: {repr(expected)}, {expected.shape}')
+      print(f'actual: {repr(actual)}, {actual.shape}')
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+      self.assertEqual(
+          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
+
+  def _BuildBaseGraphWithStacking(self, layers, num_layers, inputs, paddings):
+    outputs = inputs
+    for l in layers:
+      outputs, _ = l.FProp(l.theta, outputs, outputs, outputs, paddings)
+    # [b, t, -1]
+    outputs *= tf.expand_dims(1. - paddings, -1)
+    return outputs
+
+  def _BuildStreamGraphWithStacking(self, layers, num_layers, inputs, paddings,
+                                    stride):
+    p = layers[0].params
+
+    batch_size, max_seqlen, dim = py_utils.GetShape(inputs)
+    assert max_seqlen % stride == 0
+    states = [l.zero_state(batch_size) for l in layers]
+
+    right_context = p.right_context
+    outputs = []
+    assert max_seqlen % stride == 0
+    for i in range(
+        int(math.ceil((max_seqlen + right_context * num_layers) / stride))):
+      if i < max_seqlen // stride:
+        step_inputs = inputs[:, stride * i:stride * (i + 1)]
+        step_paddings = paddings[:, stride * i:stride * (i + 1)]
+      else:
+        step_inputs = tf.zeros([batch_size, stride, dim])
+        step_paddings = tf.ones([batch_size, stride])
+
+      output, out_paddings = step_inputs, step_paddings
+      new_states = []
+      for l, state0 in zip(layers, states):
+        output, out_paddings, state1 = l.StreamStep(l.theta, output,
+                                                    out_paddings, state0)
+        new_states.append(state1)
+      states = new_states
+      outputs.append(output)
+
+    outputs = tf.concat(outputs, axis=1)
+    outputs = outputs[:, right_context * num_layers:][:, :max_seqlen]
+    outputs *= tf.expand_dims(1. - paddings, -1)
+    return outputs
+
+  def testStackingStreamStepRightContext(self):
+    tf.random.set_seed(2021)
+    batch_size, max_seqlen, input_dim = 2, 32, 2
+    hidden_dim, num_heads = 2, 2
+    left_context, right_context = 6, 3
+    stride = 1
+    num_layers = 5
+
+    # Prepares inputs.
+    np.random.seed(123)
+    inputs = np.random.normal(
+        0.1, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=1, high=max_seqlen + 1, size=(batch_size,), dtype=np.int32)
+    print(f'seqlen: {seqlen}')
+
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+
+    p = attention.LocalSelfAttention.Params().Set(
+        num_heads=num_heads,
+        input_dim=input_dim,
+        hidden_dim=hidden_dim,
+        left_context=left_context,
+        right_context=right_context)
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+    ps = [p.Copy().Set(name=f'base{i}') for i in range(num_layers)]
+    layers = [x.Instantiate() for x in ps]
+
+    base_outputs = self._BuildBaseGraphWithStacking(layers, num_layers, inputs,
+                                                    paddings)
+
+    outputs = self._BuildStreamGraphWithStacking(layers, num_layers, inputs,
+                                                 paddings, stride)
+
+    init_op = tf.global_variables_initializer()
+    with self.session(use_gpu=False) as sess:
       sess.run(init_op)
 
       expected, actual = sess.run([base_outputs, outputs])
