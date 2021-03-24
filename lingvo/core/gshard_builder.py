@@ -32,7 +32,7 @@ def _ToInt32(t):
 
 
 class MoEBuilder(builder.Base):
-  """Mixture-of-Experts Builder.
+  """Mixture-of-Experts, Dense and DenseSparse Builder.
 
   To be used with xla_sharding + SPMD.
 
@@ -203,6 +203,12 @@ class MoEBuilder(builder.Base):
         'mask_dtype', None,
         'Using bfloat16 for fprop_dtype could be problematic for '
         'mask tensors, mask_dtype is a special dtype for such tensors.')
+    p.Define(
+        'gating_logits_dtype', None,
+        'Using bfloat16 for fprop_dtype could be problematic for '
+        'gating logits, gating_logits_dtype is a special dtype for such '
+        'tensors.')
+
     p.Define(
         'conv_vars_reshape', False, 'Boolean, whether or not to '
         'change the shape of conv variables. For checkpoint backward '
@@ -1329,6 +1335,7 @@ class MoEBuilder(builder.Base):
           local_dispatch=True,
           fprop_dtype=py_utils.FPropDtype(p),
           mask_dtype=p.mask_dtype,
+          gating_logits_dtype=p.gating_logits_dtype,
           # We rely on sharding propagation here, Top2Gating is done
           # independently for each group and inputs are typically sharded by
           # group dimension.

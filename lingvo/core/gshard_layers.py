@@ -635,7 +635,10 @@ def Top2GatingOnLogits(inputs,
     tf.logging.warning('Sharding propagation should be sufficient and Splits '
                        'within Top2GatingOnLogits are generally redundant.')
   del inputs  # inputs is currently not used.
+  # logits.dtype could be tf.float32
   raw_gates = tf.nn.softmax(logits)  # along E dim
+  if raw_gates.dtype != fprop_dtype:
+    raw_gates = tf.cast(raw_gates, fprop_dtype)
 
   if capacity_factor is not None:
     # Determine expert capacity automatically depedning on the input size.
@@ -955,7 +958,8 @@ def Top2Gating(w,
                second_expert_threshold=0.0,
                legacy_mtf_behavior=True,
                capacity_factor=None,
-               mask_dtype=None):
+               mask_dtype=None,
+               gating_logits_dtype=None):
   """Computes Top-2 gating for Mixture-of-Experts.
 
   See Top2GatingOnLogits for more details.
@@ -989,6 +993,8 @@ def Top2Gating(w,
       value of expert_capacity_dim is already big enough no change is made.
     mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
       tensors, mask_dtype is a special dtype for such tensors.
+    gating_logits_dtype: using bfloat16 for fprop_dtype could be problematic for
+      gating logits, gating_logits_dtype is a special dtype for such tensors.
 
   Returns:
     A tuple (dispatch_tensor, combine_tensor, aux_loss).
@@ -1005,7 +1011,14 @@ def Top2Gating(w,
     if paddings is not None:
       paddings = tf.reshape(paddings, [1, -1])
 
-  logits = tf.einsum('GSM,ME->GSE', inputs, w)
+  if gating_logits_dtype is None or gating_logits_dtype == fprop_dtype:
+    logits = tf.einsum('GSM,ME->GSE', inputs, w)
+  else:
+    logits = tf.einsum(
+        'GSM,ME->GSE',
+        tf.cast(inputs, gating_logits_dtype),
+        tf.cast(w, gating_logits_dtype),
+        name='gating_logits_with_custom_dtype')
 
   top1_expert_per_example = tf.math.argmax(logits, -1)
 
