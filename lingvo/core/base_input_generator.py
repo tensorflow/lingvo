@@ -627,12 +627,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
     self._host_queues = {}
     enqueue_ops = []
 
-    if num_tpu_hosts > 1:
-      if not p.use_per_host_infeed:
-        tf.logging.fatal(
-            'CPU passthrough must be used with per_host_infeed with multiple '
-            'TPU host topologies.')
-
     assert len(self._per_host_batches) == num_infeed_hosts
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
