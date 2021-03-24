@@ -123,6 +123,23 @@ class DatasetsTest(test_utils.TestCase):
     self.assertAllEqual(['Dev', 'Train'],
                         datasets.GetDatasets(DummyDatasetHolder()))
 
+  def testGetDatasetsOnClassWithPositionalArgumentInit(self):
+
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
+
+      def __init__(self, model_spec):
+        pass
+
+      def Train(self):
+        pass
+
+      def Dev(self):
+        pass
+
+    self.assertAllEqual(['Dev', 'Train'],
+                        datasets.GetDatasets(
+                            DummyDatasetHolder, warn_on_error=True))
+
 
 if __name__ == '__main__':
   tf.test.main()
