@@ -147,11 +147,14 @@ void GenerateTfRecordTestData(const string& prefix, int n, int m,
   }
 }
 
-void GenerateShardedTfRecordTestData(const string& prefix, int n, int m) {
+void GenerateShardedTfRecordTestData(const string& prefix, const string& suffix,
+                                     int n, int m) {
   for (int i = 0; i < n; ++i) {
     std::unique_ptr<WritableFile> file;
-    const string filename =
-        strings::Printf("%s-%05d-of-%05d", prefix.c_str(), i, n);
+    string filename = strings::Printf("%s-%05d-of-%05d", prefix.c_str(), i, n);
+    if (!suffix.empty()) {
+      strings::Appendf(&filename, "%s", suffix.c_str());
+    }
     TF_CHECK_OK(Env::Default()->NewWritableFile(
         io::JoinPath("/tmp", filename), &file));
     io::RecordWriter writer(file.get());
@@ -326,7 +329,7 @@ INSTANTIATE_TEST_CASE_P(All, TfRecordYielderTest,
 TEST(RecordYielder, MatchShardedFilePattern) {
   const int num_shards = 16;
   const int records_per_shard = 8;
-  GenerateShardedTfRecordTestData("sharded_data", num_shards,
+  GenerateShardedTfRecordTestData("sharded_data", "", num_shards,
                                   records_per_shard);
 
   BasicRecordYielder::Options opts;
@@ -358,13 +361,46 @@ TEST(RecordYielder, MatchShardedFilePattern) {
 TEST(RecordYielder, MatchWildcardShardedFilePattern) {
   const int num_shards = 9;
   const int records_per_shard = 8;
-  GenerateShardedTfRecordTestData("sharded_data2", num_shards,
+  GenerateShardedTfRecordTestData("sharded_data2", "", num_shards,
                                   records_per_shard);
 
   BasicRecordYielder::Options opts;
   opts.file_pattern = strings::StrCat(
       "tfrecord:",
       io::JoinPath("/tmp", "sharded_data2@*"));
+  opts.bufsize = records_per_shard;
+  opts.parallelism = 1;
+  std::vector<Rope> epoch;
+  auto yielder = BasicRecordYielder::New(opts);
+  Record record;
+  record.source_id = kDefaultSourceId;
+
+  for (int i = 0; i < num_shards * records_per_shard; ++i) {
+    TF_CHECK_OK(yielder->Yield(&record));
+    epoch.emplace_back(string(record.value));
+  }
+  auto new_end = std::unique(epoch.begin(), epoch.end());
+  // If we iterated through all shards (rather than 1 shard twice), there
+  // should be no duplicates, and we should be at the end of the first epoch.
+  EXPECT_EQ(new_end, epoch.end());
+  // End of the 1st epoch | start of the 2nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
+  TF_CHECK_OK(yielder->Yield(&record));
+  // End of the 2st epoch | start of the 3nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
+  yielder->Close();
+}
+
+TEST(RecordYielder, MatchShardedFilePatternWithSuffix) {
+  const int num_shards = 9;
+  const int records_per_shard = 8;
+  GenerateShardedTfRecordTestData("sharded_data3", ".record", num_shards,
+                                  records_per_shard);
+
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = strings::StrCat(
+      "tfrecord:",
+      io::JoinPath("/tmp", "sharded_data3@9.record"));
   opts.bufsize = records_per_shard;
   opts.parallelism = 1;
   std::vector<Rope> epoch;

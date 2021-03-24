@@ -58,37 +58,48 @@ Factory* GetFactory() {
   return factory;
 }
 
-// A sharded file pattern looks like /path/name@100, which is expanded to
-// a glob pattern /path/name-?????-of-00100 by this function. The number of
-// shards shouldn't exceed 5 digits. A wildcard is also support for the shards
-// number: /path/name@* is expanded to /path/name-?????-of-?????.
-Status MaybeExpandShardedFilePattern(const string& file_pattern,
+// A sharded file pattern looks like /path/name@100.sst, which is expanded to
+// a glob pattern /path/name-?????-of-00100.sst by this function. The .sst file
+// extension is optional. The number of shards shouldn't exceed 5 digits. A
+// wildcard is also support for the shards number: /path/name@*.sst is expanded
+// to /path/name-?????-of-?????.sst.
+Status MaybeExpandShardedFilePattern(StringPiece file_pattern,
                                      string* expanded) {
-  const auto pos = file_pattern.find('@');
-  if (pos == string::npos) {  // not a sharded file pattern
-    *expanded = file_pattern;
-    return Status::OK();
-  }
-
-  const string prefix = file_pattern.substr(0, pos);
-  const string suffix = file_pattern.substr(pos + 1);
-
-  uint32 num_shards = 0;
-  if (suffix == "*") {
-    *expanded = strings::StrCat(prefix, "-\?\?\?\?\?-of-\?\?\?\?\?");
-    return Status::OK();
-  } else if (strings::safe_strtou32(suffix, &num_shards)) {
-    if (num_shards > 99999) {
-      return errors::InvalidArgument(strings::StrCat(
-          "The number of shards should not exceed 5 digits: ", num_shards));
+  for (int i = file_pattern.size() - 2; i >= 0; --i) {
+    const char c = file_pattern[i];
+    if (c == '/') {
+      // This is not a valid sharded file pattern, do not expand it.
+      *expanded = string(file_pattern);
+      return Status::OK();
     }
-    *expanded =
-        strings::Printf("%s-\?\?\?\?\?-of-%05d", prefix.c_str(), num_shards);
-    return Status::OK();
-  } else {
-    return errors::InvalidArgument(
-        strings::StrCat("Invalid sharded file pattern: ", file_pattern));
+    if (c == '@') {
+      if (file_pattern[i + 1] == '*') {
+        *expanded = strings::StrCat(file_pattern.substr(0, i),
+                                    "-\?\?\?\?\?-of-\?\?\?\?\?",
+                                    file_pattern.substr(i + 2));
+        return Status::OK();
+      } else {
+        uint64 num_shards = 0;
+        StringPiece suf = file_pattern.substr(i + 1);
+        if (str_util::ConsumeLeadingDigits(&suf, &num_shards)) {
+          if (num_shards <= 0 || num_shards >= 99999) {
+            return errors::InvalidArgument(
+                strings::StrCat("The number of shards should be non-zero and "
+                                "not exceed 5 digits: ",
+                                num_shards));
+          }
+          const string shard_pattern = strings::Printf(
+              "-\?\?\?\?\?-of-%05d", static_cast<int>(num_shards));
+          *expanded =
+              strings::StrCat(file_pattern.substr(0, i), shard_pattern, suf);
+          return Status::OK();
+        }
+      }
+      break;
+    }
   }
+  *expanded = string(file_pattern);
+  return Status::OK();
 }
 
 // ParallelFilePatterns look like this
