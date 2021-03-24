@@ -2464,8 +2464,6 @@ class UniTransformer(base_model.BaseTask):
     p.Define('gated_gelu', False, 'FFN gated GELU. '
              'Deprecated. Use gated_ffn_activation=gelu.')
     p.Define('gated_ffn_activation', None, 'Transformer gated FFN activation.')
-    p.Define('num_layers_in_block', 1,
-             'Number of transformer layers in DecoderLayerStack.sub_layers.')
     p.Define('parallel_ffn', False,
              'Whether to make ffn and attention parallel.')
     p.Define(
@@ -2516,41 +2514,37 @@ class UniTransformer(base_model.BaseTask):
       dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
       self.CreateChild('dec_pos_emb', dec_pos_emb)
 
-    assert p.num_transformer_layers % p.num_layers_in_block == 0
-    num_blocks = p.num_transformer_layers // p.num_layers_in_block
-
-    decoder_sub_layers = []
-    for layer_idx in range(p.num_layers_in_block):
-      str_i = '' if layer_idx == 0 else '_%d' % layer_idx
-      if p.parallel_ffn:
-        assert not p.positional_embedding
-        assert gated_ffn_activation
-        decoder_sub_layers += [
-            builder_layers.RepeatLayer.Params().Set(
-                name='blocks',
-                body=b.DecoderLayer('block', gated_ffn_activation,
-                                    p.conv_kernel_size,
-                                    p.hidden_dim_reshape_segments),
-                repeat=p.num_transformer_layers,
-                per_layer_vars=p.use_per_layer_vars_for_recurrent)
-        ]
+    if p.parallel_ffn:  # Only works with RecurrentDenseBuilderParallelDecode.
+      assert not p.positional_embedding
+      assert gated_ffn_activation
+      assert isinstance(b, RecurrentDenseBuilderParallelDecode)
+      decoder_sub_layers = [
+          builder_layers.RepeatLayer.Params().Set(
+              name='blocks',
+              body=b.DecoderLayer('block', gated_ffn_activation,
+                                  p.conv_kernel_size,
+                                  p.hidden_dim_reshape_segments),
+              repeat=p.num_transformer_layers,
+              per_layer_vars=p.use_per_layer_vars_for_recurrent)
+      ]
+      dec = b.DecoderLayerStack(
+          'decoder', decoder_sub_layers, 1, conv_kernel_size=p.conv_kernel_size)
+    else:
+      if p.positional_embedding:
+        atten_layer = b.DecSelfAttention('dec_self_attention')
       else:
-        if p.positional_embedding:
-          atten_layer = b.DecSelfAttention('dec_self_attention' + str_i)
-        else:
-          atten_layer = b.DecSelfAttentionRelativeBias('dec_self_attention' +
-                                                       str_i)
-        if gated_ffn_activation is None:
-          ffw_layer = b.DenseReluDense('dense_relu_dense' + str_i, decoder=True)
-        else:
-          ffw_layer = b.DenseReluDenseGated(
-              'dense_relu_dense' + str_i, gated_ffn_activation, decoder=True)
-        decoder_sub_layers += [atten_layer, ffw_layer]
-    dec = b.DecoderLayerStack(
-        'decoder',
-        decoder_sub_layers,
-        num_blocks,
-        conv_kernel_size=p.conv_kernel_size)
+        atten_layer = b.DecSelfAttentionRelativeBias('dec_self_attention')
+      if gated_ffn_activation is None:
+        ffw_layer = b.DenseReluDense('dense_relu_dense', decoder=True)
+      else:
+        ffw_layer = b.DenseReluDenseGated(
+            'dense_relu_dense', gated_ffn_activation, decoder=True)
+      decoder_sub_layers = [atten_layer, ffw_layer]
+      dec = b.DecoderLayerStack(
+          'decoder',
+          decoder_sub_layers,
+          p.num_transformer_layers,
+          conv_kernel_size=p.conv_kernel_size)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
     emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
