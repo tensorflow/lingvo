@@ -1973,11 +1973,12 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A `.NestedMap` object containing</span>
 
-<span class="sd">      - key:   [B, p.left_context - 1 + p.right_context, N, H].</span>
-<span class="sd">      - value: [B, p.left_context - 1 + p.right_context, N, H].</span>
-<span class="sd">      - masks: [B, p.left_context-1 + p.right_context], 0/1 Tensor where 0s are</span>
-<span class="sd">      - masked out positions.</span>
+<span class="sd">      conext_len = p.left_context - 1 + p.right_context</span>
+<span class="sd">      - key:   [B, conext_len, N, H].</span>
+<span class="sd">      - value: [B, conext_len, N, H].</span>
+<span class="sd">      - masks: [B, conext_len], 0/1 Tensor where 0s are masked out positions.</span>
 <span class="sd">      - query: (only if p.right_context &gt; 0) [B, p.right_context, N, H].</span>
+<span class="sd">      - out_paddings: (only if p.right_context&gt; 0): [B, p.right_context].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">,</span> <span class="s1">&#39;Value projection must be enabled.&#39;</span>
@@ -1997,6 +1998,7 @@
       <span class="n">state0</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span>
           <span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
       <span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">state0</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.IsInferenceStepStatic"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.IsInferenceStepStatic">[docs]</a>  <span class="k">def</span> <span class="nf">IsInferenceStepStatic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2194,6 +2196,7 @@
 
     <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/StreamStep&#39;</span><span class="p">):</span>
       <span class="c1"># query projection.</span>
       <span class="c1"># [B, Q, N, H]</span>
@@ -2206,11 +2209,14 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># [B, Q, N, H]</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query_proj</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">paddings</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># [B, R + Q, N, H]</span>
         <span class="n">concat_query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># [B, Q, N, H]</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
+        <span class="n">concat_out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">out_paddings</span><span class="p">,</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">concat_out_paddings</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
 
       <span class="c1"># key, value, mask.</span>
       <span class="c1"># [B, T, N, H].</span>
@@ -2278,7 +2284,8 @@
           <span class="n">masks</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">state_paddings</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:])</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
-      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state1</span></div>
+        <span class="n">state1</span><span class="o">.</span><span class="n">out_paddings</span> <span class="o">=</span> <span class="n">concat_out_paddings</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
+      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">out_paddings</span><span class="p">,</span> <span class="n">state1</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
