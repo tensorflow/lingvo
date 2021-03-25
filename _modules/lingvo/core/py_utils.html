@@ -5916,6 +5916,10 @@
 <div class="viewcode-block" id="SequencePaddings"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SequencePaddings">[docs]</a><span class="k">def</span> <span class="nf">SequencePaddings</span><span class="p">(</span><span class="n">seqlen</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">seqlen</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
   <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span></div>
+
+
+<div class="viewcode-block" id="AppendDims"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AppendDims">[docs]</a><span class="k">def</span> <span class="nf">AppendDims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ndims</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">ndims</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
