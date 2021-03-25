@@ -518,69 +518,6 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-2.031689, 7.911201], [v1, v2])
 
-  @parameterized.named_parameters(
-      ('Basic',),
-      ('BasicS2', False, 2),
-      ('SkipNorm', True),
-      ('SkipNormS4', True, 4),
-  )
-  def testCausalDepthwiseConv2DLayerStreamStep(self,
-                                               testonly_skip_norm_layers=False,
-                                               stride=1):
-    with flagsaver.flagsaver(
-        testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestcausalDepthwiseConv2DLayerStreamStepHelper(
-          testonly_skip_norm_layers, stride)
-
-  def _TestcausalDepthwiseConv2DLayerStreamStepHelper(
-      self, test_only_skip_norm_layers, stride):
-    batch_size, max_seqlen, channel = 2, 32, 3
-    kernel, channel_multiplier = 5, 1
-    params = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
-        name='conv',
-        filter_stride=[1, 1],
-        filter_shape=[kernel, 1, channel, channel_multiplier],
-        params_init=py_utils.WeightInit.Gaussian(0.1))
-
-    conv_layer = params.Instantiate()
-    init_op = tf.global_variables_initializer()
-
-    np.random.seed(None)
-    inputs = np.random.normal(
-        0.5, 1, [batch_size, max_seqlen, 1, channel]).astype(np.float32)
-    print(f'np.sum(inputs): {np.sum(inputs)}')
-    inputs = tf.convert_to_tensor(inputs)
-
-    seqlen = np.random.randint(
-        low=1, high=max_seqlen + 1, size=(batch_size,), dtype=np.int32)
-    print(repr(seqlen))
-    seqlen = tf.convert_to_tensor(seqlen)
-    input_padding = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-    base_outputs, _ = conv_layer.FProp(conv_layer.theta, inputs, input_padding)
-    base_outputs *= tf.reshape(1. - input_padding,
-                               [batch_size, max_seqlen, 1, 1])
-
-    outputs = []
-    state = conv_layer.zero_state(batch_size)
-    assert max_seqlen % stride == 0
-    for i in range(0, max_seqlen // stride):
-      output, _, state = conv_layer.StreamStep(
-          conv_layer.theta, inputs[:, stride * i:stride * (i + 1), :, :],
-          input_padding[:, stride * i:stride * (i + 1)], state)
-      outputs.append(output)
-    # [b, t, 1, c * channel_multiplier]
-    outputs = tf.concat(outputs, axis=1)
-    outputs *= tf.reshape(1. - input_padding, [batch_size, max_seqlen, 1, 1])
-
-    with self.session(use_gpu=True) as sess:
-      sess.run(init_op)
-      expected, actual = sess.run([base_outputs, outputs])
-      print(repr(expected))
-      print(repr(actual))
-      print(f'np.sum(np.abs(ref_val)): {np.sum(np.abs(expected))}')
-      print(f'np.sum(np.abs(new_val)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual)
-
   def testActivationLayer(self):
     with self.session(use_gpu=True):
       p = conv_layers.ActivationLayer.Params()
@@ -692,6 +629,144 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       ]
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
+
+
+class CausalDepthwiseConv2DLayerStreamStepTest(parameterized.TestCase,
+                                               test_utils.TestCase):
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicS2', False, 2),
+      ('SkipNorm', True),
+      ('SkipNormS4', True, 4),
+  )
+  def testCommon(self, testonly_skip_norm_layers=False, stride=1):
+    with flagsaver.flagsaver(
+        testonly_skip_norm_layers=testonly_skip_norm_layers):
+      self._TestHelper(testonly_skip_norm_layers, stride)
+
+  def _TestHelper(self, test_only_skip_norm_layers, stride):
+    batch_size, max_seqlen, channel = 2, 32, 3
+    kernel, channel_multiplier = 5, 1
+    params = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
+        name='conv',
+        filter_stride=[1, 1],
+        filter_shape=[kernel, 1, channel, channel_multiplier],
+        params_init=py_utils.WeightInit.Gaussian(0.1))
+
+    conv_layer = params.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    np.random.seed(None)
+    inputs = np.random.normal(
+        0.5, 1, [batch_size, max_seqlen, 1, channel]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=1, high=max_seqlen + 1, size=(batch_size,), dtype=np.int32)
+    print(repr(seqlen))
+    seqlen = tf.convert_to_tensor(seqlen)
+    input_padding = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+    base_outputs, _ = conv_layer.FProp(conv_layer.theta, inputs, input_padding)
+    base_outputs *= tf.reshape(1. - input_padding,
+                               [batch_size, max_seqlen, 1, 1])
+
+    outputs = []
+    state = conv_layer.zero_state(batch_size)
+    assert max_seqlen % stride == 0
+    for i in range(0, max_seqlen // stride):
+      output, _, state = conv_layer.StreamStep(
+          conv_layer.theta, inputs[:, stride * i:stride * (i + 1), :, :],
+          input_padding[:, stride * i:stride * (i + 1)], state)
+      outputs.append(output)
+    # [b, t, 1, c * channel_multiplier]
+    outputs = tf.concat(outputs, axis=1)
+    outputs *= tf.reshape(1. - input_padding, [batch_size, max_seqlen, 1, 1])
+
+    with self.session(use_gpu=True) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([base_outputs, outputs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(ref_val)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(new_val)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('S2', 2),
+      ('S4', 4),
+      ('SkipNormS4', 4, True),
+  )
+  def testLeadingPaddings(self, stride=1, skip_norm=False):
+    with flagsaver.flagsaver(testonly_skip_norm_layers=skip_norm):
+      self._TestLeadingPaddingsHelper(stride)
+
+  def _TestLeadingPaddingsHelper(self, stride=1):
+    """Tests leading paddings case, useful for local atten with right ctx."""
+    batch, max_seqlen, channel = 2, 16, 2
+    kernel, channel_multiplier = 3, 2
+
+    p = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
+        name='conv',
+        filter_stride=[1, 1],
+        filter_shape=[kernel, 1, channel, channel_multiplier],
+        params_init=py_utils.WeightInit.Gaussian(0.1))
+
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    np.random.seed(None)
+    inputs = np.random.normal(0.1, 0.5, [batch, max_seqlen, 1, channel]).astype(
+        np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs_t = tf.convert_to_tensor(inputs)
+
+    # The upperbound is always max_seqlen-1, so the batch is always padded.
+    seqlen = np.random.randint(
+        low=1, high=max_seqlen, size=(batch,), dtype=np.int32)
+    print(f'seqlen: {seqlen}')
+    paddings = py_utils.PaddingsFromLengths(
+        tf.convert_to_tensor(seqlen), max_seqlen)
+
+    shift_inputs = np.array(inputs)
+    for i in range(batch):
+      shift_inputs[i] = np.roll(shift_inputs[i], max_seqlen - seqlen[i], axis=0)
+    shift_inputs_t = tf.convert_to_tensor(shift_inputs)
+
+    # Has the same number of tokens as paddings per example
+    leading_paddings = 1 - py_utils.PaddingsFromLengths(
+        max_seqlen - tf.convert_to_tensor(seqlen), max_seqlen)
+
+    def expand_pad(pad):  # pylint:disable=invalid-name
+      return py_utils.AppendDims(pad, 2)
+
+    def stream(l, inputs, paddings):  # pylint:disable=invalid-name
+      state = l.zero_state(batch)
+      all_outs = []
+      for i in range(max_seqlen // stride):
+        step_inputs = inputs[:, stride * i:stride * (i + 1)]
+        step_paddings = paddings[:, stride * i:stride * (i + 1)]
+        output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
+                                        state)
+        all_outs.append(output)
+      all_outs = tf.concat(all_outs, axis=1)
+      return all_outs * (1. - expand_pad(paddings))
+
+    base_outs = stream(l, inputs_t, paddings)
+    actual_outs = stream(l, shift_inputs_t, leading_paddings)
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([base_outs, actual_outs])
+      for i in range(batch):
+        actual[i] = np.roll(actual[i], -(max_seqlen - seqlen[i]), axis=0)
+      print(f'expected: {repr(expected)}')
+      print(f'actual: {repr(actual)}')
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
 
 
 class GlobalPoolingLayerTest(test_utils.TestCase):

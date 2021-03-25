@@ -564,7 +564,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
     l = p.Instantiate()
     init_op = tf.global_variables_initializer()
 
-    np.random.seed(123)
+    np.random.seed(None)
     inputs = np.random.normal(
         0.1, 0.5, [batch, max_seqlen, 1, input_dim]).astype(np.float32)
     print(f'np.sum(inputs): {np.sum(inputs)}')
@@ -587,23 +587,22 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
         max_seqlen - tf.convert_to_tensor(seqlen), max_seqlen)
 
     def expand_pad(pad):  # pylint:disable=invalid-name
-      return tf.reshape(pad, py_utils.GetShape(pad) + [1, 1])
+      return py_utils.AppendDims(pad, 2)
 
     def stream(l, inputs, paddings):  # pylint:disable=invalid-name
       state = l.zero_state(batch)
       all_outs = []
       for i in range(max_seqlen // stride):
-        with tf.control_dependencies(all_outs):
-          step_inputs = inputs[:, stride * i:stride * (i + 1)]
-          step_paddings = paddings[:, stride * i:stride * (i + 1)]
+        step_inputs = inputs[:, stride * i:stride * (i + 1)]
+        step_paddings = paddings[:, stride * i:stride * (i + 1)]
         output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
                                         state)
         all_outs.append(output)
       all_outs = tf.concat(all_outs, axis=1)
-      return all_outs * (1. - paddings)
+      return all_outs * (1. - expand_pad(paddings))
 
-    base_outs = stream(l, inputs_t, expand_pad(paddings))
-    actual_outs = stream(l, shift_inputs_t, expand_pad(leading_paddings))
+    base_outs = stream(l, inputs_t, paddings)
+    actual_outs = stream(l, shift_inputs_t, leading_paddings)
 
     with self.session(use_gpu=False) as sess:
       sess.run(init_op)

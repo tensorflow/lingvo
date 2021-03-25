@@ -1638,7 +1638,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(
           tuple(expected.shape), (batch_size, max_seqlen, input_dim))
 
-  def _BuildBaseGraphWithStacking(self, layers, num_layers, inputs, paddings):
+  def _BuildStackingBaseGraph(self, layers, num_layers, inputs, paddings):
     outputs = inputs
     for l in layers:
       outputs, _ = l.FProp(l.theta, outputs, outputs, outputs, paddings)
@@ -1646,8 +1646,8 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     outputs *= tf.expand_dims(1. - paddings, -1)
     return outputs
 
-  def _BuildStreamGraphWithStacking(self, layers, num_layers, inputs, paddings,
-                                    stride):
+  def _BuildStackingStreamGraph(self, layers, num_layers, inputs, paddings,
+                                stride):
     p = layers[0].params
 
     batch_size, max_seqlen, dim = py_utils.GetShape(inputs)
@@ -1689,7 +1689,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     num_layers = 5
 
     # Prepares inputs.
-    np.random.seed(123)
+    np.random.seed(None)
     inputs = np.random.normal(
         0.1, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
     print(f'np.sum(inputs): {np.sum(inputs)}')
@@ -1713,11 +1713,11 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     ps = [p.Copy().Set(name=f'base{i}') for i in range(num_layers)]
     layers = [x.Instantiate() for x in ps]
 
-    base_outputs = self._BuildBaseGraphWithStacking(layers, num_layers, inputs,
-                                                    paddings)
+    base_outputs = self._BuildStackingBaseGraph(layers, num_layers, inputs,
+                                                paddings)
 
-    outputs = self._BuildStreamGraphWithStacking(layers, num_layers, inputs,
-                                                 paddings, stride)
+    outputs = self._BuildStackingStreamGraph(layers, num_layers, inputs,
+                                             paddings, stride)
 
     init_op = tf.global_variables_initializer()
     with self.session(use_gpu=False) as sess:

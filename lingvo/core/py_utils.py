@@ -5764,3 +5764,7 @@ def DivideNoNan(x, y):
 def SequencePaddings(seqlen, maxlen=None):
   mask = tf.sequence_mask(seqlen, maxlen, dtype=tf.float32)
   return 1 - mask
+
+
+def AppendDims(x, ndims):
+  return tf.reshape(x, GetShape(x) + [1] * ndims)

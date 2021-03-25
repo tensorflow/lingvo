@@ -642,17 +642,17 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
       paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
 
-      inputs = tf.concat([state0.context, inputs], axis=1)
-      # [b, seqlen, 1, filter_shape[-1]]
+      concat_inputs = tf.concat(
+          [state0.context, inputs * (1 - py_utils.AppendDims(paddings, 2))],
+          axis=1)
       outputs = tf.nn.depthwise_conv2d(
-          inputs,
+          concat_inputs,
           self._GetWeight(theta),
           strides=(1, 1, 1, 1),
           dilations=(1, 1),
           data_format='NHWC',
           padding='VALID')
-
-      new_context = inputs[:, -(p.filter_shape[0] - 1):, :, :]
+      new_context = concat_inputs[:, -(p.filter_shape[0] - 1):]
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 
