@@ -933,12 +933,11 @@ class GroupNormLayer(base_layer.BaseLayer):
       multiplier = input_shape[-1]
     count_v *= multiplier
     count_v += cached_count
-    count_v = tf.maximum(count_v, 1.0)
 
     tf.logging.vlog(1, 'sum_v: %r', sum_v)
     tf.logging.vlog(1, 'count_v: %r', count_v)
 
-    mean = sum_v / count_v
+    mean = sum_v / tf.maximum(count_v, 1.0)
     if py_utils.FLAGS.tflite_compatible:
       # TfLite doesn't support broadcasting with 5D tensors.
       inputs_shape = py_utils.GetShape(inputs)
@@ -962,7 +961,7 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     variance = py_utils.with_dependencies([
         py_utils.assert_greater_equal(sum_vv, tf.cast(0, sum_vv.dtype)),
-    ], sum_vv / count_v)
+    ], sum_vv / tf.maximum(count_v, 1.0))
     return mean, variance, cached_sum, cached_count, cached_var
 
   def StreamStep(self, theta, inputs, paddings, state0):

@@ -550,6 +550,72 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
       self.assertAllClose(expected, actual)
 
+  def testStreamStepLeadingPaddings(self):
+    """Tests leading paddings case, useful for local atten with right ctx."""
+    stride, num_groups = 2, 2
+    batch, max_seqlen, input_dim = 2, 8, 4
+    p = bn_layers.GroupNormLayer.Params().Set(
+        name='gn',
+        dim=input_dim,
+        num_groups=num_groups,
+        cumulative=True,
+        input_rank=4)
+
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    np.random.seed(123)
+    inputs = np.random.normal(
+        0.1, 0.5, [batch, max_seqlen, 1, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs_t = tf.convert_to_tensor(inputs)
+
+    # The upperbound is always max_seqlen-1, so the batch is always padded.
+    seqlen = np.random.randint(
+        low=1, high=max_seqlen, size=(batch,), dtype=np.int32)
+    print('seqlen: {seqlen}')
+    paddings = py_utils.PaddingsFromLengths(
+        tf.convert_to_tensor(seqlen), max_seqlen)
+
+    shift_inputs = np.array(inputs)
+    for i in range(batch):
+      shift_inputs[i] = np.roll(shift_inputs[i], max_seqlen - seqlen[i], axis=0)
+    shift_inputs_t = tf.convert_to_tensor(shift_inputs)
+
+    # Has the same number of tokens as paddings per example
+    leading_paddings = 1 - py_utils.PaddingsFromLengths(
+        max_seqlen - tf.convert_to_tensor(seqlen), max_seqlen)
+
+    def expand_pad(pad):  # pylint:disable=invalid-name
+      return tf.reshape(pad, py_utils.GetShape(pad) + [1, 1])
+
+    def stream(l, inputs, paddings):  # pylint:disable=invalid-name
+      state = l.zero_state(batch)
+      all_outs = []
+      for i in range(max_seqlen // stride):
+        with tf.control_dependencies(all_outs):
+          step_inputs = inputs[:, stride * i:stride * (i + 1)]
+          step_paddings = paddings[:, stride * i:stride * (i + 1)]
+        output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
+                                        state)
+        all_outs.append(output)
+      all_outs = tf.concat(all_outs, axis=1)
+      return all_outs * (1. - paddings)
+
+    base_outs = stream(l, inputs_t, expand_pad(paddings))
+    actual_outs = stream(l, shift_inputs_t, expand_pad(leading_paddings))
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([base_outs, actual_outs])
+      for i in range(batch):
+        actual[i] = np.roll(actual[i], -(max_seqlen - seqlen[i]), axis=0)
+      print(f'expected: {repr(expected)}')
+      print(f'actual: {repr(actual)}')
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+
 
 class ConvLayerTest(test_utils.TestCase):
   """Tests conv layers.
