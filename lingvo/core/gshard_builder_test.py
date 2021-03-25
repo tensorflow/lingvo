@@ -257,6 +257,101 @@ class MoEBuilderTest(test_utils.TestCase):
       y_val, y2_val = sess.run([y, y2])
       self.assertAllEqual(y_val, y2_val)
 
+  def testLayerStack(self):
+    model_dim = 4
+    num_heads = 2
+    d_kv = 2
+    d_ff = 8
+    builder = gshard_builder.DenseBuilder.Params().Set(
+        dtype=tf.float32,
+        relative_attention_type='bias',
+        model_dim=model_dim,
+        attention_num_heads=num_heads,
+        attention_combine_dims=True,
+        attention_num_memory_heads=1,
+        model_dim_reshape_segments=2,
+        ff_dim=d_ff,
+        attention_key_value_dim=d_kv).Instantiate()
+
+    def _GetInputs():
+      x = tf.constant([[[.1, .2, .3, .4], [.3, .4, .5, .6], [.5, .6, .1, .2]],
+                       [[.7, .8, .4, .5], [.9, .1, .2, .3], [.0, .9, .3, .7]]],
+                      dtype=tf.float32)
+      seg_id = tf.constant([[1, 1, 1], [1, 1, 1]], dtype=tf.int32)
+      pos_id = tf.constant([[0, 1, 2], [0, 1, 2]], dtype=tf.int32)
+      # Reshape with model_dim_reshape_segments = 2
+      reshaped_x = tf.reshape(x, [2, 3, 2, -1])
+      return reshaped_x, seg_id, pos_id
+
+    def _GetOutputs(enc, dec):
+      x, seg_id, pos_id = _GetInputs()
+      enc_inputs = py_utils.NestedMap(
+          vec=x,
+          segment_id=seg_id,
+          segment_pos=pos_id,
+          aux_loss=tf.constant(0.0))
+      enc_outs = enc.FPropDefaultTheta(enc_inputs)
+      dec_inputs = py_utils.NestedMap(
+          vec=x,
+          segment_id=seg_id,
+          segment_pos=pos_id,
+          encoder_output=enc_outs.vec,
+          encoder_segment_id=tf.zeros_like(seg_id),
+          encoder_segment_pos=tf.zeros_like(pos_id),
+          aux_loss=enc_outs.aux_loss)
+      return dec.FPropDefaultTheta(dec_inputs).vec
+
+    # Build a graph with RepeatLayer.
+    g = tf.Graph()
+    with g.as_default():
+      tf.random.set_seed(None)
+      enc = builder.EncoderLayerStack(
+          'encoder',
+          sub_layers=[builder.DenseReluDense('ffw')],
+          num=2,
+          use_repeat_layer=True).Instantiate()
+      dec = builder.DecoderLayerStack(
+          'decoder',
+          sub_layers=[builder.DenseReluDense('ffw', decoder=True)],
+          num=2,
+          use_repeat_layer=True).Instantiate()
+      rep_out = _GetOutputs(enc, dec)
+
+    tf.Session.reset(target='')
+    with tf.Session(graph=g) as sess:
+      sess.run(tf.global_variables_initializer())
+      rep_out = rep_out.eval(session=sess)
+      var_values = sess.run(tf.trainable_variables())
+
+    # Build a graph without RepeatLayer.
+    g = tf.Graph()
+    with g.as_default():
+      tf.random.set_seed(None)
+      enc = builder.EncoderLayerStack(
+          'encoder', sub_layers=[builder.DenseReluDense('ffw')],
+          num=2).Instantiate()
+      dec = builder.DecoderLayerStack(
+          'decoder',
+          sub_layers=[builder.DenseReluDense('ffw', decoder=True)],
+          num=2).Instantiate()
+      dec_out = _GetOutputs(enc, dec)
+
+    tf.Session.reset(target='')
+    with tf.Session(graph=g) as sess:
+      tf_vars = [
+          enc.vars.layer_000.ln.w.scale, enc.vars.layer_000.ffw.w.wi,
+          enc.vars.layer_000.ffw.w.wo, enc.vars.layer_001.ln.w.scale,
+          enc.vars.layer_001.ffw.w.wi, enc.vars.layer_001.ffw.w.wo,
+          enc.vars.final_layer_norm.w.scale, dec.vars.layer_000.ln.w.scale,
+          dec.vars.layer_000.ffw.w.wi, dec.vars.layer_000.ffw.w.wo,
+          dec.vars.layer_001.ln.w.scale, dec.vars.layer_001.ffw.w.wi,
+          dec.vars.layer_001.ffw.w.wo, dec.vars.final_layer_norm.w.scale
+      ]
+      for val, var in zip(var_values, tf_vars):
+        sess.run(tf.assign(var, val))
+      dec_out = dec_out.eval(session=sess)
+      self.assertAllClose(dec_out, rep_out)
+
   def testParallelDecSelfAttentionRelativeBiasFFN(self):
     model_dim = 4
     num_heads = 2

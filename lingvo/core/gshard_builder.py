@@ -376,7 +376,7 @@ class MoEBuilder(builder.Base):
 
   # We avoid Builder._Seq and Builder._Rep to improve theta / checkpoint
   # readability and reduce layer nesting.
-  def EncoderLayerStack(self, name, sub_layers, num=1):
+  def EncoderLayerStack(self, name, sub_layers, num=1, use_repeat_layer=False):
     """Clean EncoderLayerStack with minimal layer nesting.
 
     E.g::
@@ -403,45 +403,14 @@ class MoEBuilder(builder.Base):
       name: Name of this layer
       sub_layers: Sublayers of the encoder layer.
       num: Number of encoder layers.
+      use_repeat_layer: bool, whether to wrap num layers into a RepeatLayer.
 
     Returns:
       The layer params.
     """
-    stack = []
-    imap_keys = self._EncoderLayerInMapKeys
-    for key in imap_keys:
-      stack.append(
-          ('i.' + key + '->' + key + '_split', self.Split(key + '_split')))
-
-    stack += [
-        (imap_keys[0] + '_split->x_000',
-         self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('i.aux_loss->loss_000', self._Identity('loss_000')),
-    ]
-    i = 0
-    map_inputs = 'x_%03d,' + ','.join([key + '_split' for key in imap_keys[1:]])
-    for _ in range(num):
-      for l in sub_layers:
-        # x_i, loss_i => x_{i+1}, loss_{i+1}
-        stack += [((map_inputs + '->imap_%03d') % (i, i),
-                   self._CreateNestedMap(
-                       name='imap_%03d' % i, keys=self._EncoderLayerInMapKeys)),
-                  ('imap_%03d->omap_%03d' % (i, i),
-                   self.EncoderLayer('layer_%03d' % i, l)),
-                  ('omap_%03d.vec->x_%03d' % (i, i + 1),
-                   self._Identity('vec_%03d' % i)),
-                  ('loss_%03d,omap_%03d.aux_loss->loss_%03d' % (i, i, i + 1),
-                   self._Add('loss_%03d' % (i + 1)))]
-        i += 1
-
-    stack += [
-        (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
-        (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
-        ('y_norm->y_dropout',
-         self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
-        ('y_dropout,segment_id_split->o.vec', self.Mask()),
-    ]
-    return self._Graph(name, ['i'], ['o'], *stack)
+    return self._LayerStack(name, sub_layers, num, use_repeat_layer,
+                            self._EncoderLayerInMapKeys,
+                            lambda n, p: self.EncoderLayer(name=n, layer=p))
 
   def DecoderLayer(self, name, layer, conv_kernel_size=None):
     if conv_kernel_size is not None:
@@ -469,11 +438,21 @@ class MoEBuilder(builder.Base):
         'encoder_segment_id', 'encoder_segment_pos'
     ]
 
-  def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
-    """Clean DecoderLayerStack."""
-    assert 'segment_id' in self._DecoderLayerInMapKeys
+  def DecoderLayerStack(self,
+                        name,
+                        sub_layers,
+                        num=1,
+                        conv_kernel_size=None,
+                        use_repeat_layer=False):
+    """Clean DecoderLayerStack, similar to EncoderLayerStack."""
+    return self._LayerStack(
+        name, sub_layers, num, use_repeat_layer, self._DecoderLayerInMapKeys,
+        lambda n, p: self.DecoderLayer(n, p, conv_kernel_size=conv_kernel_size))
+
+  def _LayerStack(self, name, sub_layers, num, use_repeat_layer, imap_keys,
+                  layer_fn):
+    assert 'segment_id' in imap_keys
     stack = []
-    imap_keys = self._DecoderLayerInMapKeys
     for key in imap_keys:
       stack.append(
           ('i.' + key + '->' + key + '_split', self.Split(key + '_split')))
@@ -483,21 +462,43 @@ class MoEBuilder(builder.Base):
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
         ('i.aux_loss->loss_000', self._Identity('loss_000')),
     ]
+
+    def _SubLayersBlock(l, idx):
+      map_inputs = 'x_%03d,' + ','.join(
+          [key + '_split' for key in imap_keys[1:]])
+      return [((map_inputs + '->imap_%03d') % (idx, idx),
+               self._CreateNestedMap(name='imap_%03d' % idx, keys=imap_keys)),
+              ('imap_%03d->omap_%03d' % (idx, idx),
+               layer_fn('layer_%03d' % idx, l)),
+              ('omap_%03d.vec->x_%03d' % (idx, idx + 1),
+               self._Identity('vec_%03d' % idx)),
+              ('loss_%03d,omap_%03d.aux_loss->loss_%03d' % (idx, idx, idx + 1),
+               self._Add('loss_%03d' % (idx + 1)))]
+
     i = 0
-    map_inputs = 'x_%03d,' + ','.join([key + '_split' for key in imap_keys[1:]])
-    for _ in range(num):
+    if use_repeat_layer:
+      blocks = []
       for l in sub_layers:
-        # x_i, loss_i => x_{i+1}, loss_{i+1}
-        stack += [((map_inputs + '->imap_%03d') % (i, i),
-                   self._CreateNestedMap(
-                       name='imap_%03d' % i, keys=self._DecoderLayerInMapKeys)),
-                  ('imap_%03d->omap_%03d' % (i, i),
-                   self.DecoderLayer('layer_%03d' % i, l, conv_kernel_size)),
-                  ('omap_%03d.vec->x_%03d' % (i, i + 1),
-                   self._Identity('vec_%03d' % i)),
-                  ('loss_%03d,omap_%03d.aux_loss->loss_%03d' % (i, i, i + 1),
-                   self._Add('loss_%03d' % (i + 1)))]
+        blocks += _SubLayersBlock(l, i)
         i += 1
+      body_inputs = 'x_000,loss_000,' + ','.join(
+          [key + '_split' for key in imap_keys[1:]])
+      body_outputs = 'x_%03d,loss_%03d,' % (i, i) + ','.join(
+          [key + '_split' for key in imap_keys[1:]])
+      body_p = self._Graph('blocks_body', body_inputs.split(','),
+                           body_outputs.split(','), *blocks)
+      repeat_p = builder_layers.RepeatLayer.Params().Set(
+          name='blocks', body=body_p, repeat=num, per_layer_vars=True)
+      stack += [
+          (body_inputs + '->' + body_outputs.replace('_split', '_split_out'),
+           repeat_p)
+      ]
+    else:
+      for _ in range(num):
+        for l in sub_layers:
+          # x_i, loss_i => x_{i+1}, loss_{i+1}
+          stack += _SubLayersBlock(l, i)
+          i += 1
 
     stack += [
         (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
