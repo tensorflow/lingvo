@@ -1833,20 +1833,23 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     dtype = py_utils.FPropDtype(p)
     context_len = p.left_context - 1 + p.right_context
+    per_head_dim = p.hidden_dim // p.num_heads
 
-    key_state = tf.zeros(
-        [batch_size, context_len, p.num_heads, p.hidden_dim // p.num_heads],
-        dtype)
+    key_state = tf.zeros([batch_size, context_len, p.num_heads, per_head_dim],
+                         dtype)
     value_state = tf.zeros_like(key_state, dtype)
     # At the beginning, all positions are masked out.
     masks = tf.zeros([batch_size, context_len], dtype)
     state0 = py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
 
     if p.right_context > 0:
-      state0.query = tf.zeros([
-          batch_size, p.right_context, p.num_heads, p.hidden_dim // p.num_heads
-      ], dtype)
+      state0.query = tf.zeros(
+          [batch_size, p.right_context, p.num_heads, per_head_dim], dtype)
       state0.out_paddings = tf.ones([batch_size, p.right_context])
+      # This is used only if the caller of the layer uses skip_connection in
+      # the layer's client code.
+      state0.skip_conn_input = tf.zeros(
+          [batch_size, p.right_context, p.hidden_dim])
     return state0
 
   def IsInferenceStepStatic(self):
@@ -1880,6 +1883,21 @@ class LocalSelfAttention(MultiHeadedAttention):
       return self._StreamStepStaticLength(theta, query_vec, paddings, state0)
     else:
       return self._StreamStepDynamicLength(theta, query_vec, paddings, state0)
+
+  def StreamStepAddSkipConnection(self, input_to_add, output, state0, state1):
+    p = self.params
+    if not p.right_context:
+      return input_to_add + output, state1
+
+    seqlen = py_utils.GetShape(output)[1]
+    output = py_utils.HasShape(output, py_utils.GetShape(input_to_add))
+
+    concat_input_to_add = tf.concat([state0.skip_conn_input, input_to_add],
+                                    axis=1)
+
+    final_output = output + concat_input_to_add[:, :seqlen]
+    state1.skip_conn_input = concat_input_to_add[:, seqlen:]
+    return final_output, state1
 
   def _StreamStepStaticLength(self, theta, query_vec, paddings, state0):
     """query_vec length is staticly known."""
@@ -3480,9 +3498,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # Residual connection.
       input_to_add = (
           unnormalized_query_vec if p.add_unnormalized_input else query_vec)
-      if p.add_skip_connection:
-        output += input_to_add
 
+      if p.add_skip_connection:
+        output, atten_state1 = self.atten.StreamStepAddSkipConnection(
+            input_to_add, output, state0.atten, atten_state1)
       return output, paddings, py_utils.NestedMap(atten=atten_state1)
 
 

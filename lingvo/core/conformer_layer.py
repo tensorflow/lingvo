@@ -361,8 +361,8 @@ class LConvLayer(base_layer.BaseLayer):
       # At present it's guaranteed GroupNorm.
       assert (isinstance(self.norm, bn_layers.GroupNormLayer) and
               self.norm.params.input_rank == 4)
-      inputs, _, norm_state1 = self.norm.StreamStep(theta.norm, inputs,
-                                                    paddings, state0.norm_state)
+      inputs, paddings, norm_state1 = self.norm.StreamStep(
+          theta.norm, inputs, paddings, state0.norm_state)
       # [b, t, d]
       inputs = tf.squeeze(inputs, 2)
       state1.norm_state = norm_state1
@@ -375,7 +375,7 @@ class LConvLayer(base_layer.BaseLayer):
         raise NotImplementedError(
             'Only bn_layers.GroupNormLayer, layers.LayerNorm are supported.')
     # [b, t, d]
-    return inputs
+    return inputs, paddings
 
   def StreamStep(self, theta, inputs, paddings, state0):
     """Streams t steps.
@@ -418,7 +418,8 @@ class LConvLayer(base_layer.BaseLayer):
           theta.depthwise_conv1d, inputs, paddings, state0.conv_state)
       state1.conv_state = conv_state1
       # [b, t, d]
-      inputs = self._NormalizeStep(theta, inputs, paddings, state0, state1)
+      inputs, paddings = self._NormalizeStep(theta, inputs, paddings, state0,
+                                             state1)
 
       inputs = self._ApplyActivation(inputs, p.conv_activation)
 

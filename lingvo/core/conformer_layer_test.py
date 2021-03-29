@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for conformer layers as in https://arxiv.org/abs/2005.08100."""
 # Lint as: PY3
+import math
 from unittest import mock
 from absl.testing import flagsaver
 from absl.testing import parameterized
@@ -530,6 +531,18 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'norm_type': 'gn'
       },
       {
+          'testcase_name': 'SkipNormGNR1',
+          'testonly_skip_norm_layers': True,
+          'norm_type': 'gn',
+          'right_context': 1,
+      },
+      {
+          'testcase_name': 'SkipNormGNR2',
+          'testonly_skip_norm_layers': True,
+          'norm_type': 'gn',
+          'right_context': 2,
+      },
+      {
           'testcase_name': 'SkipNormGNStride2',
           'testonly_skip_norm_layers': True,
           'norm_type': 'gn',
@@ -540,6 +553,20 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'testonly_skip_norm_layers': True,
           'norm_type': 'gn',
           'stride': 4
+      },
+      {
+          'testcase_name': 'SkipNormGNStride2R1',
+          'testonly_skip_norm_layers': True,
+          'norm_type': 'gn',
+          'stride': 2,
+          'right_context': 1
+      },
+      {
+          'testcase_name': 'SkipNormGNStride4R2',
+          'testonly_skip_norm_layers': True,
+          'norm_type': 'gn',
+          'stride': 4,
+          'right_context': 2
       },
       {
           'testcase_name': 'Reordered',
@@ -561,6 +588,14 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'has_lconv': False,
           'has_fflayer_start': False
       },
+      {
+          'testcase_name': 'TransformerSkipNormR2',
+          'testonly_skip_norm_layers': True,
+          'layer_order': 'mhsa',
+          'has_lconv': False,
+          'has_fflayer_start': False,
+          'right_context': 2,
+      },
   )
   def testStreamStep(self,
                      testonly_skip_norm_layers=False,
@@ -569,11 +604,14 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
                      stride=1,
                      layer_order='conv_before_mhsa',
                      has_lconv=True,
-                     has_fflayer_start=True):
+                     has_fflayer_start=True,
+                     right_context=0):
     assert norm_type in ('ln', 'gn'), norm_type
     with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
                             ), cluster_factory.SetEval(True):
       batch, max_seqlen, input_dim, kernel = 2, 16, 8, 3
+      assert max_seqlen % stride == 0
+
       if layer_order == 'mhsa':
         kernel = None
       num_heads, left_context, ffn_dim = 2, 3, 4
@@ -582,7 +620,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           is_causal=True,
           atten_num_heads=num_heads,
           atten_left_context=left_context,
-          atten_right_context=0,
+          atten_right_context=right_context,
           use_relative_atten=False,
           fflayer_hidden_dim=ffn_dim,
           kernel_size=kernel,
@@ -609,7 +647,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       seqlen = np.random.randint(
           low=1, high=max_seqlen + 1, size=(batch,), dtype=np.int32)
-      print(repr(seqlen))
+      print(f'seqlen: {seqlen}')
       seqlen = tf.convert_to_tensor(seqlen)
       paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
 
@@ -620,13 +658,21 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       outputs = []
       state = l.zero_state(batch)
-      for i in range(0, max_seqlen, stride):
-        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + stride), :],
-                                        paddings[:, i:(i + stride)], state)
+      for i in range(max_seqlen // stride +
+                     int(math.ceil(right_context / stride))):
+        if i < max_seqlen // stride:
+          step_inputs = inputs[:, stride * i:stride * (i + 1)]
+          step_paddings = paddings[:, stride * i:stride * (i + 1)]
+        else:
+          step_inputs = tf.zeros_like(inputs[:, 0:stride])
+          step_paddings = tf.ones_like(paddings[:, 0:stride])
+        output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
+                                        state)
         outputs.append(output)
-      # [b, t, d]
+
       outputs = tf.concat(outputs, axis=1)
-      outputs *= tf.expand_dims(1. - paddings, -1)
+      outputs = outputs[:, right_context:][:, :max_seqlen]
+      outputs *= tf.reshape(1. - paddings, [batch, max_seqlen, 1])
 
       with self.session(use_gpu=False) as sess:
         sess.run(init_op)
