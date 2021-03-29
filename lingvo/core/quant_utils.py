@@ -664,10 +664,6 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
                 p.start_step), lambda: tf.cast(p.start_cap, tf.float32),
         lambda: tf.cast(rmax_tensor, tf.float32))
 
-  def PostTrainingStepUpdate(self):
-    summary_utils.scalar('cap', self._Value())
-    return tf.no_op()
-
 
 class FakeQuantizationSchedule(BaseClippingCapSchedule):
   """Manages application of fake quantization via a schedule.
