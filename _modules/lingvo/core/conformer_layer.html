@@ -513,8 +513,8 @@
       <span class="c1"># At present it&#39;s guaranteed GroupNorm.</span>
       <span class="k">assert</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span> <span class="n">bn_layers</span><span class="o">.</span><span class="n">GroupNormLayer</span><span class="p">)</span> <span class="ow">and</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
-      <span class="n">inputs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">norm_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
-                                                    <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">norm_state</span><span class="p">)</span>
+      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">norm_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">norm_state</span><span class="p">)</span>
       <span class="c1"># [b, t, d]</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="n">state1</span><span class="o">.</span><span class="n">norm_state</span> <span class="o">=</span> <span class="n">norm_state1</span>
@@ -527,7 +527,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s1">&#39;Only bn_layers.GroupNormLayer, layers.LayerNorm are supported.&#39;</span><span class="p">)</span>
     <span class="c1"># [b, t, d]</span>
-    <span class="k">return</span> <span class="n">inputs</span></div>
+    <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span></div>
 
 <div class="viewcode-block" id="LConvLayer.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Streams t steps.</span>
@@ -570,7 +570,8 @@
           <span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv1d</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">conv_state</span><span class="p">)</span>
       <span class="n">state1</span><span class="o">.</span><span class="n">conv_state</span> <span class="o">=</span> <span class="n">conv_state1</span>
       <span class="c1"># [b, t, d]</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NormalizeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">state1</span><span class="p">)</span>
+      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NormalizeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span>
+                                             <span class="n">state1</span><span class="p">)</span>
 
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivation</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_activation</span><span class="p">)</span>
 
