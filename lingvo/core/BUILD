@@ -433,6 +433,7 @@ py_library(
         ":schedule",
         ":summary_utils",
         ":task_scheduler",
+        ":tpu_embedding_layers",
         # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
         "//lingvo/core:decoder_lib",

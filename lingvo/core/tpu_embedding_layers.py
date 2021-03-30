@@ -28,6 +28,47 @@ from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 # pylint:enable=g-direct-tensorflow-import
 
 
+class TpuEmbeddingCollection:
+  """Manage various TPU embedding related ops and tensors."""
+
+  GRAPH_COLLECTION_NAME = '__tpu_embedding_collection'
+
+  # TODO(laigd): move other collection definitions in py_utils.py here.
+
+  @classmethod
+  def Get(cls):
+    """Returns the TpuEmbeddingCollection associated with the current graph."""
+    emb_collection = tf.get_collection(cls.GRAPH_COLLECTION_NAME)
+    assert len(emb_collection) <= 1
+    if len(emb_collection) == 1:
+      tf.logging.info(
+          'TpuEmbeddingCollection singleton already exists, reusing')
+      return emb_collection[0]
+    else:
+      singleton = cls()
+      tf.add_to_collection(cls.GRAPH_COLLECTION_NAME, singleton)
+      return singleton
+
+  def __init__(self):
+    self._table_vars = py_utils.NestedMap()
+
+  def AddTableVariables(self, table_name, var_list):
+    """Add TPU embedding table variable list to the collection."""
+    if table_name in self._table_vars:
+      existing_var_list = self._table_vars[table_name]
+      if var_list != existing_var_list:
+        raise ValueError(
+            f'Table {table_name} with a different variable list already '
+            f'exists. Existing variable list: {existing_var_list}, '
+            f'variable list being added: {var_list}')
+      return
+    self._table_vars[table_name] = var_list
+
+  def TableVariables(self):
+    """Returns a NestedMap mapping table names to variables."""
+    return self._table_vars
+
+
 def _AddTpuEmbeddingSummaryTensor(name, value, weight=1.0):
   tf.add_to_collection(py_utils.TPU_EMBEDDING_SUMMARY_TENSORS,
                        (name, value, tf.convert_to_tensor(weight)))
@@ -304,6 +345,9 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         # Remove from _private_vars / _private_thetas to be added later as wm.
         del self._private_vars[var_name]
         del self._private_theta[var_name]
+
+    TpuEmbeddingCollection.Get().AddTableVariables(self.table_name,
+                                                   embedding_table_vars)
 
     if not py_utils.use_tpu():
       # We don't want to add this for TrainerTpu, otherwise the identity

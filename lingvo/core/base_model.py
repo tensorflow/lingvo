@@ -32,6 +32,7 @@ from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
+from lingvo.core import tpu_embedding_layers
 from lingvo.core import decoder_lib
 from lingvo.core import input_policy
 from model_pruning.python import pruning
@@ -47,6 +48,30 @@ class DecodeFinalizeArgs(
    decode_out: A list of key value pairs aggregated from return values of.
      PostProcessDecodeOut().
   """
+
+
+def _VariablesForEMA(params, model_var_list):
+  """Gets a list of variables that need to apply exponential moving average."""
+  # We need to apply EMA to trainable and moving average variable of the task,
+  # not just bprop vars, so that we create a shadow '/ExponentialMovingAverage'
+  # variable for every trainable and moving average variable.
+  all_vars = set(tf.trainable_variables()) | set(tf.moving_average_variables())
+  if params.train.ema_decay_moving_vars:
+    all_vars |= set(tf.get_collection('moving_vars'))
+  all_vars &= set(model_var_list)
+
+  # Remove TPU embedding variables since TPU embedding doesn't support EMA.
+  tpu_embedding_vars = (
+      tpu_embedding_layers.TpuEmbeddingCollection.Get().TableVariables())
+  if tpu_embedding_vars.Flatten():
+    tf.logging.warning(
+        'Detected TPU embedding variables, and EMA does not apply to them. '
+        f'List of TPU embedding variables: {tpu_embedding_vars}.')
+    all_vars -= set(tpu_embedding_vars.Flatten())
+
+  for var in all_vars:
+    tf.logging.info('Variables for EMA: %s', var.name)
+  return all_vars
 
 
 class BaseTask(base_layer.BaseLayer):
@@ -102,7 +127,10 @@ class BaseTask(base_layer.BaseLayer):
         'ema_decay', 0.0,
         'If > 0, enable ExponentialMovingAverage during training '
         'with the give decay. '
-        'Must be < 1. Disabled if <= 0.')
+        'Must be < 1. Disabled if <= 0. '
+        'Note that TPU embedding does not support EMA, so if used together, '
+        'there will be a mix of EMA and non-EMA variables in the model and the '
+        'quality may be affected, so use them together at your own risk.')
     tp.Define(
         'ema_decay_moving_vars', None,
         'If True, include variables from collection "moving_vars" in ema.')
@@ -705,18 +733,7 @@ class BaseTask(base_layer.BaseLayer):
       raise ValueError(
           'ApplyExponentialMovingAverage called before InstantiateVariables!')
     # TODO(rpang): raise an exception if this is called in the eval mode.
-    p = self.params
-    # We need to apply EMA to trainable and moving average variable of this
-    # Task, not just bprop vars, so that we create a shadow
-    # '/ExponentialMovingAverage' variable for every trainable and moving
-    # average variable.
-    all_vars = set(tf.trainable_variables()) | set(
-        tf.moving_average_variables())
-    if p.train.ema_decay_moving_vars:
-      all_vars |= set(tf.get_collection('moving_vars'))
-    all_vars &= set(self.vars.Flatten())
-    for var in all_vars:
-      tf.logging.debug('ApplyExponentialMovingAverage: %s', var.name)
+    all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
     with tf.name_scope('moving_average'):
       self._post_train_ops.append(ema.apply(all_vars))
 
@@ -999,15 +1016,7 @@ class BaseModel(base_layer.BaseLayer):
 
   @property
   def variables_for_ema(self):
-    p = self.params
-    all_vars = set(tf.trainable_variables()) | set(
-        tf.moving_average_variables())
-    if p.train.ema_decay_moving_vars:
-      all_vars |= set(tf.get_collection('moving_vars'))
-    all_vars &= set(self.vars.Flatten())
-    for var in all_vars:
-      tf.logging.debug('variables_for_ema: %s', var.name)
-    return all_vars
+    return _VariablesForEMA(self.params, self.vars.Flatten())
 
   def ConstructFPropBPropGraph(self):
     raise NotImplementedError('Abstract method')
