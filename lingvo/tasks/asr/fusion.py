@@ -91,9 +91,11 @@ class FusionBase(base_layer.BaseLayer):
 
     self._ModifyLmBeforeFProp(theta, state0, ids, paddings, misc)
 
-    lm_output, state1.lm_states = self.lm.FProp(
-        theta.lm, tf.reshape(ids, [seq_len, -1]),
-        tf.reshape(paddings, [seq_len, -1]), state0.lm_states)
+    with tf.name_scope('lm'):
+      ids = tf.reshape(ids, [seq_len, -1], name='reshape_ids')
+      paddings = tf.reshape(paddings, [seq_len, -1], name='reshape_paddings')
+      lm_output, state1.lm_states = self.lm.FProp(theta.lm, ids, paddings,
+                                                  state0.lm_states)
 
     if is_single_step:
       # lm outputs have dimension [time, batch, dim]. Since this is only one

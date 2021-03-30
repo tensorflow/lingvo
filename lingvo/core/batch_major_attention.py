@@ -1876,13 +1876,14 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
 
-    if self.IsInferenceStepStatic():
-      assert p.right_context == 0, (
-          'StreamStep() does not yet support look ahead with '
-          'inference_step_max_length set.')
-      return self._StreamStepStaticLength(theta, query_vec, paddings, state0)
-    else:
-      return self._StreamStepDynamicLength(theta, query_vec, paddings, state0)
+    with tf.name_scope(f'{p.name}/StreamStep'):
+      if self.IsInferenceStepStatic():
+        assert p.right_context == 0, (
+            'StreamStep() does not yet support look ahead with '
+            'inference_step_max_length set.')
+        return self._StreamStepStaticLength(theta, query_vec, paddings, state0)
+      else:
+        return self._StreamStepDynamicLength(theta, query_vec, paddings, state0)
 
   def StreamStepAddSkipConnection(self, input_to_add, output, state0, state1):
     p = self.params
@@ -1920,7 +1921,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     state0.value = py_utils.HasShape(state0.value,
                                      py_utils.GetShape(state0.key))
 
-    with tf.name_scope(f'{p.name}/StreamStep'):
+    with tf.name_scope('static_length'):
       # query projection.
       # [B, Q, N, H]
       query_proj = self.query.FProp(theta.query, query_vec)
@@ -2063,7 +2064,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
     paddings = py_utils.HasShape(paddings, [b, q])
 
-    with tf.name_scope(f'{p.name}/StreamStep'):
+    with tf.name_scope('dynamic_length'):
       # query projection.
       # [B, Q, N, H]
       query_proj = self.query.FProp(theta.query, query_vec)
@@ -2087,12 +2088,18 @@ class LocalSelfAttention(MultiHeadedAttention):
       # key, value, mask.
       # [B, T, N, H].
       key = tf.concat(
-          [state0.key, self.key.FProp(theta.key, query_vec)], axis=1)
+          [state0.key, self.key.FProp(theta.key, query_vec)],
+          axis=1,
+          name='concat_key')
       # [B, T, N, H]
       value = tf.concat(
-          [state0.value, self.value.FProp(theta.value, query_vec)], axis=1)
+          [state0.value, self.value.FProp(theta.value, query_vec)],
+          axis=1,
+          name='concat_value')
       # [B, T]. 1s are masked positions.
-      state_paddings = tf.concat([1 - state0.masks, paddings], axis=1)
+      state_paddings = tf.concat([1 - state0.masks, paddings],
+                                 axis=1,
+                                 name='concat_paddings')
       # t == context_len + q
       t = py_utils.GetShape(state_paddings)[1]
 
