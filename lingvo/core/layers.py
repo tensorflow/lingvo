@@ -2179,6 +2179,9 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     p.Define(
         'scale_sqrt_depth', False, 'If set True, activations are scaled'
         ' with sqrt(embedding_dim) in EmbLookup.')
+    p.Define(
+        'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
+        'with hyperparameter: value pairs. See google-research.model_pruning.')
     return p
 
   def __init__(self, params):
@@ -2196,6 +2199,9 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
 
     _, weight_shape = self._GetWeightShape()
     self.CreateAqtWeight('emb_aqt', shape=weight_shape, feature_axis=-1)
+    if p.pruning_hparams_dict:
+      self.compression_op = None
+    self.apply_compression = pruning_utils.ApplyCompression(p)
 
   def _FpropImpl(self, embs, ids_vec):
     """The embedding lookup implementation."""
@@ -2375,6 +2381,11 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     else:
       self.CreateVariable('wm', pc, theta_fn=None)
 
+    if pruning_utils.ApplyCompression(p):
+      pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
+                                           pc, p.dtype, p.name)
+      self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
+
   def EmbLookupDefaultTheta(self, ids):
     """Lookups embedding vectors for ids."""
     return self.FProp(self.theta, ids)
@@ -2417,7 +2428,11 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     flat_ids = tf.reshape(ids, [-1])
     wm = self.QWeight(theta.wm)
     wm = self.ToAqtWeight('emb_aqt', wm, feature_axis=-1)
-    embs_result = self._FpropImpl(wm, flat_ids)
+    if self.apply_compression:
+      embs_result = pruning_utils.PruningOp.GetEmbeddingLookupResult(
+          theta, flat_ids, self._fprop_mode, self)
+    else:
+      embs_result = self._FpropImpl(wm, flat_ids)
 
     embs_result = self.FromAqtWeight('emb_aqt', embs_result, feature_axis=-1)
     with tf.name_scope('vn'):

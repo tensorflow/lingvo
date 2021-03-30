@@ -2972,6 +2972,75 @@ class EmbeddingLayerTest(test_utils.TestCase):
   def testSimpleEmbeddingLayerScaling(self):
     self._testSimpleEmbeddingLayer(True, False, None, True)
 
+  def _testKmeansSimpleEmbeddingLayer(self,
+                                      use_matmul,
+                                      use_3d_weight_tensor,
+                                      fprop_mode,
+                                      scale_sqrt_depth=False):
+    g = tf.Graph()
+    with g.as_default():
+      tf.random.set_seed(398847392)
+      params = layers.SimpleEmbeddingLayer.Params()
+      params.name = 'kmeans_emb'
+      params.dtype = tf.float32
+      params.vocab_size = 8000
+      params.embedding_dim = 128
+      params.use_matmul = use_matmul
+      params.fprop_mode = fprop_mode
+      params.use_3d_weight_tensor = use_3d_weight_tensor
+      params.scale_sqrt_depth = scale_sqrt_depth
+      params.params_init = py_utils.WeightInit.Gaussian(0.01)
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      params.pruning_hparams_dict = {
+          'name': 'embedding_pruning',
+          'prune_option': 'weight',
+          'begin_pruning_step': 1,
+          'end_pruning_step': 200,
+          'sparsity_function_begin_step': 1,
+          'sparsity_function_end_step': 200,
+          'pruning_frequency': 10,
+      }
+
+      emb_layer = layers.SimpleEmbeddingLayer(params)
+      expected_fprop_mode = fprop_mode
+      if expected_fprop_mode is None:
+        expected_fprop_mode = 'matmul' if use_matmul else 'gather'
+      self.assertEqual(emb_layer._fprop_mode, expected_fprop_mode)
+
+      emb_matrix = emb_layer.vars.wm
+      ids = tf.constant([[89], [100]])
+      outputs = emb_layer.EmbLookupDefaultTheta(ids)
+      fast_outputs = emb_layer.EmbLookupDefaultThetaOnCpu(ids)
+
+    with self.session(use_gpu=True, graph=g):
+      self.evaluate(tf.global_variables_initializer())
+      emb_matrix_val, ids_val, outputs_val, fast_outputs_val = self.evaluate(
+          [emb_matrix, ids, outputs, fast_outputs])
+      if scale_sqrt_depth:
+        emb_matrix_val *= params.embedding_dim**0.5
+
+      self.assertEqual(emb_matrix_val.shape, (8000, 128))
+      self.assertEqual(ids_val.shape, (2, 1))
+
+      self.assertEqual(outputs_val.shape, (2, 1, 128))
+      self.assertEqual(fast_outputs_val.shape, (2, 1, 128))
+
+  def testKmeansSimpleEmbeddingLayerForLoop(self):
+    self._testKmeansSimpleEmbeddingLayer(False, True, None)
+
+  def testKmeansSimpleEmbeddingLayerForLoop2D(self):
+    self._testKmeansSimpleEmbeddingLayer(False, False, None)
+
+  def testKmeansSimpleEmbeddingLayerMatmul(self):
+    self._testKmeansSimpleEmbeddingLayer(True, False, None)
+
+  def testKmeansSimpleEmbeddingLayerGather(self):
+    self._testKmeansSimpleEmbeddingLayer(False, False, 'gather')
+
+  def testKmeansSimpleEmbeddingLayerScaling(self):
+    self._testKmeansSimpleEmbeddingLayer(True, False, None, True)
+
   def testSimpleEmbeddingLayerMasked(self):
     g = tf.Graph()
     with g.as_default():
