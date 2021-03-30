@@ -184,6 +184,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">task_scheduler</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_embedding_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">decoder_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">input_policy</span>
 <span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="kn">import</span> <span class="n">pruning</span>
@@ -199,6 +200,30 @@
 <span class="sd">   decode_out: A list of key value pairs aggregated from return values of.</span>
 <span class="sd">     PostProcessDecodeOut().</span>
 <span class="sd">  &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="_VariablesForEMA"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model._VariablesForEMA">[docs]</a><span class="k">def</span> <span class="nf">_VariablesForEMA</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">model_var_list</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Gets a list of variables that need to apply exponential moving average.&quot;&quot;&quot;</span>
+  <span class="c1"># We need to apply EMA to trainable and moving average variable of the task,</span>
+  <span class="c1"># not just bprop vars, so that we create a shadow &#39;/ExponentialMovingAverage&#39;</span>
+  <span class="c1"># variable for every trainable and moving average variable.</span>
+  <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">moving_average_variables</span><span class="p">())</span>
+  <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">:</span>
+    <span class="n">all_vars</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">))</span>
+  <span class="n">all_vars</span> <span class="o">&amp;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">model_var_list</span><span class="p">)</span>
+
+  <span class="c1"># Remove TPU embedding variables since TPU embedding doesn&#39;t support EMA.</span>
+  <span class="n">tpu_embedding_vars</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">TableVariables</span><span class="p">())</span>
+  <span class="k">if</span> <span class="n">tpu_embedding_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s1">&#39;Detected TPU embedding variables, and EMA does not apply to them. &#39;</span>
+        <span class="sa">f</span><span class="s1">&#39;List of TPU embedding variables: </span><span class="si">{</span><span class="n">tpu_embedding_vars</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    <span class="n">all_vars</span> <span class="o">-=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tpu_embedding_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+
+  <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Variables for EMA: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">all_vars</span></div>
 
 
 <div class="viewcode-block" id="BaseTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask">[docs]</a><span class="k">class</span> <span class="nc">BaseTask</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -254,7 +279,10 @@
         <span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="s1">&#39;If &gt; 0, enable ExponentialMovingAverage during training &#39;</span>
         <span class="s1">&#39;with the give decay. &#39;</span>
-        <span class="s1">&#39;Must be &lt; 1. Disabled if &lt;= 0.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Must be &lt; 1. Disabled if &lt;= 0. &#39;</span>
+        <span class="s1">&#39;Note that TPU embedding does not support EMA, so if used together, &#39;</span>
+        <span class="s1">&#39;there will be a mix of EMA and non-EMA variables in the model and the &#39;</span>
+        <span class="s1">&#39;quality may be affected, so use them together at your own risk.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;ema_decay_moving_vars&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;If True, include variables from collection &quot;moving_vars&quot; in ema.&#39;</span><span class="p">)</span>
@@ -857,18 +885,7 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;ApplyExponentialMovingAverage called before InstantiateVariables!&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(rpang): raise an exception if this is called in the eval mode.</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="c1"># We need to apply EMA to trainable and moving average variable of this</span>
-    <span class="c1"># Task, not just bprop vars, so that we create a shadow</span>
-    <span class="c1"># &#39;/ExponentialMovingAverage&#39; variable for every trainable and moving</span>
-    <span class="c1"># average variable.</span>
-    <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">moving_average_variables</span><span class="p">())</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">:</span>
-      <span class="n">all_vars</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">))</span>
-    <span class="n">all_vars</span> <span class="o">&amp;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
-    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_VariablesForEMA</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ema</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">all_vars</span><span class="p">))</span></div>
 
@@ -1151,15 +1168,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">variables_for_ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">moving_average_variables</span><span class="p">())</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">:</span>
-      <span class="n">all_vars</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">))</span>
-    <span class="n">all_vars</span> <span class="o">&amp;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
-    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;variables_for_ema: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">all_vars</span>
+    <span class="k">return</span> <span class="n">_VariablesForEMA</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
 <div class="viewcode-block" id="BaseModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>

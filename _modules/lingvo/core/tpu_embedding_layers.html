@@ -180,6 +180,47 @@
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 
+<div class="viewcode-block" id="TpuEmbeddingCollection"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection">[docs]</a><span class="k">class</span> <span class="nc">TpuEmbeddingCollection</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Manage various TPU embedding related ops and tensors.&quot;&quot;&quot;</span>
+
+  <span class="n">GRAPH_COLLECTION_NAME</span> <span class="o">=</span> <span class="s1">&#39;__tpu_embedding_collection&#39;</span>
+
+  <span class="c1"># TODO(laigd): move other collection definitions in py_utils.py here.</span>
+
+<div class="viewcode-block" id="TpuEmbeddingCollection.Get"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.Get">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the TpuEmbeddingCollection associated with the current graph.&quot;&quot;&quot;</span>
+    <span class="n">emb_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">GRAPH_COLLECTION_NAME</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">emb_collection</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">emb_collection</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;TpuEmbeddingCollection singleton already exists, reusing&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">emb_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">singleton</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">GRAPH_COLLECTION_NAME</span><span class="p">,</span> <span class="n">singleton</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">singleton</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TpuEmbeddingCollection.AddTableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddTableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add TPU embedding table variable list to the collection.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">:</span>
+      <span class="n">existing_var_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">var_list</span> <span class="o">!=</span> <span class="n">existing_var_list</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Table </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s1"> with a different variable list already &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;exists. Existing variable list: </span><span class="si">{</span><span class="n">existing_var_list</span><span class="si">}</span><span class="s1">, &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;variable list being added: </span><span class="si">{</span><span class="n">var_list</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="k">return</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_list</span></div>
+
+<div class="viewcode-block" id="TpuEmbeddingCollection.TableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.TableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">TableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a NestedMap mapping table names to variables.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span></div></div>
+
+
 <div class="viewcode-block" id="_AddTpuEmbeddingSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._AddTpuEmbeddingSummaryTensor">[docs]</a><span class="k">def</span> <span class="nf">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_SUMMARY_TENSORS</span><span class="p">,</span>
                        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">)))</span></div>
@@ -456,6 +497,9 @@
         <span class="c1"># Remove from _private_vars / _private_thetas to be added later as wm.</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+
+    <span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
+                                                   <span class="n">embedding_table_vars</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="c1"># We don&#39;t want to add this for TrainerTpu, otherwise the identity</span>
