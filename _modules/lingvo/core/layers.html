@@ -2331,6 +2331,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;scale_sqrt_depth&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set True, activations are scaled&#39;</span>
         <span class="s1">&#39; with sqrt(embedding_dim) in EmbLookup.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
+        <span class="s1">&#39;with hyperparameter: value pairs. See google-research.model_pruning.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2348,6 +2351,9 @@
 
     <span class="n">_</span><span class="p">,</span> <span class="n">weight_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">weight_shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">apply_compression</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SimpleEmbeddingLayer._FpropImpl"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._FpropImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_FpropImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">ids_vec</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The embedding lookup implementation.&quot;&quot;&quot;</span>
@@ -2525,7 +2531,12 @@
       <span class="n">pruning_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
                                             <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+      <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">ApplyPruning</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;wm&#39;</span><span class="p">,</span>
+                                           <span class="n">pc</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetLastCompressionOp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SimpleEmbeddingLayer.EmbLookupDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer.EmbLookupDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookupDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lookups embedding vectors for ids.&quot;&quot;&quot;</span>
@@ -2569,7 +2580,11 @@
     <span class="n">flat_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FpropImpl</span><span class="p">(</span><span class="n">wm</span><span class="p">,</span> <span class="n">flat_ids</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_compression</span><span class="p">:</span>
+      <span class="n">embs_result</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetEmbeddingLookupResult</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">flat_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FpropImpl</span><span class="p">(</span><span class="n">wm</span><span class="p">,</span> <span class="n">flat_ids</span><span class="p">)</span>
 
     <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">,</span> <span class="n">embs_result</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;vn&#39;</span><span class="p">):</span>

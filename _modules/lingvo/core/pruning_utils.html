@@ -208,6 +208,36 @@
   <span class="k">return</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">apply_pruning</span> <span class="ow">and</span> <span class="n">params</span><span class="o">.</span><span class="n">pruning_hparams_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
 
 
+<div class="viewcode-block" id="FlatEmbeddingLookup"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.FlatEmbeddingLookup">[docs]</a><span class="k">def</span> <span class="nf">FlatEmbeddingLookup</span><span class="p">(</span><span class="n">emb_table</span><span class="p">,</span>
+                        <span class="n">flat_ids</span><span class="p">,</span>
+                        <span class="n">vocab_size</span><span class="p">,</span>
+                        <span class="n">matmul_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">fprop_mode</span><span class="o">=</span><span class="s1">&#39;matmul&#39;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Performs embedding lookup operation.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    emb_table: tf.Tensor containing the embedding vectors.</span>
+<span class="sd">    flat_ids: tf.Tensor of shape (number_ids,).</span>
+<span class="sd">    vocab_size: vocabulary size of the embedding table, int.</span>
+<span class="sd">    matmul_axis: the axis of flat_ids that is used for matmul, int.</span>
+<span class="sd">    fprop_mode: embedding lookup option, should be &#39;matmul&#39; or &#39;gather&#39;.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Embedding lookup result.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;matmul&#39;</span><span class="p">:</span>
+    <span class="n">lhs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">flat_ids</span><span class="p">,</span> <span class="n">matmul_axis</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">flat_ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">emb_table</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">emb_table</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;gather&#39;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">emb_table</span><span class="p">,</span> <span class="n">flat_ids</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;FlatEmbeddingLookup(): fprop_mode </span><span class="si">{}</span><span class="s1"> is not supported.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">fprop_mode</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="PruningOp"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp">[docs]</a><span class="k">class</span> <span class="nc">PruningOp</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A pruning op object.</span>
 
@@ -245,7 +275,10 @@
   <span class="k">def</span> <span class="nf">ApplyPruning</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">lstmobj</span><span class="p">,</span> <span class="n">weight_name</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span>
                    <span class="n">dtype</span><span class="p">,</span> <span class="n">scope</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_obj</span><span class="p">:</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+      <span class="n">train_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">train_global_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">train_global_step</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="bp">cls</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">train_global_step</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span></div>
   <span class="c1"># pylint:enable=unused-argument</span>
 
@@ -268,6 +301,44 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
         <span class="n">concat</span><span class="p">,</span>
         <span class="n">lstmobj</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s1">&#39;masked_weight&#39;</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="PruningOp.GetLastCompressionOp"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.GetLastCompressionOp">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetLastCompressionOp</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="c1"># Currently only pruning is supported and no compression op should be</span>
+    <span class="c1"># returned.</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="PruningOp.GetEmbeddingLookupResult"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.GetEmbeddingLookupResult">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetEmbeddingLookupResult</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                               <span class="n">theta</span><span class="p">,</span>
+                               <span class="n">flat_ids</span><span class="p">,</span>
+                               <span class="n">fprop_mode</span><span class="o">=</span><span class="s1">&#39;gather&#39;</span><span class="p">,</span>
+                               <span class="n">layer_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="c1"># pylint:disable=unused-argument</span>
+    <span class="sd">&quot;&quot;&quot;Get embedding lookup result.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: a theta object in the LSTM cells;</span>
+<span class="sd">      flat_ids: tf.Tensor of shape (number_ids,).</span>
+<span class="sd">      fprop_mode: embedding lookup option, should be &#39;matmul&#39; or &#39;gather&#39;.</span>
+<span class="sd">      layer_obj: an EmbeddingLayer object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Embedding lookup result.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      NotImplementedError if prune_option is not &#39;weight&#39;,</span>
+<span class="sd">      &#39;first_order_gradient&#39;, or &#39;second_order_gradient&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_pruning_hparams</span><span class="o">.</span><span class="n">prune_option</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;first_order_gradient&#39;</span><span class="p">,</span> <span class="s1">&#39;second_order_gradient&#39;</span>
+    <span class="p">]:</span>
+      <span class="k">return</span> <span class="n">FlatEmbeddingLookup</span><span class="p">(</span>
+          <span class="n">emb_table</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span>
+          <span class="n">flat_ids</span><span class="o">=</span><span class="n">flat_ids</span><span class="p">,</span>
+          <span class="n">vocab_size</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+          <span class="n">fprop_mode</span><span class="o">=</span><span class="n">fprop_mode</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="PruningOp.GetPruningUpdate"><a class="viewcode-back" href="../../../lingvo.core.pruning_utils.html#lingvo.core.pruning_utils.PruningOp.GetPruningUpdate">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetPruningUpdate</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
