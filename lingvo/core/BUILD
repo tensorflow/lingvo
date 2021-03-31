@@ -923,6 +923,7 @@ py_library(
 lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
+    args = ["--noenable_eager_execution"],
     python_version = "PY3",
     shard_count = 20,
     deps = [":layers_test_lib"],
@@ -1305,6 +1306,7 @@ py_test(
     name = "py_utils_test",
     size = "medium",
     srcs = ["py_utils_test.py"],
+    args = ["--noenable_eager_execution"],
     data = [
         "//lingvo/core/testdata:lenet_test_model",
     ],

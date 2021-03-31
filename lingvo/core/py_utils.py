@@ -1146,12 +1146,6 @@ def FindNeeded(endpoints):
   return names_seen
 
 
-def FindNeededInList(tensor_list, endpoints):
-  """Return tensors from tensor_list needed to compute any of endpoints."""
-  all_needed = FindNeeded(endpoints)
-  return [t for t in tensor_list if t.name in all_needed]
-
-
 class _CollectionGetter:
   """Get graph local value from a defined collection."""
 

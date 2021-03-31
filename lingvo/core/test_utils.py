@@ -18,20 +18,23 @@
 import contextlib
 import inspect
 import re
+import sys
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 import numpy as np
 
-FLAGS = tf.flags.FLAGS
-
 # Disable eager execution for all tests.
 tf.disable_eager_execution()
+tf.flags.DEFINE_bool('enable_eager_execution', False,
+                     'Whether to enable eager execution.')
 
 tf.flags.DEFINE_boolean(
     'update_goldens', False,
     'Update the goldens, rather than diffing against them.')
+
+FLAGS = tf.flags.FLAGS
 
 
 class TestCase(tf.test.TestCase):
@@ -210,3 +213,13 @@ def ComputeNumericGradient(sess,
     sess.run(x_assign, feed_dict={ph: x_data})
 
   return numeric_grad.reshape(x_shape)
+
+
+def main(*args, **kwargs):
+  FLAGS(sys.argv, known_only=True)
+  if FLAGS.enable_eager_execution:
+    tf.enable_eager_execution()
+  else:
+    tf.disable_eager_execution()
+  FLAGS.unparse_flags()
+  tf.test.main(*args, **kwargs)
