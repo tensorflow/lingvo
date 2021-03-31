@@ -49,7 +49,7 @@ FLAGS = tf.flags.FLAGS
 class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
   def testEnableAssertFlagOverrideFromCluster(self):
-    cluster_params = cluster_factory.Current().Params()
+    cluster_params = cluster_factory.Current().params.Copy()
     cluster_params.enable_asserts = True
     with cluster_factory.Cluster(cluster_params):
       self.assertTrue(py_utils_flags.enable_asserts())
@@ -58,7 +58,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertFalse(py_utils_flags.enable_asserts())
 
   def testEnableCheckNumericsFlagOverrideFromCluster(self):
-    cluster_params = cluster_factory.Current().Params()
+    cluster_params = cluster_factory.Current().params.Copy()
     cluster_params.enable_check_numerics = True
     with cluster_factory.Cluster(cluster_params):
       self.assertTrue(py_utils_flags.enable_check_numerics())
