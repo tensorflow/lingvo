@@ -845,6 +845,8 @@ class Evaler(base_runner.BaseRunner):
         self._params = self._model.params
         self._model.ConstructFPropGraph()
         self._task = self._model.GetTask(self._model_task_name)
+        self.checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                     self._model)
       self._CreateTF2SummaryOps()
       self._summary_op = tf.summary.merge_all()
       self._initialize_tables = tf.tables_initializer()
@@ -852,7 +854,6 @@ class Evaler(base_runner.BaseRunner):
       # No queues are allowed for eval models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not self.enqueue_ops
-      self.checkpointer = self._CreateCheckpointer(self._train_dir, self._model)
 
       self._input_stats_summary_interval_steps = (
           self._task.input.params.input_stats_summary_interval_steps)

@@ -20,6 +20,7 @@ import random
 import re
 
 from absl.testing import flagsaver
+from absl.testing import parameterized
 from lingvo import base_trial
 from lingvo import model_registry
 from lingvo import trainer
@@ -84,6 +85,29 @@ class BaseTrainerTest(test_utils.TestCase):
       lines = f.readlines()
     return any(re.search(pattern, _) for _ in lines)
 
+  def _GetSimpleTestConfig(self):
+    model_name = 'image.mnist.LeNet5'
+    cfg = model_registry.GetParams(model_name, 'Train')
+    cfg.cluster.task = 0
+    cfg.cluster.mode = 'sync'
+    cfg.cluster.job = 'trainer_client'
+    cfg.cluster.worker.name = '/job:localhost'
+    cfg.cluster.worker.replicas = 1
+    cfg.cluster.worker.gpus_per_replica = 0
+    cfg.cluster.ps.name = '/job:localhost'
+    cfg.cluster.ps.replicas = 1
+    cfg.cluster.ps.gpus_per_replica = 0
+    cfg.reporting_job = FLAGS.vizier_reporting_job
+
+    # Generate 2 inputs.
+    cfg.input.ckpt = FakeMnistData(
+        self.get_temp_dir(), train_size=2, test_size=2)
+    cfg.input.num_samples = 2
+    cfg.input.batch_size = 2
+    cfg.train.max_steps = 2
+    cfg.task.train.ema_decay = 0.9999
+    return cfg
+
 
 class EmptyTask(base_model.BaseTask):
 
@@ -122,37 +146,14 @@ class EmptyMultiTaskParams(base_model_params.MultiTaskModelParams):
     return EmptyMultiTaskModel.Params()
 
 
-class TrainerTest(BaseTrainerTest):
-
-  def _GetTestConfig(self):
-    model_name = 'image.mnist.LeNet5'
-    cfg = model_registry.GetParams(model_name, 'Train')
-    cfg.cluster.task = 0
-    cfg.cluster.mode = 'sync'
-    cfg.cluster.job = 'trainer_client'
-    cfg.cluster.worker.name = '/job:localhost'
-    cfg.cluster.worker.replicas = 1
-    cfg.cluster.worker.gpus_per_replica = 0
-    cfg.cluster.ps.name = '/job:localhost'
-    cfg.cluster.ps.replicas = 1
-    cfg.cluster.ps.gpus_per_replica = 0
-    cfg.reporting_job = FLAGS.vizier_reporting_job
-
-    # Generate 2 inputs.
-    cfg.input.ckpt = FakeMnistData(
-        self.get_temp_dir(), train_size=2, test_size=2)
-    cfg.input.num_samples = 2
-    cfg.input.batch_size = 2
-    cfg.train.max_steps = 2
-    cfg.train.ema_decay = 0.9999
-    return cfg
+class TrainerTest(BaseTrainerTest, parameterized.TestCase):
 
   @flagsaver.flagsaver
   def testController(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'controller_test' + str(random.random()))
     FLAGS.logdir = logdir
-    cfg = self._GetTestConfig()
+    cfg = self._GetSimpleTestConfig()
 
     runner_manager = trainer.RunnerManager(cfg.name)
 
@@ -188,7 +189,7 @@ class TrainerTest(BaseTrainerTest):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'decoder_test' + str(random.random()))
     FLAGS.logdir = logdir
-    cfg = self._GetTestConfig()
+    cfg = self._GetSimpleTestConfig()
 
     runner_manager = trainer.RunnerManager(cfg.name)
 
@@ -218,7 +219,7 @@ class TrainerTest(BaseTrainerTest):
     new_logdir = os.path.join(tf.test.get_temp_dir(),
                               'decoder_test' + str(random.random()))
     FLAGS.logdir = new_logdir
-    cfg = self._GetTestConfig()
+    cfg = self._GetSimpleTestConfig()
     cfg.task.eval.load_checkpoint_from = os.path.join(logdir,
                                                       'train/ckpt-00000000')
 
@@ -292,8 +293,23 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
     self.assertTrue(self._HasFile(control_files, 'tfevents'))
 
+  @parameterized.named_parameters(('Evaler', trainer.Evaler),
+                                  ('Decoder', trainer.Decoder))
+  def testEMA(self, cls):
+    logdir = os.path.join(tf.test.get_temp_dir(),
+                          'ema_test' + str(random.random()))
+    FLAGS.logdir = logdir
+    cfg = self._GetSimpleTestConfig()
+    runner = cls('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
+                 FLAGS.tf_master, self._trial)
+    var_list = runner.checkpointer._saver._var_list  # pylint: disable=protected-access
+    self.assertIsInstance(var_list, dict)
+    for var_name in var_list.keys():
+      if var_name != 'global_step':
+        self.assertTrue(var_name.endswith('/ExponentialMovingAverage'))
 
-class TrainerWithTrialTest(TrainerTest):
+
+class TrainerWithTrialTest(BaseTrainerTest):
 
   @flagsaver.flagsaver
   def testControllerTrainerEvaler(self):
@@ -303,7 +319,7 @@ class TrainerWithTrialTest(TrainerTest):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'controller_test' + str(random.random()))
     FLAGS.logdir = logdir
-    cfg = self._GetTestConfig()
+    cfg = self._GetSimpleTestConfig()
 
     trial.Name.return_value = 'trial1'
 
