@@ -2495,6 +2495,8 @@ class UniTransformer(base_model.BaseTask):
         'use_per_layer_vars_for_recurrent', False,
         'Create per-layer variables for RecurrentDenseBuilderParallelDecode, '
         'instead of  combined variables [num_layers, ...].')
+    p.Define('use_repeat_layer', False,
+             'Whether to use RepeatLayer to wrap the layer stack.')
     return p
 
   def __init__(self, params):
@@ -2552,7 +2554,8 @@ class UniTransformer(base_model.BaseTask):
           'decoder',
           decoder_sub_layers,
           p.num_transformer_layers,
-          conv_kernel_size=p.conv_kernel_size)
+          conv_kernel_size=p.conv_kernel_size,
+          use_repeat_layer=p.use_repeat_layer)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
     emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
