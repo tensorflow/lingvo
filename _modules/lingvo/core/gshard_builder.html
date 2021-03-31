@@ -2647,6 +2647,8 @@
         <span class="s1">&#39;use_per_layer_vars_for_recurrent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Create per-layer variables for RecurrentDenseBuilderParallelDecode, &#39;</span>
         <span class="s1">&#39;instead of  combined variables [num_layers, ...].&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_repeat_layer&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to use RepeatLayer to wrap the layer stack.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2704,7 +2706,8 @@
           <span class="s1">&#39;decoder&#39;</span><span class="p">,</span>
           <span class="n">decoder_sub_layers</span><span class="p">,</span>
           <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
-          <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">)</span>
+          <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
+          <span class="n">use_repeat_layer</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_repeat_layer</span><span class="p">)</span>
     <span class="n">dec</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="n">emb_w_split</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;w_split&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)</span>
