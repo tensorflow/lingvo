@@ -76,15 +76,6 @@ use_stateless_vars_init = py_utils_flags.use_stateless_vars_init
 
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
 
-TPU_EMBEDDING_LOAD_OPS = '__lingvo_tpu_embedding_load_ops'
-TPU_EMBEDDING_RETRIEVE_OPS = '__lingvo_tpu_embedding_retrieve_ops'
-# TODO(jeffreyzhao): Combine these collections.
-TPU_EMBEDDING = '__tpu_embedding'
-TPU_EMBEDDING_SUMMARY_TENSORS = '__tpu_embedding_summary_tensors'
-TPU_EMBEDDING_ACTIVATIONS = '__tpu_embedding_activations'
-TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE = (
-    '__tpu_embedding_gradient_multiplier_schedule')
-
 # pylint: disable=protected-access
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 

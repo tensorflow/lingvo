@@ -269,6 +269,7 @@ py_library(
         ":inspect_utils",
         ":py_utils",
         ":tokenizers",
+        ":tpu_embedding_layers",
         "//lingvo:compat",
         "//lingvo/core/ops",
     ],
@@ -2376,6 +2377,7 @@ py_library(
     deps = [
         ":base_layer",
         ":py_utils",
+        ":schedule",
         "//lingvo:compat",
     ],
 )

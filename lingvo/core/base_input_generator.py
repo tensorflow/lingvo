@@ -45,6 +45,7 @@ from lingvo.core import inspect_utils
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
+from lingvo.core import tpu_embedding_layers
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import io_ops
@@ -524,9 +525,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     if p.skip_tpu_embedding_enqueue_ops:
       return
 
-    tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
-    tpu_embedding = (
-        tpu_embedding_collection[0] if tpu_embedding_collection else None)
+    tpu_embedding_collection = tpu_embedding_layers.TpuEmbeddingCollection.Get()
+    tpu_embedding = tpu_embedding_collection.tpu_embedding
     if not tpu_embedding:
       return
 

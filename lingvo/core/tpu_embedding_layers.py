@@ -33,8 +33,6 @@ class TpuEmbeddingCollection:
 
   GRAPH_COLLECTION_NAME = '__tpu_embedding_collection'
 
-  # TODO(laigd): move other collection definitions in py_utils.py here.
-
   @classmethod
   def Get(cls):
     """Returns the TpuEmbeddingCollection associated with the current graph."""
@@ -50,7 +48,25 @@ class TpuEmbeddingCollection:
       return singleton
 
   def __init__(self):
+    # Maps table name to the list of variables for the corresponding table.
     self._table_vars = py_utils.NestedMap()
+
+    # The TPUEmbedding configuration.
+    self._tpu_embedding = None
+
+    # Ops to load/retrieve embedding tables to/from HBM.
+    self._load_ops_list = []
+    self._retrieve_ops_list = []
+
+    # Maps task name to the (feature_name -> activation_tensor) dict for the
+    # corresponding task.
+    self._activations_by_task = {}
+
+    # List of (name, value, weight) tuples for summary.
+    self._summary_tensors = []
+
+    # Schedule for the value that is used as TPU embedding gradient multiplier.
+    self._gradient_multiplier_schedule = None
 
   def AddTableVariables(self, table_name, var_list):
     """Add TPU embedding table variable list to the collection."""
@@ -64,14 +80,59 @@ class TpuEmbeddingCollection:
       return
     self._table_vars[table_name] = var_list
 
-  def TableVariables(self):
+  @property
+  def table_variables(self):
     """Returns a NestedMap mapping table names to variables."""
     return self._table_vars
 
+  @property
+  def tpu_embedding(self):
+    return self._tpu_embedding
 
-def _AddTpuEmbeddingSummaryTensor(name, value, weight=1.0):
-  tf.add_to_collection(py_utils.TPU_EMBEDDING_SUMMARY_TENSORS,
-                       (name, value, tf.convert_to_tensor(weight)))
+  @tpu_embedding.setter
+  def tpu_embedding(self, tpu_embedding):
+    self._tpu_embedding = tpu_embedding
+
+  def AddLoadOps(self, load_ops):
+    self._load_ops_list.append(load_ops)
+
+  @property
+  def load_ops(self):
+    return self._load_ops_list
+
+  def AddRetrieveOps(self, retrieve_ops):
+    self._retrieve_ops_list.append(retrieve_ops)
+
+  @property
+  def retrieve_ops(self):
+    return self._retrieve_ops_list
+
+  def AddActivations(self, task, activations):
+    if task in self._activations_by_task:
+      existing_activations = self._activations_by_task[task]
+      raise ValueError(f'Activations for task {task} already exists. '
+                       f'Existing activations: {existing_activations}, '
+                       f'activations being added: {activations}')
+    self._activations_by_task[task] = activations
+
+  @property
+  def activations_by_task(self):
+    return self._activations_by_task
+
+  def AddSummaryTensor(self, name, value, weight=1.0):
+    self._summary_tensors.append((name, value, tf.convert_to_tensor(weight)))
+
+  @property
+  def summary_tensors(self):
+    return self._summary_tensors
+
+  @property
+  def gradient_multiplier_schedule(self):
+    return self._gradient_multiplier_schedule
+
+  @gradient_multiplier_schedule.setter
+  def gradient_multiplier_schedule(self, multiplier_schedule):
+    self._gradient_multiplier_schedule = multiplier_schedule
 
 
 # TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.
@@ -304,11 +365,13 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
     self.CreateChild('optimizer', p.optimizer)
     self.CreateChild('schedule', p.lr_schedule)
+    self._tpu_embedding_collection = TpuEmbeddingCollection.Get()
 
     def LearningRateFn(step):
       with py_utils.GlobalStepContext(step):
         lr = self.schedule.Value() * p.learning_rate
-      _AddTpuEmbeddingSummaryTensor('tpu_embedding_lr/{}'.format(p.name), lr)
+      self._tpu_embedding_collection.AddSummaryTensor(
+          'tpu_embedding_lr/{}'.format(p.name), lr)
       return lr
 
     self._table_name = '{}_table'.format(p.name)
@@ -346,8 +409,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         del self._private_vars[var_name]
         del self._private_theta[var_name]
 
-    TpuEmbeddingCollection.Get().AddTableVariables(self.table_name,
-                                                   embedding_table_vars)
+    self._tpu_embedding_collection.AddTableVariables(self.table_name,
+                                                     embedding_table_vars)
 
     if not py_utils.use_tpu():
       # We don't want to add this for TrainerTpu, otherwise the identity
@@ -583,6 +646,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     self.CreateChildren('tables', p.tables)
     self.CreateChild('gradient_multiplier_schedule',
                      p.gradient_multiplier_schedule)
+    self._tpu_embedding_collection = TpuEmbeddingCollection.Get()
 
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.InstantiateVariables()
@@ -618,15 +682,13 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           feature_to_config_dict[feature] = tpu_embedding_lib.FeatureConfig(
               table.table_name, max_sequence_length=table.max_sequence_length)
       tf.logging.info('adding load and retrieve ops to collection.')
-      tf.add_to_collection(py_utils.TPU_EMBEDDING_LOAD_OPS, load_op_list)
-      tf.add_to_collection(py_utils.TPU_EMBEDDING_RETRIEVE_OPS,
-                           retrieve_op_list)
+      self._tpu_embedding_collection.AddLoadOps(load_op_list)
+      self._tpu_embedding_collection.AddRetrieveOps(retrieve_op_list)
 
-      tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
-      assert len(tpu_embedding_collection) <= 1
-      if len(tpu_embedding_collection) == 1:
+      tpu_embedding = self._tpu_embedding_collection.tpu_embedding
+      if tpu_embedding:
         tf.logging.info('TPUEmbedding API singleton already exists, reusing')
-        self._tpu_embedding = tpu_embedding_collection[0]
+        self._tpu_embedding = tpu_embedding
       else:
         mode = tpu_embedding_lib.TRAINING
         device_config = tpu_embedding_lib.DeviceConfig(
@@ -643,29 +705,15 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
                 self.params.pipeline_execution_with_tensor_core),
             partition_strategy=p.partition_strategy,
             device_config=device_config)
-        tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
-        tf.add_to_collection(
-            py_utils.TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE,
+        self._tpu_embedding_collection.tpu_embedding = self._tpu_embedding
+        self._tpu_embedding_collection.gradient_multiplier_schedule = (
             self.gradient_multiplier_schedule)
 
   def _TpuEmbLookup(self) -> Dict[str, tf.Tensor]:
     """TPU Embedding lookup."""
     activations = self._tpu_embedding.get_activations()
     task = py_utils.GetTaskCallScope()
-    # We expect either None (if this is the first call) or a single item in a
-    # list.
-    tpu_embedding_activations = tf.get_collection(
-        py_utils.TPU_EMBEDDING_ACTIVATIONS)
-    if not tpu_embedding_activations:
-      # Create a dict from task -> activations dict.
-      tpu_embedding_activations_dict = {}
-      tpu_embedding_activations_dict[task] = activations
-      tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS,
-                           tpu_embedding_activations_dict)
-    else:
-      # This is a subsequent call, so the dictionary already exists.
-      tpu_embedding_activations_dict = tpu_embedding_activations[0]
-      tpu_embedding_activations_dict[task] = activations
+    self._tpu_embedding_collection.AddActivations(task, activations)
 
     ret = py_utils.NestedMap()
     for k, v in activations.items():

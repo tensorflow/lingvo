@@ -62,7 +62,7 @@ def _VariablesForEMA(params, model_var_list):
 
   # Remove TPU embedding variables since TPU embedding doesn't support EMA.
   tpu_embedding_vars = (
-      tpu_embedding_layers.TpuEmbeddingCollection.Get().TableVariables())
+      tpu_embedding_layers.TpuEmbeddingCollection.Get().table_variables)
   if tpu_embedding_vars.Flatten():
     tf.logging.warning(
         'Detected TPU embedding variables, and EMA does not apply to them. '
@@ -669,24 +669,22 @@ class BaseTask(base_layer.BaseLayer):
 
     # If we are using Tpu Embeddings, generate the monolithic send
     # gradient op.
-    tpu_embedding_activations = tf.get_collection(
-        py_utils.TPU_EMBEDDING_ACTIVATIONS)
-    if tpu_embedding_activations and p.name in tpu_embedding_activations[0]:
+    tpu_embedding_collection = tpu_embedding_layers.TpuEmbeddingCollection.Get()
+    tpu_embedding_activations = tpu_embedding_collection.activations_by_task
+    if p.name in tpu_embedding_activations:
       # Lookup the per-task activations.
-      tpu_embedding_activations_dict = tpu_embedding_activations[0][p.name]
-      tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
-      tpu_embedding_gradient_multiplier_schedule = tf.get_collection(
-          py_utils.TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE)[0]
+      tpu_embedding_activations_dict = tpu_embedding_activations[p.name]
+      tpu_embedding = tpu_embedding_collection.tpu_embedding
+      tpu_embedding_gradient_multiplier_schedule = (
+          tpu_embedding_collection.gradient_multiplier_schedule)
 
       tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
           self.loss, tpu_embedding_activations_dict, tpu_embedding,
           tpu_embedding_gradient_multiplier_schedule)
       train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
 
-      tpu_embedding_summary_tensors = tf.get_collection(
-          py_utils.TPU_EMBEDDING_SUMMARY_TENSORS)
       if add_summary:
-        for name, value, weight in tpu_embedding_summary_tensors:
+        for name, value, weight in tpu_embedding_collection.summary_tensors:
           self.AddEvalMetric(name, value, weight, raise_if_already_added=False)
 
     for op_name, op in train_ops.items():

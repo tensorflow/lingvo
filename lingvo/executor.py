@@ -26,6 +26,7 @@ from lingvo.core import ml_perf_log as mlp_log
 from lingvo.core import multitask_model
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
+from lingvo.core import tpu_embedding_layers
 
 from lingvo import base_runner
 from tensorflow.python.tpu import device_assignment as device_assignment_lib  # pylint: disable=g-direct-tensorflow-import
@@ -284,12 +285,11 @@ class ExecutorTpu(base_runner.BaseRunner):
             train_params=train_cfg.train,
             save_only=True)
 
-      self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
-      self._retrieve_ops = tf.get_collection(
-          py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
-      tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
-      self._tpu_embedding = (
-          tpu_embedding_collection[0] if tpu_embedding_collection else None)
+      tpu_embedding_collection = (
+          tpu_embedding_layers.TpuEmbeddingCollection.Get())
+      self._load_ops = tpu_embedding_collection.load_ops
+      self._retrieve_ops = tpu_embedding_collection.retrieve_ops
+      self._tpu_embedding = tpu_embedding_collection.tpu_embedding
       tf.io.write_graph(self._graph.as_graph_def(), self._checkpoint_dir,
                         'train.pbtxt')
 

@@ -47,6 +47,7 @@ from lingvo.core import inference_graph_exporter
 from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
+from lingvo.core import tpu_embedding_layers
 import numpy as np
 
 from lingvo import base_runner
@@ -457,12 +458,11 @@ class TrainerTpu(base_runner.BaseRunner):
           """
           self._model.InstantiateVariables()
           self._model.ConstructFPropBPropGraph()
-          self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
-          self._retrieve_ops = tf.get_collection(
-              py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
-          tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
-          self._tpu_embedding = (
-              tpu_embedding_collection[0] if tpu_embedding_collection else None)
+          tpu_embedding_collection = (
+              tpu_embedding_layers.TpuEmbeddingCollection.Get())
+          self._load_ops = tpu_embedding_collection.load_ops
+          self._retrieve_ops = tpu_embedding_collection.retrieve_ops
+          self._tpu_embedding = tpu_embedding_collection.tpu_embedding
 
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
               self._task.eval_metrics, args)
