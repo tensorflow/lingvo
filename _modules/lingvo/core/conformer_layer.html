@@ -632,8 +632,10 @@
         <span class="s1">&#39;relative_pos_emb_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;If use_relative_atten, sets the relative pos embedding dim.&#39;</span>
         <span class="s1">&#39;Default is the same as input_dim.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layer_order&#39;</span><span class="p">,</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">,</span>
-             <span class="s1">&#39;Only mhsa, mhsa_before_conv or conv_before_mhsa are supported.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;layer_order&#39;</span><span class="p">,</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Only mhsa, conv, mhsa_before_conv or conv_before_mhsa are &#39;</span>
+        <span class="s1">&#39;supported.&#39;</span><span class="p">)</span>
 
     <span class="c1"># lconv layer</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;kernel_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Kernel size of 1d lightweight conv.&#39;</span><span class="p">)</span>
@@ -698,7 +700,9 @@
                    <span class="n">fflayer_end_tpl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">trans_atten_tpl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">lconv_tpl</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">atten_num_heads</span><span class="p">,</span> <span class="n">fflayer_hidden_dim</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">fflayer_hidden_dim</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">layer_order</span> <span class="o">!=</span> <span class="s1">&#39;conv&#39;</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">atten_num_heads</span>
     <span class="k">if</span> <span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;mhsa&#39;</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">kernel_size</span><span class="p">,</span> <span class="n">conv_norm_layer_tpl</span><span class="p">,</span> <span class="n">lconv_tpl</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
@@ -776,7 +780,9 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mhsa&#39;</span><span class="p">,</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">,</span> <span class="s1">&#39;conv_before_mhsa&#39;</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s1">&#39;mhsa&#39;</span><span class="p">,</span> <span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">,</span> <span class="s1">&#39;conv_before_mhsa&#39;</span>
+    <span class="p">]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_causal</span><span class="p">:</span>
       <span class="c1"># None is different from 0, the former is &#39;infinite&#39;.</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
@@ -802,14 +808,15 @@
 
     <span class="c1"># For local MHSA, is_masked is ignored, thus it&#39;s safe to set is_masked</span>
     <span class="c1"># based on p.is_causal, for global and local MHSA cases.</span>
-    <span class="n">trans_atten_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_num_heads</span><span class="p">,</span>
-        <span class="n">is_masked</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_causal</span><span class="p">,</span>
-        <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-        <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigSelfAttenParams</span><span class="p">(</span><span class="n">trans_atten_p</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;trans_atten&#39;</span><span class="p">,</span> <span class="n">trans_atten_p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mhsa</span><span class="p">:</span>
+      <span class="n">trans_atten_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+          <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_num_heads</span><span class="p">,</span>
+          <span class="n">is_masked</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_causal</span><span class="p">,</span>
+          <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
+          <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigSelfAttenParams</span><span class="p">(</span><span class="n">trans_atten_p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;trans_atten&#39;</span><span class="p">,</span> <span class="n">trans_atten_p</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lconv</span><span class="p">:</span>
       <span class="n">lconv_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
@@ -826,6 +833,10 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">has_lconv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">lconv_tpl</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">has_mhsa</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="s1">&#39;mhsa&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">layer_order</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">has_fflayer_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1004,6 +1015,8 @@
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;mhsa&#39;</span><span class="p">:</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SelfAtten</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;conv&#39;</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">:</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SelfAtten</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
@@ -1045,11 +1058,13 @@
 <div class="viewcode-block" id="ConformerLayer.zero_state"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_causal</span><span class="p">:</span>
       <span class="n">lconv_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">atten_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lconv</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;lconv&#39;</span><span class="p">):</span>
           <span class="n">lconv_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lconv</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">):</span>
-        <span class="n">atten_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mhsa</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">):</span>
+          <span class="n">atten_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">lconv_state</span><span class="o">=</span><span class="n">lconv_state</span><span class="p">,</span> <span class="n">atten_state</span><span class="o">=</span><span class="n">atten_state</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1083,6 +1098,9 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;mhsa&#39;</span><span class="p">:</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten_state</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;conv&#39;</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">lconv_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lconv</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">lconv</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">lconv_state</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">:</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten_state</span><span class="p">)</span>
@@ -1096,6 +1114,8 @@
             <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten_state</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lconv</span><span class="p">:</span>
         <span class="n">lconv_state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mhsa</span><span class="p">:</span>
+        <span class="n">atten_state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
       <span class="n">in_nmap</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">inputs</span>
       <span class="n">in_nmap</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings</span>
