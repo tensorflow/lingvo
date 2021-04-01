@@ -1480,9 +1480,12 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('Basic',),
       ('Basic3d', attention.LocalSelfAttention, False, 1, 1, True),
+      ('Basic3dMin', attention.LocalSelfAttention, False, 1, 1, True, True),
       ('BasicS4', attention.LocalSelfAttention, False, 4, 4),
       ('BasicS4L8', attention.LocalSelfAttention, False, 4, 8),
+      ('BasicS4L8Min', attention.LocalSelfAttention, False, 4, 8, False, True),
       ('BasicS4L83d', attention.LocalSelfAttention, False, 4, 8, True),
+      ('BasicS4L83dMin', attention.LocalSelfAttention, False, 4, 8, True, True),
       ('BasicDynamic', attention.LocalSelfAttention, False, 1, None),
       ('BasicS4Dynamic', attention.LocalSelfAttention, False, 4, None),
       ('SkipNorm', attention.LocalSelfAttention, True),
@@ -1504,14 +1507,15 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
                      testonly_skip_norm_layers=False,
                      stride=1,
                      inference_step_max_length=1,
-                     use_3d_recurrent_state=False):
+                     use_3d_recurrent_state=False,
+                     minimize_state_size=False):
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
       self._TestStreamStepHelper(p_cls, stride, inference_step_max_length,
-                                 use_3d_recurrent_state)
+                                 use_3d_recurrent_state, minimize_state_size)
 
   def _TestStreamStepHelper(self, p_cls, stride, inference_step_max_length,
-                            use_3d_recurrent_state):
+                            use_3d_recurrent_state, minimize_state_size):
     batch_size, max_seqlen, input_dim = 2, 32, 4
     hidden_dim, num_heads = 4, 2
     left_context = 3
@@ -1539,7 +1543,8 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
         input_dim=input_dim,
         hidden_dim=hidden_dim,
         left_context=left_context,
-        right_context=0)
+        right_context=0,
+        minimize_state_size=minimize_state_size)
     if p_cls == attention.LocalSelfAttentionXL:
       p.Set(rel_pos_emb_dim=input_dim)
     p.use_3d_recurrent_state = use_3d_recurrent_state

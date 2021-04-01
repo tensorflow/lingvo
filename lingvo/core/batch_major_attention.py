@@ -1489,6 +1489,11 @@ class LocalSelfAttention(MultiHeadedAttention):
         'instead of [B, T, N, H]. This is for performance optimization '
         'and does not change math. Only effective if inference_step_max_length '
         'is not None and > 0.')
+    p.Define(
+        'minimize_state_size', False,
+        'If True, the recurrent state is a history of the layer inputs instead '
+        'of a history of the keys/values. Only supported when '
+        'right_context==0.')
     return p
 
   def __init__(self, params):
@@ -1509,6 +1514,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     return tf.einsum('BUTNH,BUSNH->BNUTS', query, key)
 
   def _StreamAttenLogits(self, theta, query_proj, key):
+    """Compute the dot products of a set of queries and a set of keys."""
     # [B, Q, N, T]
     return tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
 
@@ -1770,11 +1776,45 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     if (p.inference_step_max_length is not None and
         p.inference_step_max_length > 0 and not p.right_context):
-      return self._zero_state_static_length(batch_size)
+      if p.minimize_state_size:
+        return self._zero_state_static_length_inputs(batch_size)
+      else:
+        return self._zero_state_static_length_key_value(batch_size)
     else:
       return self._zero_state_dynamic_length(batch_size)
 
-  def _zero_state_static_length(self, batch_size):
+  def _zero_state_static_length_inputs(self, batch_size):
+    """Returns the initial state given the batch size.
+
+    Args:
+      batch_size: the batch size.
+
+    Returns:
+      A `.NestedMap` object containing
+
+      - inputs: [B, p.inference_step_max_length + p.left_context - 1, D]
+      - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+        Tensor where 0s are masked out positions.
+      - circular_tail: [B, 1], currently only exists if
+        use_3d_recurrent_state is True, the tail pointer to key, value and
+        paddings circular buffers.
+        Value range is [0, p.inference_step_max_length + p.left_context - 1).
+    """
+    p = self.params
+    assert p.enable_value_proj, 'Value projection must be enabled.'
+    assert p.right_context == 0, 'StreamStep does not support look-ahead'
+
+    context_len = p.inference_step_max_length + p.left_context - 1
+    inputs = tf.zeros([batch_size, context_len, p.input_dim],
+                      py_utils.FPropDtype(p))
+    # At the beginning, all positions are masked out.
+    masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
+    state0 = py_utils.NestedMap(inputs=inputs, masks=masks)
+    if p.use_3d_recurrent_state:
+      state0.circular_tail = tf.zeros([batch_size, 1], tf.int32)
+    return state0
+
+  def _zero_state_static_length_key_value(self, batch_size):
     """Returns the initial state given the batch size.
 
     Args:
@@ -1789,8 +1829,9 @@ class LocalSelfAttention(MultiHeadedAttention):
         [..., N * H] if p.use_3d_recurrent_state.
       - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
         Tensor where 0s are masked out positions.
-      - tail: [B, 1], currently only effective if use_3d_recurrent_state is
-        True, the tail pointer to key, value and paddings circular buffers.
+      - circular_tail: [B, 1], currently only effective if
+        use_3d_recurrent_state is True, the tail pointer to key, value and
+        paddings circular buffers.
         Value range is [0, p.inference_step_max_length + p.left_context - 1).
     """
     p = self.params
@@ -1808,9 +1849,10 @@ class LocalSelfAttention(MultiHeadedAttention):
     value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
     masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
-    tail = tf.zeros([batch_size, 1], tf.int32)
-    return py_utils.NestedMap(
-        key=key_state, value=value_state, masks=masks, tail=tail)
+    state0 = py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
+    if p.use_3d_recurrent_state:
+      state0.circular_tail = tf.zeros([batch_size, 1], tf.int32)
+    return state0
 
   def _zero_state_dynamic_length(self, batch_size):
     """Returns the initial state given the batch size.
@@ -1856,7 +1898,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     return p.inference_step_max_length is not None and p.inference_step_max_length > 0
 
-  def StreamStep(self, theta, query_vec, paddings, state0):
+  def StreamStep(self, theta, inputs, paddings, state0):
     """Computes the value vector given the query of the current step.
 
     This differs from ExtendStep() which requires key/value seq lengths being
@@ -1864,7 +1906,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     Args:
       theta: A NestedMap of layer params.
-      query_vec: A query vector of shape [B, Q, D].
+      inputs: An input vector of shape [B, Q, D].
       paddings: A 0/1 valued tensor of shape [B, Q].
       state0: A NestedMap of the same structure as returned by zero_state().
 
@@ -1881,9 +1923,9 @@ class LocalSelfAttention(MultiHeadedAttention):
         assert p.right_context == 0, (
             'StreamStep() does not yet support look ahead with '
             'inference_step_max_length set.')
-        return self._StreamStepStaticLength(theta, query_vec, paddings, state0)
+        return self._StreamStepStaticLength(theta, inputs, paddings, state0)
       else:
-        return self._StreamStepDynamicLength(theta, query_vec, paddings, state0)
+        return self._StreamStepDynamicLength(theta, inputs, paddings, state0)
 
   def StreamStepAddSkipConnection(self, input_to_add, output, state0, state1):
     p = self.params
@@ -1900,13 +1942,218 @@ class LocalSelfAttention(MultiHeadedAttention):
     state1.skip_conn_input = concat_input_to_add[:, seqlen:]
     return final_output, state1
 
+  def _StreamStepDimensions(self, inputs):
+    """Returns dimensions commonly used in StreamStep methods.
+
+    Args:
+      inputs: The query_vec parameter of StreamStep.
+
+    Returns:
+      A NestedMap containing n=num_heads, h=head_dimension,
+      s=state_length, b=batch_size, q=num_queries_in_query_vec.
+    """
+    p = self.params
+    n, h = p.num_heads, p.hidden_dim // p.num_heads
+    s = p.inference_step_max_length + p.left_context - 1
+    b, q = py_utils.GetShape(inputs, 2)
+    return py_utils.NestedMap(n=n, h=h, s=s, b=b, q=q)
+
+  def _StreamStepStaticComputeKeyValueMinimal(self, theta, indices, inputs,
+                                              state0):
+    """Computes key/value tensors in minimize_state_size mode.
+
+    Args:
+      theta: The theta NestedMap for this layer.
+      indices: Locations to store new recurrent state in the circular buffer
+        when in 3d mode.
+      inputs: [B, Q, D]: The inputs for this step, note that Q>=1.
+      state0: The recurrent state.
+
+    Returns:
+      key: [B, S, N, H]: Queries projected into key space.
+      value: [B, S, N, H]: Queries projected into value space.
+      state1: Updated recurrent state.
+    """
+    p = self.params
+    dims = self._StreamStepDimensions(inputs)
+    state0.query = py_utils.HasShape(state0.inputs,
+                                     [dims.b, dims.s, p.hidden_dim])
+
+    with tf.name_scope('next_inputs'):
+      # [B, S, Q]
+      if p.use_3d_recurrent_state:
+        new_inputs = tf.tensor_scatter_nd_update(state0.inputs, indices, inputs)
+      else:
+        new_inputs = tf.concat([state0.inputs, inputs], axis=1)[:, -dims.s:, :]
+
+    # [B, S, N, H]: Project input vectors into key space.
+    key = self.key.FProp(theta.key, new_inputs)
+
+    # [B, S, N, H]: Project input vectors into value space.
+    value = self.value.FProp(theta.value, new_inputs)
+
+    state1 = py_utils.NestedMap(inputs=new_inputs)
+    return key, value, state1
+
+  def _StreamStepStaticComputeKeyValue3d(self, theta, indices, inputs, state0):
+    """Computes key/value tensors in use_3d_recurrent_state mode.
+
+    This mode treats state like a circular buffer, and uses scatter_nd_update
+    to update that buffer. This in-place update may be cheaper than using
+    tf.concat.
+
+    (Don't use this method when in minimize_state_size mode, you want the
+    _StreamStepStaticComputeKeyValueMinimal even if you're using
+    use_3d_recurrent_state mode)
+
+    Args:
+      theta: The theta NestedMap for this layer.
+      indices: Locations to store new recurrent state in the circular buffer
+        when in 3d mode.
+      inputs: [B, Q, D]: The inputs for this step, note that Q>=1.
+      state0: The recurrent state.
+
+    Returns:
+      key: [B, S, N, H]: Queries projected into key space.
+      value: [B, S, N, H]: Queries projected into value space.
+      state1: Updated recurrent state.
+    """
+    dims = self._StreamStepDimensions(inputs)
+
+    state0.key = py_utils.HasShape(state0.key,
+                                   [dims.b, dims.s, dims.n * dims.h])
+    state0.value = py_utils.HasShape(state0.value,
+                                     py_utils.GetShape(state0.key))
+
+    def get_next_state(recur_state, inputs):  # pylint:disable=invalid-name
+      next_state = tf.tensor_scatter_nd_update(recur_state, indices, inputs)
+      # [B, S, N, H]
+      outputs = tf.reshape(next_state, [dims.b, dims.s, dims.n, dims.h])
+      return outputs, next_state
+
+    # [B, Q, N * H]
+    incr_key = tf.einsum(
+        'DH,BTD->BTH',
+        tf.reshape(theta.key.w, [self.key.params.input_dim, dims.n * dims.h]),
+        inputs) + tf.reshape(theta.key.b, [-1])
+    # [B, Q, N * H]
+    incr_value = tf.einsum(
+        'DH,BTD->BTH',
+        tf.reshape(theta.value.w,
+                   [self.value.params.input_dim, dims.n * dims.h]),
+        inputs) + tf.reshape(theta.value.b, [-1])
+
+    # [B, S, N, H], [B, S, N * H]
+    key, next_key = get_next_state(state0.key, incr_key)
+    # [B, S, N, H], [B, S, N * H]
+    value, next_value = get_next_state(state0.value, incr_value)
+
+    state1 = py_utils.NestedMap(key=next_key, value=next_value)
+    return key, value, state1
+
+  def _StreamStepStaticComputeKeyValueClassic(self, theta, inputs, state0):
+    """Computes key/value tensors in classic mode.
+
+    In this mode we store projected key/value tensors from previous
+    steps in the state, and create new key/value tensors using tf.concat.
+
+    Use this mode if memory transfer is cheap and computation is expensive.
+    (Although 3D mode may also be interesting in that case)
+
+    Args:
+      theta: The theta NestedMap for this layer.
+      inputs: [B, Q, D]: The query for this step, note that Q>=1.
+      state0: The recurrent state.
+
+    Returns:
+      key: [B, S, N, H]: Queries projected into key space.
+      value: [B, S, N, H]: Queries projected into value space.
+      state1: Updated recurrent state.
+    """
+    dims = self._StreamStepDimensions(inputs)
+    state0.key = py_utils.HasShape(state0.key, [dims.b, dims.s, dims.n, dims.h])
+    state0.value = py_utils.HasShape(state0.value,
+                                     py_utils.GetShape(state0.key))
+
+    # [B, Q, N, H]
+    incr_key = self.key.FProp(theta.key, inputs)
+    # [B, Q, N, H]
+    incr_value = self.value.FProp(theta.value, inputs)
+
+    # [B, S, N, H]
+    key = tf.concat([state0.key, incr_key], axis=1)[:, -dims.s:, :, :]
+    # [B, S, N, H]
+    value = tf.concat([state0.value, incr_value], axis=1)[:, -dims.s:, :, :]
+
+    state1 = py_utils.NestedMap(key=key, value=value)
+    return key, value, state1
+
+  def _StreamStepStaticComputeKeyValue(self, theta, inputs, paddings, state0):
+    """Computes key/value tensors.
+
+    This method combines the new input for this step with previous
+    state to generate key/value tensors for attention computation.
+
+    Args:
+      theta: The theta NestedMap for this layer.
+      inputs: [B, Q, D]: The input for this step, note that Q>=1.
+      paddings: A 0/1 valued tensor of shape [B, Q].
+      state0: The recurrent state.
+
+    Returns:
+      key: [B, S, N, H]: Queries projected into key space.
+      value: [B, S, N, H]: Queries projected into value space.
+      state1: Updated recurrent state.
+    """
+    p = self.params
+    dims = self._StreamStepDimensions(inputs)
+
+    indices = None
+    if p.use_3d_recurrent_state:
+      # The following computes locations to update in the circular buffer.
+      # [b, 1]
+      rows = tf.expand_dims(tf.range(dims.b), -1)
+      # [b, q]
+      rows = tf.tile(rows, [1, dims.q])
+      # [1, q]
+      cols = tf.expand_dims(tf.range(dims.q), 0)
+      # [b, q]
+      cols = tf.tile(cols, [dims.b, 1])
+      # [b, q]
+      cols = tf.math.floormod(cols + state0.circular_tail, dims.s)
+      # [b, q, 2]
+      indices = tf.stack([rows, cols], axis=-1)
+
+    if p.minimize_state_size:
+      key, value, state1 = self._StreamStepStaticComputeKeyValueMinimal(
+          theta, indices, inputs, state0)
+    elif p.use_3d_recurrent_state:
+      key, value, state1 = self._StreamStepStaticComputeKeyValue3d(
+          theta, indices, inputs, state0)
+    else:
+      key, value, state1 = self._StreamStepStaticComputeKeyValueClassic(
+          theta, inputs, state0)
+
+    # paddings
+    # [B, S]. 1s are masked positions.
+    if p.use_3d_recurrent_state:
+      new_masks = tf.tensor_scatter_nd_update(state0.masks, indices,
+                                              1 - paddings)
+    else:
+      new_masks = tf.concat([state0.masks, 1 - paddings], axis=1)[:, -dims.s:]
+
+    # [B, 1]
+    if p.use_3d_recurrent_state:
+      state1.circular_tail = tf.math.floormod(state0.circular_tail + dims.q,
+                                              dims.s)
+    state1.masks = new_masks
+    return key, value, state1
+
   def _StreamStepStaticLength(self, theta, query_vec, paddings, state0):
     """query_vec length is staticly known."""
     p = self.params
-    # Sanity checks.
-    n, h = p.num_heads, p.hidden_dim // p.num_heads
-    s = p.inference_step_max_length + p.left_context - 1
-    b, q = py_utils.GetShape(query_vec, 2)
+    dims = self._StreamStepDimensions(query_vec)
+    h, s, b, q = dims.h, dims.s, dims.b, dims.q
     assert query_vec.shape[1] is not None, 'query_vec.shape[1] must be static.'
     assert q <= p.inference_step_max_length, (
         f'q: {q} should be less than p.inference_step_max_length: '
@@ -1914,12 +2161,6 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
     paddings = py_utils.HasShape(paddings, [b, q])
-    if not p.use_3d_recurrent_state:
-      state0.key = py_utils.HasShape(state0.key, [b, s, n, h])
-    else:
-      state0.key = py_utils.HasShape(state0.key, [b, s, n * h])
-    state0.value = py_utils.HasShape(state0.value,
-                                     py_utils.GetShape(state0.key))
 
     with tf.name_scope('static_length'):
       # query projection.
@@ -1930,67 +2171,8 @@ class LocalSelfAttention(MultiHeadedAttention):
       else:
         query_proj *= h**-0.5
 
-      def get_update_indices():  # pylint:disable=invalid-name
-        # The following computes locations to update in the circular buffer.
-        # [b, 1]
-        rows = tf.expand_dims(tf.range(b), -1)
-        # [b, q]
-        rows = tf.tile(rows, [1, q])
-        # [1, q]
-        cols = tf.expand_dims(tf.range(q), 0)
-        # [b, q]
-        cols = tf.tile(cols, [b, 1])
-        # [b, q]
-        cols = tf.math.floormod(cols + state0.tail, s)
-        # [b, q, 2]
-        return tf.concat([tf.expand_dims(rows, -1),
-                          tf.expand_dims(cols, -1)],
-                         axis=-1)
-
-      indices = get_update_indices()
-
-      def get_next_state(recur_state, inputs):  # pylint:disable=invalid-name
-        if p.use_3d_recurrent_state:
-          next_state = tf.tensor_scatter_nd_update(recur_state, indices, inputs)
-          # [B, S, N, H]
-          outputs = tf.reshape(next_state, [b, s, n, h])
-        else:
-          # [B, S, N, H]
-          next_state = tf.concat([recur_state, inputs], axis=1)[:, -s:, :, :]
-          outputs = next_state
-        return outputs, next_state
-
-      if p.use_3d_recurrent_state:
-        # [B, Q, N * H]
-        incr_key = tf.einsum(
-            'DH,BTD->BTH',
-            tf.reshape(theta.key.w, [self.key.params.input_dim, n * h]),
-            query_vec) + tf.reshape(theta.key.b, [-1])
-        # [B, Q, N * H]
-        incr_value = tf.einsum(
-            'DH,BTD->BTH',
-            tf.reshape(theta.value.w, [self.value.params.input_dim, n * h]),
-            query_vec) + tf.reshape(theta.value.b, [-1])
-      else:
-        # [B, Q, N, H]
-        incr_key = self.key.FProp(theta.key, query_vec)
-        # [B, Q, N, H]
-        incr_value = self.value.FProp(theta.value, query_vec)
-
-      # [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.
-      key, next_key = get_next_state(state0.key, incr_key)
-      # [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.
-      value, next_value = get_next_state(state0.value, incr_value)
-      # [B, 1]
-      next_tail = tf.math.floormod(state0.tail + q, s)
-
-      # paddings
-      # [B, S]. 1s are masked positions.
-      if p.use_3d_recurrent_state:
-        new_masks = tf.tensor_scatter_nd_update(state0.masks, indices,
-                                                1 - paddings)
-      else:
-        new_masks = tf.concat([state0.masks, 1 - paddings], axis=1)[:, -s:]
+      key, value, state1 = self._StreamStepStaticComputeKeyValue(
+          theta, query_vec, paddings, state0)
 
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query_proj, key)
@@ -2008,7 +2190,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         distance = tf.math.floormod(cols - rows, s)
         if p.use_3d_recurrent_state:
           # [B, 1]
-          head = tf.math.floormod(state0.tail - (p.left_context - 1), s)
+          head = tf.math.floormod(state0.circular_tail - (p.left_context - 1),
+                                  s)
           # [B, Q, S]
           shifted_distance = tf.math.floormod(
               tf.expand_dims(distance, 0) - tf.expand_dims(head, -1), s)
@@ -2026,7 +2209,7 @@ class LocalSelfAttention(MultiHeadedAttention):
           local_atten_per_step_paddings = tf.expand_dims(
               local_atten_per_step_paddings, 0)
         # [B, 1, S]
-        expanded_masks = tf.expand_dims(new_masks, 1)
+        expanded_masks = tf.expand_dims(state1.masks, 1)
 
         # [B, Q, S]
         final_paddings = tf.logical_or(
@@ -2048,9 +2231,6 @@ class LocalSelfAttention(MultiHeadedAttention):
       # Post projection.
       # [B, Q, D]
       output = self.post.FProp(theta.post, output)
-
-      state1 = py_utils.NestedMap(
-          key=next_key, value=next_value, masks=new_masks, tail=next_tail)
       return output, paddings, state1
 
   def _StreamStepDynamicLength(self, theta, query_vec, paddings, state0):
