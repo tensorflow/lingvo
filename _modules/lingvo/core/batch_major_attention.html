@@ -1641,6 +1641,11 @@
         <span class="s1">&#39;instead of [B, T, N, H]. This is for performance optimization &#39;</span>
         <span class="s1">&#39;and does not change math. Only effective if inference_step_max_length &#39;</span>
         <span class="s1">&#39;is not None and &gt; 0.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;minimize_state_size&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, the recurrent state is a history of the layer inputs instead &#39;</span>
+        <span class="s1">&#39;of a history of the keys/values. Only supported when &#39;</span>
+        <span class="s1">&#39;right_context==0.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1661,6 +1666,7 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BUTNH,BUSNH-&gt;BNUTS&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention._StreamAttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamAttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamAttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the dot products of a set of queries and a set of keys.&quot;&quot;&quot;</span>
     <span class="c1"># [B, Q, N, T]</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQNH,BTNH-&gt;BQNT&#39;</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
 
@@ -1922,11 +1928,45 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">):</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_state_static_length</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">minimize_state_size</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_state_static_length_inputs</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_state_static_length_key_value</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_state_dynamic_length</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LocalSelfAttention._zero_state_static_length"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length">[docs]</a>  <span class="k">def</span> <span class="nf">_zero_state_static_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttention._zero_state_static_length_inputs"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length_inputs">[docs]</a>  <span class="k">def</span> <span class="nf">_zero_state_static_length_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the initial state given the batch size.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch_size: the batch size.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap` object containing</span>
+
+<span class="sd">      - inputs: [B, p.inference_step_max_length + p.left_context - 1, D]</span>
+<span class="sd">      - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1</span>
+<span class="sd">        Tensor where 0s are masked out positions.</span>
+<span class="sd">      - circular_tail: [B, 1], currently only exists if</span>
+<span class="sd">        use_3d_recurrent_state is True, the tail pointer to key, value and</span>
+<span class="sd">        paddings circular buffers.</span>
+<span class="sd">        Value range is [0, p.inference_step_max_length + p.left_context - 1).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">,</span> <span class="s1">&#39;Value projection must be enabled.&#39;</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;StreamStep does not support look-ahead&#39;</span>
+
+    <span class="n">context_len</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">context_len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
+                      <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="c1"># At the beginning, all positions are masked out.</span>
+    <span class="n">masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">context_len</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">circular_tail</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state0</span></div>
+
+<div class="viewcode-block" id="LocalSelfAttention._zero_state_static_length_key_value"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length_key_value">[docs]</a>  <span class="k">def</span> <span class="nf">_zero_state_static_length_key_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the initial state given the batch size.</span>
 
 <span class="sd">    Args:</span>
@@ -1941,8 +1981,9 @@
 <span class="sd">        [..., N * H] if p.use_3d_recurrent_state.</span>
 <span class="sd">      - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1</span>
 <span class="sd">        Tensor where 0s are masked out positions.</span>
-<span class="sd">      - tail: [B, 1], currently only effective if use_3d_recurrent_state is</span>
-<span class="sd">        True, the tail pointer to key, value and paddings circular buffers.</span>
+<span class="sd">      - circular_tail: [B, 1], currently only effective if</span>
+<span class="sd">        use_3d_recurrent_state is True, the tail pointer to key, value and</span>
+<span class="sd">        paddings circular buffers.</span>
 <span class="sd">        Value range is [0, p.inference_step_max_length + p.left_context - 1).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1960,9 +2001,10 @@
     <span class="n">value_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">key_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="c1"># At the beginning, all positions are masked out.</span>
     <span class="n">masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">context_len</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-    <span class="n">tail</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">,</span> <span class="n">tail</span><span class="o">=</span><span class="n">tail</span><span class="p">)</span></div>
+    <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">circular_tail</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state0</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention._zero_state_dynamic_length"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_dynamic_length">[docs]</a>  <span class="k">def</span> <span class="nf">_zero_state_dynamic_length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the initial state given the batch size.</span>
@@ -2008,7 +2050,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
 
-<div class="viewcode-block" id="LocalSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
 
 <span class="sd">    This differs from ExtendStep() which requires key/value seq lengths being</span>
@@ -2016,7 +2058,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap of layer params.</span>
-<span class="sd">      query_vec: A query vector of shape [B, Q, D].</span>
+<span class="sd">      inputs: An input vector of shape [B, Q, D].</span>
 <span class="sd">      paddings: A 0/1 valued tensor of shape [B, Q].</span>
 <span class="sd">      state0: A NestedMap of the same structure as returned by zero_state().</span>
 
@@ -2033,9 +2075,9 @@
         <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
             <span class="s1">&#39;StreamStep() does not yet support look ahead with &#39;</span>
             <span class="s1">&#39;inference_step_max_length set.&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDynamicLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDynamicLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.StreamStepAddSkipConnection"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStepAddSkipConnection">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStepAddSkipConnection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_to_add</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">state1</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2052,13 +2094,218 @@
     <span class="n">state1</span><span class="o">.</span><span class="n">skip_conn_input</span> <span class="o">=</span> <span class="n">concat_input_to_add</span><span class="p">[:,</span> <span class="n">seqlen</span><span class="p">:]</span>
     <span class="k">return</span> <span class="n">final_output</span><span class="p">,</span> <span class="n">state1</span></div>
 
+<div class="viewcode-block" id="LocalSelfAttention._StreamStepDimensions"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDimensions">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepDimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns dimensions commonly used in StreamStep methods.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      inputs: The query_vec parameter of StreamStep.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap containing n=num_heads, h=head_dimension,</span>
+<span class="sd">      s=state_length, b=batch_size, q=num_queries_in_query_vec.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">h</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LocalSelfAttention._StreamStepStaticComputeKeyValueMinimal"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValueMinimal">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStaticComputeKeyValueMinimal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
+                                              <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes key/value tensors in minimize_state_size mode.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: The theta NestedMap for this layer.</span>
+<span class="sd">      indices: Locations to store new recurrent state in the circular buffer</span>
+<span class="sd">        when in 3d mode.</span>
+<span class="sd">      inputs: [B, Q, D]: The inputs for this step, note that Q&gt;=1.</span>
+<span class="sd">      state0: The recurrent state.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      key: [B, S, N, H]: Queries projected into key space.</span>
+<span class="sd">      value: [B, S, N, H]: Queries projected into value space.</span>
+<span class="sd">      state1: Updated recurrent state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDimensions</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">state0</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+                                     <span class="p">[</span><span class="n">dims</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;next_inputs&#39;</span><span class="p">):</span>
+      <span class="c1"># [B, S, Q]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+        <span class="n">new_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inputs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">:,</span> <span class="p">:]</span>
+
+    <span class="c1"># [B, S, N, H]: Project input vectors into key space.</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">new_inputs</span><span class="p">)</span>
+
+    <span class="c1"># [B, S, N, H]: Project input vectors into value space.</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">new_inputs</span><span class="p">)</span>
+
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">new_inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span></div>
+
+<div class="viewcode-block" id="LocalSelfAttention._StreamStepStaticComputeKeyValue3d"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValue3d">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStaticComputeKeyValue3d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes key/value tensors in use_3d_recurrent_state mode.</span>
+
+<span class="sd">    This mode treats state like a circular buffer, and uses scatter_nd_update</span>
+<span class="sd">    to update that buffer. This in-place update may be cheaper than using</span>
+<span class="sd">    tf.concat.</span>
+
+<span class="sd">    (Don&#39;t use this method when in minimize_state_size mode, you want the</span>
+<span class="sd">    _StreamStepStaticComputeKeyValueMinimal even if you&#39;re using</span>
+<span class="sd">    use_3d_recurrent_state mode)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: The theta NestedMap for this layer.</span>
+<span class="sd">      indices: Locations to store new recurrent state in the circular buffer</span>
+<span class="sd">        when in 3d mode.</span>
+<span class="sd">      inputs: [B, Q, D]: The inputs for this step, note that Q&gt;=1.</span>
+<span class="sd">      state0: The recurrent state.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      key: [B, S, N, H]: Queries projected into key space.</span>
+<span class="sd">      value: [B, S, N, H]: Queries projected into value space.</span>
+<span class="sd">      state1: Updated recurrent state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDimensions</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="n">state0</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span>
+                                   <span class="p">[</span><span class="n">dims</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">n</span> <span class="o">*</span> <span class="n">dims</span><span class="o">.</span><span class="n">h</span><span class="p">])</span>
+    <span class="n">state0</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">get_next_state</span><span class="p">(</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
+      <span class="n">next_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="c1"># [B, S, N, H]</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">next_state</span><span class="p">,</span> <span class="p">[</span><span class="n">dims</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">h</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">next_state</span>
+
+    <span class="c1"># [B, Q, N * H]</span>
+    <span class="n">incr_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+        <span class="s1">&#39;DH,BTD-&gt;BTH&#39;</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">n</span> <span class="o">*</span> <span class="n">dims</span><span class="o">.</span><span class="n">h</span><span class="p">]),</span>
+        <span class="n">inputs</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># [B, Q, N * H]</span>
+    <span class="n">incr_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+        <span class="s1">&#39;DH,BTD-&gt;BTH&#39;</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">w</span><span class="p">,</span>
+                   <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">n</span> <span class="o">*</span> <span class="n">dims</span><span class="o">.</span><span class="n">h</span><span class="p">]),</span>
+        <span class="n">inputs</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># [B, S, N, H], [B, S, N * H]</span>
+    <span class="n">key</span><span class="p">,</span> <span class="n">next_key</span> <span class="o">=</span> <span class="n">get_next_state</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">incr_key</span><span class="p">)</span>
+    <span class="c1"># [B, S, N, H], [B, S, N * H]</span>
+    <span class="n">value</span><span class="p">,</span> <span class="n">next_value</span> <span class="o">=</span> <span class="n">get_next_state</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">incr_value</span><span class="p">)</span>
+
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">next_key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">next_value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span></div>
+
+<div class="viewcode-block" id="LocalSelfAttention._StreamStepStaticComputeKeyValueClassic"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValueClassic">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStaticComputeKeyValueClassic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes key/value tensors in classic mode.</span>
+
+<span class="sd">    In this mode we store projected key/value tensors from previous</span>
+<span class="sd">    steps in the state, and create new key/value tensors using tf.concat.</span>
+
+<span class="sd">    Use this mode if memory transfer is cheap and computation is expensive.</span>
+<span class="sd">    (Although 3D mode may also be interesting in that case)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: The theta NestedMap for this layer.</span>
+<span class="sd">      inputs: [B, Q, D]: The query for this step, note that Q&gt;=1.</span>
+<span class="sd">      state0: The recurrent state.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      key: [B, S, N, H]: Queries projected into key space.</span>
+<span class="sd">      value: [B, S, N, H]: Queries projected into value space.</span>
+<span class="sd">      state1: Updated recurrent state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDimensions</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">state0</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">dims</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">h</span><span class="p">])</span>
+    <span class="n">state0</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
+
+    <span class="c1"># [B, Q, N, H]</span>
+    <span class="n">incr_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="c1"># [B, Q, N, H]</span>
+    <span class="n">incr_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+    <span class="c1"># [B, S, N, H]</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">incr_key</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="c1"># [B, S, N, H]</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">incr_value</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span></div>
+
+<div class="viewcode-block" id="LocalSelfAttention._StreamStepStaticComputeKeyValue"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValue">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStaticComputeKeyValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes key/value tensors.</span>
+
+<span class="sd">    This method combines the new input for this step with previous</span>
+<span class="sd">    state to generate key/value tensors for attention computation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: The theta NestedMap for this layer.</span>
+<span class="sd">      inputs: [B, Q, D]: The input for this step, note that Q&gt;=1.</span>
+<span class="sd">      paddings: A 0/1 valued tensor of shape [B, Q].</span>
+<span class="sd">      state0: The recurrent state.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      key: [B, S, N, H]: Queries projected into key space.</span>
+<span class="sd">      value: [B, S, N, H]: Queries projected into value space.</span>
+<span class="sd">      state1: Updated recurrent state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDimensions</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="n">indices</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+      <span class="c1"># The following computes locations to update in the circular buffer.</span>
+      <span class="c1"># [b, 1]</span>
+      <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">dims</span><span class="o">.</span><span class="n">b</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="c1"># [b, q]</span>
+      <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">q</span><span class="p">])</span>
+      <span class="c1"># [1, q]</span>
+      <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">dims</span><span class="o">.</span><span class="n">q</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="c1"># [b, q]</span>
+      <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="p">[</span><span class="n">dims</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="c1"># [b, q]</span>
+      <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">cols</span> <span class="o">+</span> <span class="n">state0</span><span class="o">.</span><span class="n">circular_tail</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+      <span class="c1"># [b, q, 2]</span>
+      <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">minimize_state_size</span><span class="p">:</span>
+      <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticComputeKeyValueMinimal</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+      <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticComputeKeyValue3d</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticComputeKeyValueClassic</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
+
+    <span class="c1"># paddings</span>
+    <span class="c1"># [B, S]. 1s are masked positions.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+      <span class="n">new_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span>
+                                              <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">new_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">:]</span>
+
+    <span class="c1"># [B, 1]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
+      <span class="n">state1</span><span class="o">.</span><span class="n">circular_tail</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">circular_tail</span> <span class="o">+</span> <span class="n">dims</span><span class="o">.</span><span class="n">q</span><span class="p">,</span>
+                                              <span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">state1</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="n">new_masks</span>
+    <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span></div>
+
 <div class="viewcode-block" id="LocalSelfAttention._StreamStepStaticLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticLength">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStaticLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;query_vec length is staticly known.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="c1"># Sanity checks.</span>
-    <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="n">s</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span>
-    <span class="n">b</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDimensions</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">dims</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">dims</span><span class="o">.</span><span class="n">q</span>
     <span class="k">assert</span> <span class="n">query_vec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;query_vec.shape[1] must be static.&#39;</span>
     <span class="k">assert</span> <span class="n">q</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span><span class="p">,</span> <span class="p">(</span>
         <span class="sa">f</span><span class="s1">&#39;q: </span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s1"> should be less than p.inference_step_max_length: &#39;</span>
@@ -2066,12 +2313,6 @@
 
     <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
-      <span class="n">state0</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">state0</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">h</span><span class="p">])</span>
-    <span class="n">state0</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-                                     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">))</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;static_length&#39;</span><span class="p">):</span>
       <span class="c1"># query projection.</span>
@@ -2082,67 +2323,8 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">query_proj</span> <span class="o">*=</span> <span class="n">h</span><span class="o">**-</span><span class="mf">0.5</span>
 
-      <span class="k">def</span> <span class="nf">get_update_indices</span><span class="p">():</span>  <span class="c1"># pylint:disable=invalid-name</span>
-        <span class="c1"># The following computes locations to update in the circular buffer.</span>
-        <span class="c1"># [b, 1]</span>
-        <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="c1"># [b, q]</span>
-        <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
-        <span class="c1"># [1, q]</span>
-        <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="c1"># [b, q]</span>
-        <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-        <span class="c1"># [b, q]</span>
-        <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">cols</span> <span class="o">+</span> <span class="n">state0</span><span class="o">.</span><span class="n">tail</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
-        <span class="c1"># [b, q, 2]</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
-                          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)],</span>
-                         <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-      <span class="n">indices</span> <span class="o">=</span> <span class="n">get_update_indices</span><span class="p">()</span>
-
-      <span class="k">def</span> <span class="nf">get_next_state</span><span class="p">(</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>  <span class="c1"># pylint:disable=invalid-name</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
-          <span class="n">next_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-          <span class="c1"># [B, S, N, H]</span>
-          <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">next_state</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="c1"># [B, S, N, H]</span>
-          <span class="n">next_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">recur_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
-          <span class="n">outputs</span> <span class="o">=</span> <span class="n">next_state</span>
-        <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">next_state</span>
-
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
-        <span class="c1"># [B, Q, N * H]</span>
-        <span class="n">incr_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-            <span class="s1">&#39;DH,BTD-&gt;BTH&#39;</span><span class="p">,</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">h</span><span class="p">]),</span>
-            <span class="n">query_vec</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="c1"># [B, Q, N * H]</span>
-        <span class="n">incr_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-            <span class="s1">&#39;DH,BTD-&gt;BTH&#39;</span><span class="p">,</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">h</span><span class="p">]),</span>
-            <span class="n">query_vec</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># [B, Q, N, H]</span>
-        <span class="n">incr_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
-        <span class="c1"># [B, Q, N, H]</span>
-        <span class="n">incr_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
-
-      <span class="c1"># [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.</span>
-      <span class="n">key</span><span class="p">,</span> <span class="n">next_key</span> <span class="o">=</span> <span class="n">get_next_state</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">incr_key</span><span class="p">)</span>
-      <span class="c1"># [B, S, N, H], [B, S, N, H] or [B, S, N * H] if use_3d_recurrent_state.</span>
-      <span class="n">value</span><span class="p">,</span> <span class="n">next_value</span> <span class="o">=</span> <span class="n">get_next_state</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">incr_value</span><span class="p">)</span>
-      <span class="c1"># [B, 1]</span>
-      <span class="n">next_tail</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">tail</span> <span class="o">+</span> <span class="n">q</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
-
-      <span class="c1"># paddings</span>
-      <span class="c1"># [B, S]. 1s are masked positions.</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
-        <span class="n">new_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span>
-                                                <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">new_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="o">-</span><span class="n">s</span><span class="p">:]</span>
+      <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticComputeKeyValue</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
 
       <span class="c1"># [B, Q, N, T]</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamAttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
@@ -2160,7 +2342,8 @@
         <span class="n">distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">cols</span> <span class="o">-</span> <span class="n">rows</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
           <span class="c1"># [B, 1]</span>
-          <span class="n">head</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">tail</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">s</span><span class="p">)</span>
+          <span class="n">head</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">circular_tail</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                                  <span class="n">s</span><span class="p">)</span>
           <span class="c1"># [B, Q, S]</span>
           <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">s</span><span class="p">)</span>
@@ -2178,7 +2361,7 @@
           <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
               <span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># [B, 1, S]</span>
-        <span class="n">expanded_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">new_masks</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">expanded_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># [B, Q, S]</span>
         <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
@@ -2200,9 +2383,6 @@
       <span class="c1"># Post projection.</span>
       <span class="c1"># [B, Q, D]</span>
       <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
-
-      <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">key</span><span class="o">=</span><span class="n">next_key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">next_value</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">new_masks</span><span class="p">,</span> <span class="n">tail</span><span class="o">=</span><span class="n">next_tail</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state1</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention._StreamStepDynamicLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDynamicLength">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepDynamicLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>

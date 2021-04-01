@@ -1074,7 +1074,8 @@ its children layers.</p></li>
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamAttenLogits">
 <code class="sig-name descname"><span class="pre">_StreamAttenLogits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_proj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamAttenLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamAttenLogits" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Compute the dot products of a set of queries and a set of keys.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs">
@@ -1207,8 +1208,32 @@ updated_value_vec: [T, B, N, H].</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length">
-<code class="sig-name descname"><span class="pre">_zero_state_static_length</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._zero_state_static_length"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length_inputs">
+<code class="sig-name descname"><span class="pre">_zero_state_static_length_inputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._zero_state_static_length_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing</p>
+<ul class="simple">
+<li><p>inputs: [B, p.inference_step_max_length + p.left_context - 1, D]</p></li>
+<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
+Tensor where 0s are masked out positions.</p></li>
+<li><p>circular_tail: [B, 1], currently only exists if
+use_3d_recurrent_state is True, the tail pointer to key, value and
+paddings circular buffers.
+Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length_key_value">
+<code class="sig-name descname"><span class="pre">_zero_state_static_length_key_value</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._zero_state_static_length_key_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._zero_state_static_length_key_value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1223,8 +1248,9 @@ updated_value_vec: [T, B, N, H].</p>
 […, N * H] if p.use_3d_recurrent_state.</p></li>
 <li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
 Tensor where 0s are masked out positions.</p></li>
-<li><p>tail: [B, 1], currently only effective if use_3d_recurrent_state is
-True, the tail pointer to key, value and paddings circular buffers.
+<li><p>circular_tail: [B, 1], currently only effective if
+use_3d_recurrent_state is True, the tail pointer to key, value and
+paddings circular buffers.
 Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 </ul>
 </p>
@@ -1260,7 +1286,7 @@ Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">
-<code class="sig-name descname"><span class="pre">StreamStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">StreamStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
 <p>This differs from ExtendStep() which requires key/value seq lengths being
 known in advance.</p>
@@ -1268,7 +1294,7 @@ known in advance.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
-<li><p><strong>query_vec</strong> – A query vector of shape [B, Q, D].</p></li>
+<li><p><strong>inputs</strong> – An input vector of shape [B, Q, D].</p></li>
 <li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, Q].</p></li>
 <li><p><strong>state0</strong> – A NestedMap of the same structure as returned by zero_state().</p></li>
 </ul>
@@ -1288,6 +1314,130 @@ state1: Updated state of the same structure as state0.</p>
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.StreamStepAddSkipConnection">
 <code class="sig-name descname"><span class="pre">StreamStepAddSkipConnection</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_to_add</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.StreamStepAddSkipConnection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStepAddSkipConnection" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDimensions">
+<code class="sig-name descname"><span class="pre">_StreamStepDimensions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamStepDimensions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns dimensions commonly used in StreamStep methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>inputs</strong> – The query_vec parameter of StreamStep.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap containing n=num_heads, h=head_dimension,
+s=state_length, b=batch_size, q=num_queries_in_query_vec.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValueMinimal">
+<code class="sig-name descname"><span class="pre">_StreamStepStaticComputeKeyValueMinimal</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamStepStaticComputeKeyValueMinimal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValueMinimal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes key/value tensors in minimize_state_size mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – The theta NestedMap for this layer.</p></li>
+<li><p><strong>indices</strong> – Locations to store new recurrent state in the circular buffer
+when in 3d mode.</p></li>
+<li><p><strong>inputs</strong> – [B, Q, D]: The inputs for this step, note that Q&gt;=1.</p></li>
+<li><p><strong>state0</strong> – The recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, S, N, H]: Queries projected into key space.
+value: [B, S, N, H]: Queries projected into value space.
+state1: Updated recurrent state.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValue3d">
+<code class="sig-name descname"><span class="pre">_StreamStepStaticComputeKeyValue3d</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamStepStaticComputeKeyValue3d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValue3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes key/value tensors in use_3d_recurrent_state mode.</p>
+<p>This mode treats state like a circular buffer, and uses scatter_nd_update
+to update that buffer. This in-place update may be cheaper than using
+tf.concat.</p>
+<p>(Don’t use this method when in minimize_state_size mode, you want the
+_StreamStepStaticComputeKeyValueMinimal even if you’re using
+use_3d_recurrent_state mode)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – The theta NestedMap for this layer.</p></li>
+<li><p><strong>indices</strong> – Locations to store new recurrent state in the circular buffer
+when in 3d mode.</p></li>
+<li><p><strong>inputs</strong> – [B, Q, D]: The inputs for this step, note that Q&gt;=1.</p></li>
+<li><p><strong>state0</strong> – The recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, S, N, H]: Queries projected into key space.
+value: [B, S, N, H]: Queries projected into value space.
+state1: Updated recurrent state.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValueClassic">
+<code class="sig-name descname"><span class="pre">_StreamStepStaticComputeKeyValueClassic</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamStepStaticComputeKeyValueClassic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValueClassic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes key/value tensors in classic mode.</p>
+<p>In this mode we store projected key/value tensors from previous
+steps in the state, and create new key/value tensors using tf.concat.</p>
+<p>Use this mode if memory transfer is cheap and computation is expensive.
+(Although 3D mode may also be interesting in that case)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – The theta NestedMap for this layer.</p></li>
+<li><p><strong>inputs</strong> – [B, Q, D]: The query for this step, note that Q&gt;=1.</p></li>
+<li><p><strong>state0</strong> – The recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, S, N, H]: Queries projected into key space.
+value: [B, S, N, H]: Queries projected into value space.
+state1: Updated recurrent state.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValue">
+<code class="sig-name descname"><span class="pre">_StreamStepStaticComputeKeyValue</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._StreamStepStaticComputeKeyValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticComputeKeyValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes key/value tensors.</p>
+<p>This method combines the new input for this step with previous
+state to generate key/value tensors for attention computation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – The theta NestedMap for this layer.</p></li>
+<li><p><strong>inputs</strong> – [B, Q, D]: The input for this step, note that Q&gt;=1.</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [B, Q].</p></li>
+<li><p><strong>state0</strong> – The recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[B, S, N, H]: Queries projected into key space.
+value: [B, S, N, H]: Queries projected into value space.
+state1: Updated recurrent state.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>key</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticLength">
@@ -1380,7 +1530,8 @@ its children layers.</p></li>
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL._StreamAttenLogits">
 <code class="sig-name descname"><span class="pre">_StreamAttenLogits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL._StreamAttenLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL._StreamAttenLogits" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Compute the dot products of a set of queries and a set of keys.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogitsOneStep">
