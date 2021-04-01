@@ -1968,24 +1968,26 @@ logits[indices, i] is the maximum among logits[indices, :].</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.PadSequenceDimension">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></code><code class="sig-name descname"><span class="pre">PadSequenceDimension</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PadSequenceDimension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.PadSequenceDimension" title="Permalink to this definition">¶</a></dt>
-<dd><p>Pads x to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code> along the second dim.</p>
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></code><code class="sig-name descname"><span class="pre">PadSequenceDimension</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PadSequenceDimension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.PadSequenceDimension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pads x to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code> using <code class="xref py py-obj docutils literal notranslate"><span class="pre">pad_val</span></code> along the axis dim.</p>
 <p>Assumes <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> is a tensor with rank &gt;= 2, and it only pads <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">length</span></code>
-along the second dim. Explicitly sets the returned tensor shape to <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> if
-given. Raises runtime errors if x.shape[1] &gt; length or x.shape[i] != shape[i]
-where i != 1.</p>
+along the axis dim. Explicitly sets the returned tensor shape to <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> if
+given. Raises runtime errors if x.shape[axis] &gt; length or
+x.shape[i] != shape[i] where i != axis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> – the tensor to be padded with shape [batch, seq_len, …].</p></li>
+<li><p><strong>x</strong> – the tensor to be padded with axis dimension being the time. E.g., x
+usually has shape [batch, seq_len, …], when axis=1.</p></li>
 <li><p><strong>length</strong> – an int to specify the length to pad x to.</p></li>
 <li><p><strong>pad_val</strong> – an int or float used to pad x.</p></li>
 <li><p><strong>shape</strong> – an int array specifying the shape of the padded tensor if specified.</p></li>
+<li><p><strong>axis</strong> – The dimension that x will be padded, default to 1.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The padded tensor with shape [batch, seq_len, …], where
-ret[:, :seq_len, …] == x.</p>
+ret[:, :seq_len, …] == x, when axis=1, and similarly for other axes.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2164,20 +2166,21 @@ Should be 0 or 1. Assumes that batch_dim is 1 - seq_dim.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.ShiftLeft">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></code><code class="sig-name descname"><span class="pre">ShiftLeft</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ShiftLeft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.ShiftLeft" title="Permalink to this definition">¶</a></dt>
-<dd><p>Shifts the values in a tensor to the left along the time dimension (dim 1).</p>
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></code><code class="sig-name descname"><span class="pre">ShiftLeft</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ShiftLeft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.ShiftLeft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shifts the values in a tensor to the left along the axis dimension.</p>
 <p>The first shift_size values are dropped, and the tensor is padded on the
 right with pad_val.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tensor</strong> – the input tensor to modify shaped [batch, time, …].</p></li>
+<li><p><strong>tensor</strong> – the input tensor with the axis dim being time.</p></li>
 <li><p><strong>shift_size</strong> – the number of frames &gt;= 0 to shift.</p></li>
 <li><p><strong>pad_val</strong> – the value to pad on the right of the tensor.</p></li>
+<li><p><strong>axis</strong> – The dimension along which the tensor will be shifted, default to 1.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A left shifted tensor.</p>
+<dd class="field-even"><p>A left shifted tensor on dimension axis.</p>
 </dd>
 </dl>
 </dd></dl>

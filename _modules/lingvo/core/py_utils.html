@@ -3726,41 +3726,43 @@
   <span class="k">return</span> <span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vs</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">one_hot_vec</span><span class="p">))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="PadSequenceDimension"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadSequenceDimension">[docs]</a><span class="k">def</span> <span class="nf">PadSequenceDimension</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Pads x to `length` using `pad_val` along the second dim.</span>
+<div class="viewcode-block" id="PadSequenceDimension"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadSequenceDimension">[docs]</a><span class="k">def</span> <span class="nf">PadSequenceDimension</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Pads x to `length` using `pad_val` along the axis dim.</span>
 
 <span class="sd">  Assumes `x` is a tensor with rank &gt;= 2, and it only pads `x` to `length`</span>
-<span class="sd">  along the second dim. Explicitly sets the returned tensor shape to `shape` if</span>
-<span class="sd">  given. Raises runtime errors if x.shape[1] &gt; length or x.shape[i] != shape[i]</span>
-<span class="sd">  where i != 1.</span>
+<span class="sd">  along the axis dim. Explicitly sets the returned tensor shape to `shape` if</span>
+<span class="sd">  given. Raises runtime errors if x.shape[axis] &gt; length or</span>
+<span class="sd">  x.shape[i] != shape[i] where i != axis.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    x: the tensor to be padded with shape [batch, seq_len, ...].</span>
+<span class="sd">    x: the tensor to be padded with axis dimension being the time. E.g., x</span>
+<span class="sd">      usually has shape [batch, seq_len, ...], when axis=1.</span>
 <span class="sd">    length: an int to specify the length to pad x to.</span>
 <span class="sd">    pad_val: an int or float used to pad x.</span>
 <span class="sd">    shape: an int array specifying the shape of the padded tensor if specified.</span>
+<span class="sd">    axis: The dimension that x will be padded, default to 1.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The padded tensor with shape [batch, seq_len, ...], where</span>
-<span class="sd">    ret[:, :seq_len, ...] == x.</span>
+<span class="sd">    ret[:, :seq_len, ...] == x, when axis=1, and similarly for other axes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">rank</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span>
     <span class="k">assert</span> <span class="n">rank</span> <span class="o">&gt;=</span> <span class="mi">2</span>
-    <span class="n">slen</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rank</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">slen</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rank</span><span class="p">)[</span><span class="n">axis</span><span class="p">]</span>
     <span class="n">pad_len</span> <span class="o">=</span> <span class="n">length</span> <span class="o">-</span> <span class="n">slen</span>
     <span class="n">pad</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rank</span><span class="p">)]</span>
-    <span class="n">pad</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad_len</span>
+    <span class="n">pad</span><span class="p">[</span><span class="n">axis</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad_len</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">rank</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]):</span>
-      <span class="n">slen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">slen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="n">axis</span><span class="p">]</span>
     <span class="n">pad_len</span> <span class="o">=</span> <span class="n">length</span> <span class="o">-</span> <span class="n">slen</span>
-    <span class="n">pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">pad_len</span><span class="p">],</span> <span class="p">[</span><span class="n">rank</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="n">pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">([[</span><span class="n">axis</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">pad_len</span><span class="p">],</span> <span class="p">[</span><span class="n">rank</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pad</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_val</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">static_shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
-    <span class="n">static_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span>
+    <span class="n">static_shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span>
     <span class="n">x</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">static_shape</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">shape</span><span class="p">:</span>
@@ -4057,26 +4059,29 @@
   <span class="k">return</span> <span class="n">concat_inputs</span><span class="p">,</span> <span class="n">concat_paddings</span></div>
 
 
-<div class="viewcode-block" id="ShiftLeft"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ShiftLeft">[docs]</a><span class="k">def</span> <span class="nf">ShiftLeft</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">shift_size</span><span class="p">,</span> <span class="n">pad_val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Shifts the values in a tensor to the left along the time dimension (dim 1).</span>
+<div class="viewcode-block" id="ShiftLeft"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ShiftLeft">[docs]</a><span class="k">def</span> <span class="nf">ShiftLeft</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">shift_size</span><span class="p">,</span> <span class="n">pad_val</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Shifts the values in a tensor to the left along the axis dimension.</span>
 
 <span class="sd">  The first shift_size values are dropped, and the tensor is padded on the</span>
 <span class="sd">  right with pad_val.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    tensor: the input tensor to modify shaped [batch, time, ...].</span>
+<span class="sd">    tensor: the input tensor with the axis dim being time.</span>
 <span class="sd">    shift_size: the number of frames &gt;= 0 to shift.</span>
 <span class="sd">    pad_val: the value to pad on the right of the tensor.</span>
+<span class="sd">    axis: The dimension along which the tensor will be shifted, default to 1.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A left shifted tensor.</span>
+<span class="sd">    A left shifted tensor on dimension axis.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
-      <span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
-      <span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">shift_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="p">]):</span>
-    <span class="n">time</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">PadSequenceDimension</span><span class="p">(</span><span class="n">tensor</span><span class="p">[:,</span> <span class="n">shift_size</span><span class="p">:],</span> <span class="n">time</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">)</span></div>
+  <span class="n">rank</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+       <span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">shift_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]):</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)[</span><span class="n">axis</span><span class="p">]</span>
+    <span class="n">begin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">([[</span><span class="n">axis</span><span class="p">]],</span> <span class="p">[</span><span class="n">shift_size</span><span class="p">],</span> <span class="p">[</span><span class="n">rank</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">PadSequenceDimension</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">begin</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">rank</span><span class="p">),</span> <span class="n">time</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Retry"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Retry">[docs]</a><span class="k">def</span> <span class="nf">Retry</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
