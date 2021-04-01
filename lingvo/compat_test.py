@@ -16,9 +16,11 @@
 """Tests for compat.py."""
 
 import lingvo.compat as tf
-import tensorflow.compat.v1 as tf1
-import tensorflow.compat.v2 as tf2
-from tensorflow.python.framework import function  # pylint:disable=g-direct-tensorflow-import
+import tensorflow.compat.v1 as tf1  # TF_DIRECT_IMPORT
+import tensorflow.compat.v2 as tf2  # TF_DIRECT_IMPORT
+# pylint:disable=g-direct-tensorflow-import
+from tensorflow.python.tf2 import enabled as tf2_enabled
+# pylint:enable=g-direct-tensorflow-import
 
 
 class CompatTest(tf.test.TestCase):
@@ -26,7 +28,6 @@ class CompatTest(tf.test.TestCase):
   def testSomeTFSymbols(self):
     self.assertIsNotNone(tf.logging)
     self.assertIsNotNone(tf.flags)
-    self.assertIs(tf.Defun, function.Defun)
 
   def testDoesNotModifyTF2(self):
     modules_no_overwritten = [
@@ -47,6 +48,10 @@ class CompatTest(tf.test.TestCase):
     ]
     for modules in modules_no_overwritten:
       self.assertIsNot(modules[0], modules[1])
+
+  def testTF2Enabled(self):
+    self.assertTrue(tf2_enabled())
+    self.assertEqual(2, tf._major_api_version)
 
 
 if __name__ == '__main__':
