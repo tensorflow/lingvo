@@ -299,6 +299,12 @@
         <span class="s1">&#39;num_words&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="p">},</span> <span class="p">{}</span></div>
 
+<div class="viewcode-block" id="LanguageModel.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LanguageModel.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">predictions</span></div>
+
 <div class="viewcode-block" id="LanguageModel.AdjustGradients"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clip LSTM gradients.</span>
 
