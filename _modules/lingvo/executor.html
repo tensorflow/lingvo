@@ -178,6 +178,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">multitask_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">task_scheduler</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_embedding_layers</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_runner</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
@@ -436,12 +437,11 @@
             <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">save_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_load_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_LOAD_OPS</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">)</span>
-      <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_load_ops</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">load_ops</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">retrieve_ops</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
                         <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 

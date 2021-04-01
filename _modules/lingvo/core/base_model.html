@@ -214,7 +214,7 @@
 
   <span class="c1"># Remove TPU embedding variables since TPU embedding doesn&#39;t support EMA.</span>
   <span class="n">tpu_embedding_vars</span> <span class="o">=</span> <span class="p">(</span>
-      <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">TableVariables</span><span class="p">())</span>
+      <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">table_variables</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">tpu_embedding_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
         <span class="s1">&#39;Detected TPU embedding variables, and EMA does not apply to them. &#39;</span>
@@ -821,24 +821,22 @@
 
     <span class="c1"># If we are using Tpu Embeddings, generate the monolithic send</span>
     <span class="c1"># gradient op.</span>
-    <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">tpu_embedding_activations</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+    <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
+    <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">activations_by_task</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
       <span class="c1"># Lookup the per-task activations.</span>
-      <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
-      <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">tpu_embedding_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+      <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span>
+      <span class="n">tpu_embedding_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span>
 
       <span class="n">tpu_embedding_send_gradient_op</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeTpuEmbeddingGradients</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span>
           <span class="n">tpu_embedding_gradient_multiplier_schedule</span><span class="p">)</span>
       <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;tpu_embedding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_send_gradient_op</span>
 
-      <span class="n">tpu_embedding_summary_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_SUMMARY_TENSORS</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">tpu_embedding_summary_tensors</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">summary_tensors</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">raise_if_already_added</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">op_name</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">train_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>

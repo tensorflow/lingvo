@@ -185,8 +185,6 @@
 
   <span class="n">GRAPH_COLLECTION_NAME</span> <span class="o">=</span> <span class="s1">&#39;__tpu_embedding_collection&#39;</span>
 
-  <span class="c1"># TODO(laigd): move other collection definitions in py_utils.py here.</span>
-
 <div class="viewcode-block" id="TpuEmbeddingCollection.Get"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.Get">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the TpuEmbeddingCollection associated with the current graph.&quot;&quot;&quot;</span>
@@ -202,7 +200,25 @@
       <span class="k">return</span> <span class="n">singleton</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Maps table name to the list of variables for the corresponding table.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="c1"># The TPUEmbedding configuration.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Ops to load/retrieve embedding tables to/from HBM.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_load_ops_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Maps task name to the (feature_name -&gt; activation_tensor) dict for the</span>
+    <span class="c1"># corresponding task.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># List of (name, value, weight) tuples for summary.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary_tensors</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Schedule for the value that is used as TPU embedding gradient multiplier.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="TpuEmbeddingCollection.AddTableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddTableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add TPU embedding table variable list to the collection.&quot;&quot;&quot;</span>
@@ -216,14 +232,59 @@
       <span class="k">return</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_list</span></div>
 
-<div class="viewcode-block" id="TpuEmbeddingCollection.TableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.TableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">TableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">table_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a NestedMap mapping table names to variables.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span></div></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tpu_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span>
 
-<div class="viewcode-block" id="_AddTpuEmbeddingSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._AddTpuEmbeddingSummaryTensor">[docs]</a><span class="k">def</span> <span class="nf">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_SUMMARY_TENSORS</span><span class="p">,</span>
-                       <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">)))</span></div>
+  <span class="nd">@tpu_embedding</span><span class="o">.</span><span class="n">setter</span>
+  <span class="k">def</span> <span class="nf">tpu_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding</span>
+
+<div class="viewcode-block" id="TpuEmbeddingCollection.AddLoadOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddLoadOps">[docs]</a>  <span class="k">def</span> <span class="nf">AddLoadOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_ops</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_load_ops_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_ops</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">load_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_ops_list</span>
+
+<div class="viewcode-block" id="TpuEmbeddingCollection.AddRetrieveOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddRetrieveOps">[docs]</a>  <span class="k">def</span> <span class="nf">AddRetrieveOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retrieve_ops</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_ops</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">retrieve_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops_list</span>
+
+<div class="viewcode-block" id="TpuEmbeddingCollection.AddActivations"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddActivations">[docs]</a>  <span class="k">def</span> <span class="nf">AddActivations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">activations</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">:</span>
+      <span class="n">existing_activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">[</span><span class="n">task</span><span class="p">]</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Activations for task </span><span class="si">{</span><span class="n">task</span><span class="si">}</span><span class="s1"> already exists. &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;Existing activations: </span><span class="si">{</span><span class="n">existing_activations</span><span class="si">}</span><span class="s1">, &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;activations being added: </span><span class="si">{</span><span class="n">activations</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">activations</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">activations_by_task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span>
+
+<div class="viewcode-block" id="TpuEmbeddingCollection.AddSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddSummaryTensor">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummaryTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">)))</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">summary_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_tensors</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">gradient_multiplier_schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span>
+
+  <span class="nd">@gradient_multiplier_schedule</span><span class="o">.</span><span class="n">setter</span>
+  <span class="k">def</span> <span class="nf">gradient_multiplier_schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">multiplier_schedule</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="n">multiplier_schedule</span></div>
 
 
 <span class="c1"># TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.</span>
@@ -456,11 +517,13 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span> <span class="o">=</span> <span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">LearningRateFn</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
         <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
-      <span class="n">_AddTpuEmbeddingSummaryTensor</span><span class="p">(</span><span class="s1">&#39;tpu_embedding_lr/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">lr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddSummaryTensor</span><span class="p">(</span>
+          <span class="s1">&#39;tpu_embedding_lr/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">lr</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">lr</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_table&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -498,8 +561,8 @@
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
 
-    <span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
-                                                   <span class="n">embedding_table_vars</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
+                                                     <span class="n">embedding_table_vars</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="c1"># We don&#39;t want to add this for TrainerTpu, otherwise the identity</span>
@@ -735,6 +798,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gradient_multiplier_schedule&#39;</span><span class="p">,</span>
                      <span class="n">p</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span> <span class="o">=</span> <span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
@@ -770,15 +834,13 @@
           <span class="n">feature_to_config_dict</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">FeatureConfig</span><span class="p">(</span>
               <span class="n">table</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">max_sequence_length</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;adding load and retrieve ops to collection.&#39;</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_LOAD_OPS</span><span class="p">,</span> <span class="n">load_op_list</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">,</span>
-                           <span class="n">retrieve_op_list</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddLoadOps</span><span class="p">(</span><span class="n">load_op_list</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddRetrieveOps</span><span class="p">(</span><span class="n">retrieve_op_list</span><span class="p">)</span>
 
-      <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tpu_embedding_collection</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
-      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tpu_embedding_collection</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span>
+      <span class="k">if</span> <span class="n">tpu_embedding</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPUEmbedding API singleton already exists, reusing&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
         <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
@@ -795,29 +857,15 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">),</span>
             <span class="n">partition_strategy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">partition_strategy</span><span class="p">,</span>
             <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_GRADIENT_MULTIPLIER_SCHEDULE</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._TpuEmbLookup"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">_TpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;TPU Embedding lookup.&quot;&quot;&quot;</span>
     <span class="n">activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">get_activations</span><span class="p">()</span>
     <span class="n">task</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTaskCallScope</span><span class="p">()</span>
-    <span class="c1"># We expect either None (if this is the first call) or a single item in a</span>
-    <span class="c1"># list.</span>
-    <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
-      <span class="c1"># Create a dict from task -&gt; activations dict.</span>
-      <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="p">{}</span>
-      <span class="n">tpu_embedding_activations_dict</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">activations</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">,</span>
-                           <span class="n">tpu_embedding_activations_dict</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># This is a subsequent call, so the dictionary already exists.</span>
-      <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">tpu_embedding_activations_dict</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="n">activations</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddActivations</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">activations</span><span class="p">)</span>
 
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">activations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
