@@ -1908,6 +1908,19 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       ]
       self.assertAllClose(expected_x, real_x)
 
+  def testPadSequenceDimension_2D_axis0(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      x = tf.random.normal(shape=(3, 3), seed=123456)
+      length = 6
+      padded_x = py_utils.PadSequenceDimension(x, length, 0, axis=0)
+      self.assertEqual(padded_x.shape.as_list(), [6, 3])
+      real_x = self.evaluate(padded_x)
+      expected_x = [[0.38615, 2.975221, -0.852826],
+                    [-0.571142, -0.432439, 0.413158],
+                    [0.255314, -0.985647, 1.461641], [0., 0., 0.], [0., 0., 0.],
+                    [0., 0., 0.]]
+      self.assertAllClose(expected_x, real_x)
+
   def testPadSequenceDimension_2D_UnknownShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       shape = tf.placeholder(tf.int32)
@@ -1951,6 +1964,35 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       length = 4
       self.assertRaises(ValueError, py_utils.PadSequenceDimension, x, length, 0,
                         (32, 3, 4, 5))
+
+
+class ShiftLeftTest(test_utils.TestCase):
+
+  def testShiftLeft_2D_axis1(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      x = tf.random.normal(shape=(3, 3), seed=123456)
+      shift_size = 2
+      shifted_x = py_utils.ShiftLeft(x, shift_size, axis=1)
+      real_x = self.evaluate(shifted_x)
+      expected_x = [
+          [-0.852826, 0., 0.],
+          [0.413158, 0., 0.],
+          [1.461641, 0., 0.],
+      ]
+      self.assertAllClose(expected_x, real_x)
+
+  def testShiftLeft_4D_axis0(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
+      shift_size = 1
+      shifted_x = py_utils.ShiftLeft(x, shift_size, axis=0)
+      real_x = self.evaluate(shifted_x)
+      expected_x = [
+          [[[1.46164131, 0.12003655], [-0.0986772, 0.60644895]],
+           [[0.03092973, -0.96897006], [-1.27853918, -0.44018385]]],
+          [[[0., 0.], [0., 0.]], [[0., 0.], [0., 0.]]],
+      ]
+      self.assertAllClose(expected_x, real_x)
 
 
 class PadOrTrimToTest(test_utils.TestCase):

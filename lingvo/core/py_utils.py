@@ -3574,41 +3574,43 @@ def PiecewiseConstant(x_in, boundaries, values, vdtype):
   return Matmul(tf.reshape(vs, (1, -1)), tf.transpose(one_hot_vec))[0][0]
 
 
-def PadSequenceDimension(x, length, pad_val, shape=None):
-  """Pads x to `length` using `pad_val` along the second dim.
+def PadSequenceDimension(x, length, pad_val, shape=None, axis=1):
+  """Pads x to `length` using `pad_val` along the axis dim.
 
   Assumes `x` is a tensor with rank >= 2, and it only pads `x` to `length`
-  along the second dim. Explicitly sets the returned tensor shape to `shape` if
-  given. Raises runtime errors if x.shape[1] > length or x.shape[i] != shape[i]
-  where i != 1.
+  along the axis dim. Explicitly sets the returned tensor shape to `shape` if
+  given. Raises runtime errors if x.shape[axis] > length or
+  x.shape[i] != shape[i] where i != axis.
 
   Args:
-    x: the tensor to be padded with shape [batch, seq_len, ...].
+    x: the tensor to be padded with axis dimension being the time. E.g., x
+      usually has shape [batch, seq_len, ...], when axis=1.
     length: an int to specify the length to pad x to.
     pad_val: an int or float used to pad x.
     shape: an int array specifying the shape of the padded tensor if specified.
+    axis: The dimension that x will be padded, default to 1.
 
   Returns:
     The padded tensor with shape [batch, seq_len, ...], where
-    ret[:, :seq_len, ...] == x.
+    ret[:, :seq_len, ...] == x, when axis=1, and similarly for other axes.
   """
   if x.shape.ndims is not None:
     rank = x.shape.ndims
     assert rank >= 2
-    slen = GetShape(x, rank)[1]
+    slen = GetShape(x, rank)[axis]
     pad_len = length - slen
     pad = [[0, 0] for _ in range(rank)]
-    pad[1][1] = pad_len
+    pad[axis][1] = pad_len
   else:
     rank = tf.rank(x)
     with tf.control_dependencies([assert_greater_equal(rank, 2)]):
-      slen = tf.shape(x)[1]
+      slen = tf.shape(x)[axis]
     pad_len = length - slen
-    pad = tf.scatter_nd([[1, 1]], [pad_len], [rank, 2])
+    pad = tf.scatter_nd([[axis, 1]], [pad_len], [rank, 2])
   x = tf.pad(x, pad, constant_values=pad_val)
   if x.shape.ndims is not None and isinstance(length, int):
     static_shape = x.shape.as_list()
-    static_shape[1] = length
+    static_shape[axis] = length
     x.set_shape(static_shape)
 
   if shape:
@@ -3905,26 +3907,29 @@ def ConcatenatePaddedSequences(input0, input1, padding0, padding1, seq_dim=1):
   return concat_inputs, concat_paddings
 
 
-def ShiftLeft(tensor, shift_size, pad_val=0):
-  """Shifts the values in a tensor to the left along the time dimension (dim 1).
+def ShiftLeft(tensor, shift_size, pad_val=0, axis=1):
+  """Shifts the values in a tensor to the left along the axis dimension.
 
   The first shift_size values are dropped, and the tensor is padded on the
   right with pad_val.
 
   Args:
-    tensor: the input tensor to modify shaped [batch, time, ...].
+    tensor: the input tensor with the axis dim being time.
     shift_size: the number of frames >= 0 to shift.
     pad_val: the value to pad on the right of the tensor.
+    axis: The dimension along which the tensor will be shifted, default to 1.
 
   Returns:
-    A left shifted tensor.
+    A left shifted tensor on dimension axis.
   """
-  with tf.control_dependencies([
-      assert_greater_equal(tensor.shape.rank, 2),
-      assert_greater_equal(shift_size, 0)
-  ]):
-    time = GetShape(tensor)[1]
-    return PadSequenceDimension(tensor[:, shift_size:], time, pad_val)
+  rank = tensor.shape.rank
+  with tf.control_dependencies(
+      [assert_greater_equal(rank, 2),
+       assert_greater_equal(shift_size, 0)]):
+    time = GetShape(tensor)[axis]
+    begin = tf.scatter_nd([[axis]], [shift_size], [rank])
+    return PadSequenceDimension(
+        tf.slice(tensor, begin, size=[-1] * rank), time, pad_val, axis=axis)
 
 
 def Retry(*args, **kwargs):
