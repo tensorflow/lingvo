@@ -166,6 +166,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ('Base',),
       ('Reordered', 'conv_before_mhsa'),
       ('NoLConv', 'mhsa', False),
+      ('NoMhsa', 'conv', True),
       ('NoFFStart', 'mhsa_before_conv', True, False),
       ('Transformer', 'mhsa', False, False),
   )
@@ -576,6 +577,10 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'testcase_name': 'NoLConv',
           'layer_order': 'mhsa',
           'has_lconv': False
+      },
+      {
+          'testcase_name': 'NoMhsa',
+          'layer_order': 'conv'
       },
       {
           'testcase_name': 'NoFFStart',

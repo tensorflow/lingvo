@@ -480,8 +480,10 @@ class ConformerLayer(base_layer.BaseLayer):
         'relative_pos_emb_dim', None,
         'If use_relative_atten, sets the relative pos embedding dim.'
         'Default is the same as input_dim.')
-    p.Define('layer_order', 'mhsa_before_conv',
-             'Only mhsa, mhsa_before_conv or conv_before_mhsa are supported.')
+    p.Define(
+        'layer_order', 'mhsa_before_conv',
+        'Only mhsa, conv, mhsa_before_conv or conv_before_mhsa are '
+        'supported.')
 
     # lconv layer
     p.Define('kernel_size', None, 'Kernel size of 1d lightweight conv.')
@@ -546,7 +548,9 @@ class ConformerLayer(base_layer.BaseLayer):
                    fflayer_end_tpl=None,
                    trans_atten_tpl=None,
                    lconv_tpl=None):
-    assert all([input_dim, atten_num_heads, fflayer_hidden_dim])
+    assert all([input_dim, fflayer_hidden_dim])
+    if layer_order != 'conv':
+      assert atten_num_heads
     if layer_order == 'mhsa':
       assert not any([kernel_size, conv_norm_layer_tpl, lconv_tpl])
     else:
@@ -624,7 +628,9 @@ class ConformerLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    assert p.layer_order in ['mhsa', 'mhsa_before_conv', 'conv_before_mhsa']
+    assert p.layer_order in [
+        'mhsa', 'conv', 'mhsa_before_conv', 'conv_before_mhsa'
+    ]
     if p.is_causal:
       # None is different from 0, the former is 'infinite'.
       assert p.atten_right_context is not None, (
@@ -650,14 +656,15 @@ class ConformerLayer(base_layer.BaseLayer):
 
     # For local MHSA, is_masked is ignored, thus it's safe to set is_masked
     # based on p.is_causal, for global and local MHSA cases.
-    trans_atten_p = p.trans_atten_tpl.Copy().Set(
-        input_dim=p.input_dim,
-        num_heads=p.atten_num_heads,
-        is_masked=p.is_causal,
-        atten_dropout_prob=p.dropout_prob,
-        residual_dropout_prob=p.dropout_prob)
-    self._ConfigSelfAttenParams(trans_atten_p)
-    self.CreateChild('trans_atten', trans_atten_p)
+    if self.has_mhsa:
+      trans_atten_p = p.trans_atten_tpl.Copy().Set(
+          input_dim=p.input_dim,
+          num_heads=p.atten_num_heads,
+          is_masked=p.is_causal,
+          atten_dropout_prob=p.dropout_prob,
+          residual_dropout_prob=p.dropout_prob)
+      self._ConfigSelfAttenParams(trans_atten_p)
+      self.CreateChild('trans_atten', trans_atten_p)
 
     if self.has_lconv:
       lconv_p = p.lconv_tpl.Copy().Set(
@@ -674,6 +681,10 @@ class ConformerLayer(base_layer.BaseLayer):
   @property
   def has_lconv(self):
     return bool(self.params.lconv_tpl)
+
+  @property
+  def has_mhsa(self):
+    return bool('mhsa' in self.params.layer_order)
 
   @property
   def has_fflayer_start(self):
@@ -852,6 +863,8 @@ class ConformerLayer(base_layer.BaseLayer):
       inputs = in_nmap.features
       if p.layer_order == 'mhsa':
         inputs, paddings = self._SelfAtten(theta, inputs, paddings)
+      elif p.layer_order == 'conv':
+        inputs, paddings = self._LConv(theta, inputs, paddings)
       elif p.layer_order == 'mhsa_before_conv':
         inputs, paddings = self._SelfAtten(theta, inputs, paddings)
         inputs, paddings = self._LConv(theta, inputs, paddings)
@@ -893,11 +906,13 @@ class ConformerLayer(base_layer.BaseLayer):
   def zero_state(self, batch_size):
     if self.params.is_causal:
       lconv_state = py_utils.NestedMap()
+      atten_state = py_utils.NestedMap()
       if self.has_lconv:
         with tf.name_scope('lconv'):
           lconv_state = self.lconv.zero_state(batch_size)
-      with tf.name_scope('atten'):
-        atten_state = self.trans_atten.zero_state(batch_size)
+      if self.has_mhsa:
+        with tf.name_scope('atten'):
+          atten_state = self.trans_atten.zero_state(batch_size)
       return py_utils.NestedMap(
           lconv_state=lconv_state, atten_state=atten_state)
     else:
@@ -931,6 +946,9 @@ class ConformerLayer(base_layer.BaseLayer):
       if p.layer_order == 'mhsa':
         inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
             theta.trans_atten, inputs, paddings, state0.atten_state)
+      elif p.layer_order == 'conv':
+        inputs, paddings, lconv_state1 = self.lconv.StreamStep(
+            theta.lconv, inputs, paddings, state0.lconv_state)
       elif p.layer_order == 'mhsa_before_conv':
         inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
             theta.trans_atten, inputs, paddings, state0.atten_state)
@@ -944,6 +962,8 @@ class ConformerLayer(base_layer.BaseLayer):
             theta.trans_atten, inputs, paddings, state0.atten_state)
       if not self.has_lconv:
         lconv_state1 = py_utils.NestedMap()
+      if not self.has_mhsa:
+        atten_state1 = py_utils.NestedMap()
 
       in_nmap.features = inputs
       in_nmap.paddings = paddings
