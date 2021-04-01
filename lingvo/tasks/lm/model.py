@@ -147,6 +147,12 @@ class LanguageModel(base_model.BaseTask):
         'num_words': (num_words, 1)
     }, {}
 
+  def ComputePredictions(self, theta, input_batch):
+    return self.FPropTower(theta, input_batch)
+
+  def ComputeLoss(self, theta, predictions, input_batch):
+    return predictions
+
   def AdjustGradients(self, var_grad):
     """Clip LSTM gradients.
 
