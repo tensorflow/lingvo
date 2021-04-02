@@ -104,7 +104,6 @@ class Learner(base_layer.BaseLayer):
         '"weight": skip if the individual weight gradients are almost zero.')
     p.Define('scale_gradients', True,
              'Whether to apply gradients adjustment and scaling.')
-    # TODO(b/184208049): remove it when migration is done.
     p.Define('use_variable_scope', True,
              'Create children in tf.variable_scope.')
     return p
@@ -118,7 +117,7 @@ class Learner(base_layer.BaseLayer):
 
     # Don't create redundant variables in inference.
     is_training = not (self.do_eval or p.is_inference)
-    if is_training and p.grad_norm_tracker:
+    if p.grad_norm_tracker and is_training:
       self.CreateChild('grad_norm_tracker', p.grad_norm_tracker)
 
     # TODO(b/184208049): don't create optimizer and lr_schedule in inference.
@@ -130,13 +129,14 @@ class Learner(base_layer.BaseLayer):
     else:
       assert p.gradient_combiner is None
 
-  # TODO(b/184208049): remove it when migration is done.
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.InstantiateVariables()
     # outside of tf.variable_scope(p.name).
     p = self.params
     if not p.use_variable_scope:
-      if self.params.grad_norm_tracker:
+      # Note: multi learners fail in the legacy mode due to ValueError.
+      # b/184208049
+      if 'grad_norm_tracker' in self.children:
         self.grad_norm_tracker.InstantiateVariables()
       self.lr_schedule.InstantiateVariables()
       self.optimizer.InstantiateVariables()
@@ -487,6 +487,7 @@ _LEGACY_LEARNER_PARAMS = [
     'learning_rate',
     'lr_schedule',
     'optimizer',
+    'use_variable_scope',
 ]
 
 
