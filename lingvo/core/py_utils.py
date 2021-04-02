@@ -2250,15 +2250,15 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
       match = re.match(regexp, model_var.name)
       # Skip if var doesn't match the loading rules, or if it should be ignored.
       if not match:
-        tf.logging.debug('Loading rules do not match %s.', model_var)
+        tf.logging.debug('Loading rules do not match %s.', model_var.name)
         continue
       elif any(re.match(r, model_var.name) for r in var_ignore_rules):
-        tf.logging.debug('Ignoring %s from loading.', model_var)
+        tf.logging.debug('Ignoring %s from loading.', model_var.name)
         continue
       checkpoint_var_name = name_format % match.groups()
       if checkpoint_var_name.endswith(':0'):
         checkpoint_var_name = checkpoint_var_name[:-2]
-      tf.logging.info('Loading %s from %s with regexp: %s', model_var,
+      tf.logging.info('Loading %s from %s with regexp: %s', model_var.name,
                       checkpoint_var_name, regexp)
       vars_to_load.append((checkpoint_var_name, model_var))
       loaded = True
@@ -2266,7 +2266,7 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
     if not loaded:
       tf.logging.info(
           'Not loading model variable %s from %s as it does not match any rules'
-          ' or matches ignored', model_var, ckpt_path)
+          ' or matches ignored', model_var.name, ckpt_path)
   return vars_to_load
 
 
@@ -2291,10 +2291,13 @@ def OverrideVarsFromCheckpoint(all_vars, checkpoint_path,
   vars_to_load = _GetVarsToLoad(all_vars, variable_loading_rules,
                                 var_ignore_rules, checkpoint_path)
   if not vars_to_load:
-    raise ValueError(('Variable loading rules did not match any vars. '
-                      'All known: %r') % [v.name for v in all_vars])
-  load_var_names = sorted([v.name for _, v in vars_to_load])
-  tf.logging.info('Overriding vars from checkpoint: %r', load_var_names)
+    all_rules_text = '\n'.join(
+        [f'{k} --> {v}' for k, v in variable_loading_rules])
+    raise ValueError(f'Variable loading rules {all_rules_text}'
+                     f'did not match any of {len(all_vars)} vars.')
+  load_var_names = '\n'.join(sorted([v.name for _, v in vars_to_load]))
+  tf.logging.info(f'Overriding {len(vars_to_load)} vars from '
+                  f'{checkpoint_path}:\n{load_var_names}')
 
   savers = []
   while vars_to_load:
