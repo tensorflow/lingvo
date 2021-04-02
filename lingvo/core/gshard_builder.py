@@ -449,6 +449,15 @@ class MoEBuilder(builder.Base):
         name, sub_layers, num, use_repeat_layer, self._DecoderLayerInMapKeys,
         lambda n, p: self.DecoderLayer(n, p, conv_kernel_size=conv_kernel_size))
 
+  def Repeat(self, name, body, repeat=1, per_layer_vars=True):
+    """Wrapper to call builder_layers.RepeatLayer."""
+    return builder_layers.RepeatLayer.Params().Set(
+        name=name,
+        body=body,
+        repeat=repeat,
+        per_layer_vars=per_layer_vars,
+        unrolled_in_eval=True)
+
   def _LayerStack(self, name, sub_layers, num, use_repeat_layer, imap_keys,
                   layer_fn):
     assert 'segment_id' in imap_keys
@@ -487,8 +496,7 @@ class MoEBuilder(builder.Base):
           [key + '_split' for key in imap_keys[1:]])
       body_p = self._Graph('blocks_body', body_inputs.split(','),
                            body_outputs.split(','), *blocks)
-      repeat_p = builder_layers.RepeatLayer.Params().Set(
-          name='blocks', body=body_p, repeat=num, per_layer_vars=True)
+      repeat_p = self.Repeat(name='blocks', body=body_p, repeat=num)
       stack += [
           (body_inputs + '->' + body_outputs.replace('_split', '_split_out'),
            repeat_p)
@@ -2529,7 +2537,7 @@ class UniTransformer(base_model.BaseTask):
       assert gated_ffn_activation
       assert isinstance(b, RecurrentDenseBuilderParallelDecode)
       decoder_sub_layers = [
-          builder_layers.RepeatLayer.Params().Set(
+          b.Repeat(
               name='blocks',
               body=b.DecoderLayer('block', gated_ffn_activation,
                                   p.conv_kernel_size,

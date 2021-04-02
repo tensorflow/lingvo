@@ -17,6 +17,7 @@
 
 from lingvo import compat as tf
 from lingvo.core import builder_layers as layers
+from lingvo.core import cluster_factory
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
@@ -538,6 +539,31 @@ class BuilderLayerTest(test_utils.TestCase):
     # relu(act \dot w + b)
     for i in range(repeat):
       np_val = np.maximum(0, np.dot(np_val, w.body.w[i]) + w.body.b[i])
+    self.assertAllClose(np_val, y_val)
+
+  def testRepeatLayerUnrolledEval(self):
+    repeat = 100
+    with cluster_factory.ForTestingWorker(
+        mode='sync', job='trainer_client', do_eval=True):
+      tf.random.set_seed(24332)
+      p = layers.RepeatLayer.Params().Set(
+          name='recurrent',
+          repeat=repeat,
+          per_layer_vars=True,
+          unrolled_in_eval=True,
+          body=lingvo_layers.FCLayer.Params().Set(input_dim=2, output_dim=2))
+      l = p.Instantiate()
+      x = tf.random.normal(shape=[2, 2])
+      y = l.FPropDefaultTheta(x)
+      self.evaluate(tf.global_variables_initializer())
+      x_val, y_val, w = self.evaluate([x, y, l.vars])
+
+    np_val = x_val
+
+    # relu(act \dot w + b)
+    for i in range(repeat):
+      body_i = w['body_iter_%05d' % i]
+      np_val = np.maximum(0, np.dot(np_val, body_i.w) + body_i.b)
     self.assertAllClose(np_val, y_val)
 
   def testRepeatLayerNestedMapFPropInputSignature(self):

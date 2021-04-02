@@ -124,6 +124,7 @@ class RepeatLayer(base_layer.BaseLayer):
     p.Define('repeat', 1,
              'Repeat layers specified in \'body\' this many times.')
     p.Define('per_layer_vars', False, 'Use separate variables for each layer')
+    p.Define('unrolled_in_eval', False, 'Unroll the layers during eval.')
     return p
 
   def __init__(self, params):
@@ -158,8 +159,25 @@ class RepeatLayer(base_layer.BaseLayer):
           self.body.InstantiateVariables()
     super()._CreateChildrenVariables()
 
+  def _unrolled_fprop(self, theta, *args):
+    p = self.params
+    assert p.per_layer_vars
+    fprop_inputs = args
+    with tf.name_scope(p.name):
+      for layer_idx in range(p.repeat):
+        layer_theta = theta['body_iter_%05d' % layer_idx]
+        fprop_outputs = self._body.FProp(layer_theta, *fprop_inputs)
+        fprop_outputs = _ToTuple(fprop_outputs)
+        assert len(fprop_outputs) == len(fprop_inputs)
+        fprop_inputs = fprop_outputs
+      return fprop_outputs[0] if len(fprop_outputs) == 1 else fprop_outputs
+
   def FProp(self, theta, *args):
     p = self.params
+
+    if self.do_eval and p.unrolled_in_eval:
+      return self._unrolled_fprop(theta, *args)
+
     if p.per_layer_vars:
       all_iters = [theta['body_iter_%05d' % i] for i in range(p.repeat)]
       theta_stack = tf.nest.map_structure(lambda *t: tf.stack(list(t)),

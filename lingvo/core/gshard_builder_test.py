@@ -49,6 +49,23 @@ class FakeMoEBuilder(gshard_builder.MoEBuilder):
                        ('i,w->o', self._Fn('add', lambda x, w: x + w)))
 
 
+class _MoEBuilder(gshard_builder.MoEBuilder):
+
+  def _State(self, name, shape, dtype=None):
+    p = super()._State(name, shape, dtype)
+    p.use_xla_dynamic_update_slice = False
+    return p
+
+
+class _StateLayer(gshard_layers.StateLayer):
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.use_xla_dynamic_update_slice = False
+    return p
+
+
 class MoEBuilderTest(test_utils.TestCase):
 
   def testSharedEncBiasWeights(self):
@@ -78,28 +95,34 @@ class MoEBuilderTest(test_utils.TestCase):
       y_val = sess.run(y)
       self.assertAllEqual([3.] * model_dim, y_val)
 
-  def _testDecSelfAttentionState(self):
+  def testRepeatLayerUnrolledState(self):
     batch_dim = 2
     length_dim = 4
     model_dim = 8
     key_value_dim = 8
     num_heads = 2
-
     g = tf.Graph()
     with g.as_default(), self.SetEval(True):
+      tf.random.set_seed(398847392)
       _ = py_utils.GetOrCreateGlobalStepVar()  # for DeterministicDropout
-      builder = gshard_builder.MoEBuilder.Params().Set(
+      builder = _MoEBuilder.Params().Set(
           num_devices=FLAGS.num_partitions,
-          dropout_rate=0.1,
+          dropout_rate=0.0,
           model_dim=model_dim,
           attention_key_value_dim=key_value_dim,
           attention_num_heads=num_heads)
       builder = builder.Instantiate()
-      p = builder.DecSelfAttention('dec_self_attention')
+      # Build a stack of two attention layers.
+      p = builder.DecoderLayerStack(
+          'decoder',
+          sub_layers=[builder.DecSelfAttention('atten')],
+          num=4,
+          use_repeat_layer=True)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       layer = p.Instantiate()
 
     with tf.Session(graph=g) as sess, self.SetEval(True):
+      np.random.seed(12345)
       inputs = np.random.normal(size=[batch_dim, length_dim, model_dim]).astype(
           np.float32)
       segment_id = np.zeros([batch_dim, length_dim], np.int32)
@@ -113,17 +136,22 @@ class MoEBuilderTest(test_utils.TestCase):
       encoder_segment_id[:, :] = 1
       encoder_segment_pos[:] = range(length_dim)
 
-      np_fprop_args = (inputs, segment_id, segment_pos, encoder_output,
-                       encoder_segment_id, encoder_segment_pos)
-
       sess.run(tf.global_variables_initializer())
 
-      fprop_args = map(tf.convert_to_tensor, np_fprop_args)
-
-      output1, _ = layer.FPropDefaultTheta(*fprop_args)
-      bias1 = layer._fprop._named_tensors['bias']
-      k_full1 = layer._fprop._named_tensors['k_full']
-      v_full1 = layer._fprop._named_tensors['v_full']
+      fprop_nmap = py_utils.NestedMap(
+          vec=tf.convert_to_tensor(inputs),
+          segment_id=tf.convert_to_tensor(segment_id),
+          segment_pos=tf.convert_to_tensor(segment_pos),
+          encoder_output=tf.convert_to_tensor(encoder_output),
+          encoder_segment_id=tf.convert_to_tensor(encoder_segment_id),
+          encoder_segment_pos=tf.convert_to_tensor(encoder_segment_pos),
+          aux_loss=tf.constant(0.0))
+      output1 = layer.FPropDefaultTheta(fprop_nmap).vec
+      # Get the bias, k, v states from those two attention layers.
+      layer_0 = layer.blocks.body_iter_00000.layer_000.atten
+      bias1 = layer_0._fprop._named_tensors['qq_bias']
+      k_full1 = layer_0._fprop._named_tensors['k_full']
+      v_full1 = layer_0._fprop._named_tensors['v_full']
 
       x1, b1, k1, v1 = sess.run([output1, bias1, k_full1, v_full1])
 
@@ -132,37 +160,42 @@ class MoEBuilderTest(test_utils.TestCase):
       self.assertAllEqual(x1, x1b)
 
       # batch-major state
-      state = gshard_layers.StateLayer.InitState(layer,
-                                                 [batch_dim, 1, length_dim])
+      state = _StateLayer.InitState(layer, [batch_dim, 1, length_dim])
 
+      # Increment the state one by one.
       for t in range(length_dim):
-        # slice decoder inputs, as if length_dim=1
-        np_fprop_args_t = (inputs[:, t:(t + 1)], segment_id[:, t:(t + 1)],
-                           segment_pos[:, t:(t + 1)], encoder_output,
-                           encoder_segment_id, encoder_segment_pos)
-        fprop_args_t = map(tf.convert_to_tensor, np_fprop_args_t)
-
         # run with sliced input args using theta with state ('incremental mode')
-        theta_with_state = gshard_layers.StateLayer.UpdateTheta(
-            layer, layer.theta, state, t)
+        theta_with_state = _StateLayer.UpdateTheta(layer, layer.theta, state, t)
         tgt_mask = np.zeros([batch_dim, 1, length_dim])
         tgt_mask[:, :, :(t + 1)] = 1
         tgt_mask = tf.convert_to_tensor(tgt_mask.astype(np.float32))
         gshard_layers.OverrideLayer.Set('dec_self_attention_bias',
                                         (tgt_mask - 1.0) * 1e9)
-        output2, _ = layer.FProp(theta_with_state, *fprop_args_t)
-        bias2 = layer._fprop._named_tensors['bias_full']
-        k_full2 = layer._fprop._named_tensors['k_full']
-        v_full2 = layer._fprop._named_tensors['v_full']
-        state = gshard_layers.StateLayer.UpdateState(layer, theta_with_state,
-                                                     state)
+        # slice decoder inputs, as if length_dim=1
+        fprop_nmap_t = py_utils.NestedMap(
+            vec=tf.convert_to_tensor(inputs[:, t:(t + 1)]),
+            segment_id=tf.convert_to_tensor(segment_id[:, t:(t + 1)]),
+            segment_pos=tf.convert_to_tensor(segment_pos[:, t:(t + 1)]),
+            encoder_output=tf.convert_to_tensor(encoder_output),
+            encoder_segment_id=tf.convert_to_tensor(encoder_segment_id),
+            encoder_segment_pos=tf.convert_to_tensor(encoder_segment_pos),
+            aux_loss=tf.constant(0.0))
+        output2 = layer.FProp(theta_with_state, fprop_nmap_t).vec
+        # Get the state slices.
+        bias2 = layer_0._fprop._named_tensors['bias_full']
+        k_full2 = layer_0._fprop._named_tensors['k_full']
+        v_full2 = layer_0._fprop._named_tensors['v_full']
+
+        state = _StateLayer.UpdateState(layer, theta_with_state, state)
 
         x2, b2, k2, v2 = sess.run([output2, bias2, k_full2, v_full2])
 
-        self.assertAllEqual(b1[:, t, :(t + 1)], b2[:, 0, :(t + 1)])
         self.assertAllClose(x1[:, t], x2[:, 0])
+        self.assertAllEqual(b1[:, t, :(t + 1)], b2[:, 0, :(t + 1)])
         self.assertAllClose(k1[:, :(t + 1)], k2[:, :(t + 1)])
         self.assertAllClose(v1[:, :(t + 1)], v2[:, :(t + 1)])
+      # Clear the OverrideLayer.
+      gshard_layers.OverrideLayer.Clear()
 
   def _CreateDynamicShapeInputs(self, batch_dim, length_dim, input_dim):
     inputs = tf.random.normal([batch_dim, length_dim, input_dim], seed=92837472)
