@@ -256,6 +256,9 @@
         <span class="s1">&#39;&quot;weight&quot;: skip if the individual weight gradients are almost zero.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale_gradients&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether to apply gradients adjustment and scaling.&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(b/184208049): remove it when migration is done.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_variable_scope&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Create children in tf.variable_scope.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -264,23 +267,31 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">:</span>
+
+    <span class="c1"># Don&#39;t create redundant variables in inference.</span>
+    <span class="n">is_training</span> <span class="o">=</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_training</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
+
+    <span class="c1"># TODO(b/184208049): don&#39;t create optimizer and lr_schedule in inference.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">loss_name</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_combiner</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gradient_combiner&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_combiner</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_combiner</span> <span class="ow">is</span> <span class="kc">None</span>
 
+  <span class="c1"># TODO(b/184208049): remove it when migration is done.</span>
 <div class="viewcode-block" id="Learner._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
     <span class="c1"># outside of tf.variable_scope(p.name).</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_variable_scope</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Learner.GetVarGrads"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.GetVarGrads">[docs]</a>  <span class="k">def</span> <span class="nf">GetVarGrads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
