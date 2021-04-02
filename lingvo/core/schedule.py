@@ -661,46 +661,44 @@ class DevBasedSchedule(BaseSchedule):
 
   def __init__(self, params):
     super().__init__(params)
-
+    self.SetVariableFree(False)
     p = self.params
+    self._metric_history = early_stop.MetricHistory(p.metric_history)
 
-    with tf.variable_scope(p.name):
-      wp = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Constant(1.0),
-          collections=['DevBasedSchedule_vars'],
-          dtype=tf.float32)
-      self._cur_factor = py_utils.CreateVariable(
-          'cur_factor', wp, trainable=False)
-      wp = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Constant(0),
-          collections=['DevBasedSchedule_vars'],
-          dtype=tf.int64)
-      self._ref_step = py_utils.CreateVariable('ref_step', wp, trainable=False)
-      self._metric_history = early_stop.MetricHistory(p.metric_history)
-      self._best_step = ops.best_step(self._metric_history.hist_file,
-                                      p.tolerance)
+  def _CreateLayerVariables(self):
+    p = self.params
+    wp = py_utils.WeightParams(
+        shape=[],
+        init=py_utils.WeightInit.Constant(1.0),
+        collections=['DevBasedSchedule_vars'],
+        dtype=tf.float32)
+    self.CreateVariable('cur_factor', wp, trainable=False)
+    wp = py_utils.WeightParams(
+        shape=[],
+        init=py_utils.WeightInit.Constant(0),
+        collections=['DevBasedSchedule_vars'],
+        dtype=tf.int64)
+    self.CreateVariable('ref_step', wp, trainable=False)
+    self._best_step = ops.best_step(self._metric_history.hist_file, p.tolerance)
 
   def Value(self):
     p = self.params
     with tf.name_scope(p.name):
-
       steps = self._best_step
       best_step = steps[0]
       last_step = steps[1]
 
-      ref_step = tf.maximum(self._ref_step, best_step)
-      f = self._cur_factor
+      ref_step = tf.maximum(self.theta.ref_step, best_step)
+      f = self.theta.cur_factor
 
       # Decay if no improvement within window.
       new_factor = tf.where(last_step - ref_step < p.window, f,
                             tf.maximum(p.min_factor, f * p.decay))
       # Update ref_step if we decayed.
       new_step = tf.where(tf.equal(new_factor, f), ref_step, last_step)
-      update_step = tf.assign(self._ref_step, new_step)
+      update_step = tf.assign(self.theta.ref_step, new_step)
       with tf.control_dependencies([update_step]):
-        return tf.assign(self._cur_factor, new_factor)
+        return tf.assign(self.theta.cur_factor, new_factor)
 
 
 class CosineSchedule(BaseSchedule):

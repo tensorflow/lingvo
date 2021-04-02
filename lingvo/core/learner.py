@@ -104,6 +104,9 @@ class Learner(base_layer.BaseLayer):
         '"weight": skip if the individual weight gradients are almost zero.')
     p.Define('scale_gradients', True,
              'Whether to apply gradients adjustment and scaling.')
+    # TODO(b/184208049): remove it when migration is done.
+    p.Define('use_variable_scope', True,
+             'Create children in tf.variable_scope.')
     return p
 
   def __init__(self, params):
@@ -112,23 +115,31 @@ class Learner(base_layer.BaseLayer):
 
     self._var_grads = None
     self._eval_metrics = {}
-    if p.grad_norm_tracker:
+
+    # Don't create redundant variables in inference.
+    is_training = not (self.do_eval or p.is_inference)
+    if is_training and p.grad_norm_tracker:
       self.CreateChild('grad_norm_tracker', p.grad_norm_tracker)
-    self.CreateChild('lr_schedule', p.lr_schedule)
+
+    # TODO(b/184208049): don't create optimizer and lr_schedule in inference.
     self.CreateChild('optimizer', p.optimizer)
+    self.CreateChild('lr_schedule', p.lr_schedule)
     if isinstance(p.loss_name, (list, tuple)):
       assert p.gradient_combiner
       self.CreateChild('gradient_combiner', p.gradient_combiner)
     else:
       assert p.gradient_combiner is None
 
+  # TODO(b/184208049): remove it when migration is done.
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.InstantiateVariables()
     # outside of tf.variable_scope(p.name).
-    if self.params.grad_norm_tracker:
-      self.grad_norm_tracker.InstantiateVariables()
-    self.lr_schedule.InstantiateVariables()
-    self.optimizer.InstantiateVariables()
+    p = self.params
+    if not p.use_variable_scope:
+      if self.params.grad_norm_tracker:
+        self.grad_norm_tracker.InstantiateVariables()
+      self.lr_schedule.InstantiateVariables()
+      self.optimizer.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def GetVarGrads(self):

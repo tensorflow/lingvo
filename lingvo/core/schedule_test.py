@@ -546,6 +546,9 @@ class LearningRateScheduleTest(test_utils.TestCase):
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
 
     lrs = p.Instantiate()
+    self.assertEqual(lrs.theta.cur_factor.name, 'LRSched/cur_factor/var:0')
+    self.assertEqual(lrs.theta.ref_step.name, 'LRSched/ref_step/var:0')
+
     mh = lrs._metric_history
     mh.params.local_filesystem = True
     with self.session():

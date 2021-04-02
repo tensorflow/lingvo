@@ -882,9 +882,11 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":layers",
         ":learner",
         ":optimizer",
         ":py_utils",
+        ":schedule",
         ":test_utils",
         "//lingvo:compat",
     ],
