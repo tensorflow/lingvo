@@ -104,8 +104,12 @@ class Learner(base_layer.BaseLayer):
         '"weight": skip if the individual weight gradients are almost zero.')
     p.Define('scale_gradients', True,
              'Whether to apply gradients adjustment and scaling.')
-    p.Define('use_variable_scope', True,
-             'Create children in tf.variable_scope.')
+    p.Define(
+        'learner_use_variable_scope', True,
+        'Create children of learner in tf.variable_scope. This may need '
+        'to be set to False for compatibility with the existing '
+        'checkpoints trained from legacy code. New models should always '
+        'set this to True.')
     return p
 
   def __init__(self, params):
@@ -133,7 +137,7 @@ class Learner(base_layer.BaseLayer):
     # Backwards compatibility: manually call child.InstantiateVariables()
     # outside of tf.variable_scope(p.name).
     p = self.params
-    if not p.use_variable_scope:
+    if not p.learner_use_variable_scope:
       # Note: multi learners fail in the legacy mode due to ValueError.
       # b/184208049
       if 'grad_norm_tracker' in self.children:
@@ -487,7 +491,7 @@ _LEGACY_LEARNER_PARAMS = [
     'learning_rate',
     'lr_schedule',
     'optimizer',
-    'use_variable_scope',
+    'learner_use_variable_scope',
 ]
 
 

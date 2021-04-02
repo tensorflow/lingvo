@@ -232,8 +232,12 @@ class BaseTask(base_layer.BaseLayer):
               'If True, try colocating gradients with the corresponding op.')
     tp.Define('scale_gradients', True,
               'Whether to apply gradients adjustment and scaling.')
-    tp.Define('use_variable_scope', True,
-              'Create children of learner in tf.variable_scope.')
+    tp.Define(
+        'learner_use_variable_scope', True,
+        'Create children of learner in tf.variable_scope. This may need '
+        'to be set to False for compatibility with the existing '
+        'checkpoints trained from legacy code. New models should always '
+        'set this to True.')
     # LINT.ThenChange(learner.py)
     p.Define('eval', hyperparams.Params(),
              'Params to control how this task should be evaled.')
