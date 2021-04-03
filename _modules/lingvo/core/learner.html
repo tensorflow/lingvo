@@ -256,8 +256,12 @@
         <span class="s1">&#39;&quot;weight&quot;: skip if the individual weight gradients are almost zero.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale_gradients&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether to apply gradients adjustment and scaling.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_variable_scope&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-             <span class="s1">&#39;Create children in tf.variable_scope.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;learner_use_variable_scope&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Create children of learner in tf.variable_scope. This may need &#39;</span>
+        <span class="s1">&#39;to be set to False for compatibility with the existing &#39;</span>
+        <span class="s1">&#39;checkpoints trained from legacy code. New models should always &#39;</span>
+        <span class="s1">&#39;set this to True.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -285,7 +289,7 @@
     <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
     <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_variable_scope</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">learner_use_variable_scope</span><span class="p">:</span>
       <span class="c1"># Note: multi learners fail in the legacy mode due to ValueError.</span>
       <span class="c1"># b/184208049</span>
       <span class="k">if</span> <span class="s1">&#39;grad_norm_tracker&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
@@ -639,7 +643,7 @@
     <span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span>
     <span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span>
     <span class="s1">&#39;optimizer&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;use_variable_scope&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;learner_use_variable_scope&#39;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
