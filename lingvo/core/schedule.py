@@ -726,7 +726,6 @@ class CosineSchedule(BaseSchedule):
   def Value(self):
     p = self.params
     assert p.total_steps > 0
-    assert p.initial_value > p.final_value
     with tf.name_scope(p.name):
       decay_gap = p.initial_value - p.final_value
       return p.final_value + 0.5 * decay_gap * (1 + tf.cos(math.pi * tf.minimum(
