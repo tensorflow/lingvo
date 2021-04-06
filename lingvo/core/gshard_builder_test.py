@@ -106,6 +106,7 @@ class MoEBuilderTest(test_utils.TestCase):
       tf.random.set_seed(398847392)
       _ = py_utils.GetOrCreateGlobalStepVar()  # for DeterministicDropout
       builder = _MoEBuilder.Params().Set(
+          deterministic_dropout=True,
           num_devices=FLAGS.num_partitions,
           dropout_rate=0.0,
           model_dim=model_dim,
@@ -296,6 +297,7 @@ class MoEBuilderTest(test_utils.TestCase):
     d_kv = 2
     d_ff = 8
     builder = gshard_builder.DenseBuilder.Params().Set(
+        deterministic_dropout=True,
         dtype=tf.float32,
         relative_attention_type='bias',
         model_dim=model_dim,

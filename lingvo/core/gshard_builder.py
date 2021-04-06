@@ -461,6 +461,8 @@ class MoEBuilder(builder.Base):
   def _LayerStack(self, name, sub_layers, num, use_repeat_layer, imap_keys,
                   layer_fn):
     assert 'segment_id' in imap_keys
+    if use_repeat_layer:
+      assert self.params.deterministic_dropout
     stack = []
     for key in imap_keys:
       stack.append(
@@ -930,16 +932,16 @@ class MoEBuilder(builder.Base):
     #
     # relative_bias_inc:
     # [batch?, length, heads, memory_length]
-    if p.relative_attention_use_universal_1d_position and \
-        p.inflate_universal_relative_bias_to_match_batch_dimension:
+    if (p.relative_attention_use_universal_1d_position and
+        p.inflate_universal_relative_bias_to_match_batch_dimension):
       assert relative_bucket_one_hot.shape.ndims == 4
       relative_bucket_one_hot = tf.tile(relative_bucket_one_hot,
                                         [batch_size, 1, 1, 1])
 
     relative_bias_inc = tf.einsum('HX,...LJX->...LHJ', relative_bias_weights,
                                   relative_bucket_one_hot)
-    if relative_bias_inc.shape.ndims == 3 and \
-        not p.inflate_universal_relative_bias_to_match_batch_dimension:
+    if (relative_bias_inc.shape.ndims == 3 and
+        not p.inflate_universal_relative_bias_to_match_batch_dimension):
       assert p.relative_attention_use_universal_1d_position
       relative_bias_inc = tf.expand_dims(relative_bias_inc, 0)
 
@@ -2150,6 +2152,7 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
         'proj_weight_hdim', 64,
         'weight hd_dims = [proj_weight_hdim, attention_key_value_dim]. '
         'Use None to disable micro variables.')
+    p.deterministic_dropout = True
     return p
 
   @property
@@ -2422,6 +2425,7 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
   def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
     """DecoderLayerStack with self attention and feedforward in parallel."""
     p = self.params
+    assert p.deterministic_dropout
     stack = [
         ('i.vec->inputs_split',
          self.MeshSplit('inputs_split', self._AdjustMSplit(p.blm_split, 2))),
@@ -2511,6 +2515,8 @@ class UniTransformer(base_model.BaseTask):
     super().__init__(params)
     p = self.params
 
+    if p.use_repeat_layer:
+      p.builder.deterministic_dropout = True
     b = p.builder.Instantiate()
 
     tgt_vocab_size = p.vocab_size
