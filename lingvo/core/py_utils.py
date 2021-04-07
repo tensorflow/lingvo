@@ -2293,7 +2293,7 @@ def OverrideVarsFromCheckpoint(all_vars, checkpoint_path,
   if not vars_to_load:
     all_rules_text = '\n'.join(
         [f'{k} --> {v}' for k, v in variable_loading_rules])
-    raise ValueError(f'Variable loading rules {all_rules_text}'
+    raise ValueError(f'Variable loading rules {all_rules_text} '
                      f'did not match any of {len(all_vars)} vars.')
   load_var_names = '\n'.join(sorted([v.name for _, v in vars_to_load]))
   tf.logging.info(f'Overriding {len(vars_to_load)} vars from '
