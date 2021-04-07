@@ -24,7 +24,6 @@ from lingvo.tasks.asr import encoder
 from lingvo.tasks.asr import frontend as asr_frontend
 from lingvo.tools import audio_lib
 
-
 DecoderTopK = decoder_metrics.DecoderTopK
 
 
@@ -122,7 +121,7 @@ class AsrModel(base_model.BaseTask):
       theta: A `.NestedMap` object containing variable values used to compute
         loss and metrics.
       input_batch: NestedMap containing input data in the current batch. Unused
-      here.
+        here.
 
     Returns:
       A copy of the decoder theta.
@@ -132,7 +131,7 @@ class AsrModel(base_model.BaseTask):
 
   def ComputePredictions(self, theta, input_batch):
     input_batch_src = input_batch.src
-    encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch_src)
+    encoder_outputs = self.FrontendAndEncoderFProp(theta, input_batch_src)
     tgt = self._GetDecoderTargets(input_batch)
     decoder_theta = self._MakeDecoderTheta(theta, input_batch)
     predictions = self.decoder.ComputePredictions(decoder_theta,
@@ -145,10 +144,7 @@ class AsrModel(base_model.BaseTask):
     decoder_theta = self._MakeDecoderTheta(theta, input_batch)
     return self.decoder.ComputeLoss(decoder_theta, predictions, tgt)
 
-  def _FrontendAndEncoderFProp(self,
-                               theta,
-                               input_batch_src,
-                               initial_state=None):
+  def FrontendAndEncoderFProp(self, theta, input_batch_src, initial_state=None):
     """FProps through the frontend and encoder.
 
     Args:
@@ -184,7 +180,7 @@ class AsrModel(base_model.BaseTask):
     p = self.params
     with tf.name_scope('decode'), tf.name_scope(p.name):
       with tf.name_scope('encoder'):
-        encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch.src)
+        encoder_outputs = self.FrontendAndEncoderFProp(theta, input_batch.src)
       with tf.name_scope('beam_search'):
         decoder_outs = self.decoder.BeamSearchDecodeWithTheta(
             theta.decoder, encoder_outputs)
