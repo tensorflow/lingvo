@@ -366,6 +366,8 @@
         <span class="s1">&#39;change the shape of conv variables. For checkpoint backward &#39;</span>
         <span class="s1">&#39;compatibility only, deprecated soon. If True, the variable shape &#39;</span>
         <span class="s1">&#39;of _LNConv will be based on model_dim_reshape_segment&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_no_scale&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Override Builder._LN with Builder._LNNoScale.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
@@ -1311,6 +1313,9 @@
 
 <div class="viewcode-block" id="MoEBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Overriding with bias-less layer norm.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ln_no_scale</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNNoScale</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._LNConv"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LNConv">[docs]</a>  <span class="k">def</span> <span class="nf">_LNConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">):</span>
@@ -1754,6 +1759,8 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
+    <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ln_no_scale</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;attempting to call self._LNInternal &#39;</span>
+                                         <span class="s1">&#39;instead of self._LNNoScale&#39;</span><span class="p">)</span>
     <span class="n">ln_weight_reshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span></div>
 
