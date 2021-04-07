@@ -16,6 +16,7 @@
 """Base classes for defining datasets."""
 
 import abc
+import copy
 import functools
 
 from typing import Callable, Dict, Optional, Union
@@ -84,43 +85,39 @@ class DatasetSpec(metaclass=abc.ABCMeta):
     pass
 
 
-# Pytype alias.
-Schema = Dict[str, Union[tf.io.FixedLenFeature, tf.io.FixedLenSequenceFeature]]
-
-# Size of TFRecord reader buffer, per file. (The TFRecordDataset default, 256KB,
-# is too small and makes TPU trainers input-bound.)
-_TFRECORD_READER_BUFFER_SIZE_BYTES = 64 * (1 << 20)  # 64 MiB
-
-
-class TFRecordDatasetSpec(DatasetSpec):
-  """Generic template for datasets stored in TFRecord files.
+class FileBasedDatasetSpec(DatasetSpec):
+  """Template for file-based datasets.
 
   `Read()` implements a typical tf.data pipeline that
-    - loads serialized TF examples from disk,
-    - extracts features from them using `tf.io.parse_example`, and
+    - loads serialized records from input files,
+    - extracts dict-format examples from them, and
     - applies an example-level transformation, e.g. to rename or reshape
       features.
 
-  Constructor arguments specify where the tfrecords are located (`split_paths`),
-  what features to extract (`schema`), and how to transform the resulting
-  examples (`transform`).
+  Constructor arguments specify where the files are located (`split_paths`)
+  and define how to read records from the files (`file_reader`), extract
+  examples from the records (`parser`), and transform the resulting examples
+  (`transform`).
   """
 
   def __init__(self,
                *,
                split_paths,
-               schema: Schema,
+               file_reader: Callable,
+               parser: Callable,
                transform: Optional[Callable] = None,
                label_fn: label_lib.LabelFnType,
                metadata: Optional[Metadata] = None):
-    """Creates an instance that reads examples from tfrecords at `split_paths`.
+    """Creates an instance that reads examples from files at `split_paths`.
 
     Args:
-      split_paths: Paths of the tfrecord files for each split, keyed by split
-        name. Each split can be specified as a file pattern or list of file
-        patterns (e.g. '/foo/ba*' or ['/foo/bar-*', '/foo/baz*']).
-      schema: Feature definitions for the `tf.train.Example`s in this dataset,
-        in the format expected by `tf.io.parse_example`.
+      split_paths: File paths for each split, keyed by split name. Each split
+        can be specified as a file pattern or list of file patterns, e.g.
+        '/foo/ba*' or ['/foo/bar-*', '/foo/baz*'].
+      file_reader: Callable that takes filenames => tf.data.Dataset (e.g.
+        tf.data.TFRecordDataset).
+      parser: Callable that converts raw file records into parsed examples
+        (e.g. `lambda t: tf.io.parse_example(t, features=...)`).
       transform: Optional transformation to apply to the parsed examples. If
         given, should be a function Dict[str, Tensor] -> Dict[str, Tensor].
       label_fn: Function that generates pairwise labels between batches of
@@ -128,7 +125,8 @@ class TFRecordDatasetSpec(DatasetSpec):
       metadata: `Metadata` object that describes examples in this dataset.
     """
     self._split_paths = dict(split_paths)
-    self._schema = schema
+    self._file_reader = file_reader
+    self._parser = parser
     self._label_fn = label_fn
     self._transform = transform
     self._meta = metadata or Metadata()
@@ -143,10 +141,10 @@ class TFRecordDatasetSpec(DatasetSpec):
            read_parallelism: int = 16) -> tf.data.Dataset:
     """Reads the specified `split` as a `tf.data.Dataset`.
 
-    Reads the tfrecords at the path configured for `split`, parses the examples,
+    Reads the files at the path configured for `split`, parses the examples,
     and optionally shuffles and batches them.
 
-    By default, the tfrecords path is taken from the `split_paths` passed to
+    By default, the file paths are taken from the `split_paths` passed to
     the constructor. Callers can optionally override this path by passing
     `input_filepattern` explicitly.
 
@@ -184,13 +182,11 @@ class TFRecordDatasetSpec(DatasetSpec):
         'num_examples=%d, num_epochs=%d', input_filepattern, batch_size,
         shuffle_buffer_size, num_examples, num_epochs)
 
-    per_file_dataset_factory = functools.partial(
-        tf.data.TFRecordDataset, buffer_size=_TFRECORD_READER_BUFFER_SIZE_BYTES)
     dataset = (
         tf.data.Dataset.list_files(input_filepattern,
                                    shuffle=shuffle_files).apply(
                                        tf.data.experimental.parallel_interleave(
-                                           per_file_dataset_factory,
+                                           self._file_reader,
                                            cycle_length=read_parallelism,
                                            sloppy=shuffle_files)))
 
@@ -200,9 +196,7 @@ class TFRecordDatasetSpec(DatasetSpec):
     if batch_size is not None:
       dataset = dataset.batch(batch_size, drop_remainder=True)
 
-    dataset = dataset.map(
-        functools.partial(tf.io.parse_example, features=self._schema),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.map(self._parser)
     if self._transform is not None:
       dataset = dataset.map(self._transform)
     return dataset
@@ -217,3 +211,51 @@ class TFRecordDatasetSpec(DatasetSpec):
           constants.Split.TRAIN, shuffle_buffer_size=0,
           read_parallelism=1).element_spec
     return self._meta
+
+
+# Pytype alias.
+Schema = Dict[str, Union[tf.io.FixedLenFeature, tf.io.FixedLenSequenceFeature]]
+
+# Size of TFRecord reader buffer, per file. (The TFRecordDataset default, 256KB,
+# is too small and makes TPU trainers input-bound.)
+_TFRECORD_READER_BUFFER_SIZE_BYTES = 64 * (1 << 20)  # 64 MiB
+
+
+class TFRecordDatasetSpec(FileBasedDatasetSpec):
+  """Base class for datasets stored in TFRecord files.
+
+  This is a specialization of `FileBasedDatasetSpec` for the case where input
+  files are TFRecords of `tf.train.Example` protos.
+  """
+
+  def __init__(self,
+               *,
+               split_paths,
+               schema: Schema,
+               transform: Optional[Callable] = None,
+               label_fn: label_lib.LabelFnType,
+               metadata: Optional[Metadata] = None):
+    """Creates an instance that reads examples from tfrecords at `split_paths`.
+
+    Args:
+      split_paths: Paths of the tfrecord files for each split, keyed by split
+        name. Each split can be specified as a file pattern or list of file
+        patterns (e.g. '/foo/ba*' or ['/foo/bar-*', '/foo/baz*']).
+      schema: Feature definitions for the `tf.train.Example`s in this dataset,
+        in the format expected by `tf.io.parse_example`.
+      transform: Optional transformation to apply to the parsed examples. If
+        given, should be a function Dict[str, Tensor] -> Dict[str, Tensor].
+      label_fn: Function that generates pairwise labels between batches of
+        queries and results read from this dataset.
+      metadata: `Metadata` object that describes examples in this dataset.
+    """
+    super().__init__(
+        split_paths=split_paths,
+        file_reader=functools.partial(
+            tf.data.TFRecordDataset,
+            buffer_size=_TFRECORD_READER_BUFFER_SIZE_BYTES),
+        parser=functools.partial(
+            tf.io.parse_example, features=copy.deepcopy(schema)),
+        transform=transform,
+        label_fn=label_fn,
+        metadata=metadata)
