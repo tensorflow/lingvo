@@ -168,7 +168,6 @@
 <span class="sd">&quot;&quot;&quot;Optimizers.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -781,20 +780,6 @@
   <span class="k">return</span> <span class="n">decay</span></div>
 
 
-<div class="viewcode-block" id="_ReduceRms"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer._ReduceRms">[docs]</a><span class="k">def</span> <span class="nf">_ReduceRms</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Compute mean square of x.&quot;&quot;&quot;</span>
-  <span class="n">denom</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">((</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
-  <span class="k">if</span> <span class="n">denom</span> <span class="o">&gt;</span> <span class="mf">1e+8</span><span class="p">:</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;reduce_rms </span><span class="si">%s</span><span class="s1"> denom=</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">denom</span><span class="p">)</span>
-    <span class="n">sq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="n">sq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">sq</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">sq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">sq</span><span class="p">)</span>
-    <span class="n">sq</span> <span class="o">=</span> <span class="n">sq</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">sq</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>  <span class="c1"># equiv. to reduce_mean</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sq</span><span class="p">)</span>
-
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span></div>
-
-
 <span class="c1"># Adaptation of mesh_tensorflow.optimize.Adafactor</span>
 <div class="viewcode-block" id="XLAShardingAdafactorOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactorOptimizer">[docs]</a><span class="k">class</span> <span class="nc">XLAShardingAdafactorOptimizer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adafactor optimizer for XLA sharding.&quot;&quot;&quot;</span>
@@ -891,7 +876,7 @@
 <span class="sd">      a Scalar</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-        <span class="n">_ReduceRms</span><span class="p">(</span><span class="n">var</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_epsilon2</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">ReduceRms</span><span class="p">(</span><span class="n">var</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_epsilon2</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="XLAShardingAdafactorOptimizer._create_slots"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactorOptimizer._create_slots">[docs]</a>  <span class="k">def</span> <span class="nf">_create_slots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">:</span>
@@ -997,7 +982,8 @@
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">clipping_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">),</span>
-            <span class="n">_ReduceRms</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">))</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">ReduceRms</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">))</span>
         <span class="n">x</span> <span class="o">/=</span> <span class="n">clipping_denom</span>
       <span class="n">cond</span> <span class="o">=</span> <span class="n">_Upd</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
       <span class="n">subtrahend</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">update_scale</span>
@@ -1091,7 +1077,8 @@
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">clipping_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">),</span>
-            <span class="n">_ReduceRms</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">))</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">ReduceRms</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_clipping_threshold</span><span class="p">,</span> <span class="n">grad_dtype</span><span class="p">))</span>
         <span class="n">x</span> <span class="o">/=</span> <span class="n">clipping_denom</span>
       <span class="n">subtrahend</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">update_scale</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beta1</span><span class="p">:</span>
