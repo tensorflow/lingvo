@@ -168,6 +168,7 @@
 <span class="sd">&quot;&quot;&quot;Base classes for defining datasets.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
@@ -236,43 +237,39 @@
     <span class="k">pass</span></div>
 
 
-<span class="c1"># Pytype alias.</span>
-<span class="n">Schema</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenSequenceFeature</span><span class="p">]]</span>
-
-<span class="c1"># Size of TFRecord reader buffer, per file. (The TFRecordDataset default, 256KB,</span>
-<span class="c1"># is too small and makes TPU trainers input-bound.)</span>
-<span class="n">_TFRECORD_READER_BUFFER_SIZE_BYTES</span> <span class="o">=</span> <span class="mi">64</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span><span class="p">)</span>  <span class="c1"># 64 MiB</span>
-
-
-<div class="viewcode-block" id="TFRecordDatasetSpec"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.TFRecordDatasetSpec">[docs]</a><span class="k">class</span> <span class="nc">TFRecordDatasetSpec</span><span class="p">(</span><span class="n">DatasetSpec</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Generic template for datasets stored in TFRecord files.</span>
+<div class="viewcode-block" id="FileBasedDatasetSpec"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.FileBasedDatasetSpec">[docs]</a><span class="k">class</span> <span class="nc">FileBasedDatasetSpec</span><span class="p">(</span><span class="n">DatasetSpec</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Template for file-based datasets.</span>
 
 <span class="sd">  `Read()` implements a typical tf.data pipeline that</span>
-<span class="sd">    - loads serialized TF examples from disk,</span>
-<span class="sd">    - extracts features from them using `tf.io.parse_example`, and</span>
+<span class="sd">    - loads serialized records from input files,</span>
+<span class="sd">    - extracts dict-format examples from them, and</span>
 <span class="sd">    - applies an example-level transformation, e.g. to rename or reshape</span>
 <span class="sd">      features.</span>
 
-<span class="sd">  Constructor arguments specify where the tfrecords are located (`split_paths`),</span>
-<span class="sd">  what features to extract (`schema`), and how to transform the resulting</span>
-<span class="sd">  examples (`transform`).</span>
+<span class="sd">  Constructor arguments specify where the files are located (`split_paths`)</span>
+<span class="sd">  and define how to read records from the files (`file_reader`), extract</span>
+<span class="sd">  examples from the records (`parser`), and transform the resulting examples</span>
+<span class="sd">  (`transform`).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="o">*</span><span class="p">,</span>
                <span class="n">split_paths</span><span class="p">,</span>
-               <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+               <span class="n">file_reader</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+               <span class="n">parser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
                <span class="n">transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                <span class="n">label_fn</span><span class="p">:</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">LabelFnType</span><span class="p">,</span>
                <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Metadata</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Creates an instance that reads examples from tfrecords at `split_paths`.</span>
+    <span class="sd">&quot;&quot;&quot;Creates an instance that reads examples from files at `split_paths`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      split_paths: Paths of the tfrecord files for each split, keyed by split</span>
-<span class="sd">        name. Each split can be specified as a file pattern or list of file</span>
-<span class="sd">        patterns (e.g. &#39;/foo/ba*&#39; or [&#39;/foo/bar-*&#39;, &#39;/foo/baz*&#39;]).</span>
-<span class="sd">      schema: Feature definitions for the `tf.train.Example`s in this dataset,</span>
-<span class="sd">        in the format expected by `tf.io.parse_example`.</span>
+<span class="sd">      split_paths: File paths for each split, keyed by split name. Each split</span>
+<span class="sd">        can be specified as a file pattern or list of file patterns, e.g.</span>
+<span class="sd">        &#39;/foo/ba*&#39; or [&#39;/foo/bar-*&#39;, &#39;/foo/baz*&#39;].</span>
+<span class="sd">      file_reader: Callable that takes filenames =&gt; tf.data.Dataset (e.g.</span>
+<span class="sd">        tf.data.TFRecordDataset).</span>
+<span class="sd">      parser: Callable that converts raw file records into parsed examples</span>
+<span class="sd">        (e.g. `lambda t: tf.io.parse_example(t, features=...)`).</span>
 <span class="sd">      transform: Optional transformation to apply to the parsed examples. If</span>
 <span class="sd">        given, should be a function Dict[str, Tensor] -&gt; Dict[str, Tensor].</span>
 <span class="sd">      label_fn: Function that generates pairwise labels between batches of</span>
@@ -280,12 +277,13 @@
 <span class="sd">      metadata: `Metadata` object that describes examples in this dataset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_split_paths</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">split_paths</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_file_reader</span> <span class="o">=</span> <span class="n">file_reader</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span> <span class="o">=</span> <span class="n">parser</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_label_fn</span> <span class="o">=</span> <span class="n">label_fn</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="o">=</span> <span class="n">transform</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">=</span> <span class="n">metadata</span> <span class="ow">or</span> <span class="n">Metadata</span><span class="p">()</span>
 
-<div class="viewcode-block" id="TFRecordDatasetSpec.Read"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.TFRecordDatasetSpec.Read">[docs]</a>  <span class="k">def</span> <span class="nf">Read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="FileBasedDatasetSpec.Read"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.FileBasedDatasetSpec.Read">[docs]</a>  <span class="k">def</span> <span class="nf">Read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
            <span class="n">split</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
            <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
            <span class="n">input_filepattern</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -295,10 +293,10 @@
            <span class="n">read_parallelism</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Reads the specified `split` as a `tf.data.Dataset`.</span>
 
-<span class="sd">    Reads the tfrecords at the path configured for `split`, parses the examples,</span>
+<span class="sd">    Reads the files at the path configured for `split`, parses the examples,</span>
 <span class="sd">    and optionally shuffles and batches them.</span>
 
-<span class="sd">    By default, the tfrecords path is taken from the `split_paths` passed to</span>
+<span class="sd">    By default, the file paths are taken from the `split_paths` passed to</span>
 <span class="sd">    the constructor. Callers can optionally override this path by passing</span>
 <span class="sd">    `input_filepattern` explicitly.</span>
 
@@ -336,13 +334,11 @@
         <span class="s1">&#39;num_examples=</span><span class="si">%d</span><span class="s1">, num_epochs=</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_filepattern</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
         <span class="n">shuffle_buffer_size</span><span class="p">,</span> <span class="n">num_examples</span><span class="p">,</span> <span class="n">num_epochs</span><span class="p">)</span>
 
-    <span class="n">per_file_dataset_factory</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span><span class="p">,</span> <span class="n">buffer_size</span><span class="o">=</span><span class="n">_TFRECORD_READER_BUFFER_SIZE_BYTES</span><span class="p">)</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span><span class="n">input_filepattern</span><span class="p">,</span>
                                    <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle_files</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
                                        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">parallel_interleave</span><span class="p">(</span>
-                                           <span class="n">per_file_dataset_factory</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_file_reader</span><span class="p">,</span>
                                            <span class="n">cycle_length</span><span class="o">=</span><span class="n">read_parallelism</span><span class="p">,</span>
                                            <span class="n">sloppy</span><span class="o">=</span><span class="n">shuffle_files</span><span class="p">)))</span>
 
@@ -352,14 +348,12 @@
     <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">drop_remainder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-        <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_example</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">),</span>
-        <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transform</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">dataset</span></div>
 
-<div class="viewcode-block" id="TFRecordDatasetSpec.Label"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.TFRecordDatasetSpec.Label">[docs]</a>  <span class="k">def</span> <span class="nf">Label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pairs</span><span class="p">:</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">ExamplePairs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="FileBasedDatasetSpec.Label"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.FileBasedDatasetSpec.Label">[docs]</a>  <span class="k">def</span> <span class="nf">Label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pairs</span><span class="p">:</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">ExamplePairs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_fn</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
@@ -369,6 +363,54 @@
           <span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TRAIN</span><span class="p">,</span> <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
           <span class="n">read_parallelism</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">element_spec</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span></div>
+
+
+<span class="c1"># Pytype alias.</span>
+<span class="n">Schema</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenSequenceFeature</span><span class="p">]]</span>
+
+<span class="c1"># Size of TFRecord reader buffer, per file. (The TFRecordDataset default, 256KB,</span>
+<span class="c1"># is too small and makes TPU trainers input-bound.)</span>
+<span class="n">_TFRECORD_READER_BUFFER_SIZE_BYTES</span> <span class="o">=</span> <span class="mi">64</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span><span class="p">)</span>  <span class="c1"># 64 MiB</span>
+
+
+<div class="viewcode-block" id="TFRecordDatasetSpec"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.dataset_spec.html#lingvo.tasks.milan.dataset_spec.TFRecordDatasetSpec">[docs]</a><span class="k">class</span> <span class="nc">TFRecordDatasetSpec</span><span class="p">(</span><span class="n">FileBasedDatasetSpec</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for datasets stored in TFRecord files.</span>
+
+<span class="sd">  This is a specialization of `FileBasedDatasetSpec` for the case where input</span>
+<span class="sd">  files are TFRecords of `tf.train.Example` protos.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="o">*</span><span class="p">,</span>
+               <span class="n">split_paths</span><span class="p">,</span>
+               <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+               <span class="n">transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">label_fn</span><span class="p">:</span> <span class="n">label_lib</span><span class="o">.</span><span class="n">LabelFnType</span><span class="p">,</span>
+               <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Metadata</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates an instance that reads examples from tfrecords at `split_paths`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      split_paths: Paths of the tfrecord files for each split, keyed by split</span>
+<span class="sd">        name. Each split can be specified as a file pattern or list of file</span>
+<span class="sd">        patterns (e.g. &#39;/foo/ba*&#39; or [&#39;/foo/bar-*&#39;, &#39;/foo/baz*&#39;]).</span>
+<span class="sd">      schema: Feature definitions for the `tf.train.Example`s in this dataset,</span>
+<span class="sd">        in the format expected by `tf.io.parse_example`.</span>
+<span class="sd">      transform: Optional transformation to apply to the parsed examples. If</span>
+<span class="sd">        given, should be a function Dict[str, Tensor] -&gt; Dict[str, Tensor].</span>
+<span class="sd">      label_fn: Function that generates pairwise labels between batches of</span>
+<span class="sd">        queries and results read from this dataset.</span>
+<span class="sd">      metadata: `Metadata` object that describes examples in this dataset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="n">split_paths</span><span class="o">=</span><span class="n">split_paths</span><span class="p">,</span>
+        <span class="n">file_reader</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span><span class="p">,</span>
+            <span class="n">buffer_size</span><span class="o">=</span><span class="n">_TFRECORD_READER_BUFFER_SIZE_BYTES</span><span class="p">),</span>
+        <span class="n">parser</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_example</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">schema</span><span class="p">)),</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+        <span class="n">label_fn</span><span class="o">=</span><span class="n">label_fn</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
