@@ -583,14 +583,22 @@ class BaseInputGenerator(base_layer.BaseLayer):
     enqueue_dict_per_core = [{} for _ in range(num_cores_per_host)]
     for key in tpu_emb_input_keys:
       feat = input_batch[key]
-      tpu_emb_feat_splitted = tf.split(feat, num_cores_per_host)
-      for core, split in enumerate(tpu_emb_feat_splitted):
-        # Dense to sparse. Note the assumption of a padding id.
-        sample_indices = tf.where(tf.not_equal(split, -1))
-        embedding_indices = tf.gather_nd(split, sample_indices)
-        enqueue_data = tpu_embedding_lib.EnqueueData(embedding_indices,
-                                                     sample_indices)
-        enqueue_dict_per_core[core][key] = enqueue_data
+
+      if isinstance(feat, tf.sparse.SparseTensor):
+        tpu_emb_feat_splitted = tf.sparse.split(
+            feat, num_cores_per_host, axis=0)
+        for core, split in enumerate(tpu_emb_feat_splitted):
+          enqueue_data = tpu_embedding_lib.EnqueueData.from_sparse_tensor(split)
+          enqueue_dict_per_core[core][key] = enqueue_data
+      else:
+        tpu_emb_feat_splitted = tf.split(feat, num_cores_per_host)
+        for core, split in enumerate(tpu_emb_feat_splitted):
+          # Dense to sparse. Note the assumption of a padding id.
+          sample_indices = tf.where(tf.not_equal(split, -1))
+          embedding_indices = tf.gather_nd(split, sample_indices)
+          enqueue_data = tpu_embedding_lib.EnqueueData(embedding_indices,
+                                                       sample_indices)
+          enqueue_dict_per_core[core][key] = enqueue_data
     return tpu_embedding.generate_enqueue_ops(
         enqueue_dict_per_core, mode_override=mode_override)
 
