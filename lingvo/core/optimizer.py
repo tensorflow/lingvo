@@ -16,7 +16,6 @@
 """Optimizers."""
 
 import copy
-import functools
 import re
 
 import lingvo.compat as tf
@@ -629,20 +628,6 @@ def _AdafactorDecayRateAdam(beta2):
   return decay
 
 
-def _ReduceRms(x):
-  """Compute mean square of x."""
-  denom = functools.reduce((lambda x, y: x * y), x.shape.as_list())
-  if denom > 1e+8:
-    tf.logging.info('reduce_rms %s denom=%d', x, denom)
-    sq = tf.math.square(x)
-    sq = tf.math.reduce_sum(sq, -1)
-    sq = tf.math.reduce_sum(sq)
-    sq = sq / tf.constant(denom, dtype=sq.dtype)  # equiv. to reduce_mean
-    return tf.math.sqrt(sq)
-
-  return tf.math.sqrt(tf.math.reduce_mean(tf.math.square(x)))
-
-
 # Adaptation of mesh_tensorflow.optimize.Adafactor
 class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
   """Adafactor optimizer for XLA sharding."""
@@ -739,7 +724,7 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
       a Scalar
     """
     return tf.math.maximum(
-        _ReduceRms(var), tf.constant(self._epsilon2, var.dtype))
+        py_utils.ReduceRms(var), tf.constant(self._epsilon2, var.dtype))
 
   def _create_slots(self, var_list):
     for var in var_list:
@@ -845,7 +830,8 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
       if self._clipping_threshold is not None:
         clipping_denom = tf.maximum(
             tf.constant(1.0, grad_dtype),
-            _ReduceRms(x) / tf.constant(self._clipping_threshold, grad_dtype))
+            py_utils.ReduceRms(x) /
+            tf.constant(self._clipping_threshold, grad_dtype))
         x /= clipping_denom
       cond = _Upd(cond, 'x', x)
       subtrahend = x * update_scale
@@ -939,7 +925,8 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
       if self._clipping_threshold is not None:
         clipping_denom = tf.maximum(
             tf.constant(1.0, grad_dtype),
-            _ReduceRms(x) / tf.constant(self._clipping_threshold, grad_dtype))
+            py_utils.ReduceRms(x) /
+            tf.constant(self._clipping_threshold, grad_dtype))
         x /= clipping_denom
       subtrahend = x * update_scale
       if self._beta1:

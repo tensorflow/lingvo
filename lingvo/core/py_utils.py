@@ -2410,8 +2410,8 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding,
    loss: The loss to backprop from.
    activation_dict: String feature -> embedding activations dict.
    tpu_embedding: TPUEmbedding instance.
-   gradient_multiplier_schedule: Values from this schedule will be multiplied
-     to the TPUEmbedding gradients.
+   gradient_multiplier_schedule: Values from this schedule will be multiplied to
+     the TPUEmbedding gradients.
   """
   # Scale the loss to account for the full batch size.
   shards = tpu_function.get_tpu_context().number_of_shards
@@ -3561,6 +3561,21 @@ def SumSquared(tensor_list):
 
 def SumAbs(tensor_list):
   return _TransformAndSum(tensor_list, tf.abs)
+
+
+def ReduceRms(x: tf.Tensor) -> tf.Tensor:
+  """Computes root mean square of tensor x with numerical stability."""
+  if not x.shape.is_fully_defined():
+    raise ValueError('Shape of x must be fully defined.')
+
+  denom = functools.reduce((lambda x, y: x * y), x.shape.as_list())
+  if denom <= 1e8:
+    return tf.math.sqrt(tf.math.reduce_mean(tf.math.square(x)))
+
+  tf.logging.info('reduce_rms %s denom=%d', x, denom)
+  sum_square_x = tf.math.reduce_sum(tf.math.reduce_sum(tf.math.square(x), -1))
+  avg_square_x = sum_square_x / tf.constant(denom, dtype=sum_square_x.dtype)
+  return tf.math.sqrt(avg_square_x)
 
 
 def PiecewiseConstant(x_in, boundaries, values, vdtype):

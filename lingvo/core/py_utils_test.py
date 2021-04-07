@@ -1028,6 +1028,25 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     x, y = Compute(np.array([[1, 5, 3, 4, 5], [1, 5, 3, 5, 0]]))  # Has dups.
     self.assertAllEqual(np.argmax(x, axis=-1), y)
 
+  @parameterized.named_parameters(
+      ('small_tensor', (2, 5, 10)),
+      ('big_tensor', (1000, 1000, 25)),
+  )
+  def testReduceRms(self, size):
+    x = np.ones(size) * 0.5
+    with self.session(graph=tf.Graph()):
+      x = tf.constant(x)
+      y = py_utils.ReduceRms(x)
+      y_val = self.evaluate(y)
+    self.assertAllClose(0.5, y_val, atol=1e-12)
+
+  def testReduceRmsNotFullyDefined(self):
+    with self.session(graph=tf.Graph()):
+      x = tf.placeholder(tf.float32, shape=(None, 5))
+      with self.assertRaisesRegex(ValueError,
+                                  'Shape of x must be fully defined.'):
+        py_utils.ReduceRms(x)
+
   def testPiecewiseConstant(self):
     boundaries = (1000, 2000, 3000)
     values = (1e-3, 2e-4, 3e-5, 4e-6)
