@@ -214,6 +214,8 @@ class MoEBuilder(builder.Base):
         'change the shape of conv variables. For checkpoint backward '
         'compatibility only, deprecated soon. If True, the variable shape '
         'of _LNConv will be based on model_dim_reshape_segment')
+    p.Define('ln_no_scale', False,
+             'Override Builder._LN with Builder._LNNoScale.')
     return p
 
   @property
@@ -1159,6 +1161,9 @@ class MoEBuilder(builder.Base):
 
   def _LN(self, name):
     """Overriding with bias-less layer norm."""
+    if self.params.ln_no_scale:
+      return self._LNNoScale(name)
+
     return self._LNInternal(name)
 
   def _LNConv(self, name, conv_kernel_size):
@@ -1602,6 +1607,8 @@ class DenseBuilder(MoEBuilder):
     if self._model_dim_reshape_segments is None:
       return super()._LN(name)
 
+    assert not self.params.ln_no_scale, ('attempting to call self._LNInternal '
+                                         'instead of self._LNNoScale')
     ln_weight_reshape = self._ReshapedModelDims()
     return self._LNInternal(name, ln_weight_reshape)
 
