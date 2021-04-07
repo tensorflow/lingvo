@@ -176,7 +176,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">frontend</span> <span class="k">as</span> <span class="n">asr_frontend</span>
 <span class="kn">from</span> <span class="nn">lingvo.tools</span> <span class="kn">import</span> <span class="n">audio_lib</span>
 
-
 <span class="n">DecoderTopK</span> <span class="o">=</span> <span class="n">decoder_metrics</span><span class="o">.</span><span class="n">DecoderTopK</span>
 
 
@@ -274,7 +273,7 @@
 <span class="sd">      theta: A `.NestedMap` object containing variable values used to compute</span>
 <span class="sd">        loss and metrics.</span>
 <span class="sd">      input_batch: NestedMap containing input data in the current batch. Unused</span>
-<span class="sd">      here.</span>
+<span class="sd">        here.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A copy of the decoder theta.</span>
@@ -284,7 +283,7 @@
 
 <div class="viewcode-block" id="AsrModel.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">input_batch_src</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span>
-    <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FrontendAndEncoderFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span>
+    <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FrontendAndEncoderFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span>
     <span class="n">tgt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDecoderTargets</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
     <span class="n">decoder_theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MakeDecoderTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
     <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">decoder_theta</span><span class="p">,</span>
@@ -297,10 +296,7 @@
     <span class="n">decoder_theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MakeDecoderTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">decoder_theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AsrModel._FrontendAndEncoderFProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._FrontendAndEncoderFProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FrontendAndEncoderFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                               <span class="n">theta</span><span class="p">,</span>
-                               <span class="n">input_batch_src</span><span class="p">,</span>
-                               <span class="n">initial_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrModel.FrontendAndEncoderFProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.FrontendAndEncoderFProp">[docs]</a>  <span class="k">def</span> <span class="nf">FrontendAndEncoderFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">,</span> <span class="n">initial_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;FProps through the frontend and encoder.</span>
 
 <span class="sd">    Args:</span>
@@ -336,7 +332,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;decode&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;encoder&#39;</span><span class="p">):</span>
-        <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FrontendAndEncoderFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
+        <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FrontendAndEncoderFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;beam_search&#39;</span><span class="p">):</span>
         <span class="n">decoder_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">BeamSearchDecodeWithTheta</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">)</span>
