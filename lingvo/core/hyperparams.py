@@ -43,6 +43,7 @@ def _QuoteString(s):
 
   Args:
     s: String to quote.
+
   Returns:
     Quotes string (possibly multiline).
   """
@@ -308,7 +309,7 @@ class Params:
 
     Args:
       name: The parameter name. Must only contain lowercase letters, numbers,
-          and underscores. Must start with lowercase letter.
+        and underscores. Must start with lowercase letter.
       default_value: Default value for this parameter. May be None.
       description: String description of this parameter.
 
@@ -317,8 +318,8 @@ class Params:
     """
     if self._immutable:
       raise TypeError('This Params instance is immutable.')
-    assert name is not None and isinstance(
-        name, str) and (re.match('^[a-z][a-z0-9_]*$', name) is not None)
+    assert name is not None and isinstance(name, str) and (re.match(
+        '^[a-z][a-z0-9_]*$', name) is not None)
     if name in self._params:
       raise AttributeError('Parameter %s is already defined' % name)
     self._params[name] = _Param(name, default_value, description)
@@ -348,8 +349,8 @@ class Params:
           curr = curr[list_index]
       except KeyError:
         raise AttributeError('.'.join(parts[:i + 1]))
-      assert isinstance(curr, Params), (
-          'Cannot introspect %s for %s' % (type(curr), '.'.join(parts[:i + 1])))
+      assert isinstance(curr, Params), ('Cannot introspect %s for %s' %
+                                        (type(curr), '.'.join(parts[:i + 1])))
     return curr, parts[-1]
 
   def Set(self, **kwargs):
@@ -642,6 +643,13 @@ class Params:
             all(isinstance(x, Params) for x in p)):
         for i, val in enumerate(p):
           Traverse(val, '%s[%d]' % (prefix, i), kv)
+      # TODO(jiahuiyu): Create single-direction DebugString for
+      # List[(str, Params)] pattern and remove redundancies.
+      elif (isinstance(p, (list, tuple)) and all(
+          isinstance(x, tuple) and len(x) == 2 and isinstance(x[0], str) and
+          isinstance(x[1], Params) for x in p)):
+        for val in p:
+          Traverse(val[1], '%s[%s]' % (prefix, val[0]), kv)
       elif isinstance(p, str):
         kv[prefix] = _QuoteString(p)
         types[prefix[1:]] = 'str'
@@ -667,6 +675,7 @@ class Params:
     Args:
       text: A text representation of params.
       type_overrides: Overrides for the types of the params.
+
     Raises:
       AttributeError: text contains invalid parameter key
       ValueError: text contains invalid parameter value, or the format is

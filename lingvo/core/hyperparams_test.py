@@ -314,6 +314,7 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('seqlen', [10, inner, 30], '')
     outer.Define('tuple', (1, None), '')
     outer.Define('list_of_params', [inner.Copy()], '')
+    outer.Define('list_of_tuple_params', [('inner1', inner.Copy())], '')
     outer.Define('class', TestClass1, '')
     outer.Define('plain_dict', {'a': 10}, '')
     outer.Define('complex_dict', {'a': 10, 'b': inner}, '')
@@ -342,6 +343,8 @@ inner.bar : 2.71
 inner.baz : 'hello'
 list_of_params[0].bar : 2.71
 list_of_params[0].baz : 'hello'
+list_of_tuple_params[inner1].bar : 2.71
+list_of_tuple_params[inner1].baz : 'hello'
 namedtuple : {'a': [42], 'b': 'float32'}
 namedtuple2 : {'allow_missing': False, 'default_value': 'NoneType', 'dtype': 'float32', 'shape': [42]}
 optional_bool : NoneType
@@ -387,6 +390,8 @@ inner.bar : 2.71
 inner.baz : 'world'
 list_of_params[0].bar : 2.72
 list_of_params[0].baz : 'hello'
+list_of_tuple_params[inner1].bar : 2.71
+list_of_tuple_params[inner1].baz : 'hello'
 namedtuple : {'a': 27, 'b': 'int32'}
 namedtuple2 : {'allow_missing': True, 'default_value': 'NoneType', 'dtype': 'int32', 'shape': [43]}
 optional_bool : True
