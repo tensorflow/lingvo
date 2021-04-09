@@ -15,6 +15,7 @@
 # ==============================================================================
 """Utilities for model quantization."""
 
+import enum
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -313,7 +314,7 @@ class QuantizableLayer(base_layer.BaseLayer):
   # after AQT weights quantization. But note that using it is likely to be less
   # performant than using ToAqt and FromAqt around matmul
   # (compare existing code).
-  def AqtWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
+  def FqWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
     """AQT Quantized weight FQ style.
 
     This is analogous to QWeight; either AqtWeight or QWeight should be identity
@@ -337,7 +338,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self._aqt_weights[w_name]
     if not qd:
       return w
-    return qd.AqtWeight(
+    return qd.FqWeight(
         w_name,
         w,
         feature_axis=feature_axis,
@@ -393,11 +394,56 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self._aqt_weights[w_name]
     return qd.FromAqtWeight(w_name, out) if qd else out
 
+  def ToAqtActActInputs(self,
+                        act_lhs,
+                        act_rhs,
+                        act_lhs_distribution,
+                        act_rhs_distribution,
+                        domain=None):
+    """Quantizes activations for (act * act) matmul AQT style.
+
+    This only scales, rounds and clips; resulting quantized acts would be
+    either integer ot integer emulated in float.
+
+    Args:
+      act_lhs: Left hand side activation.
+      act_rhs: Right hand side activation.
+      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution.
+      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution.
+      domain: Custom domain to match (defaults to 'default').
+
+    Returns:
+      Quantized activations corresponding to act_lhs and act_rhs.
+    """
+    qd = self.GetQDomain(domain)
+    if not qd:
+      return act_lhs, act_rhs
+
+    return qd.ToAqtActActInputs(act_lhs, act_rhs, act_lhs_distribution,
+                                act_rhs_distribution)
+
+  def FromAqtActActMatmul(self, output, domain=None):
+    """Rescales the output of (act*act) matmul for AQT style quantized acts.
+
+    Args:
+      output: Previously created w_name QWeight to quantize weight.
+      domain: Custom domain to match (defaults to 'default').
+
+    Returns:
+      Rescaled output.
+    """
+    qd = self.GetQDomain(domain)
+    if not qd:
+      return output
+
+    return qd.FromAqtActActMatmul(output)
+
   def GetQDomain(self, domain):
     """Gets the QDomain matching a given domain name.
 
     Args:
       domain: User specified domain name.
+
     Returns:
       The requested QDomain, the 'default' QDomain or None.
     """
@@ -901,7 +947,7 @@ class QDomain(base_layer.BaseLayer):
     """
     return w
 
-  def AqtWeight(self, w_name, w, feature_axis, expected_scale_shape):
+  def FqWeight(self, w_name, w, feature_axis, expected_scale_shape):
     """AQT Quantized weight FQ style .
 
     Args:
@@ -947,6 +993,37 @@ class QDomain(base_layer.BaseLayer):
     """
     del w_name
     return out
+
+  def ToAqtActActInputs(self, act_lhs, act_rhs, act_lhs_distribution,
+                        act_rhs_distribution):
+    """Quantizes activations for (act * act) matmul AQT style.
+
+    This only scales, rounds and clips; resulting quantized acts would be
+    either integer ot integer emulated in float.
+
+    Args:
+      act_lhs: Left hand side activation.
+      act_rhs: Right hand side activation.
+      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution.
+      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution.
+
+    Returns:
+      Quantized activations corresponding to act_lhs and act_rhs.
+    """
+    del act_lhs_distribution, act_rhs_distribution
+    return act_lhs, act_rhs
+
+  def FromAqtActActMatmul(self, output):
+    """Rescales output of dynamic matmul (act * act).
+
+    Args:
+      output: output, corresponds to tf.matmul(act_lhs, act_rhs)
+
+    Returns:
+      Rescaled output.
+    """
+
+    return output
 
   def QuantizeConstantRange(self, t, min_value, max_value):
     """Quantizes a true-constant range that is not used for arithmetic.
@@ -1348,3 +1425,15 @@ def _CopyShape(from_t, to_t):
   if isinstance(from_t, tf.Tensor) and isinstance(to_t, tf.Tensor):
     to_t.set_shape(from_t.shape)
   return to_t
+
+
+class InputDistribution(enum.Enum):
+  """Distribution type for the inputs for AqtQdomain.
+
+  Symmetric distribution is for signed inputs, here we quantize the inputs using
+  symmetric range around 0 i.e. in range [-max, max]. Weights are signed.
+  Positive distribution is for unsigned distribution, here we quantize the
+  inputs in range [0, max_val]
+  """
+  SYMMETRIC = enum.auto()
+  POSITIVE = enum.auto()

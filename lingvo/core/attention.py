@@ -908,7 +908,14 @@ class DotProductAttention(BaseAttentionLayer):
       # Calls batch_mat_mul since dim > 2 for per-instance matmul.
       # [source_batch, time, source_dim] * [source_batch, source_dim, n]
       # => [source_batch, time, n]
+      concated_source_vecs, query_vec = self.ToAqtActActInputs(
+          act_lhs=concated_source_vecs,
+          act_rhs=query_vec,
+          act_lhs_distribution=quant_utils.InputDistribution.SYMMETRIC,
+          act_rhs_distribution=quant_utils.InputDistribution.SYMMETRIC)
       logits = tf.matmul(concated_source_vecs, query_vec)
+      logits = self.FromAqtActActMatmul(logits)
+
       logits *= logit_scale
       # Exclude padding frames.
       # [source_batch, time] => [source_batch, time, 1]
@@ -995,7 +1002,15 @@ class DotProductAttention(BaseAttentionLayer):
       # => [source_batch, n, context_dim].
       concated_source_contexts = tf.identity(
           concated_source_contexts, name='concated_source_contexts')
+      probs, concated_source_contexts = self.ToAqtActActInputs(
+          act_lhs=probs,
+          act_rhs=concated_source_contexts,
+          act_lhs_distribution=quant_utils.InputDistribution.POSITIVE,
+          act_rhs_distribution=quant_utils.InputDistribution.SYMMETRIC)
+
       context_vector = tf.matmul(probs, concated_source_contexts)
+      context_vector = self.FromAqtActActMatmul(context_vector)
+
       # => [n, source_batch, context_dim].
       context_vector = tf.transpose(context_vector, [1, 0, 2])
       # => [n * source_batch, context_dim].
